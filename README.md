@@ -337,6 +337,48 @@ pprint(params)
  'rue_salvesen': 0.1401430558820631}
 ```
 
+## Rank Probability Scores
+
+Based on Constantinou and Fenton (2021), `penaltyblog` contains a function for calculating Rank Probability Scores for assessing home, draw, away probability forecasts.
+
+`predictions` is a list of home, draw, away probabilities and `observed` is the zero-based index for which outcome actually occurred.
+
+```python
+import penaltyblog as pb
+
+predictions = [
+    [1, 0, 0],
+    [0.9, 0.1, 0],
+    [0.8, 0.1, 0.1],
+    [0.5, 0.25, 0.25],
+    [0.35, 0.3, 0.35],
+    [0.6, 0.3, 0.1],
+    [0.6, 0.25, 0.15],
+    [0.6, 0.15, 0.25],
+    [0.57, 0.33, 0.1],
+    [0.6, 0.2, 0.2],
+]
+
+observed = [0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0]
+
+for p, o in zip(predictions, observed):
+    rps = pb.rps(p, o)
+    print(round(rps, 4))
+```
+
+```
+0.0
+0.005
+0.025
+0.1562
+0.1225
+0.185
+0.0913
+0.1113
+0.0975
+0.1
+```
+
 ## Download ELO rating from clubelo.com
 
 ### Download ELO ratings for a given date
