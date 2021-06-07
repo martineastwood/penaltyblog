@@ -190,3 +190,37 @@ probs.home_draw_away
 ```
 [0.5193995875820345, 0.3170596913687951, 0.1635407210315597]
 ```
+
+#### Total Goals
+```python
+probs.total_goals("over", 2.5)
+```
+
+```
+0.31911650768322447
+```
+
+```python
+probs.total_goals("under", 2.5)
+```
+
+```
+0.680883492299145
+```
+
+#### Asian Handicaps
+```python
+probs.asian_handicap("home", 1.5)
+```
+
+```
+0.2602616248461783
+```
+
+```python
+probs.total_goals("away", -1.5)
+```
+
+```
+0.7397383751361912
+```
