@@ -7,3 +7,4 @@ from .poisson import (
     RueSalvesenGoalModel,
     dixon_coles_weights,
 )
+from .footballdata import fetch_data, list_countries

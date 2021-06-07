@@ -6,6 +6,48 @@ The `penaltyblog` package contains code from [http://pena.lt/y/blog](http://pena
 
 `pip install penaltyblog`
 
+## Download Data from football-data.co.uk
+
+`penaltyblog` contains some helper functions for downloading data from [football-data.co.uk](http://football-data.co.uk).
+
+
+### List the countries available 
+
+```python
+import penaltyblog as pb
+pd.footballdata.list_countries()
+```
+
+```
+['belgium',
+ 'england',
+ 'france',
+ 'germany',
+ 'greece',
+ 'italy',
+ 'portugal',
+ 'scotland',
+ 'spain',
+ 'turkey']
+```
+
+### Fetch the data
+
+The first parameter is the country of interest, the second is the starting year of the season and the third paramater is the level of the division of interest, where `0` is the highest division (e.g. England's Premier League), `1` is the second highest (e.g. England's Championship) etc.
+
+```python
+df = pb.footballdata.fetch_data("England", 2018, 0)
+df[["Date", "HomeTeam", "AwayTeam", "FTHG", "FTAG"]].head()
+```
+
+|    | Date                | HomeTeam     | AwayTeam       |   FTHG |   FTAG |
+|---:|:--------------------|:-------------|:---------------|-------:|-------:|
+|  0 | 2018-08-10 00:00:00 | Man United   | Leicester      |      2 |      1 |
+|  1 | 2018-08-11 00:00:00 | Bournemouth  | Cardiff        |      2 |      0 |
+|  2 | 2018-08-11 00:00:00 | Fulham       | Crystal Palace |      0 |      2 |
+|  3 | 2018-08-11 00:00:00 | Huddersfield | Chelsea        |      0 |      3 |
+|  4 | 2018-08-11 00:00:00 | Newcastle    | Tottenham      |      1 |      2 |
+
 ## Predicting Goals
 
 `penaltyblog` contains models designed for predicting the number of goals scored in football (soccer) games. Although aimed at football (soccer), they may also be useful for other sports, such as hockey.
@@ -16,7 +58,7 @@ Let's start off by downloading some example scores from the awesome [football-da
 
 ```python
 import penaltyblog as pb
-df = pb.get_example_data()
+df = pb.footballdata.fetch_data("England", 2018, 0)
 df[["Date", "HomeTeam", "AwayTeam", "FTHG", "FTAG"]].head()
 ```
 
