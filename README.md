@@ -332,6 +332,40 @@ pprint(params)
  'rue_salvesen': 0.1401430558820631}
 ```
 
+## Download ELO rating from clubelo.com
+
+### Download ELO ratings for a given date
+
+```python
+import penaltyblog as pb
+df = pb.clubelo.fetch_rankings_by_date(2010, 1, 1)
+df.head()
+```
+
+|    |   Rank | Club        | Country   |   Level |     Elo | From                | To                  |
+|---:|-------:|:------------|:----------|--------:|--------:|:--------------------|:--------------------|
+|  0 |      1 | Barcelona   | ESP       |       1 | 1987.68 | 2009-12-18 00:00:00 | 2010-01-02 00:00:00 |
+|  1 |      2 | Chelsea     | ENG       |       1 | 1945.54 | 2009-12-29 00:00:00 | 2010-01-16 00:00:00 |
+|  2 |      3 | Man United  | ENG       |       1 | 1928.53 | 2009-12-31 00:00:00 | 2010-01-09 00:00:00 |
+|  3 |      4 | Real Madrid | ESP       |       1 | 1902.72 | 2009-12-20 00:00:00 | 2010-01-03 00:00:00 |
+|  4 |      5 | Inter       | ITA       |       1 | 1884.49 | 2009-12-21 00:00:00 | 2010-01-06 00:00:00 |
+
+### Download Historical ELO ratings for a given team
+
+```python
+import penaltyblog as pb
+df = pb.clubelo.fetch_rankings_by_team("barcelona")
+df.head()
+```
+
+|    | Rank   | Club      | Country   |   Level |     Elo | From                | To                  |
+|---:|:-------|:----------|:----------|--------:|--------:|:--------------------|:--------------------|
+|  0 | None   | Barcelona | ESP       |       1 | 1636.7  | 1939-10-22 00:00:00 | 1939-12-03 00:00:00 |
+|  1 | None   | Barcelona | ESP       |       1 | 1626.1  | 1939-12-04 00:00:00 | 1939-12-10 00:00:00 |
+|  2 | None   | Barcelona | ESP       |       1 | 1636.73 | 1939-12-11 00:00:00 | 1939-12-17 00:00:00 |
+|  3 | None   | Barcelona | ESP       |       1 | 1646.95 | 1939-12-18 00:00:00 | 1939-12-24 00:00:00 |
+|  4 | None   | Barcelona | ESP       |       1 | 1637.42 | 1939-12-25 00:00:00 | 1939-12-31 00:00:00 |
+
 ## References
 
 - Mark J. Dixon and Stuart G. Coles (1997) Modelling Association Football Scores and Inefficiencies in the Football Betting Market.
