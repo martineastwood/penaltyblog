@@ -239,7 +239,7 @@ You can access the model's parameters via the `get_params` function.
 
 ```python
 from pprint import pprint
-params = rs.get_params()
+params = my_model.get_params()
 pprint(params)
 ```
 
