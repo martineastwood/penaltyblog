@@ -19,7 +19,6 @@ df = pb.get_example_data()
 df.head()
 ```
 
-```
 |    | Date                | HomeTeam   | AwayTeam    |   FTHG |   FTAG |
 |---:|:--------------------|:-----------|:------------|-------:|-------:|
 |  0 | 2011-08-13 00:00:00 | Blackburn  | Wolves      |      1 |      2 |
@@ -27,7 +26,6 @@ df.head()
 |  2 | 2011-08-13 00:00:00 | Liverpool  | Sunderland  |      1 |      1 |
 |  3 | 2011-08-13 00:00:00 | Newcastle  | Arsenal     |      0 |      0 |
 |  4 | 2011-08-13 00:00:00 | QPR        | Bolton      |      0 |      4 |
-```
 
 Next, we create a basic Poisson model and fit it to the data.
 
@@ -177,14 +175,15 @@ Gamma: 0.184
 
 
 ### Making Predictions
-To make a prediction using any of the above models, just pass the name of the home and away teams to the `predict` function. This returns the `GoalGrid` class that can convert the output from the model into probabilities for various betting markets.
+To make a prediction using any of the above models, just pass the name of the home and away teams to the `predict` function. This returns the `FootballProbabilityGrid` class that can convert the output from the model into probabilities for various betting markets.
 
 ```python
 probs = rs.predict("Liverpool", "Stoke")
 ```
 
+#### Home / Draw / Away
 ```python
-# home / draw / away (also known as 1x2)
+# also known as 1x2
 probs.home_draw_away
 ```
 
