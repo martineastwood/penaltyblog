@@ -224,3 +224,59 @@ probs.total_goals("away", -1.5)
 ```
 0.7397383751361912
 ```
+
+### Model Parameters
+You can access the model's parameters via the `get_params` function.
+
+```python
+from pprint import pprint
+params = rs.get_params()
+pprint(params)
+```
+
+```
+{'attack_Arsenal': 1.3650671020694474,
+ 'attack_Aston Villa': 0.6807140182913024,
+ 'attack_Blackburn': 0.971135574781119,
+ 'attack_Bolton': 0.9502712140456423,
+ 'attack_Chelsea': 1.235466344414206,
+ 'attack_Everton': 0.9257685468926837,
+ 'attack_Fulham': 0.9122902202053228,
+ 'attack_Liverpool': 0.8684673939949753,
+ 'attack_Man City': 1.543379586931267,
+ 'attack_Man United': 1.4968564161865994,
+ 'attack_Newcastle': 1.1095636706231062,
+ 'attack_Norwich': 1.0424304866584615,
+ 'attack_QPR': 0.827439335780754,
+ 'attack_Stoke': 0.6248927873330669,
+ 'attack_Sunderland': 0.8510292333101492,
+ 'attack_Swansea': 0.8471368133406263,
+ 'attack_Tottenham': 1.2496040004504756,
+ 'attack_West Brom': 0.8625207332372105,
+ 'attack_Wigan': 0.8177807129177644,
+ 'attack_Wolves': 0.8181858085358248,
+ 'defence_Arsenal': -1.2192247076852236,
+ 'defence_Aston Villa': -1.0566859588325535,
+ 'defence_Blackburn': -0.7430288162188969,
+ 'defence_Bolton': -0.7268011436918458,
+ 'defence_Chelsea': -1.2065700516830344,
+ 'defence_Everton': -1.3564763976122773,
+ 'defence_Fulham': -1.1159544166204092,
+ 'defence_Liverpool': -1.3293118049518535,
+ 'defence_Man City': -1.6549894606952225,
+ 'defence_Man United': -1.5728126940204685,
+ 'defence_Newcastle': -1.1186158411320268,
+ 'defence_Norwich': -0.8865413401238464,
+ 'defence_QPR': -0.9124617361500764,
+ 'defence_Stoke': -1.0766419199030601,
+ 'defence_Sunderland': -1.2049421203955355,
+ 'defence_Swansea': -1.1077243368907703,
+ 'defence_Tottenham': -1.3160823704397775,
+ 'defence_West Brom': -1.1014569193066301,
+ 'defence_Wigan': -0.932997180492951,
+ 'defence_Wolves': -0.6618461794219439,
+ 'home_advantage': 0.2655860528422758,
+ 'intercept': 0.23467961435272489,
+ 'rho': -0.1375912978446625,
+ 'rue_salvesen': 0.1401430558820631}
+```
