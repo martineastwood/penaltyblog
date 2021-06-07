@@ -177,10 +177,14 @@ Gamma: 0.184
 
 
 ### Making Predictions
-To make a prediction using any of the above models, just pass the name of the home and away teams to the `predict` function.
+To make a prediction using any of the above models, just pass the name of the home and away teams to the `predict` function. This returns the `GoalGrid` class that can convert the output from the model into probabilities for various betting markets.
 
 ```python
 probs = rs.predict("Liverpool", "Stoke")
+```
+
+```python
+# home / draw / away (also known as 1x2)
 probs.home_draw_away
 ```
 
