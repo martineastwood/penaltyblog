@@ -6,6 +6,11 @@ The `penaltyblog` package contains code from [http://pena.lt/y/blog](http://pena
 
 `pip install penaltyblog`
 
+
+## Example
+
+There are examples of all the functions available in the [Examples section](https://github.com/martineastwood/penaltyblog/tree/master/examples).
+
 ## Download Data from football-data.co.uk
 
 `penaltyblog` contains some helper functions for downloading data from [football-data.co.uk](http://football-data.co.uk).
