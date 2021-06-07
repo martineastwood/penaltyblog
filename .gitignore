@@ -95,6 +95,7 @@ ipython_config.py
 #Pipfile.lock
 
 .DS_Store
+workspace.code-workspace
 
 # PEP 582; used by e.g. github.com/David-OConnor/pyflow
 __pypackages__/

@@ -8,7 +8,7 @@ def get_example_data() -> pd.DataFrame:
     return:
         pandas dataframe
     """
-    url = "http://www.football-data.co.uk/mmz4281/1112/E0.csv"
+    url = "http://www.football-data.co.uk/mmz4281/1819/E0.csv"
     df = pd.read_csv(url)
     df["Date"] = pd.to_datetime(df["Date"], dayfirst=True)
     df = df.sort_values("Date")

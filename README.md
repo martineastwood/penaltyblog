@@ -11,21 +11,22 @@ The `penaltyblog` package contains code from [http://pena.lt/y/blog](http://pena
 `penaltyblog` contains models designed for predicting the number of goals scored in football (soccer) games. Although aimed at football (soccer), they may also be useful for other sports, such as hockey.
 
 ### The Basic Poisson Model
+
 Let's start off by downloading some example scores from the awesome [football-data](http://football-data.co.uk) website.
 
 ```python
 import penaltyblog as pb
 df = pb.get_example_data()
-df.head()
+df[["Date", "HomeTeam", "AwayTeam", "FTHG", "FTAG"]].head()
 ```
 
-|    | Date                | HomeTeam   | AwayTeam    |   FTHG |   FTAG |
-|---:|:--------------------|:-----------|:------------|-------:|-------:|
-|  0 | 2011-08-13 00:00:00 | Blackburn  | Wolves      |      1 |      2 |
-|  1 | 2011-08-13 00:00:00 | Fulham     | Aston Villa |      0 |      0 |
-|  2 | 2011-08-13 00:00:00 | Liverpool  | Sunderland  |      1 |      1 |
-|  3 | 2011-08-13 00:00:00 | Newcastle  | Arsenal     |      0 |      0 |
-|  4 | 2011-08-13 00:00:00 | QPR        | Bolton      |      0 |      4 |
+|    | Date                | HomeTeam     | AwayTeam       |   FTHG |   FTAG |
+|---:|:--------------------|:-------------|:---------------|-------:|-------:|
+|  0 | 2018-08-10 00:00:00 | Man United   | Leicester      |      2 |      1 |
+|  1 | 2018-08-11 00:00:00 | Bournemouth  | Cardiff        |      2 |      0 |
+|  2 | 2018-08-11 00:00:00 | Fulham       | Crystal Palace |      0 |      2 |
+|  3 | 2018-08-11 00:00:00 | Huddersfield | Chelsea        |      0 |      3 |
+|  4 | 2018-08-11 00:00:00 | Newcastle    | Tottenham      |      1 |      2 |
 
 Next, we create a basic Poisson model and fit it to the data.
 
@@ -36,6 +37,7 @@ pois.fit()
 ```
 
 Let's take a look at the fitted parameters.
+
 ```python
 pois
 ```
@@ -46,38 +48,39 @@ Module: Penaltyblog
 Model: Poisson
 
 Number of parameters: 42
-Log Likelihood: -1088.991
-AIC: 2261.982
+Log Likelihood: -1065.077
+AIC: 2214.154
 
 Team                 Attack               Defence             
 ------------------------------------------------------------
-Arsenal              1.362                -1.023              
-Aston Villa          0.671                -0.981              
-Blackburn            0.957                -0.583              
-Bolton               0.913                -0.598              
-Chelsea              1.229                -1.096              
-Everton              0.96                 -1.251              
-Fulham               0.93                 -1.009              
-Liverpool            0.898                -1.254              
-Man City             1.571                -1.53               
-Man United           1.531                -1.405              
-Newcastle            1.084                -1.001              
-Norwich              1.025                -0.747              
-QPR                  0.834                -0.756              
-Stoke                0.643                -0.982              
-Sunderland           0.86                 -1.115              
-Swansea              0.843                -1.013              
-Tottenham            1.239                -1.21               
-West Brom            0.866                -0.993              
-Wigan                0.807                -0.819              
-Wolves               0.778                -0.541              
+Arsenal              1.362                -1.062              
+Bournemouth          1.115                -0.761              
+Brighton             0.634                -0.937              
+Burnley              0.894                -0.801              
+Cardiff              0.614                -0.798              
+Chelsea              1.202                -1.341              
+Crystal Palace       1.004                -1.045              
+Everton              1.055                -1.184              
+Fulham               0.626                -0.637              
+Huddersfield         0.184                -0.712              
+Leicester            0.999                -1.145              
+Liverpool            1.532                -1.889              
+Man City             1.598                -1.839              
+Man United           1.249                -1.013              
+Newcastle            0.805                -1.153              
+Southampton          0.891                -0.846              
+Tottenham            1.264                -1.337              
+Watford              1.03                 -0.937              
+West Ham             1.026                -1.007              
+Wolves               0.916                -1.191              
 ------------------------------------------------------------
-Home Advantage: 0.268
-Intercept: 0.12
+Home Advantage: 0.225
+Intercept: 0.206
 ```
 
 ### The Dixon and Coles Adjustment
-The basic Poisson model struggles somewhat with the probabilities for low scoring games. Dixon and Coles (1997) added in an adjustment factor (rho) that modifies the probabilities for 0-0, 1-0 and 0-1 scorelines to acocunt for this.
+
+The basic Poisson model struggles somewhat with the probabilities for low scoring games. Dixon and Coles (1997) added in an adjustment factor (rho) that modifies the probabilities for 0-0, 1-0 and 0-1 scorelines to account for this.
 
 ```python
 dc = pb.DixonColesGoalModel(
@@ -92,39 +95,40 @@ Module: Penaltyblog
 Model: Dixon and Coles
 
 Number of parameters: 43
-Log Likelihood: -1087.359
-AIC: 2260.719
+Log Likelihood: -1064.943
+AIC: 2215.886
 
 Team                 Attack               Defence             
 ------------------------------------------------------------
-Arsenal              1.371                -0.997              
-Aston Villa          0.692                -0.937              
-Blackburn            0.943                -0.554              
-Bolton               0.92                 -0.564              
-Chelsea              1.235                -1.057              
-Everton              0.941                -1.239              
-Fulham               0.933                -0.982              
-Liverpool            0.887                -1.215              
-Man City             1.559                -1.514              
-Man United           1.524                -1.397              
-Newcastle            1.096                -0.972              
-Norwich              1.018                -0.714              
-QPR                  0.821                -0.74               
-Stoke                0.642                -0.961              
-Sunderland           0.861                -1.083              
-Swansea              0.85                 -0.98               
-Tottenham            1.24                 -1.174              
-West Brom            0.865                -0.971              
-Wigan                0.811                -0.794              
-Wolves               0.792                -0.504              
+Arsenal              1.36                 -0.982              
+Bournemouth          1.115                -0.679              
+Brighton             0.632                -0.858              
+Burnley              0.897                -0.717              
+Cardiff              0.615                -0.715              
+Chelsea              1.205                -1.254              
+Crystal Palace       1.007                -0.961              
+Everton              1.054                -1.102              
+Fulham               0.625                -0.557              
+Huddersfield         0.18                 -0.631              
+Leicester            0.996                -1.064              
+Liverpool            1.534                -1.803              
+Man City             1.599                -1.762              
+Man United           1.251                -0.931              
+Newcastle            0.806                -1.07               
+Southampton          0.897                -0.761              
+Tottenham            1.259                -1.261              
+Watford              1.031                -0.854              
+West Ham             1.023                -0.927              
+Wolves               0.914                -1.113              
 ------------------------------------------------------------
-Home Advantage: 0.273
-Intercept: 0.089
-Rho: -0.134
+Home Advantage: 0.225
+Intercept: 0.124
+Rho: -0.041
 ```
 
 
 ### The Rue and Salvesen Adjustment
+
 Rue and Salvesen (1999) added in an additional psycological effect factor (gamma) where Team A will under-estimate Team B if Team A is stronger than team B. They also truncate scorelines to a maximum of five goals, e.g. a score of 7-3 becomes 5-3, stating that any goals above 5 are non-informative.
 
 ```python
@@ -141,47 +145,49 @@ Module: Penaltyblog
 Model: Rue Salvesen
 
 Number of parameters: 44
-Log Likelihood: -1077.987
-AIC: 2243.975
+Log Likelihood: -1061.167
+AIC: 2210.334
 
 Team                 Attack               Defence             
 ------------------------------------------------------------
-Arsenal              1.371                -1.222              
-Aston Villa          0.675                -1.048              
-Blackburn            0.979                -0.748              
-Bolton               0.958                -0.731              
-Chelsea              1.239                -1.207              
-Everton              0.919                -1.347              
-Fulham               0.91                 -1.111              
-Liverpool            0.861                -1.319              
-Man City             1.543                -1.652              
-Man United           1.498                -1.571              
-Newcastle            1.112                -1.118              
-Norwich              1.048                -0.89               
-QPR                  0.828                -0.91               
-Stoke                0.618                -1.066              
-Sunderland           0.846                -1.197              
-Swansea              0.844                -1.102              
-Tottenham            1.251                -1.314              
-West Brom            0.86                 -1.096              
-Wigan                0.818                -0.93               
-Wolves               0.824                -0.665              
+Arsenal              1.435                -1.068              
+Bournemouth          1.2                  -0.776              
+Brighton             0.594                -0.831              
+Burnley              0.935                -0.766              
+Cardiff              0.6                  -0.712              
+Chelsea              1.194                -1.281              
+Crystal Palace       1.019                -0.985              
+Everton              1.044                -1.126              
+Fulham               0.641                -0.585              
+Huddersfield         0.096                -0.573              
+Leicester            0.988                -1.067              
+Liverpool            1.487                -1.768              
+Man City             1.533                -1.743              
+Man United           1.315                -1.006              
+Newcastle            0.761                -1.036              
+Southampton          0.921                -0.814              
+Tottenham            1.244                -1.274              
+Watford              1.067                -0.902              
+West Ham             1.045                -0.961              
+Wolves               0.881                -1.091              
 ------------------------------------------------------------
-Home Advantage: 0.266
-Intercept: 0.232
-Rho: -0.138
-Gamma: 0.184
+Home Advantage: 0.222
+Intercept: 0.141
+Rho: -0.04
+Gamma: 0.373
 ```
 
 
 ### Making Predictions
+
 To make a prediction using any of the above models, just pass the name of the home and away teams to the `predict` function. This returns the `FootballProbabilityGrid` class that can convert the output from the model into probabilities for various betting markets.
 
 ```python
-probs = rs.predict("Liverpool", "Stoke")
+probs = my_model.predict("Liverpool", "Stoke")
 ```
 
 ### Home / Draw / Away
+
 ```python
 # also known as 1x2
 probs.home_draw_away
@@ -192,6 +198,7 @@ probs.home_draw_away
 ```
 
 ### Total Goals
+
 ```python
 probs.total_goals("over", 2.5)
 ```
@@ -209,6 +216,7 @@ probs.total_goals("under", 2.5)
 ```
 
 ### Asian Handicaps
+
 ```python
 probs.asian_handicap("home", 1.5)
 ```
@@ -226,6 +234,7 @@ probs.asian_handicap("away", -1.5)
 ```
 
 ### Model Parameters
+
 You can access the model's parameters via the `get_params` function.
 
 ```python
@@ -280,7 +289,6 @@ pprint(params)
  'rho': -0.1375912978446625,
  'rue_salvesen': 0.1401430558820631}
 ```
-
 
 ## References
 
