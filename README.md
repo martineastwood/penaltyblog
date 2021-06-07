@@ -350,6 +350,18 @@ df.head()
 |  3 |      4 | Real Madrid | ESP       |       1 | 1902.72 | 2009-12-20 00:00:00 | 2010-01-03 00:00:00 |
 |  4 |      5 | Inter       | ITA       |       1 | 1884.49 | 2009-12-21 00:00:00 | 2010-01-06 00:00:00 |
 
+### List all teams with ratings available
+
+```python
+import penaltyblog as pb
+teams = pb.clubelo.list_all_teams()
+teams[:5]
+```
+
+```
+['Man City', 'Bayern', 'Liverpool', 'Real Madrid', 'Man United']
+```
+
 ### Download Historical ELO ratings for a given team
 
 ```python

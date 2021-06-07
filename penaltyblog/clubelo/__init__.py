@@ -1,1 +1,1 @@
-from .clubelo import fetch_rankings_by_date, fetch_rankings_by_team
+from .clubelo import fetch_rankings_by_date, fetch_rankings_by_team, list_all_teams

@@ -1,4 +1,34 @@
 import pandas as pd
+from datetime import datetime
+
+
+def list_all_teams():
+    """
+    Fetches all the available teams from clubelo.com
+
+    Example
+    -----------
+    import penaltyblog as pb
+    pb.clubelo.list_all_teams()
+
+    Returns
+    ------
+    list
+    """
+    base_url = "http://api.clubelo.com/{y}-{m}-{d}"
+
+    today = datetime.now().date()
+
+    y = str(today.year)
+    m = str(today.month).zfill(2)
+    d = str(today.day).zfill(2)
+
+    url = base_url.format(y=y, m=m, d=d)
+
+    df = pd.read_csv(url)
+    teams = df["Club"].tolist()
+
+    return teams
 
 
 def fetch_rankings_by_date(year, month, day):
