@@ -23,7 +23,6 @@ def rps(probs, outcome):
         The Ranked Probability Score
     """
     cum_probs = np.cumsum(probs)
-
     cum_outcomes = np.zeros(len(probs))
     cum_outcomes[outcome] = 1
     cum_outcomes = np.cumsum(cum_outcomes)

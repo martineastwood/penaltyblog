@@ -6,11 +6,11 @@ The `penaltyblog` package contains code from [http://pena.lt/y/blog](http://pena
 
 `pip install penaltyblog`
 
-### Predicting Goals
+## Predicting Goals
 
 `penaltyblog` contains models designed for predicting the number of goals scored in football (soccer) games. Although aimed at football (soccer), they may also be useful for other sports, such as hockey.
 
-#### The Basic Poisson Model
+### The Basic Poisson Model
 Let's start off by downloading some example scores from the awesome [football-data](http://football-data.co.uk) website.
 
 ```python
@@ -76,7 +76,7 @@ Home Advantage: 0.268
 Intercept: 0.12
 ```
 
-#### The Dixon and Coles Adjustment
+### The Dixon and Coles Adjustment
 The basic Poisson model struggles somewhat with the probabilities for low scoring games. Dixon and Coles (1997) added in an adjustment factor (rho) that modifies the probabilities for 0-0, 1-0 and 0-1 scorelines to acocunt for this.
 
 ```python
@@ -124,7 +124,7 @@ Rho: -0.134
 ```
 
 
-#### The Rue and Salvesen Adjustment
+### The Rue and Salvesen Adjustment
 Rue and Salvesen (1999) added in an additional psycological effect factor (gamma) where Team A will under-estimate Team B if Team A is stronger than team B. They also truncate scorelines to a maximum of five goals, e.g. a score of 7-3 becomes 5-3, stating that any goals above 5 are non-informative.
 
 ```python
@@ -181,7 +181,7 @@ To make a prediction using any of the above models, just pass the name of the ho
 probs = rs.predict("Liverpool", "Stoke")
 ```
 
-#### Home / Draw / Away
+### Home / Draw / Away
 ```python
 # also known as 1x2
 probs.home_draw_away
@@ -191,7 +191,7 @@ probs.home_draw_away
 [0.5193995875820345, 0.3170596913687951, 0.1635407210315597]
 ```
 
-#### Total Goals
+### Total Goals
 ```python
 probs.total_goals("over", 2.5)
 ```
@@ -208,7 +208,7 @@ probs.total_goals("under", 2.5)
 0.680883492299145
 ```
 
-#### Asian Handicaps
+### Asian Handicaps
 ```python
 probs.asian_handicap("home", 1.5)
 ```
@@ -218,7 +218,7 @@ probs.asian_handicap("home", 1.5)
 ```
 
 ```python
-probs.total_goals("away", -1.5)
+probs.asian_handicap("away", -1.5)
 ```
 
 ```
@@ -280,3 +280,9 @@ pprint(params)
  'rho': -0.1375912978446625,
  'rue_salvesen': 0.1401430558820631}
 ```
+
+
+## References
+
+- Mark J. Dixon and Stuart G. Coles (1997) Modelling Association Football Scores and Inefficiencies in the Football Betting Market.
+- Håvard Rue and Øyvind Salvesen (1999) Prediction and Retrospective Analysis of Soccer Matches in a League.
