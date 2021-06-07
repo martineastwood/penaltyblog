@@ -1,0 +1,24 @@
+[tool.poetry]
+name = "penaltyblog"
+version = "0.1.0"
+description = "Library from http://pena.lt/y/blog for using Poisson models to predict football (soccer) results"
+authors = ["Martin Eastwood <martin.eastwood@gmx.com>"]
+readme = "README.md"
+license = "MIT"
+include = [
+    "LICENSE",
+]
+keywords = ["football", "soccer",  "goals", "modelling", "dixon coles"]
+
+
+[tool.poetry.dependencies]
+python = ">=3.6"
+numpy = ">=1.19.2"
+pandas = ">=1.1.3"
+scipy = ">=1.5.0"
+
+[tool.poetry.dev-dependencies]
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
