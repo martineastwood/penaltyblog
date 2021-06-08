@@ -337,6 +337,76 @@ pprint(params)
  'rue_salvesen': 0.1401430558820631}
 ```
 
+## Implied Probabilities
+
+Removes the overround and gets the implied probabilities from odds via a variety of methods
+
+### Multiplicative
+
+Normalizes the probabilites so they sum to 1.0 by dividing the inverse of the odds by the sum of the inverse of the odds
+
+```python
+import penaltyblog as pb
+
+odds = [2.7, 2.3, 4.4]
+pb.implied.multiplicative(odds)
+```
+
+```python
+{'implied_probabilities': array([0.35873804, 0.42112726, 0.2201347 ]),
+ 'method': 'multiplicative'}
+```
+
+### Additive
+
+Normalizes the probabilites so they sum to 1.0 by removing an equal amount from each
+
+```python
+import penaltyblog as pb
+
+odds = [2.7, 2.3, 4.4]
+pb.implied.additive(odds)
+```
+
+```python
+{'implied_probabilities': array([0.3595618 , 0.42397404, 0.21646416]),
+ 'method': 'additive'}
+```
+
+### Power
+
+Solves for the power coefficient that normalizes the inverse of the odds to sum to 1.0
+
+```python
+import penaltyblog as pb
+
+odds = [2.7, 2.3, 4.4]
+pb.implied.power(odds)
+```
+
+```python
+{'implied_probabilities': array([0.3591711 , 0.42373075, 0.21709815]),
+ 'method': 'power',
+ 'k': 1.0309132393169356}
+ ```
+
+### Shin
+
+Uses the Shin (1992, 1993) method to calculate the implied probabilities
+
+```python
+import penaltyblog as pb
+
+odds = [2.7, 2.3, 4.4]
+pb.implied.shin(odds)
+```
+
+```python
+{'implied_probabilities': array([0.35934392, 0.42324385, 0.21741223]),
+ 'method': 'shin',
+ 'z': 0.016236442857291165}
+ ```
+
 ## Rank Probability Scores
 
 Based on Constantinou and Fenton (2021), `penaltyblog` contains a function for calculating Rank Probability Scores for assessing home, draw, away probability forecasts.
