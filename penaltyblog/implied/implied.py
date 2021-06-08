@@ -107,3 +107,29 @@ def shin(odds) -> dict:
     normalized = _shin(res, inv_odds)
     result = {"implied_probabilities": normalized, "method": "shin", "z": res}
     return result
+
+
+def differential_margin_weighting(odds) -> dict:
+    """
+    Based on Jospeh Buchdahl's wisdom of the crowds - https://www.football-data.co.uk/The_Wisdom_of_the_Crowd.pdf
+
+    Parameters
+    ----------
+    odds : list
+        list of odds
+
+    Returns
+    ----------
+    dict
+        contains implied probabilities, z and method used
+    """
+    odds = np.array(odds)
+    inv_odds = 1.0 / odds
+    margin = np.sum(inv_odds) - 1
+    n_odds = len(odds)
+    fair_odds = (n_odds * odds) / (n_odds - (margin * odds))
+    result = {
+        "implied_probabilities": 1 / fair_odds,
+        "method": "differential_margin_weighting",
+    }
+    return result
