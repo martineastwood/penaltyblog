@@ -133,3 +133,34 @@ def differential_margin_weighting(odds) -> dict:
         "method": "differential_margin_weighting",
     }
     return result
+
+
+def odds_ratio(odds) -> dict:
+    """
+    Keith Cheung's odds ratio method, as discussed in Jospeh Buchdahl's wisdom of the crowds
+
+    Parameters
+    ----------
+    odds : list
+        list of odds
+
+    Returns
+    ----------
+    dict
+        contains implied probabilities, z and method used
+    """
+    odds = np.array(odds)
+    inv_odds = 1.0 / odds
+
+    def _or_error(c, inv_odds):
+        implied = _or(c, inv_odds)
+        return 1 - np.sum(implied)
+
+    def _or(c, inv_odds):
+        y = inv_odds / (c + inv_odds - (c * inv_odds))
+        return y
+
+    res = optimize.ridder(_or_error, 0, 100, args=(inv_odds,))
+    normalized = _or(res, inv_odds)
+    result = {"implied_probabilities": normalized, "method": "odds_ratio", "c": res}
+    return result

@@ -407,6 +407,39 @@ pb.implied.shin(odds)
  'z': 0.016236442857291165}
  ```
 
+### Differential Margin Weighting
+
+Uses the differential margin approach described by Joesph Buchdahl in his `wisdom of the crowds` article
+
+```python
+import penaltyblog as pb
+
+odds = [2.7, 2.3, 4.4]
+pb.implied.differential_margin_weighting(odds)
+```
+
+```python
+{'implied_probabilities': array([0.3595618 , 0.42397404, 0.21646416]),
+ 'method': 'differential_margin_weighting'}
+ ```
+
+### Odds Ratio
+
+Uses Keith Cheung's odds ratio approach, as discussed by Joesph Buchdahl's in his `wisdom of the crowds` article, to calculate the implied probabilities
+
+```python
+import penaltyblog as pb
+
+odds = [2.7, 2.3, 4.4]
+pb.implied.odds_ratio(odds)
+```
+
+```python
+{'implied_probabilities': array([0.35881036, 0.42256142, 0.21862822]),
+ 'method': 'odds_ratio',
+ 'c': 1.05116912729218}
+ ```
+
 ## Rank Probability Scores
 
 Based on Constantinou and Fenton (2021), `penaltyblog` contains a function for calculating Rank Probability Scores for assessing home, draw, away probability forecasts.
@@ -502,3 +535,4 @@ df.head()
 - Anthony C. Constantinou and Norman E. Fenton (2012) Solving the problem of inadequate scoring rules for assessing probabilistic football forecast models
 - Hyun Song Shin (1992) Prices of State Contingent Claims with Insider Traders, and the Favourite-Longshot Bias
 - Hyun Song Shin (1993) Measuring the Incidence of Insider Trading in a Market for State-Contingent Claims
+- Joseph Buchdahl (2015) The Wisdom of the Crowd

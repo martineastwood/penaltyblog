@@ -4,4 +4,5 @@ from .implied import (
     power,
     shin,
     differential_margin_weighting,
+    odds_ratio,
 )
