@@ -9,3 +9,4 @@ from .poisson import (
 )
 from .footballdata import fetch_data, list_countries
 from .clubelo import fetch_rankings_by_date, fetch_rankings_by_team, list_all_teams
+from .implied import additive, multiplicative, power, shin
