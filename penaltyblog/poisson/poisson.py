@@ -233,7 +233,7 @@ class PoissonGoalsModel:
         m = np.outer(home_goals_vector, away_goals_vector)
 
         # and return the FootballProbabilityGrid
-        probability_grid = FootballProbabilityGrid(m)
+        probability_grid = FootballProbabilityGrid(m, home_goals, away_goals)
 
         return probability_grid
 

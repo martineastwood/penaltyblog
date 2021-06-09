@@ -1,6 +1,36 @@
 class FootballProbabilityGrid(list):
-    def __init__(self, goal_matrix):
+    def __init__(self, goal_matrix, home_goal_expectation, away_goal_expectation):
         list.__init__(self, goal_matrix)
+        self.home_goal_expectation = home_goal_expectation
+        self.away_goal_expectation = away_goal_expectation
+
+    def __repr__(self):
+        repr_str = ""
+        repr_str += "Module: Penaltyblog"
+        repr_str += "\n"
+        repr_str += "\n"
+
+        repr_str += "Class: FootballProbabilityGrid"
+        repr_str += "\n"
+        repr_str += "\n"
+
+        repr_str += "Home Goal Expectation: {0}".format(self.home_goal_expectation)
+        repr_str += "\n"
+        repr_str += "Away Goal Expectation: {0}".format(self.away_goal_expectation)
+        repr_str += "\n"
+        repr_str += "\n"
+
+        repr_str += "Home Win: {0}".format(self.home_win)
+        repr_str += "\n"
+        repr_str += "Draw: {0}".format(self.draw)
+        repr_str += "\n"
+        repr_str += "Away Win: {0}".format(self.away_win)
+        repr_str += "\n"
+
+        return repr_str
+
+    def __str__(self):
+        return self.__repr__()
 
     def _sum(self, func):
         return sum(
