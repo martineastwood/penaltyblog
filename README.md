@@ -354,6 +354,7 @@ pb.implied.multiplicative(odds)
 
 ```python
 {'implied_probabilities': array([0.35873804, 0.42112726, 0.2201347 ]),
+ 'margin': 0.03242570633874986,
  'method': 'multiplicative'}
 ```
 
@@ -370,6 +371,7 @@ pb.implied.additive(odds)
 
 ```python
 {'implied_probabilities': array([0.3595618 , 0.42397404, 0.21646416]),
+ 'margin': 0.03242570633874986,
  'method': 'additive'}
 ```
 
@@ -386,6 +388,7 @@ pb.implied.power(odds)
 
 ```python
 {'implied_probabilities': array([0.3591711 , 0.42373075, 0.21709815]),
+ 'margin': 0.03242570633874986,
  'method': 'power',
  'k': 1.0309132393169356}
  ```
@@ -403,6 +406,7 @@ pb.implied.shin(odds)
 
 ```python
 {'implied_probabilities': array([0.35934392, 0.42324385, 0.21741223]),
+ 'margin': 0.03242570633874986,
  'method': 'shin',
  'z': 0.016236442857291165}
  ```
@@ -420,6 +424,7 @@ pb.implied.differential_margin_weighting(odds)
 
 ```python
 {'implied_probabilities': array([0.3595618 , 0.42397404, 0.21646416]),
+ 'margin': 0.03242570633874986,
  'method': 'differential_margin_weighting'}
  ```
 
@@ -436,6 +441,7 @@ pb.implied.odds_ratio(odds)
 
 ```python
 {'implied_probabilities': array([0.35881036, 0.42256142, 0.21862822]),
+ 'margin': 0.03242570633874986,
  'method': 'odds_ratio',
  'c': 1.05116912729218}
  ```

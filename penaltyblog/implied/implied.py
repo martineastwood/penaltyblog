@@ -20,7 +20,12 @@ def multiplicative(odds) -> dict:
     odds = np.array(odds)
     inv_odds = 1.0 / odds
     normalized = inv_odds / np.sum(inv_odds)
-    result = {"implied_probabilities": normalized, "method": "multiplicative"}
+    margin = np.sum(inv_odds) - 1
+    result = {
+        "implied_probabilities": normalized,
+        "method": "multiplicative",
+        "margin": margin,
+    }
     return result
 
 
@@ -41,7 +46,12 @@ def additive(odds) -> dict:
     odds = np.array(odds)
     inv_odds = 1.0 / odds
     normalized = inv_odds + 1 / len(inv_odds) * (1 - np.sum(inv_odds))
-    result = {"implied_probabilities": normalized, "method": "additive"}
+    margin = np.sum(inv_odds) - 1
+    result = {
+        "implied_probabilities": normalized,
+        "method": "additive",
+        "margin": margin,
+    }
     return result
 
 
@@ -61,6 +71,7 @@ def power(odds) -> dict:
     """
     odds = np.array(odds)
     inv_odds = 1.0 / odds
+    margin = np.sum(inv_odds) - 1
 
     def _power(k, inv_odds):
         implied = inv_odds ** k
@@ -72,7 +83,12 @@ def power(odds) -> dict:
 
     res = optimize.ridder(_power_error, 0, 100, args=(inv_odds,))
     normalized = _power(res, inv_odds)
-    result = {"implied_probabilities": normalized, "method": "power", "k": res}
+    result = {
+        "implied_probabilities": normalized,
+        "method": "power",
+        "k": res,
+        "margin": margin,
+    }
     return result
 
 
@@ -92,6 +108,7 @@ def shin(odds) -> dict:
     """
     odds = np.array(odds)
     inv_odds = 1.0 / odds
+    margin = np.sum(inv_odds) - 1
 
     def _shin_error(z, inv_odds):
         implied = _shin(z, inv_odds)
@@ -105,7 +122,12 @@ def shin(odds) -> dict:
 
     res = optimize.ridder(_shin_error, 0, 100, args=(inv_odds,))
     normalized = _shin(res, inv_odds)
-    result = {"implied_probabilities": normalized, "method": "shin", "z": res}
+    result = {
+        "implied_probabilities": normalized,
+        "method": "shin",
+        "z": res,
+        "margin": margin,
+    }
     return result
 
 
@@ -131,6 +153,7 @@ def differential_margin_weighting(odds) -> dict:
     result = {
         "implied_probabilities": 1 / fair_odds,
         "method": "differential_margin_weighting",
+        "margin": margin,
     }
     return result
 
@@ -151,6 +174,7 @@ def odds_ratio(odds) -> dict:
     """
     odds = np.array(odds)
     inv_odds = 1.0 / odds
+    margin = np.sum(inv_odds) - 1
 
     def _or_error(c, inv_odds):
         implied = _or(c, inv_odds)
@@ -162,5 +186,10 @@ def odds_ratio(odds) -> dict:
 
     res = optimize.ridder(_or_error, 0, 100, args=(inv_odds,))
     normalized = _or(res, inv_odds)
-    result = {"implied_probabilities": normalized, "method": "odds_ratio", "c": res}
+    result = {
+        "implied_probabilities": normalized,
+        "method": "odds_ratio",
+        "c": res,
+        "margin": margin,
+    }
     return result
