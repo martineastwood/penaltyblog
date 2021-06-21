@@ -52,7 +52,6 @@ class DixonColesGoalModel:
                 np.random.uniform(0.5, 1.5, (self.n_teams)),  # attack strength
                 np.random.uniform(0, -1, (self.n_teams)),  # defence strength
                 [0.25],  # home advantage
-                [0.13],  # intercept
                 [-0.1],  # rho
             )
         )
@@ -97,9 +96,7 @@ class DixonColesGoalModel:
         repr_str += "-" * 60
         repr_str += "\n"
 
-        repr_str += "Home Advantage: {0}".format(round(self._params[-3], 3))
-        repr_str += "\n"
-        repr_str += "Intercept: {0}".format(round(self._params[-2], 3))
+        repr_str += "Home Advantage: {0}".format(round(self._params[-2], 3))
         repr_str += "\n"
         repr_str += "Rho: {0}".format(round(self._params[-1], 3))
         repr_str += "\n"
@@ -126,17 +123,12 @@ class DixonColesGoalModel:
             .drop("team", axis=1)
             .merge(params_df, left_on="team_away", right_on="team")
             .rename(columns={"attack": "away_attack", "defence": "away_defence"})
-            .assign(hfa=params[-3])
-            .assign(intercept=params[-2])
+            .assign(hfa=params[-2])
             .assign(rho=params[-1])
         )
 
-        df2["home_exp"] = np.exp(
-            df2["intercept"] + df2["hfa"] + df2["home_attack"] + df2["away_defence"]
-        )
-        df2["away_exp"] = np.exp(
-            df2["intercept"] + df2["away_attack"] + df2["home_defence"]
-        )
+        df2["home_exp"] = np.exp(df2["hfa"] + df2["home_attack"] + df2["away_defence"])
+        df2["away_exp"] = np.exp(df2["away_attack"] + df2["home_defence"])
         df2["home_llk"] = poisson.pmf(df2["goals_home"], df2["home_exp"])
         df2["away_llk"] = poisson.pmf(df2["goals_away"], df2["away_exp"])
         df2["dc_adj"] = df2.apply(
@@ -168,8 +160,7 @@ class DixonColesGoalModel:
 
         bounds = [(-3, 3)] * self.n_teams
         bounds += [(-3, 3)] * self.n_teams
-        bounds += [(0, 1)]
-        bounds += [(0, 1)]
+        bounds += [(0, 2)]
         bounds += [(-2, 2)]
 
         self._res = minimize(
@@ -234,13 +225,12 @@ class DixonColesGoalModel:
         home_defence = self._params[home_idx + self.n_teams]
         away_defence = self._params[away_idx + self.n_teams]
 
-        intercept = self._params[-3]
         home_advantage = self._params[-2]
         rho = self._params[-1]
 
         # calculate the goal expectation
-        home_goals = np.exp(intercept + home_advantage + home_attack + away_defence)
-        away_goals = np.exp(intercept + away_attack + home_defence)
+        home_goals = np.exp(home_advantage + home_attack + away_defence)
+        away_goals = np.exp(away_attack + home_defence)
         home_goals_vector = poisson(home_goals).pmf(np.arange(0, max_goals))
         away_goals_vector = poisson(away_goals).pmf(np.arange(0, max_goals))
 
@@ -254,7 +244,7 @@ class DixonColesGoalModel:
         m[1, 1] *= 1 - rho
 
         # and return the FootballProbabilityGrid
-        probability_grid = FootballProbabilityGrid(m)
+        probability_grid = FootballProbabilityGrid(m, home_goals, away_goals)
 
         return probability_grid
 
@@ -276,7 +266,7 @@ class DixonColesGoalModel:
             zip(
                 ["attack_" + team for team in self.teams]
                 + ["defence_" + team for team in self.teams]
-                + ["home_advantage", "intercept", "rho"],
+                + ["home_advantage", "rho"],
                 self._res["x"],
             )
         )
