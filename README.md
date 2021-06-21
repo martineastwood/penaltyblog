@@ -2,6 +2,13 @@
 
 The `penaltyblog` package contains code from [http://pena.lt/y/blog](http://pena.lt/y/blog) for working with football (soccer) data.
 
+## Requirements
+
+    - python >=3.6
+    - numpy >=1.19.2
+    - pandas >=1.1.3
+    - scipy >=1.5.0
+
 ## Installation
 
 `pip install penaltyblog`
@@ -346,6 +353,108 @@ pprint(params)
  'rho': -0.04033232667301132,
  'rue_salvesen': 0.6922490800541602}
 ```
+
+## Ratings
+
+### Massey Ratings
+
+Calculates the overall [Massey ratings](https://en.wikipedia.org/wiki/Kenneth_Massey), plus Massey attack and defence ratings too.
+
+```python
+import penaltyblog as pb
+
+df = pb.footballdata.fetch_data("england", 2020, 0)
+pb.ratings.massey(df["FTHG"], df["FTAG"], df["HomeTeam"], df["AwayTeam"])
+```
+
+|    | team             |   rating |    offence |   defence |
+|---:|:-----------------|---------:|-----------:|----------:|
+|  0 | Man City         |    1.275 |  1.48618   | -0.211184 |
+|  1 | Man United       |    0.725 |  1.23896   | -0.513962 |
+|  2 | Liverpool        |    0.65  |  1.10424   | -0.45424  |
+|  3 | Tottenham        |    0.575 |  1.10841   | -0.533406 |
+|  4 | Chelsea          |    0.55  |  0.832018  | -0.282018 |
+|  5 | Leicester        |    0.45  |  1.11535   | -0.665351 |
+|  6 | Arsenal          |    0.4   |  0.757018  | -0.357018 |
+|  7 | West Ham         |    0.375 |  0.952851  | -0.577851 |
+|  8 | Aston Villa      |    0.225 |  0.76674   | -0.54174  |
+|  9 | Leeds            |    0.2   |  0.962573  | -0.762573 |
+| 10 | Everton          |   -0.025 |  0.558406  | -0.583406 |
+| 11 | Brighton         |   -0.15  |  0.370906  | -0.520906 |
+| 12 | Wolves           |   -0.4   |  0.273684  | -0.673684 |
+| 13 | Newcastle        |   -0.4   |  0.551462  | -0.951462 |
+| 14 | Southampton      |   -0.525 |  0.586184  | -1.11118  |
+| 15 | Burnley          |   -0.55  |  0.198684  | -0.748684 |
+| 16 | Crystal Palace   |   -0.625 |  0.425073  | -1.05007  |
+| 17 | Fulham           |   -0.65  |  0.0375731 | -0.687573 |
+| 18 | West Brom        |   -1.025 |  0.280629  | -1.30563  |
+| 19 | Sheffield United |   -1.075 | -0.13326   | -0.94174  |
+
+### Colley Ratings
+
+Calculates [Colley ratings](https://en.wikipedia.org/wiki/Colley_Matrix). Since Colley ratings don't explicitly define how to handle tied results, you can set whether to include them and how much weighting they should receive compared to a win.
+
+```python
+import penaltyblog as pb
+
+df = pb.footballdata.fetch_data("england", 2020, 0)
+pb.ratings.colley(df["FTHG"], df["FTAG"], df["HomeTeam"], df["AwayTeam"], include_draws=True, draw_weight=1/3)
+```
+
+|    | team             |   rating |
+|---:|:-----------------|---------:|
+|  0 | Man City         | 1.42857  |
+|  1 | Man United       | 1.38095  |
+|  2 | Liverpool        | 1.3254   |
+|  3 | Chelsea          | 1.31746  |
+|  4 | West Ham         | 1.28571  |
+|  5 | Leicester        | 1.27778  |
+|  6 | Tottenham        | 1.2619   |
+|  7 | Arsenal          | 1.24603  |
+|  8 | Everton          | 1.2381   |
+|  9 | Leeds            | 1.21429  |
+| 10 | Aston Villa      | 1.19841  |
+| 11 | Brighton         | 1.14286  |
+| 12 | Newcastle        | 1.13492  |
+| 13 | Wolves           | 1.13492  |
+| 14 | Crystal Palace   | 1.11905  |
+| 15 | Southampton      | 1.10317  |
+| 16 | Burnley          | 1.0873   |
+| 17 | Fulham           | 1.03175  |
+| 18 | West Brom        | 1        |
+| 19 | Sheffield United | 0.904762 |
+
+
+```python
+import penaltyblog as pb
+
+df = pb.footballdata.fetch_data("england", 2020, 0)
+pb.ratings.colley(df["FTHG"], df["FTAG"], df["HomeTeam"], df["AwayTeam"], include_draws=False)
+```
+
+|    | team             |   rating |
+|---:|:-----------------|---------:|
+|  0 | Man City         | 0.75     |
+|  1 | Man United       | 0.678571 |
+|  2 | Liverpool        | 0.630952 |
+|  3 | Chelsea          | 0.619048 |
+|  4 | Leicester        | 0.595238 |
+|  5 | West Ham         | 0.595238 |
+|  6 | Tottenham        | 0.571429 |
+|  7 | Arsenal          | 0.559524 |
+|  8 | Everton          | 0.547619 |
+|  9 | Leeds            | 0.535714 |
+| 10 | Aston Villa      | 0.511905 |
+| 11 | Newcastle        | 0.440476 |
+| 12 | Wolves           | 0.440476 |
+| 13 | Brighton         | 0.428571 |
+| 14 | Crystal Palace   | 0.428571 |
+| 15 | Southampton      | 0.416667 |
+| 16 | Burnley          | 0.392857 |
+| 17 | Fulham           | 0.321429 |
+| 18 | West Brom        | 0.297619 |
+| 19 | Sheffield United | 0.238095 |
+
 
 ## Implied Probabilities
 
