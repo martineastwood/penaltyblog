@@ -1,6 +1,25 @@
 import numpy as np
 
 
+def rho_correction_vec(df):
+    dc_adj = np.select(
+        [
+            (df["goals_home"] == 0) & (df["goals_away"] == 0),
+            (df["goals_home"] == 0) & (df["goals_away"] == 1),
+            (df["goals_home"] == 1) & (df["goals_away"] == 0),
+            (df["goals_home"] == 1) & (df["goals_away"] == 1),
+        ],
+        [
+            1 - (df["home_exp"] * df["away_exp"] * df["rho"]),
+            1 + (df["home_exp"] * df["rho"]),
+            1 + (df["away_exp"] * df["rho"]),
+            1 - df["rho"],
+        ],
+        default=1,
+    )
+    return dc_adj
+
+
 def rho_correction(goals_home, goals_away, home_exp, away_exp, rho):
     """
     Applies the dixon and coles correction

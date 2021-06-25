@@ -2,8 +2,9 @@ import pandas as pd
 import numpy as np
 from scipy.optimize import minimize
 from scipy.stats import poisson
+import warnings
 from .football_probability_grid import FootballProbabilityGrid
-from .utils import rho_correction
+from .utils import rho_correction_vec
 
 
 class RueSalvesenGoalModel:
@@ -58,8 +59,8 @@ class RueSalvesenGoalModel:
 
         self._params = np.concatenate(
             (
-                np.random.uniform(0.5, 1.5, (self.n_teams)),  # attack strength
-                np.random.uniform(0, -1, (self.n_teams)),  # defence strength
+                [1] * self.n_teams,
+                [-1] * self.n_teams,
                 [0.25],  # home advantage
                 [-0.1],  # rho
                 [0.1],  # rue_salvesen gamma
@@ -125,9 +126,11 @@ class RueSalvesenGoalModel:
         """
         n_teams = len(teams)
 
-        params_df = pd.DataFrame(params[:n_teams], columns=["attack"])
-        params_df["defence"] = params[n_teams : n_teams * 2]
-        params_df["team"] = teams
+        params_df = (
+            pd.DataFrame(params[:n_teams], columns=["attack"])
+            .assign(defence=params[n_teams : n_teams * 2])
+            .assign(team=teams)
+        )
 
         df2 = (
             fixtures.merge(params_df, left_on="team_home", right_on="team")
@@ -158,18 +161,13 @@ class RueSalvesenGoalModel:
             df2["away_attack"] + df2["home_defence"] + df2["psyc_effect"]
         )
 
-        df2["home_llk"] = poisson.pmf(df2["goals_home"], df2["home_exp"])
-        df2["away_llk"] = poisson.pmf(df2["goals_away"], df2["away_exp"])
-        df2["dc_adj"] = df2.apply(
-            lambda x: rho_correction(
-                x["goals_home"], x["goals_away"], x["home_exp"], x["away_exp"], x["rho"]
-            ),
-            axis=1,
-        )
+        df2["home_llk"] = poisson.logpmf(df2["goals_home"], df2["home_exp"])
+        df2["away_llk"] = poisson.logpmf(df2["goals_away"], df2["away_exp"])
+        df2["dc_adj"] = df2["dc_adj"] = rho_correction_vec(df2)
 
-        df2["llk"] = (
-            np.log(df2["home_llk"]) + np.log(df2["away_llk"]) + np.log(df2["dc_adj"])
-        ) * df2["weights"]
+        df2["llk"] = (df2["home_llk"] + df2["away_llk"] + np.log(df2["dc_adj"])) * df2[
+            "weights"
+        ]
 
         return -df2["llk"].sum()
 
@@ -193,14 +191,16 @@ class RueSalvesenGoalModel:
         bounds += [(-2, 2)]
         bounds += [(-2, 2)]
 
-        self._res = minimize(
-            self._fit,
-            self._params,
-            args=(self.fixtures, self.teams),
-            constraints=constraints,
-            bounds=bounds,
-            options=options,
-        )
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            self._res = minimize(
+                self._fit,
+                self._params,
+                args=(self.fixtures, self.teams),
+                constraints=constraints,
+                bounds=bounds,
+                options=options,
+            )
 
         self._params = self._res["x"]
         self.n_params = len(self._params)
