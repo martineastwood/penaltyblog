@@ -197,7 +197,7 @@ class DixonColesGoalModel:
             The maximum number of goals to calculate the probabilities over. Reducing this will improve performance slightly at the expensive of acuuracy
 
         Returns
-        ------
+        -------
         FootballProbabilityGrid
             A class providing access to a range of probabilites, such as 1x2, asian handicaps, over unders etc
         """
@@ -256,7 +256,7 @@ class DixonColesGoalModel:
         Provides access to the model's fitted parameters
 
         Returns
-        ------
+        -------
         dict
             A dict containing the model's parameters
         """

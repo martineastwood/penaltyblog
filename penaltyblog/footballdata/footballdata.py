@@ -14,7 +14,7 @@ COUNTRIES = {
 }
 
 
-def list_countries():
+def list_countries() -> list:
     """
     Lists all the countries currently available
     """
@@ -40,14 +40,14 @@ def fetch_data(country, season_start_year, division) -> pd.DataFrame:
     division : int
         The division's level, where `0` is the top tier, `1` is the second tier etc
 
-    Example
-    -----------
-    import penaltyblog as pb
-    pb.footballdata.fetch("England", 2018, 0)
+    Examples
+    --------
+    >>> import penaltyblog as pb
+    >>> pb.footballdata.fetch("England", 2018, 0)
 
     Returns
-    ------
-    Pandas dataframe
+    -------
+    Returns a Pandas dataframe containing the requested data
     """
     country_code = COUNTRIES.get(country.lower())
     if country_code is None:
@@ -55,7 +55,7 @@ def fetch_data(country, season_start_year, division) -> pd.DataFrame:
 
     season_str = _season_code(season_start_year)
 
-    base_url = "http://www.football-data.co.uk/mmz4281/{season}/{country}{division}.csv"
+    base_url = "https://www.football-data.co.uk/mmz4281/{season}/{country}{division}.csv"
 
     url = base_url.format(
         season=season_str, country=country_code, division=str(division)

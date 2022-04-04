@@ -4,4 +4,6 @@ from . import poisson
 from . import footballdata
 from . import clubelo
 from . import implied
-from . import ratings
+from . import massey
+from . import colley
+from . import fpl

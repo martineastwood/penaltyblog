@@ -6,14 +6,14 @@ def list_all_teams():
     """
     Fetches all the available teams from clubelo.com
 
-    Example
-    -----------
-    import penaltyblog as pb
-    pb.clubelo.list_all_teams()
-
     Returns
-    ------
-    list
+    -------
+    Returns list of team names
+
+    Examples
+    --------
+    >>> import penaltyblog as pb
+    >>> pb.clubelo.list_all_teams()
     """
     base_url = "http://api.clubelo.com/{y}-{m}-{d}"
 
@@ -31,7 +31,7 @@ def list_all_teams():
     return teams
 
 
-def fetch_rankings_by_date(year, month, day):
+def fetch_rankings_by_date(year, month, day) -> pd.DataFrame:
     """
     Fetches all the club rankings from http://clubelo.com/ for a given date
 
@@ -44,14 +44,14 @@ def fetch_rankings_by_date(year, month, day):
     day : int
         The day of interest
 
-    Example
-    -----------
-    import penaltyblog as pb
-    pb.clubelo.fetch_rankings_by_date(2010, 1, 1)
-
     Returns
-    ------
-    Pandas dataframe
+    -------
+    Returns a Pandas dataframe of ratings
+
+    Examples
+    --------
+    >>> import penaltyblog as pb
+    >>> pb.clubelo.fetch_rankings_by_date(2010, 1, 1)
     """
     base_url = "http://api.clubelo.com/{y}-{m}-{d}"
 
@@ -68,7 +68,7 @@ def fetch_rankings_by_date(year, month, day):
     return df
 
 
-def fetch_rankings_by_team(team):
+def fetch_rankings_by_team(team) -> pd.DataFrame:
     """
     Fetches all the club rankings from http://clubelo.com/ for a given date
 
@@ -77,14 +77,14 @@ def fetch_rankings_by_team(team):
     team : str
         The team of interest
 
-    Example
-    -----------
-    import penaltyblog as pb
-    pb.clubelo.fetch_rankings_by_team("barcelona")
-
     Returns
-    ------
-    Pandas dataframe
+    -------
+    Returns a Pandas dataframe of ratings
+
+    Examples
+    --------
+    >>> import penaltyblog as pb
+    >>> pb.clubelo.fetch_rankings_by_team("barcelona")
     """
     base_url = "http://api.clubelo.com/{team}"
 

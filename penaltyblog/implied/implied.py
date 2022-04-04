@@ -16,6 +16,12 @@ def multiplicative(odds) -> dict:
     ----------
     dict
         contains implied probabilities and method used
+
+    Examples
+    ----------
+    >>> import penaltyblog as pb
+    >>> odds = [2.7, 2.3, 4.4]
+    >>> pb.implied.multiplicative(odds)
     """
     odds = np.array(odds)
     inv_odds = 1.0 / odds
@@ -42,6 +48,12 @@ def additive(odds) -> dict:
     ----------
     dict
         contains implied probabilities and method used
+
+    Examples
+    ----------
+    >>> import penaltyblog as pb
+    >>> odds = [2.7, 2.3, 4.4]
+    >>> pb.implied.additive(odds)
     """
     odds = np.array(odds)
     inv_odds = 1.0 / odds
@@ -68,6 +80,12 @@ def power(odds) -> dict:
     ----------
     dict
         contains implied probabilities, k and method used
+
+    Examples
+    ----------
+    >>> import penaltyblog as pb
+    >>> odds = [2.7, 2.3, 4.4]
+    >>> pb.implied.power(odds)
     """
     odds = np.array(odds)
     inv_odds = 1.0 / odds
@@ -105,6 +123,12 @@ def shin(odds) -> dict:
     ----------
     dict
         contains implied probabilities, z and method used
+
+    Examples
+    ----------
+    >>> import penaltyblog as pb
+    >>> odds = [2.7, 2.3, 4.4]
+    >>> pb.implied.shin(odds)
     """
     odds = np.array(odds)
     inv_odds = 1.0 / odds
@@ -144,6 +168,12 @@ def differential_margin_weighting(odds) -> dict:
     ----------
     dict
         contains implied probabilities, z and method used
+
+    Examples
+    ----------
+    >>> import penaltyblog as pb
+    >>> odds = [2.7, 2.3, 4.4]
+    >>> pb.implied.differential_margin_weighting(odds)
     """
     odds = np.array(odds)
     inv_odds = 1.0 / odds
@@ -171,6 +201,12 @@ def odds_ratio(odds) -> dict:
     ----------
     dict
         contains implied probabilities, z and method used
+
+    Examples
+    ----------
+    >>> import penaltyblog as pb
+    >>> odds = [2.7, 2.3, 4.4]
+    >>> pb.implied.odds_ratio(odds)
     """
     odds = np.array(odds)
     inv_odds = 1.0 / odds

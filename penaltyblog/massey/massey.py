@@ -82,7 +82,7 @@ def _build_f(fixtures, teams):
     return f
 
 
-def massey(goals_home, goals_away, teams_home, teams_away) -> pd.DataFrame:
+def ratings(goals_home, goals_away, teams_home, teams_away) -> pd.DataFrame:
     """
     Calculates each team's Massey ratings, and splits the Massey rating into defence and offence ratings
 
@@ -101,8 +101,14 @@ def massey(goals_home, goals_away, teams_home, teams_away) -> pd.DataFrame:
         List of names of the away teams
 
     Returns
-    ------
-        A dataframe containing overall ratings, offence ratings and defence ratings per team
+    -------
+        Returns a dataframe containing overall ratings, offence ratings and defence ratings per team
+
+    Examples
+    --------
+    >>> import penaltyblog as pb
+    >>> df = pb.footballdata.fetch_data("england", 2020, 0)
+    >>> pb.massey.ratings(df["FTHG"], df["FTAG"], df["HomeTeam"], df["AwayTeam"])
     """
     teams = np.sort(np.unique(np.concatenate([teams_home, teams_away])))
 

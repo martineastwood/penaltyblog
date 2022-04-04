@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 
 
-def colley(
+def ratings(
     goals_home, goals_away, teams_home, teams_away, include_draws=True, draw_weight=0.5
 ) -> pd.DataFrame:
     """
@@ -30,8 +30,14 @@ def colley(
         a draw is worth half a win, `0.333` means a draw is a third of a win etc
 
     Returns
-    ------
-        A dataframe containing colley ratings per team
+    -------
+        Returns a dataframe containing colley ratings per team
+
+    Examples
+    --------
+    >>> import penaltyblog as pb
+    >>> df = pb.footballdata.fetch_data("england", 2020, 0)
+    >>> pb.colley.ratings(df["FTHG"], df["FTAG"], df["HomeTeam"], df["AwayTeam"])
     """
     teams = np.sort(np.unique(np.concatenate([teams_home, teams_away])))
 
