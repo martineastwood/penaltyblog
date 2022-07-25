@@ -1,16 +1,16 @@
 import pandas as pd
 
 COUNTRIES = {
-    "belgium": "B",
-    "england": "E",
-    "france": "F",
-    "germany": "D",
-    "greece": "G",
-    "italy": "I",
-    "portugal": "P",
-    "scotland": "SC",
-    "spain": "SP",
-    "turkey": "T",
+    "belgium": {"abbrv": "B", "tiers": [1]},
+    "england": {"abbrv": "E", "tiers": [0, 1, 2, 3, "C"]},
+    "france": {"abbrv": "F", "tiers": [1, 2]},
+    "germany": {"abbrv": "D", "tiers": [1, 2]},
+    "greece": {"abbrv": "G", "tiers": [1]},
+    "italy": {"abbrv": "I", "tiers": [1, 2]},
+    "portugal": {"abbrv": "P", "tiers": [1]},
+    "scotland": {"abbrv": "SC", "tiers": [0, 1, 2, 3]},
+    "spain": {"abbrv": "SP", "tiers": [1, 2]},
+    "turkey": {"abbrv": "T", "tiers": [1]},
 }
 
 
@@ -27,7 +27,7 @@ def _season_code(season_start_year):
     return season_str
 
 
-def fetch_data(country, season_start_year, division) -> pd.DataFrame:
+def fetch_data(country: str, season_start_year: int, division: int) -> pd.DataFrame:
     """
     Fetches the requested data from football-data.co.uk
 
@@ -49,16 +49,22 @@ def fetch_data(country, season_start_year, division) -> pd.DataFrame:
     -------
     Returns a Pandas dataframe containing the requested data
     """
-    country_code = COUNTRIES.get(country.lower())
-    if country_code is None:
+    if country.lower() not in COUNTRIES:
         raise ValueError("Country not recognised")
+    country_code = COUNTRIES[country.lower()]["abbrv"]
+
+    if division > len(COUNTRIES[country.lower()]["tiers"]):
+        raise ValueError("Division not recognised")
+    division_code = COUNTRIES[country.lower()]["tiers"][division]
 
     season_str = _season_code(season_start_year)
 
-    base_url = "https://www.football-data.co.uk/mmz4281/{season}/{country}{division}.csv"
+    base_url = (
+        "https://www.football-data.co.uk/mmz4281/{season}/{country}{division}.csv"
+    )
 
     url = base_url.format(
-        season=season_str, country=country_code, division=str(division)
+        season=season_str, country=country_code, division=str(division_code)
     )
 
     df = pd.read_csv(url)
