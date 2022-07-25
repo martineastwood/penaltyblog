@@ -48,6 +48,8 @@ pb.footballdata.list_countries()
 The first parameter is the country of interest, the second is the starting year of the season and the third paramater is the level of the division of interest, where `0` is the highest division (e.g. England's Premier League), `1` is the second highest (e.g. England's Championship) etc.
 
 ```python
+import penaltyblog as pb
+
 df = pb.footballdata.fetch_data("england", 2018, 0)
 df[["Date", "HomeTeam", "AwayTeam", "FTHG", "FTAG"]].head()
 ```
