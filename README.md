@@ -27,7 +27,7 @@ There are examples of all the functions available in the [Examples section](http
 
 ```python
 import penaltyblog as pb
-pd.footballdata.list_countries()
+pb.footballdata.list_countries()
 ```
 
 ```
@@ -52,13 +52,13 @@ df = pb.footballdata.fetch_data("england", 2018, 0)
 df[["Date", "HomeTeam", "AwayTeam", "FTHG", "FTAG"]].head()
 ```
 
-|    | Date                | HomeTeam     | AwayTeam       |   FTHG |   FTAG |
-|---:|:--------------------|:-------------|:---------------|-------:|-------:|
-|  0 | 2018-08-10 00:00:00 | Man United   | Leicester      |      2 |      1 |
-|  1 | 2018-08-11 00:00:00 | Bournemouth  | Cardiff        |      2 |      0 |
-|  2 | 2018-08-11 00:00:00 | Fulham       | Crystal Palace |      0 |      2 |
-|  3 | 2018-08-11 00:00:00 | Huddersfield | Chelsea        |      0 |      3 |
-|  4 | 2018-08-11 00:00:00 | Newcastle    | Tottenham      |      1 |      2 |
+|      | Date                | HomeTeam     | AwayTeam       | FTHG | FTAG |
+| ---: | :------------------ | :----------- | :------------- | ---: | ---: |
+|    0 | 2018-08-10 00:00:00 | Man United   | Leicester      |    2 |    1 |
+|    1 | 2018-08-11 00:00:00 | Bournemouth  | Cardiff        |    2 |    0 |
+|    2 | 2018-08-11 00:00:00 | Fulham       | Crystal Palace |    0 |    2 |
+|    3 | 2018-08-11 00:00:00 | Huddersfield | Chelsea        |    0 |    3 |
+|    4 | 2018-08-11 00:00:00 | Newcastle    | Tottenham      |    1 |    2 |
 
 ## Predicting Goals
 
@@ -74,13 +74,13 @@ df = pb.footballdata.fetch_data("England", 2018, 0)
 df[["Date", "HomeTeam", "AwayTeam", "FTHG", "FTAG"]].head()
 ```
 
-|    | Date                | HomeTeam     | AwayTeam       |   FTHG |   FTAG |
-|---:|:--------------------|:-------------|:---------------|-------:|-------:|
-|  0 | 2018-08-10 00:00:00 | Man United   | Leicester      |      2 |      1 |
-|  1 | 2018-08-11 00:00:00 | Bournemouth  | Cardiff        |      2 |      0 |
-|  2 | 2018-08-11 00:00:00 | Fulham       | Crystal Palace |      0 |      2 |
-|  3 | 2018-08-11 00:00:00 | Huddersfield | Chelsea        |      0 |      3 |
-|  4 | 2018-08-11 00:00:00 | Newcastle    | Tottenham      |      1 |      2 |
+|      | Date                | HomeTeam     | AwayTeam       | FTHG | FTAG |
+| ---: | :------------------ | :----------- | :------------- | ---: | ---: |
+|    0 | 2018-08-10 00:00:00 | Man United   | Leicester      |    2 |    1 |
+|    1 | 2018-08-11 00:00:00 | Bournemouth  | Cardiff        |    2 |    0 |
+|    2 | 2018-08-11 00:00:00 | Fulham       | Crystal Palace |    0 |    2 |
+|    3 | 2018-08-11 00:00:00 | Huddersfield | Chelsea        |    0 |    3 |
+|    4 | 2018-08-11 00:00:00 | Newcastle    | Tottenham      |    1 |    2 |
 
 Next, we create a basic Poisson model and fit it to the data.
 
@@ -367,28 +367,28 @@ df = pb.footballdata.fetch_data("england", 2020, 0)
 pb.ratings.massey(df["FTHG"], df["FTAG"], df["HomeTeam"], df["AwayTeam"])
 ```
 
-|    | team             |   rating |    offence |   defence |
-|---:|:-----------------|---------:|-----------:|----------:|
-|  0 | Man City         |    1.275 |  1.48618   | -0.211184 |
-|  1 | Man United       |    0.725 |  1.23896   | -0.513962 |
-|  2 | Liverpool        |    0.65  |  1.10424   | -0.45424  |
-|  3 | Tottenham        |    0.575 |  1.10841   | -0.533406 |
-|  4 | Chelsea          |    0.55  |  0.832018  | -0.282018 |
-|  5 | Leicester        |    0.45  |  1.11535   | -0.665351 |
-|  6 | Arsenal          |    0.4   |  0.757018  | -0.357018 |
-|  7 | West Ham         |    0.375 |  0.952851  | -0.577851 |
-|  8 | Aston Villa      |    0.225 |  0.76674   | -0.54174  |
-|  9 | Leeds            |    0.2   |  0.962573  | -0.762573 |
-| 10 | Everton          |   -0.025 |  0.558406  | -0.583406 |
-| 11 | Brighton         |   -0.15  |  0.370906  | -0.520906 |
-| 12 | Wolves           |   -0.4   |  0.273684  | -0.673684 |
-| 13 | Newcastle        |   -0.4   |  0.551462  | -0.951462 |
-| 14 | Southampton      |   -0.525 |  0.586184  | -1.11118  |
-| 15 | Burnley          |   -0.55  |  0.198684  | -0.748684 |
-| 16 | Crystal Palace   |   -0.625 |  0.425073  | -1.05007  |
-| 17 | Fulham           |   -0.65  |  0.0375731 | -0.687573 |
-| 18 | West Brom        |   -1.025 |  0.280629  | -1.30563  |
-| 19 | Sheffield United |   -1.075 | -0.13326   | -0.94174  |
+|      | team             | rating |   offence |   defence |
+| ---: | :--------------- | -----: | --------: | --------: |
+|    0 | Man City         |  1.275 |   1.48618 | -0.211184 |
+|    1 | Man United       |  0.725 |   1.23896 | -0.513962 |
+|    2 | Liverpool        |   0.65 |   1.10424 |  -0.45424 |
+|    3 | Tottenham        |  0.575 |   1.10841 | -0.533406 |
+|    4 | Chelsea          |   0.55 |  0.832018 | -0.282018 |
+|    5 | Leicester        |   0.45 |   1.11535 | -0.665351 |
+|    6 | Arsenal          |    0.4 |  0.757018 | -0.357018 |
+|    7 | West Ham         |  0.375 |  0.952851 | -0.577851 |
+|    8 | Aston Villa      |  0.225 |   0.76674 |  -0.54174 |
+|    9 | Leeds            |    0.2 |  0.962573 | -0.762573 |
+|   10 | Everton          | -0.025 |  0.558406 | -0.583406 |
+|   11 | Brighton         |  -0.15 |  0.370906 | -0.520906 |
+|   12 | Wolves           |   -0.4 |  0.273684 | -0.673684 |
+|   13 | Newcastle        |   -0.4 |  0.551462 | -0.951462 |
+|   14 | Southampton      | -0.525 |  0.586184 |  -1.11118 |
+|   15 | Burnley          |  -0.55 |  0.198684 | -0.748684 |
+|   16 | Crystal Palace   | -0.625 |  0.425073 |  -1.05007 |
+|   17 | Fulham           |  -0.65 | 0.0375731 | -0.687573 |
+|   18 | West Brom        | -1.025 |  0.280629 |  -1.30563 |
+|   19 | Sheffield United | -1.075 |  -0.13326 |  -0.94174 |
 
 ### Colley Ratings
 
@@ -401,28 +401,28 @@ df = pb.footballdata.fetch_data("england", 2020, 0)
 pb.ratings.colley(df["FTHG"], df["FTAG"], df["HomeTeam"], df["AwayTeam"], include_draws=True, draw_weight=1/3)
 ```
 
-|    | team             |   rating |
-|---:|:-----------------|---------:|
-|  0 | Man City         | 1.42857  |
-|  1 | Man United       | 1.38095  |
-|  2 | Liverpool        | 1.3254   |
-|  3 | Chelsea          | 1.31746  |
-|  4 | West Ham         | 1.28571  |
-|  5 | Leicester        | 1.27778  |
-|  6 | Tottenham        | 1.2619   |
-|  7 | Arsenal          | 1.24603  |
-|  8 | Everton          | 1.2381   |
-|  9 | Leeds            | 1.21429  |
-| 10 | Aston Villa      | 1.19841  |
-| 11 | Brighton         | 1.14286  |
-| 12 | Newcastle        | 1.13492  |
-| 13 | Wolves           | 1.13492  |
-| 14 | Crystal Palace   | 1.11905  |
-| 15 | Southampton      | 1.10317  |
-| 16 | Burnley          | 1.0873   |
-| 17 | Fulham           | 1.03175  |
-| 18 | West Brom        | 1        |
-| 19 | Sheffield United | 0.904762 |
+|      | team             |   rating |
+| ---: | :--------------- | -------: |
+|    0 | Man City         |  1.42857 |
+|    1 | Man United       |  1.38095 |
+|    2 | Liverpool        |   1.3254 |
+|    3 | Chelsea          |  1.31746 |
+|    4 | West Ham         |  1.28571 |
+|    5 | Leicester        |  1.27778 |
+|    6 | Tottenham        |   1.2619 |
+|    7 | Arsenal          |  1.24603 |
+|    8 | Everton          |   1.2381 |
+|    9 | Leeds            |  1.21429 |
+|   10 | Aston Villa      |  1.19841 |
+|   11 | Brighton         |  1.14286 |
+|   12 | Newcastle        |  1.13492 |
+|   13 | Wolves           |  1.13492 |
+|   14 | Crystal Palace   |  1.11905 |
+|   15 | Southampton      |  1.10317 |
+|   16 | Burnley          |   1.0873 |
+|   17 | Fulham           |  1.03175 |
+|   18 | West Brom        |        1 |
+|   19 | Sheffield United | 0.904762 |
 
 
 ```python
@@ -432,28 +432,28 @@ df = pb.footballdata.fetch_data("england", 2020, 0)
 pb.ratings.colley(df["FTHG"], df["FTAG"], df["HomeTeam"], df["AwayTeam"], include_draws=False)
 ```
 
-|    | team             |   rating |
-|---:|:-----------------|---------:|
-|  0 | Man City         | 0.75     |
-|  1 | Man United       | 0.678571 |
-|  2 | Liverpool        | 0.630952 |
-|  3 | Chelsea          | 0.619048 |
-|  4 | Leicester        | 0.595238 |
-|  5 | West Ham         | 0.595238 |
-|  6 | Tottenham        | 0.571429 |
-|  7 | Arsenal          | 0.559524 |
-|  8 | Everton          | 0.547619 |
-|  9 | Leeds            | 0.535714 |
-| 10 | Aston Villa      | 0.511905 |
-| 11 | Newcastle        | 0.440476 |
-| 12 | Wolves           | 0.440476 |
-| 13 | Brighton         | 0.428571 |
-| 14 | Crystal Palace   | 0.428571 |
-| 15 | Southampton      | 0.416667 |
-| 16 | Burnley          | 0.392857 |
-| 17 | Fulham           | 0.321429 |
-| 18 | West Brom        | 0.297619 |
-| 19 | Sheffield United | 0.238095 |
+|      | team             |   rating |
+| ---: | :--------------- | -------: |
+|    0 | Man City         |     0.75 |
+|    1 | Man United       | 0.678571 |
+|    2 | Liverpool        | 0.630952 |
+|    3 | Chelsea          | 0.619048 |
+|    4 | Leicester        | 0.595238 |
+|    5 | West Ham         | 0.595238 |
+|    6 | Tottenham        | 0.571429 |
+|    7 | Arsenal          | 0.559524 |
+|    8 | Everton          | 0.547619 |
+|    9 | Leeds            | 0.535714 |
+|   10 | Aston Villa      | 0.511905 |
+|   11 | Newcastle        | 0.440476 |
+|   12 | Wolves           | 0.440476 |
+|   13 | Brighton         | 0.428571 |
+|   14 | Crystal Palace   | 0.428571 |
+|   15 | Southampton      | 0.416667 |
+|   16 | Burnley          | 0.392857 |
+|   17 | Fulham           | 0.321429 |
+|   18 | West Brom        | 0.297619 |
+|   19 | Sheffield United | 0.238095 |
 
 
 ## Implied Probabilities
@@ -617,13 +617,13 @@ df = pb.clubelo.fetch_rankings_by_date(2010, 1, 1)
 df.head()
 ```
 
-|    |   Rank | Club        | Country   |   Level |     Elo | From                | To                  |
-|---:|-------:|:------------|:----------|--------:|--------:|:--------------------|:--------------------|
-|  0 |      1 | Barcelona   | ESP       |       1 | 1987.68 | 2009-12-18 00:00:00 | 2010-01-02 00:00:00 |
-|  1 |      2 | Chelsea     | ENG       |       1 | 1945.54 | 2009-12-29 00:00:00 | 2010-01-16 00:00:00 |
-|  2 |      3 | Man United  | ENG       |       1 | 1928.53 | 2009-12-31 00:00:00 | 2010-01-09 00:00:00 |
-|  3 |      4 | Real Madrid | ESP       |       1 | 1902.72 | 2009-12-20 00:00:00 | 2010-01-03 00:00:00 |
-|  4 |      5 | Inter       | ITA       |       1 | 1884.49 | 2009-12-21 00:00:00 | 2010-01-06 00:00:00 |
+|      | Rank | Club        | Country | Level |     Elo | From                | To                  |
+| ---: | ---: | :---------- | :------ | ----: | ------: | :------------------ | :------------------ |
+|    0 |    1 | Barcelona   | ESP     |     1 | 1987.68 | 2009-12-18 00:00:00 | 2010-01-02 00:00:00 |
+|    1 |    2 | Chelsea     | ENG     |     1 | 1945.54 | 2009-12-29 00:00:00 | 2010-01-16 00:00:00 |
+|    2 |    3 | Man United  | ENG     |     1 | 1928.53 | 2009-12-31 00:00:00 | 2010-01-09 00:00:00 |
+|    3 |    4 | Real Madrid | ESP     |     1 | 1902.72 | 2009-12-20 00:00:00 | 2010-01-03 00:00:00 |
+|    4 |    5 | Inter       | ITA     |     1 | 1884.49 | 2009-12-21 00:00:00 | 2010-01-06 00:00:00 |
 
 ### List all teams with ratings available
 
@@ -645,13 +645,13 @@ df = pb.clubelo.fetch_rankings_by_team("barcelona")
 df.head()
 ```
 
-|    | Rank   | Club      | Country   |   Level |     Elo | From                | To                  |
-|---:|:-------|:----------|:----------|--------:|--------:|:--------------------|:--------------------|
-|  0 | None   | Barcelona | ESP       |       1 | 1636.7  | 1939-10-22 00:00:00 | 1939-12-03 00:00:00 |
-|  1 | None   | Barcelona | ESP       |       1 | 1626.1  | 1939-12-04 00:00:00 | 1939-12-10 00:00:00 |
-|  2 | None   | Barcelona | ESP       |       1 | 1636.73 | 1939-12-11 00:00:00 | 1939-12-17 00:00:00 |
-|  3 | None   | Barcelona | ESP       |       1 | 1646.95 | 1939-12-18 00:00:00 | 1939-12-24 00:00:00 |
-|  4 | None   | Barcelona | ESP       |       1 | 1637.42 | 1939-12-25 00:00:00 | 1939-12-31 00:00:00 |
+|      | Rank | Club      | Country | Level |     Elo | From                | To                  |
+| ---: | :--- | :-------- | :------ | ----: | ------: | :------------------ | :------------------ |
+|    0 | None | Barcelona | ESP     |     1 |  1636.7 | 1939-10-22 00:00:00 | 1939-12-03 00:00:00 |
+|    1 | None | Barcelona | ESP     |     1 |  1626.1 | 1939-12-04 00:00:00 | 1939-12-10 00:00:00 |
+|    2 | None | Barcelona | ESP     |     1 | 1636.73 | 1939-12-11 00:00:00 | 1939-12-17 00:00:00 |
+|    3 | None | Barcelona | ESP     |     1 | 1646.95 | 1939-12-18 00:00:00 | 1939-12-24 00:00:00 |
+|    4 | None | Barcelona | ESP     |     1 | 1637.42 | 1939-12-25 00:00:00 | 1939-12-31 00:00:00 |
 
 ## References
 
