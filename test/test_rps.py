@@ -7,7 +7,7 @@ class TestRps(unittest.TestCase):
         predictions = [0.8, 0.1, 0.1]
         observed = 0
 
-        rps_score = pb.metrics.rps(predictions, observed)
+        rps_score = pb.utilities.rps(predictions, observed)
 
         self.assertAlmostEqual(rps_score, 0.025, 4, "Should be 0.025")
 
