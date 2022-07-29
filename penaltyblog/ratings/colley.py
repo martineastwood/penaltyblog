@@ -2,9 +2,7 @@ import numpy as np
 import pandas as pd
 
 
-def ratings(
-    goals_home, goals_away, teams_home, teams_away, include_draws=True, draw_weight=0.5
-) -> pd.DataFrame:
+class Colley:
     """
     Calculates each team's Colley ratings
 
@@ -28,30 +26,47 @@ def ratings(
     draw_weight : float
         if include_draws is `True` then this sets the weighting applied to tied scores. For example `0.5` means
         a draw is worth half a win, `0.333` means a draw is a third of a win etc
-
-    Returns
-    -------
-        Returns a dataframe containing colley ratings per team
-
-    Examples
-    --------
-    >>> import penaltyblog as pb
-    >>> df = pb.footballdata.fetch_data("england", 2020, 0)
-    >>> pb.colley.ratings(df["FTHG"], df["FTAG"], df["HomeTeam"], df["AwayTeam"])
     """
-    teams = np.sort(np.unique(np.concatenate([teams_home, teams_away])))
 
-    fixtures = _build_fixtures(goals_home, goals_away, teams_home, teams_away)
+    def __init__(
+        self,
+        goals_home,
+        goals_away,
+        teams_home,
+        teams_away,
+        include_draws=True,
+        draw_weight=0.5,
+    ):
+        self.goals_home = goals_home
+        self.goals_away = goals_away
+        self.teams_home = teams_home
+        self.teams_away = teams_away
+        self.include_draws = include_draws
+        self.draw_weight = draw_weight
 
-    C, b = _build_C_b(fixtures, teams, include_draws, draw_weight)
+    def get_ratings(self) -> pd.DataFrame:
+        """
+        Gets the Colley ratings
 
-    r = _solve_r(C, b)
-    r = pd.DataFrame([teams, r]).T
-    r.columns = ["team", "rating"]
-    r = r.sort_values("rating", ascending=False)
-    r = r.reset_index(drop=True)
+        Returns
+        -------
+            Returns a dataframe containing colley ratings per team
+        """
+        teams = np.sort(np.unique(np.concatenate([self.teams_home, self.teams_away])))
 
-    return r
+        fixtures = _build_fixtures(
+            self.goals_home, self.goals_away, self.teams_home, self.teams_away
+        )
+
+        C, b = _build_C_b(fixtures, teams, self.include_draws, self.draw_weight)
+
+        r = _solve_r(C, b)
+        r = pd.DataFrame([teams, r]).T
+        r.columns = ["team", "rating"]
+        r = r.sort_values("rating", ascending=False)
+        r = r.reset_index(drop=True)
+
+        return r
 
 
 def _build_fixtures(goals_home, goals_away, teams_home, teams_away):

@@ -1,1 +1,0 @@
-from .colley import ratings

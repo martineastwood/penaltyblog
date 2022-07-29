@@ -9,12 +9,14 @@ Welcome to penaltyblog!
 The **penaltyblog** Python package contains lots of useful code from http://pena.lt/y/blog for working with football (soccer) data.
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 1
    :caption: Contents:
 
-
-   intro 
-
+   implied/index
+   models/index
+   ratings/index
+   scrapers/index
+   utilities/index
 
 API Reference
 -------------

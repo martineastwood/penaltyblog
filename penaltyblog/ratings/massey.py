@@ -2,6 +2,71 @@ import numpy as np
 import pandas as pd
 
 
+class Massey:
+    """
+    Calculates each team's Massey ratings
+
+    Parameters
+    ----------
+    goals_home : list
+        List of goals scored by the home teams
+
+    goals_away : list
+        List of goals scored by the away teams
+
+    teams_home : list
+        List of names of the home teams
+
+    teams_away : list
+        List of names of the away teams
+    """
+
+    def __init__(
+        self,
+        goals_home,
+        goals_away,
+        teams_home,
+        teams_away,
+    ):
+        self.goals_home = goals_home
+        self.goals_away = goals_away
+        self.teams_home = teams_home
+        self.teams_away = teams_away
+
+    def get_ratings(self) -> pd.DataFrame:
+        """
+        Gets the Massey ratings
+
+        Returns
+        -------
+            Returns a dataframe containing colley ratings per team
+        """
+        teams = np.sort(np.unique(np.concatenate([self.teams_home, self.teams_away])))
+
+        fixtures = pd.DataFrame(
+            [self.goals_home, self.goals_away, self.teams_home, self.teams_away]
+        ).T
+        fixtures.columns = ["goals_home", "goals_away", "team_home", "team_away"]
+        fixtures["goals_home"] = fixtures["goals_home"].astype(int)
+        fixtures["goals_away"] = fixtures["goals_away"].astype(int)
+
+        M = _build_m(fixtures, teams)
+        p = _build_p(fixtures, teams)
+        r = _solve_ratings(M, p)
+
+        t = _build_t(fixtures, teams)
+        f = _build_f(fixtures, teams)
+        Tr_f = (np.diag(t) * r) - f
+        d = _solve_d(t, Tr_f)
+        o = r - d
+
+        res = pd.DataFrame([teams, r, o, d]).T
+        res.columns = ["team", "rating", "offence", "defence"]
+        res = res.sort_values("rating", ascending=False)
+        res = res.reset_index(drop=True)
+        return res
+
+
 def _build_m(fixtures, teams):
     n_teams = len(teams)
     M = np.zeros([n_teams, n_teams])
@@ -80,55 +145,3 @@ def _build_f(fixtures, teams):
         goals_for = home["goals_home"].sum() + away["goals_away"].sum()
         f.append(goals_for)
     return f
-
-
-def ratings(goals_home, goals_away, teams_home, teams_away) -> pd.DataFrame:
-    """
-    Calculates each team's Massey ratings, and splits the Massey rating into defence and offence ratings
-
-    Parameters
-    ----------
-    goals_home : list
-        List of goals scored by the home teams
-
-    goals_away : list
-        List of goals scored by the away teams
-
-    teams_home : list
-        List of names of the home teams
-
-    teams_away : list
-        List of names of the away teams
-
-    Returns
-    -------
-        Returns a dataframe containing overall ratings, offence ratings and defence ratings per team
-
-    Examples
-    --------
-    >>> import penaltyblog as pb
-    >>> df = pb.footballdata.fetch_data("england", 2020, 0)
-    >>> pb.massey.ratings(df["FTHG"], df["FTAG"], df["HomeTeam"], df["AwayTeam"])
-    """
-    teams = np.sort(np.unique(np.concatenate([teams_home, teams_away])))
-
-    fixtures = pd.DataFrame([goals_home, goals_away, teams_home, teams_away]).T
-    fixtures.columns = ["goals_home", "goals_away", "team_home", "team_away"]
-    fixtures["goals_home"] = fixtures["goals_home"].astype(int)
-    fixtures["goals_away"] = fixtures["goals_away"].astype(int)
-
-    M = _build_m(fixtures, teams)
-    p = _build_p(fixtures, teams)
-    r = _solve_ratings(M, p)
-
-    t = _build_t(fixtures, teams)
-    f = _build_f(fixtures, teams)
-    Tr_f = (np.diag(t) * r) - f
-    d = _solve_d(t, Tr_f)
-    o = r - d
-
-    res = pd.DataFrame([teams, r, o, d]).T
-    res.columns = ["team", "rating", "offence", "defence"]
-    res = res.sort_values("rating", ascending=False)
-    res = res.reset_index(drop=True)
-    return res
