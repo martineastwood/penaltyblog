@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "penaltyblog"
-version = "0.3.1"
+version = "0.4.0"
 description = "Library from http://pena.lt/y/blog for modelling and working with football (soccer) data"
 authors = ["Martin Eastwood <martin.eastwood@gmx.com>"]
 readme = "README.md"
