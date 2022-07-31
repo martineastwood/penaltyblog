@@ -4,7 +4,6 @@ from datetime import datetime
 from .common import (
     COMPETITION_MAPPINGS,
     sanitize_columns,
-    create_game_id,
 )
 from .team_mappings import santize_team_names
 from .base_scrapers import BaseScraperRequests

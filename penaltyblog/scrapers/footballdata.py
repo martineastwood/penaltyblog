@@ -38,6 +38,9 @@ class FootballData(BaseScraperRequests):
         super().__init__()
 
     def _season_mapping(self, season):
+        """
+        Internal function to map season to football-data's format
+        """
         years = season.split("-")
         part1 = years[0][-2:]
         part2 = years[1][-2:]
@@ -57,7 +60,10 @@ class FootballData(BaseScraperRequests):
         df["Date"] = pd.to_datetime(df["Date"], dayfirst=True)
         return df
 
-    def get_fixtures(self):
+    def get_fixtures(self) -> pd.DataFrame:
+        """
+        Downloads the fixtures and returns them as a pandas data frame
+        """
         url = self.base_url.format(
             season=self.mapped_season, competition=self.mapped_competition
         )

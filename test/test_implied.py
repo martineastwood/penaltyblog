@@ -1,4 +1,3 @@
-# import unittest
 import penaltyblog as pb
 import numpy as np
 
