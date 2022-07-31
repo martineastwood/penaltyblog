@@ -6,7 +6,7 @@ API Documentation
 ``Poisson Goal Model``
 --------------------------
 
-.. autoclass:: penaltyblog.poisson.PoissonGoalsModel
+.. autoclass:: penaltyblog.models.PoissonGoalsModel
     :members:
     :private-members:
     :member-order: bysource
@@ -14,7 +14,7 @@ API Documentation
 ``Dixon and Coles Goal Model``
 -------------------------------
 
-.. autoclass:: penaltyblog.poisson.DixonColesGoalModel
+.. autoclass:: penaltyblog.models.DixonColesGoalModel
     :members:
     :private-members:
     :member-order: bysource    
@@ -23,7 +23,7 @@ API Documentation
 ``Dixon and Coles Goal Model With Rue and Salvesen Adjustment``
 ----------------------------------------------------------------
 
-.. autoclass:: penaltyblog.poisson.RueSalvesenGoalModel
+.. autoclass:: penaltyblog.models.RueSalvesenGoalModel
     :members:
     :private-members:
     :member-order: bysource   
@@ -63,37 +63,37 @@ API Documentation
 ``Get data from footballdata.co.uk``
 ---------------------------------------
 
-.. automodule:: penaltyblog.footballdata
+.. automodule:: penaltyblog.scrapers.footballdata.FootballData
     :members:
     :special-members:
     :exclude-members: __weakref__
     :member-order: bysource
 
-.. autofunction:: list_countries 
+.. autofunction:: list_competitions 
 
 | 
 
-.. autofunction:: fetch_data
+.. autofunction:: get_fixtures
 
 
 ``Get data from clubelo.com``
 -------------------------------
 
-.. automodule:: penaltyblog.clubelo
+.. automodule:: penaltyblog.scrapers.clubelo.ClubElo
     :members:
     :special-members:
     :exclude-members: __weakref__
     :member-order: bysource
 
-.. autofunction:: list_all_teams 
+.. autofunction:: get_elo_by_date 
 
 |
 
-.. autofunction:: fetch_rankings_by_date
+.. autofunction:: get_team_names
 
 |
 
-.. autofunction:: fetch_rankings_by_team
+.. autofunction:: get_elo_by_team
 
 
 ``Get data from fantasy.premierleague.com``
@@ -140,31 +140,31 @@ API Documentation
 ``Calculate Massey Ratings``
 ------------------------------
 
-.. automodule:: penaltyblog.massey
+.. automodule:: penaltyblog.ratings.massey.Massey
     :members:
     :special-members:
     :exclude-members: __weakref__
     :member-order: bysource
 
-.. autofunction:: ratings 
+.. autofunction:: get_ratings 
 
 
 ``Calculate Colley Ratings``
 ------------------------------
 
-.. automodule:: penaltyblog.colley
+.. automodule:: penaltyblog.ratings.colley.Colley
     :members:
     :special-members:
     :exclude-members: __weakref__
     :member-order: bysource
 
-.. autofunction:: ratings 
+.. autofunction:: get_ratings 
 
 
 ``Useful Metrics``
 -------------------
 
-.. automodule:: penaltyblog.metrics
+.. automodule:: penaltyblog.utilities
     :members:
     :special-members:
     :exclude-members: __weakref__
