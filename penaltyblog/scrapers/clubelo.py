@@ -96,7 +96,7 @@ class ClubElo(BaseScraperRequests):
 
         return df
 
-    def get_team_names(self):
+    def get_team_names(self) -> pd.DataFrame:
         date = datetime.now().date()
 
         url = (
