@@ -1,7 +1,7 @@
 Implied Odds
 ==============
 
-Functions for calculating the implied odds from bookmaker's odds.
+Functions for estimating the implied odds from bookmaker's odds. Includes multiple different algorithms, including Shin's method
 
 .. toctree::
    :maxdepth: 1
