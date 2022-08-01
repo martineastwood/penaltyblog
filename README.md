@@ -2,13 +2,13 @@
 
 <div align="center">
 
+  <a href="">[![Python Version](https://img.shields.io/pypi/pyversions/penaltyblog)](https://pypi.org/project/penaltyblog/)</a>
   <a href="">[![Coverage Status](https://coveralls.io/repos/github/martineastwood/penaltyblog/badge.svg?branch=master)](https://coveralls.io/github/martineastwood/penaltyblog?branch=master)</a>
   <a href="">[![PyPI](https://img.shields.io/pypi/v/penaltyblog.svg)](https://pypi.org/project/penaltyblog/)</a>
   <a href="">[![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)</a>
   <a href="">[![Code style: pre-commit](https://img.shields.io/badge/pre--commit-enabled-brightgreen?logo=pre-commit&logoColor=white)](https://github.com/pre-commit/pre-commit)</a>
 
 </div>
-
 
 The `penaltyblog` package contains code from [http://pena.lt/y/blog](http://pena.lt/y/blog) for working with football (soccer) data.
 
