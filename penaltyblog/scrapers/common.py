@@ -1,5 +1,5 @@
+import calendar
 import re
-import time
 
 import pandas as pd
 
@@ -34,9 +34,20 @@ COMPETITION_MAPPINGS = {
 }
 
 
+def move_column_inplace(df, col, pos):
+    """
+    Reorder specific columns, taken from
+    https://stackoverflow.com/questions/25122099/move-column-by-name-to-front-of-table-in-pandas
+    """
+    col = df.pop(col)
+    df = df.insert(pos, col.name, col)
+    return df
+
+
 def sanitize_columns(df, rename_mappings=None):
     """
-    Make the columns names consistent, e.g. lowercase, snakecase, consistent names for team columns
+    Make the columns names consistent, e.g.
+    lowercase, snakecase, consistent names for team columns
     """
     if rename_mappings:
         df = df.rename(columns=rename_mappings)
@@ -60,15 +71,15 @@ def create_game_id(df: pd.DataFrame):
     """
     Creates a unique id for each fixture based on datetime and team names
     """
+
+    def _create_game_id(row: pd.Series):
+        tmpl = "{}---{}---{}".format(
+            int(calendar.timegm(row["date"].timetuple())),
+            row["team_home"],
+            row["team_away"],
+        )
+        tmpl = tmpl.replace(" ", "_").lower()
+        return tmpl
+
     df["id"] = df.apply(_create_game_id, axis=1)
     return df
-
-
-def _create_game_id(row: pd.Series):
-    tmpl = "{}---{}---{}".format(
-        int(time.mktime(row["date"].timetuple())),
-        row["team_home"],
-        row["team_away"],
-    )
-    tmpl = tmpl.replace(" ", "_").lower()
-    return tmpl

@@ -3,22 +3,27 @@ from datetime import datetime
 
 import pandas as pd
 
-from .base_scrapers import BaseScraperRequests
+from .base_scrapers import RequestsScraper
 from .common import sanitize_columns
-from .team_mappings import santize_team_names
 
 
-class ClubElo(BaseScraperRequests):
+class ClubElo(RequestsScraper):
     """
     Collects data from clubelo.com.com as pandas dataframes
+
+    team_mappings : dict or None
+        dict (or None) of team name mappings in format
+        `{
+            "Manchester United: ["Man Utd", "Man United],
+        }`
     """
 
-    source = "footballdata"
+    source = "clubelo"
 
-    def __init__(self):
+    def __init__(self, team_mappings=None):
         self.base_url = "http://api.clubelo.com/"
 
-        super().__init__()
+        super().__init__(team_mappings=team_mappings)
 
     def _season_mapping(self, season):
         years = season.split("-")
@@ -64,7 +69,7 @@ class ClubElo(BaseScraperRequests):
             .pipe(self._convert_date)
             .pipe(self._column_name_mapping)
             .pipe(sanitize_columns)
-            .pipe(santize_team_names)
+            .pipe(self._map_teams, columns=["team"])
             .sort_values("elo", ascending=False)
             .set_index("team")
         )
@@ -88,7 +93,7 @@ class ClubElo(BaseScraperRequests):
             .pipe(self._convert_date)
             .pipe(self._column_name_mapping)
             .pipe(sanitize_columns)
-            .pipe(santize_team_names)
+            .pipe(self._map_teams, columns=["team"])
             .sort_values("from", ascending=False)
             .set_index("from")
         )
@@ -103,10 +108,8 @@ class ClubElo(BaseScraperRequests):
         )
 
         content = self.get(url)
-        df = (
-            pd.read_csv(io.StringIO(content))[["Club"]]
-            .rename(columns={"Club": "team"})
-            .pipe(santize_team_names)
+        df = pd.read_csv(io.StringIO(content))[["Club"]].rename(
+            columns={"Club": "team"}
         )
 
         return df

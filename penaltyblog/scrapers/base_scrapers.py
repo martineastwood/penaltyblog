@@ -1,3 +1,6 @@
+from typing import Iterable
+
+import pandas as pd
 import requests
 from selenium import webdriver
 from selenium.webdriver import FirefoxOptions
@@ -6,7 +9,55 @@ from webdriver_manager.firefox import GeckoDriverManager
 from .common import COMPETITION_MAPPINGS
 
 
-class BaseScraperSelenium:
+class BaseScraper:
+    """
+    Base scraper that all scrapers inherit from
+
+    Parameters
+    ----------
+    team_mappings : dict or None
+        dict (or None) of team name mappings in format
+        `{
+            "Manchester United: ["Man Utd", "Man United],
+        }`
+    """
+
+    def __init__(self, team_mappings=None):
+        if team_mappings is not None:
+            self.team_mappings = dict()
+            for team, options in team_mappings.items():
+                for option in options:
+                    self.team_mappings[option] = team
+        else:
+            self.team_mappings = None
+
+    @classmethod
+    def list_competitions(cls) -> list:
+        competitions = list()
+        for k, v in COMPETITION_MAPPINGS.items():
+            if cls.source in v.keys():
+                competitions.append(k)
+        return competitions
+
+    def _map_teams(self, df: pd.DataFrame, columns: Iterable) -> pd.DataFrame:
+        """
+        Internal function to apply team mappings if they've been provided
+
+        Parameters
+        ----------
+        df : pd.DataFrame
+            dataframe of scraped data
+
+        columns : Iterable
+            iterable of columns to map
+        """
+        if self.team_mappings is not None:
+            for c in columns:
+                df[c] = df[c].replace(self.team_mappings)
+        return df
+
+
+class SeleniumScraper(BaseScraper):
     """
     Base Scraper class that all selenium-based scrapers inherit from
     """
@@ -21,6 +72,8 @@ class BaseScraperSelenium:
             executable_path=GeckoDriverManager().install(), options=self.options
         )
         self.driver.delete_all_cookies()
+
+        super().__init__()
 
     def close_browser(self):
         """
@@ -39,21 +92,13 @@ class BaseScraperSelenium:
         """
         self.driver.get(url)
 
-    @classmethod
-    def list_competitions(cls):
-        competitions = list()
-        for k, v in COMPETITION_MAPPINGS.items():
-            if cls.source in v.keys():
-                competitions.append(k)
-        return competitions
 
-
-class BaseScraperRequests:
+class RequestsScraper(BaseScraper):
     """
     Base scraper that all request-based scrapers inherit from
     """
 
-    def __init__(self):
+    def __init__(self, team_mappings=None):
         self.headers = {
             "User-Agent": (
                 "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) "
@@ -61,13 +106,7 @@ class BaseScraperRequests:
             )
         }
 
+        super().__init__(team_mappings=team_mappings)
+
     def get(self, url: str):
         return requests.get(url, headers=self.headers).text
-
-    @classmethod
-    def list_competitions(cls):
-        competitions = list()
-        for k, v in COMPETITION_MAPPINGS.items():
-            if cls.source in v.keys():
-                competitions.append(k)
-        return competitions

@@ -2,27 +2,39 @@ import io
 
 import pandas as pd
 
-from .base_scrapers import BaseScraperRequests
-from .common import COMPETITION_MAPPINGS, create_game_id, sanitize_columns
-from .team_mappings import santize_team_names
+from .base_scrapers import RequestsScraper
+from .common import (
+    COMPETITION_MAPPINGS,
+    create_game_id,
+    move_column_inplace,
+    sanitize_columns,
+)
 
 
-class FootballData(BaseScraperRequests):
+class FootballData(RequestsScraper):
     """
     Scrapes data from fbref.com as pandas dataframes
 
     Parameters
     ----------
-    league : str
-        Name of the league of interest (optional)
+    competition : str
+        Name of the league of interest (optional).
+        See `FootballData.list_competitions()` for available
+        competitions
 
     season : str
         Name of the season of interest (optional) in format 2020-2021
+
+    team_mappings : dict or None
+        dict (or None) of team name mappings in format
+        `{
+            "Manchester United: ["Man Utd", "Man United],
+        }`
     """
 
     source = "footballdata"
 
-    def __init__(self, competition, season):
+    def __init__(self, competition, season, team_mappings=None):
         self.base_url = (
             "https://www.football-data.co.uk/mmz4281/{season}/{competition}.csv"
         )
@@ -33,7 +45,7 @@ class FootballData(BaseScraperRequests):
             "footballdata"
         ]["slug"]
 
-        super().__init__()
+        super().__init__(team_mappings=team_mappings)
 
     def _season_mapping(self, season):
         """
@@ -44,14 +56,6 @@ class FootballData(BaseScraperRequests):
         part2 = years[1][-2:]
         mapped = part1 + part2
         return mapped
-
-    def _column_name_mapping(self, df) -> pd.DataFrame:
-        """
-        Internal function to rename columns to make consistent with other data sources
-        """
-        cols = {"HomeTeam": "team_home", "AwayTeam": "team_away"}
-        df = df.rename(columns=cols)
-        return df
 
     def _convert_date(self, df):
         df["datetime"] = pd.to_datetime(df["Date"] + " " + df["Time"], dayfirst=True)
@@ -66,19 +70,27 @@ class FootballData(BaseScraperRequests):
             season=self.mapped_season, competition=self.mapped_competition
         )
 
+        col_renames = {
+            "HomeTeam": "team_home",
+            "AwayTeam": "team_away",
+        }
+
         content = self.get(url)
         df = (
             pd.read_csv(io.StringIO(content))
             .pipe(self._convert_date)
-            .pipe(self._column_name_mapping)
+            .rename(columns=col_renames)
             .pipe(sanitize_columns)
             .assign(season=self.season)
             .assign(competition=self.competition)
-            .pipe(santize_team_names)
+            .pipe(self._map_teams, columns=["team_home", "team_away"])
             .pipe(create_game_id)
-            .drop(["date", "time"], axis=1)
-            .set_index(["competition", "season", "id"])
+            .set_index(["id"])
             .sort_index()
         )
+
+        move_column_inplace(df, "competition", 0)
+        move_column_inplace(df, "season", 1)
+        move_column_inplace(df, "datetime", 2)
 
         return df

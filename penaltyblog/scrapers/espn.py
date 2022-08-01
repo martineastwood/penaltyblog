@@ -3,12 +3,11 @@ from datetime import datetime
 
 import pandas as pd
 
-from .base_scrapers import BaseScraperRequests
+from .base_scrapers import RequestsScraper
 from .common import COMPETITION_MAPPINGS, create_game_id, sanitize_columns
-from .team_mappings import santize_team_names
 
 
-class ESPN(BaseScraperRequests):
+class ESPN(RequestsScraper):
     """
     Scrapes data from fbref.com as pandas dataframes
 
@@ -121,7 +120,6 @@ class ESPN(BaseScraperRequests):
             .assign(season=self.season)
             .assign(competition=self.competition)
             .pipe(self._convert_date)
-            .pipe(santize_team_names)
             .pipe(create_game_id)
             .pipe(self._map_fixture_column_types)
             .set_index(["competition", "season", "id"])
