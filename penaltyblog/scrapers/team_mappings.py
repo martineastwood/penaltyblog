@@ -4,6 +4,7 @@ def get_example_team_name_mappings():
 
 example_mapped_team_names = {
     "Bayern Munich": ["Bayern", "Fußball-Club Bayern München e. V."],
+    "Brighton": ["Brighton & Hove Albion"],
     "Bournemouth": ["AFC Bournemouth"],
     "Birmingham City": ["Birmingham"],
     "Blackburn Rovers": ["Blackburn"],

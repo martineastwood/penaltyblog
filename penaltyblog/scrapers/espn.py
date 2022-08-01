@@ -19,11 +19,17 @@ class ESPN(RequestsScraper):
 
     season : str
         Name of the season of interest in format 2020-2021
+
+    team_mappings : dict or None
+        dict (or None) of team name mappings in format
+        `{
+            "Manchester United: ["Man Utd", "Man United],
+        }`
     """
 
     source = "espn"
 
-    def __init__(self, competition, season):
+    def __init__(self, competition, season, team_mappings=None):
         self.base_url = (
             "https://site.api.espn.com/apis/site/v2/sports/soccer/"
             "{competition}/scoreboard?dates={date}"
@@ -34,7 +40,7 @@ class ESPN(RequestsScraper):
         self.mapped_competition = COMPETITION_MAPPINGS[self.competition]["espn"]["slug"]
         self.start_date = COMPETITION_MAPPINGS[self.competition]["espn"]["start_date"]
 
-        super().__init__()
+        super().__init__(team_mappings=team_mappings)
 
     def _map_season(self, season) -> str:
         """
@@ -103,7 +109,7 @@ class ESPN(RequestsScraper):
         fixture_dates = content["leagues"][0]["calendar"]
 
         fixtures = list()
-        for date in fixture_dates[0:2]:
+        for date in fixture_dates:
 
             url = self.base_url.format(
                 date=datetime.strptime(date, "%Y-%m-%dT%H:%MZ").strftime("%Y%m%d"),
@@ -111,7 +117,8 @@ class ESPN(RequestsScraper):
             )
             content = self.get(url)
             content = json.loads(content)
-            fixtures.extend(self._scrape_fixture_events(content))
+            events = self._scrape_fixture_events(content)
+            fixtures.extend(events)
 
         df = pd.DataFrame(fixtures)
         df["datetime"] = pd.to_datetime(df["datetime"])
@@ -120,6 +127,7 @@ class ESPN(RequestsScraper):
             .assign(season=self.season)
             .assign(competition=self.competition)
             .pipe(self._convert_date)
+            .pipe(self._map_teams, columns=["team_home", "team_away"])
             .pipe(create_game_id)
             .pipe(self._map_fixture_column_types)
             .set_index(["competition", "season", "id"])

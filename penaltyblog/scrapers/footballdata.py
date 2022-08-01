@@ -13,14 +13,13 @@ from .common import (
 
 class FootballData(RequestsScraper):
     """
-    Scrapes data from fbref.com as pandas dataframes
+    Scrapes data from football-data.co.uk as pandas dataframes
 
     Parameters
     ----------
     competition : str
         Name of the league of interest (optional).
-        See `FootballData.list_competitions()` for available
-        competitions
+        See `FootballData.list_competitions()` for available competitions
 
     season : str
         Name of the season of interest (optional) in format 2020-2021
