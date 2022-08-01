@@ -1,1 +1,1 @@
-from .rps import rps
+from .rps import rps  # noqa

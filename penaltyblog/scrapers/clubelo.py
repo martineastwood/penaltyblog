@@ -1,12 +1,11 @@
-import pandas as pd
 import io
 from datetime import datetime
-from .common import (
-    COMPETITION_MAPPINGS,
-    sanitize_columns,
-)
-from .team_mappings import santize_team_names
+
+import pandas as pd
+
 from .base_scrapers import BaseScraperRequests
+from .common import sanitize_columns
+from .team_mappings import santize_team_names
 
 
 class ClubElo(BaseScraperRequests):

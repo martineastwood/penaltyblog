@@ -1,8 +1,10 @@
-import pandas as pd
+import warnings
+
 import numpy as np
+import pandas as pd
 from scipy.optimize import minimize
 from scipy.stats import poisson
-import warnings
+
 from .football_probability_grid import FootballProbabilityGrid
 
 
@@ -12,7 +14,8 @@ class PoissonGoalsModel:
     Methods
     -------
     fit()
-        fits a Poisson model to the data to calculate the team strengths. Must be called before the
+        fits a Poisson model to the data to calculate the team strengths.
+        Must be called before the
         model can be used to predict game outcomes
 
     predict(home_team, away_team, max_goals=15)
@@ -35,7 +38,8 @@ class PoissonGoalsModel:
         teams_away : list
             A list or pd.Series of team_names for the away_team
         weights : list
-            A list or pd.Series of weights for the data, the lower the weight the less the match has on the output
+            A list or pd.Series of weights for the data, the lower
+            the weight the less the match has on the output
         """
 
         self.fixtures = pd.DataFrame([goals_home, goals_away, teams_home, teams_away]).T
@@ -134,7 +138,8 @@ class PoissonGoalsModel:
 
     def fit(self):
         """
-        Fits the model to the data and calculates the team strengths, home advantage and intercept.
+        Fits the model to the data and calculates the team strengths,
+        home advantage and intercept.
         Should be called before `predict` can be used
         """
         options = {
@@ -180,28 +185,33 @@ class PoissonGoalsModel:
             The name of the away_team, must have been in the data the model was fitted on
 
         max_goals : int
-            The maximum number of goals to calculate the probabilities over. Reducing this will improve performance slightly at the expensive of acuuracy
+            The maximum number of goals to calculate the probabilities over.
+            Reducing this will improve performance slightly at the expensive of acuuracy
 
         Returns
         -------
         FootballProbabilityGrid
-            A class providing access to a range of probabilites, such as 1x2, asian handicaps, over unders etc
+            A class providing access to a range of probabilites, such as 1x2,
+            asian handicaps, over unders etc
         """
         # check the model has been fit
         if not self.fitted:
             raise ValueError(
-                "Model's parameters have not been fit yet, please call the `fit()` function before making any predictions"
+                "Model's parameters have not been fit yet, please call the `fit()` "
+                "function before making any predictions"
             )
 
         # check we have parameters for teams
         if home_team not in self.teams:
             raise ValueError(
-                "No parameters for home team - please ensure the team was included in the training data"
+                "No parameters for home team - please ensure the team was "
+                "included in the training data"
             )
 
         if away_team not in self.teams:
             raise ValueError(
-                "No parameters for away team - please ensure the team was included in the training data"
+                "No parameters for away team - please ensure the team "
+                "was included in the training data"
             )
 
         # get the relevant model parameters
@@ -241,7 +251,8 @@ class PoissonGoalsModel:
         """
         if not self.fitted:
             raise ValueError(
-                "Model's parameters have not been fit yet, please call the `fit()` function first"
+                "Model's parameters have not been fit yet, "
+                "please call the `fit()` function first"
             )
 
         params = dict(

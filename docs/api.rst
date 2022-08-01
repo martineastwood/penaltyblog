@@ -17,7 +17,7 @@ API Documentation
 .. autoclass:: penaltyblog.models.DixonColesGoalModel
     :members:
     :private-members:
-    :member-order: bysource    
+    :member-order: bysource
 
 
 ``Dixon and Coles Goal Model With Rue and Salvesen Adjustment``
@@ -26,7 +26,7 @@ API Documentation
 .. autoclass:: penaltyblog.models.RueSalvesenGoalModel
     :members:
     :private-members:
-    :member-order: bysource   
+    :member-order: bysource
 
 
 ``Calculate Implied Betting Odds``
@@ -38,7 +38,7 @@ API Documentation
     :exclude-members: __weakref__
     :member-order: bysource
 
-.. autofunction:: multiplicative 
+.. autofunction:: multiplicative
 
 |
 
@@ -58,7 +58,7 @@ API Documentation
 
 |
 
-.. autofunction:: odds_ratio    
+.. autofunction:: odds_ratio
 
 ``Get data from footballdata.co.uk``
 ---------------------------------------
@@ -69,9 +69,9 @@ API Documentation
     :exclude-members: __weakref__
     :member-order: bysource
 
-.. autofunction:: list_competitions 
+.. autofunction:: list_competitions
 
-| 
+|
 
 .. autofunction:: get_fixtures
 
@@ -85,7 +85,7 @@ API Documentation
     :exclude-members: __weakref__
     :member-order: bysource
 
-.. autofunction:: get_elo_by_date 
+.. autofunction:: get_elo_by_date
 
 |
 
@@ -105,7 +105,7 @@ API Documentation
     :exclude-members: __weakref__
     :member-order: bysource
 
-.. autofunction:: get_current_gameweek 
+.. autofunction:: get_current_gameweek
 
 |
 
@@ -146,7 +146,7 @@ API Documentation
     :exclude-members: __weakref__
     :member-order: bysource
 
-.. autofunction:: get_ratings 
+.. autofunction:: get_ratings
 
 
 ``Calculate Colley Ratings``
@@ -158,7 +158,7 @@ API Documentation
     :exclude-members: __weakref__
     :member-order: bysource
 
-.. autofunction:: get_ratings 
+.. autofunction:: get_ratings
 
 
 ``Useful Metrics``
@@ -170,6 +170,4 @@ API Documentation
     :exclude-members: __weakref__
     :member-order: bysource
 
-.. autofunction:: rps 
-
-
+.. autofunction:: rps

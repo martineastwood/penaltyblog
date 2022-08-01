@@ -1,8 +1,8 @@
-from .implied import (
+from .implied import (  # noqa
     additive,
+    differential_margin_weighting,
     multiplicative,
+    odds_ratio,
     power,
     shin,
-    differential_margin_weighting,
-    odds_ratio,
 )

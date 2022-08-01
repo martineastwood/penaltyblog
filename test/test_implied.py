@@ -1,5 +1,6 @@
-import penaltyblog as pb
 import numpy as np
+
+import penaltyblog as pb
 
 odds = [2.7, 2.3, 4.4]
 

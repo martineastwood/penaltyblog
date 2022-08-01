@@ -1,5 +1,6 @@
-import penaltyblog as pb
 import pandas as pd
+
+import penaltyblog as pb
 
 
 def test_clubelo_by_date():

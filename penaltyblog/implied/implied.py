@@ -1,11 +1,11 @@
-from operator import inv
 import numpy as np
 from scipy import optimize
 
 
 def multiplicative(odds) -> dict:
     """
-    The multiplicative method computes the implied probabilities by dividing the inverted odds by their sum to normalize them
+    The multiplicative method computes the implied probabilities by
+    dividing the inverted odds by their sum to normalize them
 
     Parameters
     ----------
@@ -37,7 +37,8 @@ def multiplicative(odds) -> dict:
 
 def additive(odds) -> dict:
     """
-    The additive method removes an equal proportion from each odd to get the implied probabilities
+    The additive method removes an equal proportion from each
+    odd to get the implied probabilities
 
     Parameters
     ----------
@@ -69,7 +70,8 @@ def additive(odds) -> dict:
 
 def power(odds) -> dict:
     """
-    The power method computes the implied probabilities by solving for the power coefficient that normalizes the inverse of the odds to sum to 1.0
+    The power method computes the implied probabilities by solving for the
+    power coefficient that normalizes the inverse of the odds to sum to 1.0
 
     Parameters
     ----------
@@ -92,7 +94,7 @@ def power(odds) -> dict:
     margin = np.sum(inv_odds) - 1
 
     def _power(k, inv_odds):
-        implied = inv_odds ** k
+        implied = inv_odds**k
         return implied
 
     def _power_error(k, inv_odds):
@@ -140,7 +142,7 @@ def shin(odds) -> dict:
 
     def _shin(z, inv_odds):
         implied = (
-            (z ** 2 + 4 * (1 - z) * inv_odds ** 2 / np.sum(inv_odds)) ** 0.5 - z
+            (z**2 + 4 * (1 - z) * inv_odds**2 / np.sum(inv_odds)) ** 0.5 - z
         ) / (2 - 2 * z)
         return implied
 
@@ -157,7 +159,8 @@ def shin(odds) -> dict:
 
 def differential_margin_weighting(odds) -> dict:
     """
-    Based on Jospeh Buchdahl's wisdom of the crowds - https://www.football-data.co.uk/The_Wisdom_of_the_Crowd.pdf
+    Based on Jospeh Buchdahl's wisdom of the crowds -
+    https://www.football-data.co.uk/The_Wisdom_of_the_Crowd.pdf
 
     Parameters
     ----------
@@ -190,7 +193,8 @@ def differential_margin_weighting(odds) -> dict:
 
 def odds_ratio(odds) -> dict:
     """
-    Keith Cheung's odds ratio method, as discussed in Jospeh Buchdahl's wisdom of the crowds
+    Keith Cheung's odds ratio method, as discussed in
+    Jospeh Buchdahl's wisdom of the crowds
 
     Parameters
     ----------

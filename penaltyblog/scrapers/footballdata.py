@@ -1,12 +1,10 @@
-import pandas as pd
 import io
-from .common import (
-    COMPETITION_MAPPINGS,
-    sanitize_columns,
-    create_game_id,
-)
-from .team_mappings import santize_team_names
+
+import pandas as pd
+
 from .base_scrapers import BaseScraperRequests
+from .common import COMPETITION_MAPPINGS, create_game_id, sanitize_columns
+from .team_mappings import santize_team_names
 
 
 class FootballData(BaseScraperRequests):

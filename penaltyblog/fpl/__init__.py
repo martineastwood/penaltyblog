@@ -1,1 +1,1 @@
-from .fpl import *
+from .fpl import *  # noqa

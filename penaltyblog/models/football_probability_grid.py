@@ -97,7 +97,8 @@ class FootballProbabilityGrid(list):
         Parameters
         ----------
         over_under : str
-            Whether probabilities are for over / under the total goals value - must be one of ['over', 'under']
+            Whether probabilities are for over / under the
+            total goals value - must be one of ['over', 'under']
 
         strike : float
             The total goals value for the market
@@ -122,7 +123,8 @@ class FootballProbabilityGrid(list):
         Parameters
         ----------
         home_away : str
-            Whether probabilities are for home / away team - must be one of ['home', 'away']
+            Whether probabilities are for home / away team -
+            must be one of ['home', 'away']
 
         goals : float
             The total goals value

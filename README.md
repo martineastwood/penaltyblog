@@ -23,7 +23,7 @@ There are examples of all the functions available in the [Examples section](http
 `penaltyblog` contains some helper functions for downloading data from [football-data.co.uk](http://football-data.co.uk).
 
 
-### List the countries available 
+### List the countries available
 
 ```python
 import penaltyblog as pb
@@ -107,28 +107,28 @@ Number of parameters: 41
 Log Likelihood: -1065.077
 AIC: 2212.154
 
-Team                 Attack               Defence             
+Team                 Attack               Defence
 ------------------------------------------------------------
-Arsenal              1.362                -0.856              
-Bournemouth          1.115                -0.555              
-Brighton             0.634                -0.731              
-Burnley              0.894                -0.595              
-Cardiff              0.614                -0.592              
-Chelsea              1.202                -1.135              
-Crystal Palace       1.004                -0.839              
-Everton              1.055                -0.978              
-Fulham               0.626                -0.431              
-Huddersfield         0.184                -0.507              
-Leicester            1.0                  -0.939              
-Liverpool            1.532                -1.683              
-Man City             1.598                -1.633              
-Man United           1.249                -0.807              
-Newcastle            0.805                -0.948              
-Southampton          0.891                -0.641              
-Tottenham            1.264                -1.131              
-Watford              1.03                 -0.731              
-West Ham             1.026                -0.801              
-Wolves               0.916                -0.985              
+Arsenal              1.362                -0.856
+Bournemouth          1.115                -0.555
+Brighton             0.634                -0.731
+Burnley              0.894                -0.595
+Cardiff              0.614                -0.592
+Chelsea              1.202                -1.135
+Crystal Palace       1.004                -0.839
+Everton              1.055                -0.978
+Fulham               0.626                -0.431
+Huddersfield         0.184                -0.507
+Leicester            1.0                  -0.939
+Liverpool            1.532                -1.683
+Man City             1.598                -1.633
+Man United           1.249                -0.807
+Newcastle            0.805                -0.948
+Southampton          0.891                -0.641
+Tottenham            1.264                -1.131
+Watford              1.03                 -0.731
+West Ham             1.026                -0.801
+Wolves               0.916                -0.985
 ------------------------------------------------------------
 Home Advantage: 0.225
 ```
@@ -153,28 +153,28 @@ Number of parameters: 42
 Log Likelihood: -1064.943
 AIC: 2213.886
 
-Team                 Attack               Defence             
+Team                 Attack               Defence
 ------------------------------------------------------------
-Arsenal              1.36                 -0.858              
-Bournemouth          1.115                -0.555              
-Brighton             0.632                -0.733              
-Burnley              0.897                -0.592              
-Cardiff              0.615                -0.591              
-Chelsea              1.205                -1.13               
-Crystal Palace       1.007                -0.837              
-Everton              1.054                -0.977              
-Fulham               0.625                -0.433              
-Huddersfield         0.18                 -0.507              
-Leicester            0.996                -0.94               
-Liverpool            1.534                -1.679              
-Man City             1.599                -1.638              
-Man United           1.251                -0.807              
-Newcastle            0.806                -0.946              
-Southampton          0.897                -0.636              
-Tottenham            1.259                -1.137              
-Watford              1.031                -0.729              
-West Ham             1.023                -0.803              
-Wolves               0.914                -0.988              
+Arsenal              1.36                 -0.858
+Bournemouth          1.115                -0.555
+Brighton             0.632                -0.733
+Burnley              0.897                -0.592
+Cardiff              0.615                -0.591
+Chelsea              1.205                -1.13
+Crystal Palace       1.007                -0.837
+Everton              1.054                -0.977
+Fulham               0.625                -0.433
+Huddersfield         0.18                 -0.507
+Leicester            0.996                -0.94
+Liverpool            1.534                -1.679
+Man City             1.599                -1.638
+Man United           1.251                -0.807
+Newcastle            0.806                -0.946
+Southampton          0.897                -0.636
+Tottenham            1.259                -1.137
+Watford              1.031                -0.729
+West Ham             1.023                -0.803
+Wolves               0.914                -0.988
 ------------------------------------------------------------
 Home Advantage: 0.225
 Rho: -0.041
@@ -202,28 +202,28 @@ Number of parameters: 43
 Log Likelihood: -1061.167
 AIC: 2208.334
 
-Team                 Attack               Defence             
+Team                 Attack               Defence
 ------------------------------------------------------------
-Arsenal              1.496                -0.988              
-Bournemouth          1.27                 -0.705              
-Brighton             0.559                -0.655              
-Burnley              0.964                -0.654              
-Cardiff              0.585                -0.556              
-Chelsea              1.183                -1.129              
-Crystal Palace       1.027                -0.852              
-Everton              1.034                -0.974              
-Fulham               0.653                -0.455              
-Huddersfield         0.023                -0.359              
-Leicester            0.978                -0.916              
-Liverpool            1.445                -1.585              
-Man City             1.503                -1.571              
-Man United           1.367                -0.917              
-Newcastle            0.72                 -0.854              
-Southampton          0.942                -0.693              
-Tottenham            1.243                -1.131              
-Watford              1.097                -0.79               
-West Ham             1.062                -0.836              
-Wolves               0.85                 -0.919              
+Arsenal              1.496                -0.988
+Bournemouth          1.27                 -0.705
+Brighton             0.559                -0.655
+Burnley              0.964                -0.654
+Cardiff              0.585                -0.556
+Chelsea              1.183                -1.129
+Crystal Palace       1.027                -0.852
+Everton              1.034                -0.974
+Fulham               0.653                -0.455
+Huddersfield         0.023                -0.359
+Leicester            0.978                -0.916
+Liverpool            1.445                -1.585
+Man City             1.503                -1.571
+Man United           1.367                -0.917
+Newcastle            0.72                 -0.854
+Southampton          0.942                -0.693
+Tottenham            1.243                -1.131
+Watford              1.097                -0.79
+West Ham             1.062                -0.836
+Wolves               0.85                 -0.919
 ------------------------------------------------------------
 Home Advantage: 0.222
 Rho: -0.04

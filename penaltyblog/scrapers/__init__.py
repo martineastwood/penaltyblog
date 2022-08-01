@@ -1,4 +1,4 @@
 # from .fbref import FbRef
-from .footballdata import FootballData
-from .espn import ESPN
-from .clubelo import ClubElo
+from .clubelo import ClubElo  # noqa
+from .espn import ESPN  # noqa
+from .footballdata import FootballData  # noqa

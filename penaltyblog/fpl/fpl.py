@@ -1,7 +1,8 @@
-import requests
+from typing import Tuple
+
 import pandas as pd
 import pulp
-from typing import Tuple
+import requests
 
 
 def get_current_gameweek() -> int:
@@ -144,7 +145,8 @@ def get_player_history(player_id) -> pd.DataFrame:
     Parameters
     ----------
     player_id : int
-        The player's FPL Id, this can be determined from the `get_player_id_mappings` function
+        The player's FPL Id, this can be determined from the
+        `get_player_id_mappings` function
 
     Returns
     -------
@@ -176,7 +178,8 @@ def get_player_history(player_id) -> pd.DataFrame:
 
 def get_rankings(page=1) -> pd.DataFrame:
     """
-    Fetches a given page of fpl rankings. Each page contains 50 results, so the top fifty teams are on page 1, teams ranked 51-100 are on page 2 etc.
+    Fetches a given page of fpl rankings. Each page contains 50 results,
+    so the top fifty teams are on page 1, teams ranked 51-100 are on page 2 etc.
 
     Parameters
     ----------
@@ -193,9 +196,11 @@ def get_rankings(page=1) -> pd.DataFrame:
     >>> pb.fpl.get_rankings(page=1)
     """
     # get the data
-    url = "https://fantasy.premierleague.com/api/leagues-classic/314/standings/?page_new_entries=1&page_standings={page}&phase=1".format(
-        page=page
+    url = (
+        "https://fantasy.premierleague.com/api/leagues-classic/314/standings/"
+        "?page_new_entries=1&page_standings={page}&phase=1"
     )
+    url = url.format(page=page)
     r = requests.get(url)
     data = r.json()
     df = pd.DataFrame(data["standings"]["results"])
@@ -209,7 +214,8 @@ def get_entry_picks_by_gameweek(entry_id, gameweek=1) -> dict:
     Parameters
     ----------
     entry_id : int
-        The entry's team ID, this can be found via the `get_rankings`  function or by looking at the URL for the entry on tHe FPL website
+        The entry's team ID, this can be found via the `get_rankings`  function
+        or by looking at the URL for the entry on tHe FPL website
     gameweek : int
         The gameweek of interest
 
@@ -278,7 +284,8 @@ def get_entry_transfers(entry_id) -> pd.DataFrame:
     Parameters
     ----------
     entry_id : int
-        The entry's team ID, this can be found via the `get_rankings`  function or by looking at the URL for the entry on tHe FPL website
+        The entry's team ID, this can be found via the `get_rankings`
+        function or by looking at the URL for the entry on tHe FPL website
 
     Returns
     -------
@@ -325,7 +332,8 @@ def optimise_team(formation="2-5-5-3", budget=100) -> Tuple[dict, pd.DataFrame]:
     formation_len = len(formation.split("-"))
     if formation_len != 4:
         raise ValueError(
-            "Error: formation is invalid, must contain values for gk, def, mid and fwd. For, example `2-5-5-3`, `1-4-3-3` etc"
+            "Error: formation is invalid, must contain values for "
+            "gk, def, mid and fwd. For, example `2-5-5-3`, `1-4-3-3` etc"
         )
 
     # set up constraints

@@ -1,7 +1,8 @@
+import requests
 from selenium import webdriver
 from selenium.webdriver import FirefoxOptions
 from webdriver_manager.firefox import GeckoDriverManager
-import requests
+
 from .common import COMPETITION_MAPPINGS
 
 
@@ -54,7 +55,10 @@ class BaseScraperRequests:
 
     def __init__(self):
         self.headers = {
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/102.0.0.0 Safari/537.36"
+            "User-Agent": (
+                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) "
+                "Chrome/102.0.0.0 Safari/537.36"
+            )
         }
 
     def get(self, url: str):

@@ -24,8 +24,9 @@ class Colley:
         Should tied results be included in the ratings?
 
     draw_weight : float
-        if include_draws is `True` then this sets the weighting applied to tied scores. For example `0.5` means
-        a draw is worth half a win, `0.333` means a draw is a third of a win etc
+        if include_draws is `True` then this sets the weighting applied to tied scores.
+        For example `0.5` means a draw is worth half a win, `0.333` means a draw
+        is a third of a win etc
     """
 
     def __init__(

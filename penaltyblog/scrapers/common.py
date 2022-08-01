@@ -1,7 +1,7 @@
 import re
-import pandas as pd
-from datetime import datetime
 import time
+
+import pandas as pd
 
 COMPETITION_MAPPINGS = {
     "DEU Bundesliga 1": {"fbref": "", "footballdata": {"slug": "D1"}},
@@ -47,7 +47,8 @@ def sanitize_columns(df, rename_mappings=None):
 
 def to_snake_case(name: str):
     """
-    Taken from https://stackoverflow.com/questions/1175208/elegant-python-function-to-convert-camelcase-to-snake-case
+    Taken from
+    https://stackoverflow.com/questions/1175208/elegant-python-function-to-convert-camelcase-to-snake-case
     """
     name = re.sub("(.)([A-Z][a-z]+)", r"\1_\2", name)
     name = re.sub("__([A-Z])", r"_\1", name)

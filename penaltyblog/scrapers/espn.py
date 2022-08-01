@@ -1,13 +1,11 @@
-import pandas as pd
 import json
 from datetime import datetime
-from .common import (
-    COMPETITION_MAPPINGS,
-    sanitize_columns,
-    create_game_id,
-)
-from .team_mappings import santize_team_names
+
+import pandas as pd
+
 from .base_scrapers import BaseScraperRequests
+from .common import COMPETITION_MAPPINGS, create_game_id, sanitize_columns
+from .team_mappings import santize_team_names
 
 
 class ESPN(BaseScraperRequests):
@@ -17,7 +15,8 @@ class ESPN(BaseScraperRequests):
     Parameters
     ----------
     league : str
-        Name of the league of interest, see the `ESPN.list_competitions()` output for available choices
+        Name of the league of interest,
+        see the `ESPN.list_competitions()` output for available choices
 
     season : str
         Name of the season of interest in format 2020-2021
@@ -26,7 +25,10 @@ class ESPN(BaseScraperRequests):
     source = "espn"
 
     def __init__(self, competition, season):
-        self.base_url = "https://site.api.espn.com/apis/site/v2/sports/soccer/{competition}/scoreboard?dates={date}"
+        self.base_url = (
+            "https://site.api.espn.com/apis/site/v2/sports/soccer/"
+            "{competition}/scoreboard?dates={date}"
+        )
         self.competition = competition
         self.season = season
         self.mapped_season = self._map_season(self.season)
