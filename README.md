@@ -1,10 +1,13 @@
 # Penalty Blog
 
 <div align="center">
-  <a href="">[![Coverage Status](https://coveralls.io/repos/github/martineastwood/penaltyblog/badge.svg?branch=dev)](https://coveralls.io/github/martineastwood/penaltyblog?branch=master)</a>
+
+  <a href="">[![Coverage Status](https://coveralls.io/repos/github/martineastwood/penaltyblog/badge.svg?branch=master)](https://coveralls.io/github/martineastwood/penaltyblog?branch=master)</a>
   <a href="">[![PyPI](https://img.shields.io/pypi/v/penaltyblog.svg)](https://pypi.org/project/penaltyblog/)</a>
+  <a href="">![example3](https://img.shields.io/badge/example-three-blue)</a>
 
 </div>
+
 
 The `penaltyblog` package contains code from [http://pena.lt/y/blog](http://pena.lt/y/blog) for working with football (soccer) data.
 
