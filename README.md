@@ -3,7 +3,6 @@
 <div align="left">
   <a href="">[![Coverage Status](https://coveralls.io/repos/github/martineastwood/penaltyblog/badge.svg?branch=dev)](https://coveralls.io/github/martineastwood/penaltyblog?branch=master)</a>
   <a href="">[![PyPI](https://img.shields.io/pypi/v/penaltyblog.svg)](https://pypi.org/project/penaltyblog/)</a>
-  <a href="">[![Black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)</a>
 
 </div>
 
