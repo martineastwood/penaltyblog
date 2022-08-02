@@ -100,7 +100,8 @@ class ESPN(RequestsScraper):
 
     def get_fixtures(self) -> pd.DataFrame:
         """
-        Gets the fixtures / results for the selected competition / season
+        Gets the fixtures / results for the selected competition / season and returns as a
+        pandas data frame
         """
         url = self.base_url.format(
             date=self.mapped_season + self.start_date,
