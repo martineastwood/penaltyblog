@@ -1,6 +1,12 @@
 import pandas as pd
+import pytest
 
 import penaltyblog as pb
+
+
+def test_footballdata_wrong_league():
+    with pytest.raises(ValueError):
+        fb = pb.scrapers.FootballData("FRA Premier League", "2020-2021")
 
 
 def test_footballdata_get_fixtures():

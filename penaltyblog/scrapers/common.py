@@ -4,12 +4,17 @@ import re
 import pandas as pd
 
 COMPETITION_MAPPINGS = {
-    "DEU Bundesliga 1": {"fbref": "", "footballdata": {"slug": "D1"}},
+    "DEU Bundesliga 1": {
+        "fbref": "",
+        "footballdata": {"slug": "D1"},
+        "understat": {"slug": "Bundesliga"},
+    },
     "DEU Bundesliga 2": {"fbref": "", "footballdata": {"slug": "D2"}},
     "ENG Premier League": {
         "fbref": "https://fbref.com/en/comps/9/history/Premier-League-Seasons",
         "footballdata": {"slug": "E0"},
         "espn": {"slug": "eng.1", "start_date": "0801"},
+        "understat": {"slug": "EPL"},
     },
     "ENG Championship": {
         "fbref": "",
@@ -19,13 +24,28 @@ COMPETITION_MAPPINGS = {
     "ENG League 1": {"fbref": "", "footballdata": {"slug": "E2"}},
     "ENG League 2": {"fbref": "", "footballdata": {"slug": "E3"}},
     "ENG Conference": {"fbref": "", "footballdata": {"slug": "EC"}},
-    "FRA Ligue 1": {"fbref": "", "footballdata": {"slug": "F1"}},
+    "ESP La Liga": {
+        "fbref": "",
+        "footballdata": {"slug": "SP1"},
+        "understat": {"slug": "La_Liga"},
+    },
+    "ESP La Liga Segunda": {"fbref": "", "footballdata": {"slug": "SP2"}},
+    "FRA Ligue 1": {
+        "fbref": "",
+        "footballdata": {"slug": "F1"},
+        "understat": {"slug": "Ligue_1"},
+    },
     "FRA Ligue 2": {"fbref": "", "footballdata": {"slug": "F2"}},
     "GRC Super League": {"fbref": "", "footballdata": {"slug": "G1"}},
-    "ITA Serie A": {"fbref": "", "footballdata": {"slug": "I1"}},
+    "ITA Serie A": {
+        "fbref": "",
+        "footballdata": {"slug": "I1"},
+        "understat": {"slug": "Serie_A"},
+    },
     "ITA Serie B": {"fbref": "", "footballdata": {"slug": "I2"}},
     "NLD Eredivisie": {"fbref": "", "footballdata": {"slug": "N1"}},
     "PRT Liga 1": {"fbref": "", "footballdata": {"slug": "P1"}},
+    "RUS Premier League": {"understat": {"slug": "RFPL"}},
     "SCO Premier League": {"fbref": "", "footballdata": {"slug": "SC0"}},
     "SCO Division 1": {"fbref": "", "footballdata": {"slug": "SC1"}},
     "SCO Division 2": {"fbref": "", "footballdata": {"slug": "SC2"}},

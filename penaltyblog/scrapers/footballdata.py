@@ -34,6 +34,9 @@ class FootballData(RequestsScraper):
     source = "footballdata"
 
     def __init__(self, competition, season, team_mappings=None):
+
+        self._check_competition(competition)
+
         self.base_url = (
             "https://www.football-data.co.uk/mmz4281/{season}/{competition}.csv"
         )

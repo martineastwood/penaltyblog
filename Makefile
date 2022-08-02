@@ -1,7 +1,10 @@
-.PHONY: test coverage precommit docs
+.PHONY: test coverage precommit docs test_subset
 
 test:
 	poetry run coverage run -m pytest
+
+test_subset:
+	poetry run pytest -v test/test_scraper_understat.py
 
 coverage:
 	poetry run coverage run -m pytest

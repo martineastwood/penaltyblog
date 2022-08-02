@@ -30,6 +30,9 @@ class ESPN(RequestsScraper):
     source = "espn"
 
     def __init__(self, competition, season, team_mappings=None):
+
+        self._check_competition(competition)
+
         self.base_url = (
             "https://site.api.espn.com/apis/site/v2/sports/soccer/"
             "{competition}/scoreboard?dates={date}"
@@ -130,7 +133,7 @@ class ESPN(RequestsScraper):
             .pipe(self._map_teams, columns=["team_home", "team_away"])
             .pipe(create_game_id)
             .pipe(self._map_fixture_column_types)
-            .set_index(["competition", "season", "id"])
+            .set_index("id")
             .sort_index()
         )
 

@@ -31,6 +31,13 @@ class BaseScraper:
         else:
             self.team_mappings = None
 
+    def _check_competition(self, competition):
+        available = self.list_competitions()
+        if competition not in available:
+            raise ValueError(
+                "{} not available for this data source".format(competition)
+            )
+
     @classmethod
     def list_competitions(cls) -> list:
         competitions = list()

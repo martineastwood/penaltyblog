@@ -1,10 +1,12 @@
 Scrapers
 ==============
 
-The scrapers provide a consistent wrapper around many online data sources, such as football-data.co.uk, Club Elo and ESPN.
+The scrapers provide a consistent wrapper around many online data sources, such as Understat, football-data.co.uk, Club Elo and ESPN.
 
 Each scrapers returns the data as a dataframe with consistent column names, mapping of team names to make them consistent
 (e.g. Man United Vs Manchester United) and IDs to allow different data sources to be joined together.
+
+See the example notebook below for how to use the scrapers.
 
 
 .. toctree::
@@ -14,3 +16,4 @@ Each scrapers returns the data as a dataframe with consistent column names, mapp
    espn
    clubelo
    footballdata
+   understat
