@@ -1,6 +1,9 @@
+import calendar
 import json
+import re
 from datetime import datetime
 
+import numpy as np
 import pandas as pd
 
 from .base_scrapers import RequestsScraper
@@ -136,6 +139,120 @@ class ESPN(RequestsScraper):
             .pipe(self._map_fixture_column_types)
             .set_index("id")
             .sort_index()
+        )
+
+        return df
+
+    def get_player_stats(self, espn_id) -> pd.DataFrame:
+        """
+        Get the player stats for a given fixture
+
+        Parameters
+        ----------
+        espn_id : str
+            ID for the fixture of interest,
+            see the `ESPN.get_fixtures()` output for available IDs
+        """
+        url = "https://site.api.espn.com/apis/site/v2/sports/soccer/{}/summary?event={}".format(
+            self.mapped_competition, espn_id
+        )
+
+        content = self.get(url)
+        content = json.loads(content)
+
+        output = list()
+        for roster in content["rosters"]:
+            for player in roster["roster"]:
+                tmp = dict()
+                tmp["espn_id"] = espn_id
+                tmp["datetime"] = content["header"]["competitions"][0]["date"]
+                tmp["espn_player_id"] = player["athlete"]["id"]
+                tmp["home"] = 1 if roster["homeAway"] == "home" else 0
+                tmp["team"] = roster["team"]["displayName"]
+                tmp["player_name"] = player["athlete"]["fullName"]
+                tmp["position"] = player["position"]["displayName"]
+                tmp["formation_place"] = player["formationPlace"]
+
+                subs = [
+                    x
+                    for x in player.get("plays", [])
+                    if "substitution" in x and x["substitution"]
+                ]
+
+                tmp["starter"] = 1 if player["starter"] else 0
+                if player["subbedOut"]:
+                    tmp["subbed_out"] = subs[-1]["clock"]["displayValue"]
+                    tmp["subbed_out"] = re.findall(r"\d+", tmp["subbed_out"])[0]
+                    tmp["subbed_out"] = int(tmp["subbed_out"])
+
+                if player["subbedIn"]:
+                    tmp["subbed_in"] = subs[0]["clock"]["displayValue"]
+                    tmp["subbed_in"] = re.findall(r"\d+", tmp["subbed_in"])[0]
+                    tmp["subbed_in"] = int(tmp["subbed_in"])
+
+                for stat in player["stats"]:
+                    tmp[stat["name"]] = stat["value"]
+
+                output.append(tmp)
+
+        df = (
+            pd.DataFrame(output)
+            .replace({np.NaN: None})
+            .pipe(sanitize_columns)
+            .assign(season=self.season)
+            .assign(competition=self.competition)
+            .pipe(self._convert_date)
+            .pipe(self._map_teams, columns=["team"])
+        )
+
+        id = "{}---{}---{}".format(
+            int(calendar.timegm(df["date"].iloc[0].timetuple())),
+            df.query("home == 1")["team"].iloc[0],
+            df.query("home == 0")["team"].iloc[0],
+        )
+
+        df = df.assign(id=id.replace(" ", "_").lower()).set_index("id").sort_index()
+
+        return df
+
+    def get_team_stats(self, espn_id) -> pd.DataFrame:
+        """
+        Get the team stats for a given fixture
+
+        Parameters
+        ----------
+        espn_id : str
+            ID for the fixture of interest,
+            see the `ESPN.get_fixtures()` output for available IDs
+        """
+        url = "https://site.api.espn.com/apis/site/v2/sports/soccer/{}/summary?event={}".format(
+            self.mapped_competition, espn_id
+        )
+
+        content = self.get(url)
+        content = json.loads(content)
+
+        output = list()
+        for team in content["boxscore"]["teams"]:
+            tmp = dict()
+            tmp["espn_id"] = espn_id
+            tmp["espn_team_id"] = team["team"]["id"]
+            tmp["datetime"] = content["header"]["competitions"][0]["date"]
+            tmp["team"] = team["team"]["displayName"]
+
+            for stat in team["statistics"]:
+                tmp[stat["name"]] = stat["displayValue"]
+
+            output.append(tmp)
+
+        df = (
+            pd.DataFrame(output)
+            .replace({np.NaN: None})
+            .pipe(sanitize_columns)
+            .assign(season=self.season)
+            .assign(competition=self.competition)
+            .pipe(self._convert_date)
+            .pipe(self._map_teams, columns=["team"])
         )
 
         return df
