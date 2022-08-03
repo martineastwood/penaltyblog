@@ -85,6 +85,8 @@ class FootballData(RequestsScraper):
             .pipe(sanitize_columns)
             .assign(season=self.season)
             .assign(competition=self.competition)
+            .assign(goals_home=lambda x: x["fthg"])
+            .assign(goals_away=lambda x: x["ftag"])
             .pipe(self._map_teams, columns=["team_home", "team_away"])
             .pipe(create_game_id)
             .set_index(["id"])
