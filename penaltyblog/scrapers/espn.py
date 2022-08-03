@@ -243,6 +243,10 @@ class ESPN(RequestsScraper):
             for stat in team["statistics"]:
                 tmp[stat["name"]] = stat["displayValue"]
 
+            for roster in content["rosters"]:
+                if roster["team"]["displayName"] == tmp["team"]:
+                    tmp["home"] = 1 if roster["homeAway"] == "home" else 0
+
             output.append(tmp)
 
         df = (
@@ -254,6 +258,14 @@ class ESPN(RequestsScraper):
             .pipe(self._convert_date)
             .pipe(self._map_teams, columns=["team"])
         )
+
+        id = "{}---{}---{}".format(
+            int(calendar.timegm(df["date"].iloc[0].timetuple())),
+            df.query("home == 1")["team"].iloc[0],
+            df.query("home == 0")["team"].iloc[0],
+        )
+
+        df = df.assign(id=id.replace(" ", "_").lower()).set_index("id").sort_index()
 
         return df
 

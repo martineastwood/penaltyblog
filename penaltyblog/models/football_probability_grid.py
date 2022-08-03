@@ -79,6 +79,18 @@ class FootballProbabilityGrid(list):
         return self._sum(lambda a, b: a < b)
 
     @property
+    def both_teams_to_score(self):
+        """
+        Probability of both teams scoring
+
+        Returns
+        ------
+        float
+            Probability of both teams scoring
+        """
+        return self._sum(lambda a, b: a > 0 and b > 0)
+
+    @property
     def home_draw_away(self):
         """
         1x2 Probabilities
