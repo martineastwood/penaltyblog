@@ -6,7 +6,7 @@ def test_dc_model():
     df = fb.get_fixtures()
 
     clf = pb.models.DixonColesGoalModel(
-        df["home_goals"], df["away_goals"], df["team_home"], df["team_away"]
+        df["goals_home"], df["goals_away"], df["team_home"], df["team_away"]
     )
     clf.fit()
     params = clf.get_params()
