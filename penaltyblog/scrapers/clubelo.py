@@ -101,6 +101,9 @@ class ClubElo(RequestsScraper):
         return df
 
     def get_team_names(self) -> pd.DataFrame:
+        """
+        Gets the names of all available teams through Club Elo
+        """
         date = datetime.now().date()
 
         url = (

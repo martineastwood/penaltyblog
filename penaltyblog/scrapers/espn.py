@@ -12,13 +12,15 @@ from .common import COMPETITION_MAPPINGS, create_game_id, sanitize_columns
 
 class ESPN(RequestsScraper):
     """
-    Scrapes data from fbref.com as pandas dataframes
+    Scrapes data from espn as pandas dataframes
 
     Parameters
     ----------
+
     league : str
-        Name of the league of interest,
-        see the `ESPN.list_competitions()` output for available choices
+        Name of the league of interest, see
+        the `ESPN.list_competitions()` output
+        for available choices
 
     season : str
         Name of the season of interest in format 2020-2021

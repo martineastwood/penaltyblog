@@ -6,7 +6,7 @@ def test_dc_model():
     df = fb.get_fixtures()
 
     clf = pb.models.DixonColesGoalModel(
-        df["fthg"], df["ftag"], df["team_home"], df["team_away"]
+        df["home_goals"], df["away_goals"], df["team_home"], df["team_away"]
     )
     clf.fit()
     params = clf.get_params()
@@ -19,3 +19,4 @@ def test_dc_model():
     assert len(probs.home_draw_away) == 3
     assert 0.6 < probs.total_goals("over", 1.5) < 0.8
     assert 0.3 < probs.asian_handicap("home", 1.5) < 0.4
+    assert 0.4 < probs.both_teams_to_score < 0.7

@@ -1,8 +1,3 @@
-.. penaltyblog documentation master file, created by
-   sphinx-quickstart on Tue Aug 31 11:27:22 2021.
-   You can adapt this file completely to your liking, but it should at least
-   contain the root `toctree` directive.
-
 Welcome to penaltyblog!
 =======================================
 
@@ -10,10 +5,11 @@ The **penaltyblog** Python package contains lots of useful code from http://pena
 
 **penaltyblog** includes functions for:
 
-- Scraping football data from sources such as football-data.co.uk, ESPN, Club Elo
-- Modelling the outcomes of football matches using Poisson-based models, such as Dixon and Coles
+- Scraping football data from sources such as football-data.co.uk, ESPN, Club Elo, Understat and Fantasy Premier League
+- Modelling of football matches using Poisson-based models, such as Dixon and Coles
+- Predicting probabilities for many betting markets, e.g. Asian handicaps, over/under, total goals etc
 - Modelling football team's abilities using Massey ratings and Colley ratings
-- Estimating the implied odds from bookmaker's odds by removing the overround
+- Estimating the implied odds from bookmaker's odds by removing the overround using multiple different methods
 - Mathematically optimising your fantasy football team
 
 

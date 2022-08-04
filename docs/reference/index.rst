@@ -10,3 +10,4 @@ API reference docs for **penaltyblog**
    clubelo
    footballdata
    espn
+   understat

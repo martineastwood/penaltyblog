@@ -15,4 +15,4 @@ precommit:
 	poetry run pre-commit run --all-files
 
 docs:
-	cd docs && make html
+	cd docs && poetry run make html

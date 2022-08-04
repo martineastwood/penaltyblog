@@ -18,11 +18,12 @@ class FootballData(RequestsScraper):
     Parameters
     ----------
     competition : str
-        Name of the league of interest (optional).
-        See `FootballData.list_competitions()` for available competitions
+        Name of the league of interest. See the
+        `FootballData.list_competitions()` function
+        for available competitions
 
     season : str
-        Name of the season of interest (optional) in format 2020-2021
+        Name of the season of interest in format 2020-2021
 
     team_mappings : dict or None
         dict (or None) of team name mappings in format
