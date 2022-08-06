@@ -37,6 +37,8 @@ ipython = "^8.4.0"
 sphinx-rtd-theme = "^1.0.0"
 pre-commit = "^2.20.0"
 coveralls = "^3.3.1"
+jupyterlab = "^3.4.4"
+jupyterlab-code-formatter = "^1.5.2"
 
 [tool.coverage.paths]
 source = ["penaltyblog", "*/site-packages"]

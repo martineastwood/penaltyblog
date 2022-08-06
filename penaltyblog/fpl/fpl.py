@@ -1,4 +1,4 @@
-from typing import Tuple
+from typing import Tuple, Optional
 
 import pandas as pd
 import pulp
@@ -24,7 +24,7 @@ def get_current_gameweek() -> int:
     data = r.json()
     df = pd.DataFrame(data["events"])
     current_gameweek = df.query("finished == False")["id"].min()
-    return current_gameweek
+    return int(current_gameweek)
 
 
 def get_gameweek_info() -> pd.DataFrame:
@@ -207,7 +207,7 @@ def get_rankings(page=1) -> pd.DataFrame:
     return df
 
 
-def get_entry_picks_by_gameweek(entry_id, gameweek=1) -> dict:
+def get_entry_picks_by_gameweek(entry_id, gameweek=1) -> pd.Series:
     """
     Fetches the details for an entry's team on a given week
 
@@ -262,7 +262,7 @@ def get_entry_picks_by_gameweek(entry_id, gameweek=1) -> dict:
 
     # add in player picks
     for i, x in enumerate(data["picks"]):
-        tmp["player_pick_{i}".format(i=i)] = x["element"]
+        tmp["player_pick_{i}".format(i=i)] = int(x["element"])
 
     # add in captain
     for i, x in enumerate(data["picks"]):
@@ -274,10 +274,10 @@ def get_entry_picks_by_gameweek(entry_id, gameweek=1) -> dict:
         if x["is_vice_captain"] is True:
             tmp["is_vice_captain"] = x["element"]
 
-    return tmp
+    return pd.DataFrame([tmp])
 
 
-def get_entry_transfers(entry_id) -> pd.DataFrame:
+def get_entry_transfers(entry_id) -> Optional[pd.DataFrame]:
     """
     Gets the transfer history for a given entry for the current season
 
@@ -300,19 +300,23 @@ def get_entry_transfers(entry_id) -> pd.DataFrame:
         entry_id=str(entry_id)
     )
     r = requests.get(url)
-    df = pd.DataFrame(r.json())
-    df["element_in_cost"] = df["element_in_cost"] / 10.0
-    df["element_out_cost"] = df["element_out_cost"] / 10.0
-    df["time"] = pd.to_datetime(df["time"])
-    df = df.rename(
-        columns={
-            "element_in": "player_id_in",
-            "element_out": "player_id_out",
-            "element_in_cost": "player_in_cost",
-            "element_out_cost": "player_out_cost",
-        }
-    )
-    return df
+
+    if r.json():
+        df = pd.DataFrame(r.json())
+        df["element_in_cost"] = df["element_in_cost"] / 10.0
+        df["element_out_cost"] = df["element_out_cost"] / 10.0
+        df["time"] = pd.to_datetime(df["time"])
+        df = df.rename(
+            columns={
+                "element_in": "player_id_in",
+                "element_out": "player_id_out",
+                "element_in_cost": "player_in_cost",
+                "element_out_cost": "player_out_cost",
+            }
+        )
+        return df
+    else:
+        return None
 
 
 def optimise_team(formation="2-5-5-3", budget=100) -> Tuple[dict, pd.DataFrame]:
