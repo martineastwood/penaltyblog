@@ -12,8 +12,6 @@
 
 </div>
 
-[![Downloads](https://pepy.tech/badge/penaltyblog)](https://pepy.tech/project/penaltyblog)
-
 
 The **penaltyblog** Python package contains lots of useful code from [pena.lt/y/blog](http://pena.lt/y/blog.html) for working with football (soccer) data.
 
