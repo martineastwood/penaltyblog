@@ -1,5 +1,10 @@
 class FootballProbabilityGrid(list):
-    def __init__(self, goal_matrix, home_goal_expectation, away_goal_expectation):
+    def __init__(
+        self,
+        goal_matrix: list,
+        home_goal_expectation: float,
+        away_goal_expectation: float,
+    ):
         list.__init__(self, goal_matrix)
         self.home_goal_expectation = home_goal_expectation
         self.away_goal_expectation = away_goal_expectation
@@ -43,7 +48,7 @@ class FootballProbabilityGrid(list):
         )
 
     @property
-    def home_win(self):
+    def home_win(self) -> float:
         """
         Probability of home win
 
@@ -55,7 +60,7 @@ class FootballProbabilityGrid(list):
         return self._sum(lambda a, b: a > b)
 
     @property
-    def draw(self):
+    def draw(self) -> float:
         """
         Probability of draw
 
@@ -67,7 +72,7 @@ class FootballProbabilityGrid(list):
         return self._sum(lambda a, b: a == b)
 
     @property
-    def away_win(self):
+    def away_win(self) -> float:
         """
         Probability of away win
 
@@ -79,7 +84,7 @@ class FootballProbabilityGrid(list):
         return self._sum(lambda a, b: a < b)
 
     @property
-    def both_teams_to_score(self):
+    def both_teams_to_score(self) -> float:
         """
         Probability of both teams scoring
 
@@ -91,7 +96,7 @@ class FootballProbabilityGrid(list):
         return self._sum(lambda a, b: a > 0 and b > 0)
 
     @property
-    def home_draw_away(self):
+    def home_draw_away(self) -> list:
         """
         1x2 Probabilities
 
@@ -102,7 +107,7 @@ class FootballProbabilityGrid(list):
         """
         return [self.home_win, self.draw, self.away_win]
 
-    def total_goals(self, over_under, strike):
+    def total_goals(self, over_under: str, strike: float) -> float:
         """
         Predicts the probabilities of `total goals` market
 
@@ -128,7 +133,7 @@ class FootballProbabilityGrid(list):
             raise ValueError("over_under must be one of ['over', 'under']")
         return self._sum(func)
 
-    def asian_handicap(self, home_away, strike):
+    def asian_handicap(self, home_away: str, strike: float) -> float:
         """
         Predicts the probabilities of `asian handicap` market
 
