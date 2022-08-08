@@ -31,3 +31,10 @@ Installation
    models/index
    ratings/index
    scrapers/index
+
+
+Useful Links
+####################
+
+- `Walkthrough of using the scrapers
+ <http://www.pena.lt/y/2022/08/05/scraping-football-data-using-penaltyblog-python-package/>`_
