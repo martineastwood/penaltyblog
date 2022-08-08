@@ -31,6 +31,7 @@ Installation
    models/index
    ratings/index
    scrapers/index
+   changelog/index
 
 
 Useful Links
