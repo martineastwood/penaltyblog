@@ -5,12 +5,14 @@
   <a href="">[![Python Version](https://img.shields.io/pypi/pyversions/penaltyblog)](https://pypi.org/project/penaltyblog/)</a>
   <a href="">[![Coverage Status](https://coveralls.io/repos/github/martineastwood/penaltyblog/badge.svg?branch=master&service=github)](https://coveralls.io/repos/github/martineastwood/penaltyblog/badge.svg?branch=master&service=github)</a>
   <a href="">[![PyPI](https://img.shields.io/pypi/v/penaltyblog.svg)](https://pypi.org/project/penaltyblog/)</a>
-  <a href="">[![Downloads](hhttps://pepy.tech/badge/penaltyblog)](https://pepy.tech/badge/penaltyblog)</a>
+  <a href="">[![Downloads](https://pepy.tech/badge/penaltyblog)](https://pepy.tech/badge/penaltyblog)</a>
   <a href="">[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)</a>
   <a href="">[![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)</a>
   <a href="">[![Code style: pre-commit](https://img.shields.io/badge/pre--commit-enabled-brightgreen?logo=pre-commit&logoColor=white)](https://github.com/pre-commit/pre-commit)</a>
 
 </div>
+
+[![Downloads](https://pepy.tech/badge/penaltyblog)](https://pepy.tech/project/penaltyblog)
 
 
 The **penaltyblog** Python package contains lots of useful code from [pena.lt/y/blog](http://pena.lt/y/blog.html) for working with football (soccer) data.
