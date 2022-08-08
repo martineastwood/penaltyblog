@@ -1,4 +1,4 @@
-from typing import Tuple, Optional
+from typing import Optional, Tuple
 
 import pandas as pd
 import pulp
@@ -235,10 +235,13 @@ def get_entry_picks_by_gameweek(entry_id, gameweek=1) -> pd.Series:
     r = requests.get(url)
     data = r.json()
 
+    if data.get("detail") == "Not found.":
+        raise ValueError("entry_id not recognized")
+
     # parse the data
     tmp = dict()
     tmp["team_id"] = entry_id
-    tmp["active_chip"] = data["active_chip"]
+    tmp["active_chip"] = data.get("active_chip")
     tmp["event"] = data["entry_history"]["event"]
     tmp["points"] = data["entry_history"]["points"]
     tmp["total_points"] = data["entry_history"]["total_points"]
@@ -257,7 +260,7 @@ def get_entry_picks_by_gameweek(entry_id, gameweek=1) -> pd.Series:
     tmp["auto_sub_2"] = None
     tmp["auto_sub_3"] = None
     tmp["auto_sub_4"] = None
-    for i, x in enumerate(data["automatic_subs"]):
+    for i, x in enumerate(data.get("automatic_subs", [])):
         tmp["auto_sub_{i}".format(i=i)] = x
 
     # add in player picks

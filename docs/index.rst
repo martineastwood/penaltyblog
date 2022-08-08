@@ -10,7 +10,7 @@ The **penaltyblog** Python package contains lots of useful code from http://pena
 - Predicting probabilities for many betting markets, e.g. Asian handicaps, over/under, total goals etc
 - Modelling football team's abilities using Massey ratings and Colley ratings
 - Estimating the implied odds from bookmaker's odds by removing the overround using multiple different methods
-- Mathematically optimising your fantasy football team
+- Mathematically optimising your fantasy football team by formation, budget etc
 
 
 Installation
@@ -25,9 +25,9 @@ Installation
    :maxdepth: 1
    :caption: Quick Start
 
+   fpl/index
    implied/index
+   metrics/index
    models/index
    ratings/index
    scrapers/index
-   metrics/index
-   reference/index
