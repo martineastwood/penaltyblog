@@ -251,3 +251,93 @@ class Understat(RequestsScraper):
         move_column_inplace(df, "datetime", 2)
 
         return df
+
+    def get_player_season(self, player_id: str) -> pd.DataFrame:
+        """
+        Gets the season info for the selected player_id
+
+        Parameters
+        ----------
+        player_id : str
+            Id for the player of interest,
+        """
+        url = "https://understat.com/player/{}".format(player_id)
+        content = self.get(url)
+        tree = html.fromstring(content)
+        events = None
+
+        for s in tree.cssselect("script"):
+            if "groupsData" in s.text:
+                script = s.text
+                script = " ".join(script.split())
+                script = str(script.encode(), "unicode-escape")
+                script = re.match(
+                    r"var groupsData = JSON\.parse\('(?P<json>.*?)'\)", script
+                ).group("json")
+                events = json.loads(script)
+                break
+
+        if events is None:
+            raise ValueError("Error: no data found")
+
+        df = (
+            pd.DataFrame(events["season"])
+            .pipe(sanitize_columns)
+            .set_index("season")
+            .sort_index()
+        )
+
+        move_column_inplace(df, "team", 0)
+
+        return df
+
+    def get_player_shots(self, player_id: str) -> pd.DataFrame:
+        """
+        Gets the shot data for the selected player_id
+
+        Parameters
+        ----------
+        player_id : str
+            Id for the player of interest,
+        """
+        url = "https://understat.com/player/{}".format(player_id)
+        content = self.get(url)
+        tree = html.fromstring(content)
+        events = None
+
+        for s in tree.cssselect("script"):
+            if "shotsData" in s.text:
+                script = s.text
+                script = " ".join(script.split())
+                script = str(script.encode(), "unicode-escape")
+                script = re.match(
+                    r"var shotsData = JSON\.parse\('(?P<json>.*?)'\)", script
+                ).group("json")
+                events = json.loads(script)
+                break
+
+        if events is None:
+            raise ValueError("Error: no data found")
+
+        col_renames = {
+            "h_team": "team_home",
+            "a_team": "team_away",
+            "match_id": "understat_fixture_id",
+            "id": "understat_shot_id",
+            "player_id": "understat_player_id",
+            "h_goals": "goals_home",
+            "a_goals": "goals_away",
+        }
+
+        df = (
+            pd.DataFrame(events)
+            .rename(columns=col_renames)
+            .pipe(sanitize_columns)
+            .assign(datetime=lambda x: pd.to_datetime(x.date))
+            .assign(date=lambda x: x.datetime.dt.date)
+            .pipe(create_game_id)
+            .set_index("understat_shot_id")
+            .sort_index()
+        )
+
+        return df
