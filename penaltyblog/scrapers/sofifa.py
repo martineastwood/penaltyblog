@@ -77,7 +77,8 @@ class SoFifa(RequestsScraper):
             offset = i * 60
             url = base_url.format(offset=offset) + col
             content = self.get(url)
-            tree = html.fromstring(content)
+            parser = html.HTMLParser(encoding="utf-8")
+            tree = html.document_fromstring(content, parser=parser)
             trs = tree.cssselect("table tbody tr")
 
             players = list()
