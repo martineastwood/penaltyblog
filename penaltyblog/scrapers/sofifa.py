@@ -1,11 +1,9 @@
-import io
-from datetime import datetime
+import re
 
 import pandas as pd
 from lxml import html
 
 from .base_scrapers import RequestsScraper
-from .common import sanitize_columns
 
 
 class SoFifa(RequestsScraper):
@@ -36,7 +34,7 @@ class SoFifa(RequestsScraper):
 
         super().__init__(team_mappings=team_mappings)
 
-    def get_player_info(
+    def get_players(
         self, sort_by: str = None, sort_direction: str = "desc", max_pages: int = 10
     ) -> pd.DataFrame:
         """
@@ -62,7 +60,7 @@ class SoFifa(RequestsScraper):
         if sort_by is not None:
 
             if sort_by not in self.sort_by_mappings:
-                raise ValueError("sort_by not recognised")
+                raise ValueError("sort_by not recognised - {}".format(sort_by))
 
             if sort_direction not in ["asc", "desc"]:
                 raise ValueError("sort_direction not recognised")
@@ -133,43 +131,105 @@ class SoFifa(RequestsScraper):
 
         return df
 
-    def get_elo_by_team(self, team) -> pd.DataFrame:
+    def get_player(self, sofifa_id) -> pd.DataFrame:  # noqa: C901
         """
-        Get team's historical elo ratings. Acceptable team names can be found using the ..
+        Get a player's detailed stats
 
         Parameters
         ----------
-        team : str
-            team of interest
+        sofifa_id : str
+            player_id of interest
         """
-        url = self.base_url + team
-
+        url = "https://sofifa.com/player/{id}".format(id=sofifa_id)
         content = self.get(url)
-        df = (
-            pd.read_csv(io.StringIO(content))
-            .pipe(self._convert_date)
-            .pipe(self._column_name_mapping)
-            .pipe(sanitize_columns)
-            .pipe(self._map_teams, columns=["team"])
-            .sort_values("from", ascending=False)
-            .set_index("from")
+        parser = html.HTMLParser(encoding="utf-8")
+        tree = html.document_fromstring(content, parser=parser)
+
+        tmp = dict()
+        tmp["name"] = tree.xpath("//div[contains(@class, 'info')]/h1")[0].text
+
+        info = tree.xpath("//div[contains(@class, 'info')]/div")[0].text_content()
+        tmp["weight"] = int(re.search("[0-9]*kg", info).group(0).split("kg")[0])
+        tmp["height"] = int(re.search("[0-9]*cm", info).group(0).split("cm")[0])
+        tmp["age"] = int(re.search(r"[0-9]*y\.o", info).group(0).split("y.o")[0])
+        tmp["position"] = [
+            x.text for x in tree.xpath("//div[contains(@class, 'info')]/div/span")
+        ]
+
+        stats = tree.xpath(
+            "//div[contains(@class, 'player')]//div[contains(@class, 'block-quarter')]"
+        )
+        for stat in stats[:2]:
+            v = int(stat.xpath("div/span")[0].text)
+            k = stat.xpath("div/div")[0].text
+            k = k.lower().replace(" ", "_")
+            tmp[k] = v
+
+        for stat in stats[2:]:
+            v = stat.xpath("div")[0].text
+            k = stat.xpath("div/div/text()")[0]
+            k = k.lower().replace(" ", "_")
+            tmp[k] = v
+
+        lis = tree.xpath(
+            "//div[contains(@class, 'block-quarter')]//ul[contains(@class, 'pl')]/li"
+        )
+        for li in lis:
+            label = li.find("label")
+            if label is None:
+                continue
+            k = li.xpath("label/text()")[0]
+            k = k.lower().replace(" ", "_")
+
+            span = li.find("span")
+            if span is not None:
+                span = li.xpath("span/text()")[0]
+            else:
+                span = li.xpath("text()")[0].strip()
+            tmp[k] = span
+
+        cards = tree.xpath(
+            "//div[contains(@class, 'block-quarter')]/div[contains(@class, 'card')]"
         )
 
-        return df
+        for card in cards:
+            title = card.xpath("h5")[0].text_content() + "_"
 
-    def get_team_names(self) -> pd.DataFrame:
-        """
-        Gets the names of all available teams through Club Elo
-        """
-        date = datetime.now().date()
+            if card.xpath("h5/a"):
+                title = ""
 
-        url = (
-            self.base_url + str(date.year) + "-" + str(date.month) + "-" + str(date.day)
-        )
+            elif title == "Player Specialities":
+                tmp["player_specialities"] = card.xpath("ul/li/span/text()")
+                continue
 
-        content = self.get(url)
-        df = pd.read_csv(io.StringIO(content))[["Club"]].rename(
-            columns={"Club": "team"}
-        )
+            elif title == "Traits_":
+                tmp["traits"] = card.xpath("ul/li/span/text()")
+                continue
 
-        return df
+            for li in card.xpath("ul/li"):
+                k = title
+                if li.xpath("label"):
+                    k += li.xpath("label/text()")[0]
+                elif li.xpath("span[@role = 'tooltip']"):
+                    k += li.xpath("span[@role = 'tooltip']/text()")[0]
+                else:
+                    continue
+
+                if li.xpath("span"):
+                    v = li.xpath("span/text()")[0].strip()
+                if li.xpath("span"):
+                    v = li.xpath("span/text()")[0].strip()
+                else:
+                    v = li.xpath("text()")[0].strip()
+
+                k = k.lower().replace(" ", "_")
+
+                tmp[k] = v
+
+                for k, v in tmp.items():
+                    try:
+                        tmp[k] = int(v)
+                    except (ValueError, TypeError):
+                        pass
+
+        return pd.DataFrame([tmp])
