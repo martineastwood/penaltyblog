@@ -61,7 +61,10 @@ class FootballData(RequestsScraper):
         return mapped
 
     def _convert_date(self, df):
-        df["datetime"] = pd.to_datetime(df["Date"] + " " + df["Time"], dayfirst=True)
+        if "Time" in df.columns:
+            df["datetime"] = pd.to_datetime(
+                df["Date"] + " " + df["Time"], dayfirst=True
+            )
         df["Date"] = pd.to_datetime(df["Date"], dayfirst=True)
         return df
 
@@ -94,8 +97,11 @@ class FootballData(RequestsScraper):
             .sort_index()
         )
 
-        move_column_inplace(df, "competition", 0)
-        move_column_inplace(df, "season", 1)
-        move_column_inplace(df, "datetime", 2)
+        cols = ["competition", "season", "datetime", "date"]
+        i = 0
+        for c in cols:
+            if c in df.columns:
+                move_column_inplace(df, c, i)
+                i += 0
 
         return df
