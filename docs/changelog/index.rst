@@ -12,6 +12,11 @@ v0.5.0 (xxxxxx)
 
 - Added `get_player_season` to understat scraper
 - Added `get_player_shots` to understat scraper
+- Fixed bug in FootballData scraper for older seasons lacking the `Time` column
+- Added SoFifa scraper
+- Added Bayesian Hierarchical Goal Model for predicting outcomes of football (soccer matches)
+- Added Bayesian Bivariate Poisson Goal Model for predicting outcomes of football (soccer matches)
+- Added Bayesian Random Intercept Poisson Goal Model for predicting outcomes of football (soccer matches)
 
 
 v0.4.0 (2022-08-08)
