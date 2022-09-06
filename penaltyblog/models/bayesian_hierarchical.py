@@ -108,6 +108,64 @@ class BayesianHierarchicalGoalModel:
 
         self.fitted = False
 
+    def __repr__(self):
+        repr_str = ""
+        repr_str += "Module: Penaltyblog"
+        repr_str += "\n"
+        repr_str += "\n"
+
+        repr_str += "Model: Bayesian Hierarchical"
+        repr_str += "\n"
+        repr_str += "\n"
+
+        repr_str += "Number of parameters: {0}".format(len(self.params))
+        repr_str += "\n"
+
+        repr_str += "{0: <20} {1:<20} {2:<20}".format("Team", "Attack", "Defence")
+        repr_str += "\n"
+        repr_str += "-" * 60
+        repr_str += "\n"
+
+        attack = [None] * self.n_teams
+        defence = [None] * self.n_teams
+        team = self.teams["team"].tolist()
+
+        for k, v in self.params.items():
+            if "_" not in k:
+                continue
+
+            p = k.split("_")[0]
+            t = k.split("_")[1]  # noqa
+            if p == "attack":
+                idx = self.teams.query("team == @t").iloc[0]["team_index"]
+                attack[idx] = round(v, 3)
+            elif p == "defence":
+                idx = self.teams.query("team == @t").iloc[0]["team_index"]
+                defence[idx] = round(v, 3)
+            else:
+                continue
+
+        for obj in zip(team, attack, defence):
+            repr_str += "{0: <20} {1:<20} {2:<20}".format(
+                obj[0],
+                obj[1],
+                obj[2],
+            )
+            repr_str += "\n"
+
+        repr_str += "-" * 60
+        repr_str += "\n"
+
+        repr_str += "Home Advantage: {0}".format(round(self.params["home"], 3))
+        repr_str += "\n"
+        repr_str += "Intercept: {0}".format(round(self.params["intercept"], 3))
+        repr_str += "\n"
+
+        return repr_str
+
+    def __str__(self):
+        return self.__repr__()
+
     def fit(self):
         """
         Fits the model to the data and calculates the team strengths,
