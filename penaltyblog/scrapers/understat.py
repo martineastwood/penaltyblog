@@ -98,6 +98,9 @@ class Understat(RequestsScraper):
 
         fixtures = list()
         for e in events:
+            if not e["isResult"]:
+                continue
+
             tmp = dict()
             tmp["understat_id"] = str(e["id"])
             tmp["datetime"] = e["datetime"]

@@ -303,15 +303,13 @@ class BayesianRandomInterceptGoalModel:
         lambda2 = np.exp(mu + atts_away + defs_home + rho_away)
 
         # calculate theta
-        home_theta = lambda1
-        away_theta = lambda2
-        home_goals_vector = poisson(home_theta).pmf(np.arange(0, max_goals))
-        away_goals_vector = poisson(away_theta).pmf(np.arange(0, max_goals))
+        home_goals_vector = poisson(lambda1).pmf(np.arange(0, max_goals))
+        away_goals_vector = poisson(lambda2).pmf(np.arange(0, max_goals))
 
         # get the probabilities for each possible score
         m = np.outer(home_goals_vector, away_goals_vector)
 
-        probability_grid = FootballProbabilityGrid(m, home_theta, away_theta)
+        probability_grid = FootballProbabilityGrid(m, lambda1, lambda2)
         return probability_grid
 
     def get_params(self) -> dict:
