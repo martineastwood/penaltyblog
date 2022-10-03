@@ -1,9 +1,9 @@
 import os
 
+import aesara.tensor as tt
 import numpy as np
 import pandas as pd
-import pymc3 as pm
-import theano.tensor as tt
+import pymc as pm
 from scipy.stats import poisson
 
 from .football_probability_grid import FootballProbabilityGrid
@@ -211,17 +211,31 @@ class BayesianBivariateGoalModel:
             lambda2 = tt.exp(mu + atts[away_team] + defs[home_team])
             lambda3 = tt.exp(rho[away_team] + rho[away_team])
 
+            # pm.Potential(
+            #     "home_goals",
+            #     weights * pm.Poisson.dist(mu=lambda1 + lambda3).logp(goals_home_obs),
+            # )
+            # pm.Potential(
+            #     "away_goals",
+            #     weights * pm.Poisson.dist(mu=lambda2 + lambda3).logp(goals_away_obs),
+            # )
+
+            # goal expectation
             pm.Potential(
                 "home_goals",
-                weights * pm.Poisson.dist(mu=lambda1 + lambda3).logp(goals_home_obs),
+                # weights * pm.Poisson.dist(mu=home_theta).logp(goals_home_obs),
+                weights
+                * pm.logp(pm.Poisson.dist(mu=lambda1 + lambda3), goals_home_obs),
             )
             pm.Potential(
                 "away_goals",
-                weights * pm.Poisson.dist(mu=lambda2 + lambda3).logp(goals_away_obs),
+                # weights * pm.Poisson.dist(mu=away_theta).logp(goals_away_obs),
+                weights
+                * pm.logp(pm.Poisson.dist(mu=lambda2 + lambda3), goals_away_obs),
             )
             self.trace = pm.sample(
                 self.draws,
-                tune=1500,
+                tune=2000,
                 cores=self.n_jobs,
                 return_inferencedata=False,
                 target_accept=0.95,

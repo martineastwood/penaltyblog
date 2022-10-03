@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "penaltyblog"
-version = "0.4.0"
+version = "0.5.0"
 description = "Library from http://pena.lt/y/blog for scraping and modelling football (soccer) data"
 authors = ["Martin Eastwood <martin.eastwood@gmx.com>"]
 readme = "README.md"
@@ -23,6 +23,7 @@ selenium = "^4.3.0"
 webdriver-manager = "^3.8.3"
 lxml = "^4.9.1"
 cssselect = "^1.1.0"
+pymc = "^4.2.1"
 
 [tool.poetry.dev-dependencies]
 black = "^22.6.0"

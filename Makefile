@@ -4,7 +4,7 @@ test:
 	poetry run coverage run -m pytest
 
 test_subset:
-	poetry run pytest -v test/test_scraper_sofifa.py
+	poetry run pytest -v test/test_model_bayesian_hierarchical.py test/test_model_bayesian_bivariate.py test/test_model_bayesian_random_intercept.py
 
 coverage:
 	poetry run coverage run -m pytest

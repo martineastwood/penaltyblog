@@ -1,9 +1,9 @@
 import os
 
+import aesara.tensor as tt
 import numpy as np
 import pandas as pd
-import pymc3 as pm
-import theano.tensor as tt
+import pymc as pm
 from scipy.stats import poisson
 
 from .football_probability_grid import FootballProbabilityGrid
@@ -156,7 +156,9 @@ class BayesianHierarchicalGoalModel:
         repr_str += "-" * 60
         repr_str += "\n"
 
-        repr_str += "Home Advantage: {0}".format(round(self.params["home"], 3))
+        repr_str += "Home Advantage: {0}".format(
+            round(self.params["home_advantage"], 3)
+        )
         repr_str += "\n"
         repr_str += "Intercept: {0}".format(round(self.params["intercept"], 3))
         repr_str += "\n"
@@ -203,18 +205,20 @@ class BayesianHierarchicalGoalModel:
             # goal expectation
             pm.Potential(
                 "home_goals",
-                weights * pm.Poisson.dist(mu=home_theta).logp(goals_home_obs),
+                # weights * pm.Poisson.dist(mu=home_theta).logp(goals_home_obs),
+                weights * pm.logp(pm.Poisson.dist(mu=home_theta), goals_home_obs),
             )
             pm.Potential(
                 "away_goals",
-                weights * pm.Poisson.dist(mu=away_theta).logp(goals_away_obs),
+                # weights * pm.Poisson.dist(mu=away_theta).logp(goals_away_obs),
+                weights * pm.logp(pm.Poisson.dist(mu=away_theta), goals_away_obs),
             )
 
             self.trace = pm.sample(
                 self.draws, tune=1500, cores=self.n_jobs, return_inferencedata=False
             )
 
-        self.params["home"] = np.mean(self.trace["home"])
+        self.params["home_advantage"] = np.mean(self.trace["home"])
         self.params["intercept"] = np.mean(self.trace["intercept"])
         for idx, row in self.teams.iterrows():
             self.params["attack_" + row["team"]] = np.mean(
@@ -274,7 +278,7 @@ class BayesianHierarchicalGoalModel:
             )
 
         # get the parameters
-        home = self.params["home"]
+        home = self.params["home_advantage"]
         intercept = self.params["intercept"]
         atts_home = self.params["attack_" + home_team]
         atts_away = self.params["attack_" + away_team]
