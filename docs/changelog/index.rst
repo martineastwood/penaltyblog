@@ -18,6 +18,7 @@ v0.5.0 (xxxxxx)
 - Added Bayesian Hierarchical Goal Model for predicting outcomes of football (soccer) matches
 - Added Bayesian Bivariate Poisson Goal Model for predicting outcomes of football (soccer) matches
 - Added Bayesian Random Intercept Poisson Goal Model for predicting outcomes of football (soccer) matches
+- Added compatibility for Python 3.7 (was previously Python >=3.8)
 
 
 v0.4.0 (2022-08-08)

@@ -26,3 +26,4 @@ See the examples below for more details on how to use the scrapers.
    clubelo
    footballdata
    understat
+   sofifa
