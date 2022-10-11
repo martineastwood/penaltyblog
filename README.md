@@ -41,9 +41,10 @@ examples for:
 
 ## References
 
-- Mark J. Dixon and Stuart G. Coles (1997) Modelling Association Football Scores and Inefficiencies in the Football Betting Market.
-- Håvard Rue and Øyvind Salvesen (1999) Prediction and Retrospective Analysis of Soccer Matches in a League.
+- Mark J. Dixon and Stuart G. Coles (1997) Modelling Association Football Scores and Inefficiencies in the Football Betting Market
+- Håvard Rue and Øyvind Salvesen (1999) Prediction and Retrospective Analysis of Soccer Matches in a League
 - Anthony C. Constantinou and Norman E. Fenton (2012) Solving the problem of inadequate scoring rules for assessing probabilistic football forecast models
 - Hyun Song Shin (1992) Prices of State Contingent Claims with Insider Traders, and the Favourite-Longshot Bias
 - Hyun Song Shin (1993) Measuring the Incidence of Insider Trading in a Market for State-Contingent Claims
 - Joseph Buchdahl (2015) The Wisdom of the Crowd
+- Gianluca Baio and Marta A. Blangiardo (2010) Bayesian Hierarchical Model for the Prediction of Football Results
