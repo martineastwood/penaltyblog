@@ -7,7 +7,7 @@ Version Numbering
 penaltyblog follows the SemVer versioning guidelines. For more information,
 see `semver.org <http://semver.org/>`_
 
-v0.5.0 (xxxxxx)
+v0.5.0 (2022-10-11)
 ^^^^^^^^^^^^^^^^^^^
 
 - Added `get_player_season` to understat scraper
