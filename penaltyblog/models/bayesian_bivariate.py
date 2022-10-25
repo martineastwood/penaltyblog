@@ -35,7 +35,7 @@ class BayesianBivariateGoalModel:
         weights=1,
         n_jobs=None,
         draws=2500,
-    ):
+    ): 
         """
         Parameters
         ----------
