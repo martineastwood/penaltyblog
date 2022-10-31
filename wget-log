@@ -1,16 +1,0 @@
---2022-10-25 11:38:35--  https://download.jetbrains.com/fonts/JetBrainsMono-2.242.zip?_gl=1*bctncr*_ga*MTE0MDgxODQ4MC4xNjY0NzE1MTc5*_ga_9J976DJZ68*MTY2NjY5NzU2OC45LjEuMTY2NjY5NzY0MS4wLjAuMA..
-Resolving download.jetbrains.com (download.jetbrains.com)... 54.77.218.77, 52.50.241.213, 2a05:d018:93b:d102:617e:6ba1:4147:27da, ...
-Connecting to download.jetbrains.com (download.jetbrains.com)|54.77.218.77|:443... connected.
-HTTP request sent, awaiting response... 302 Moved Temporarily
-Location: https://download-cdn.jetbrains.com/fonts/JetBrainsMono-2.242.zip?_gl=1*bctncr*_ga*MTE0MDgxODQ4MC4xNjY0NzE1MTc5*_ga_9J976DJZ68*MTY2NjY5NzU2OC45LjEuMTY2NjY5NzY0MS4wLjAuMA.. [following]
---2022-10-25 11:38:35--  https://download-cdn.jetbrains.com/fonts/JetBrainsMono-2.242.zip?_gl=1*bctncr*_ga*MTE0MDgxODQ4MC4xNjY0NzE1MTc5*_ga_9J976DJZ68*MTY2NjY5NzU2OC45LjEuMTY2NjY5NzY0MS4wLjAuMA..
-Resolving download-cdn.jetbrains.com (download-cdn.jetbrains.com)... 18.66.171.5, 18.66.171.26, 18.66.171.64, ...
-Connecting to download-cdn.jetbrains.com (download-cdn.jetbrains.com)|18.66.171.5|:443... connected.
-HTTP request sent, awaiting response... 200 OK
-Length: 4099695 (3.9M) [binary/octet-stream]
-Saving to: ‘JetBrainsMono-2.242.zip?_gl=1*bctncr*_ga*MTE0MDgxODQ4MC4xNjY0NzE1MTc5*_ga_9J976DJZ68*MTY2NjY5NzU2OC45LjEuMTY2NjY5NzY0MS4wLjAuMA..’
-
-                  JetBrainsMono-2.2   0%[                                                                  ]       0  --.-KB/s               JetBrainsMono-2.242.zip?_gl=1*bctnc 100%[=================================================================>]   3.91M  --.-KB/s    in 0.04s   
-
-2022-10-25 11:38:35 (88.6 MB/s) - ‘JetBrainsMono-2.242.zip?_gl=1*bctncr*_ga*MTE0MDgxODQ4MC4xNjY0NzE1MTc5*_ga_9J976DJZ68*MTY2NjY5NzU2OC45LjEuMTY2NjY5NzY0MS4wLjAuMA..’ saved [4099695/4099695]
-
