@@ -16,3 +16,6 @@ precommit:
 
 docs:
 	cd docs && poetry run make html
+	
+jupyter:
+	poetry run jupyter lab --no-browser --port=8080 --ip="*"
