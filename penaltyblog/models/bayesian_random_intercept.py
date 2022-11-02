@@ -117,6 +117,10 @@ class BayesianRandomInterceptGoalModel:
         repr_str += "\n"
         repr_str += "\n"
 
+        if not self.fitted:
+            repr_str += "Status: Model not fitted"
+            return repr_str
+
         repr_str += "Number of parameters: {0}".format(len(self.params))
         repr_str += "\n"
 

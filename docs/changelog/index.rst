@@ -7,6 +7,14 @@ Version Numbering
 penaltyblog follows the SemVer versioning guidelines. For more information,
 see `semver.org <http://semver.org/>`_
 
+
+v0.5.1 (2022-10-11)
+^^^^^^^^^^^^^^^^^^^
+
+- Fixed bug in goals models when printing out instance before fitting it
+- Changed the default value for `xi` in `dixon_coles_weights` weights function to `0.0018`
+
+
 v0.5.0 (2022-10-11)
 ^^^^^^^^^^^^^^^^^^^
 
