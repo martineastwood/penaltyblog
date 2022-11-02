@@ -13,6 +13,7 @@ def test_understat_get_fixtures():
     under = pb.scrapers.Understat("ENG Premier League", "2020-2021")
     df = under.get_fixtures()
     assert type(df) == pd.DataFrame
+    assert df.shape[0] > 0
 
 
 def test_understat_id():
@@ -43,3 +44,9 @@ def test_understat_fixture_info():
     under = pb.scrapers.Understat("ENG Premier League", "2020-2021")
     df = under.get_shots("14090")
     assert type(df) == pd.DataFrame
+
+
+def test_map_season():
+    under = pb.scrapers.Understat("ENG Premier League", "2020-2021")
+    mapped = under._map_season("2020-2021")
+    assert mapped == "2020"

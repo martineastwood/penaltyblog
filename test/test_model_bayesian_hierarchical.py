@@ -45,3 +45,14 @@ def test_unfitted_raises_error():
 
     with pytest.raises(ValueError):
         clf.get_params()
+
+
+def test_unfitted_repr():
+    fb = pb.scrapers.FootballData("ENG Premier League", "2019-2020")
+    df = fb.get_fixtures()
+    clf = pb.models.BayesianHierarchicalGoalModel(
+        df["goals_home"], df["goals_away"], df["team_home"], df["team_away"]
+    )
+
+    repr = str(clf)
+    assert "Status: Model not fitted" in repr
