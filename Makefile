@@ -4,7 +4,7 @@ test:
 	poetry run coverage run -m pytest
 
 test_subset:
-	poetry run pytest -v test/test_model_bayesian_hierarchical.py test/test_model_bayesian_bivariate.py test/test_model_bayesian_random_intercept.py
+	poetry run pytest -v test/test_model_bayesian_hierarchical.py test/test_model_bayesian_bivariate.py
 
 coverage:
 	poetry run coverage run -m pytest
@@ -16,6 +16,6 @@ precommit:
 
 docs:
 	cd docs && poetry run make html
-	
+
 jupyter:
 	poetry run jupyter lab --no-browser --port=8080 --ip="*"

@@ -215,28 +215,20 @@ class BayesianBivariateGoalModel:
             lambda2 = tt.exp(mu + atts[away_team] + defs[home_team])
             lambda3 = tt.exp(rho[away_team] + rho[away_team])
 
-            # pm.Potential(
-            #     "home_goals",
-            #     weights * pm.Poisson.dist(mu=lambda1 + lambda3).logp(goals_home_obs),
-            # )
-            # pm.Potential(
-            #     "away_goals",
-            #     weights * pm.Poisson.dist(mu=lambda2 + lambda3).logp(goals_away_obs),
-            # )
+            # weights
+            weights = pm.Data("weights", self.fixtures["weights"].values, mutable=False)
 
             # goal expectation
             pm.Potential(
                 "home_goals",
-                # weights * pm.Poisson.dist(mu=home_theta).logp(goals_home_obs),
-                weights
-                * pm.logp(pm.Poisson.dist(mu=lambda1 + lambda3), goals_home_obs),
-            )
+                pm.logp(pm.Poisson.dist(mu=lambda1 + lambda3), goals_home_obs),
+            ) * weights
+
             pm.Potential(
                 "away_goals",
-                # weights * pm.Poisson.dist(mu=away_theta).logp(goals_away_obs),
-                weights
-                * pm.logp(pm.Poisson.dist(mu=lambda2 + lambda3), goals_away_obs),
-            )
+                pm.logp(pm.Poisson.dist(mu=lambda2 + lambda3), goals_away_obs),
+            ) * weights
+
             self.trace = pm.sample(
                 self.draws,
                 tune=2000,
