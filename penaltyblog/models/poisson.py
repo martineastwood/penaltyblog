@@ -75,6 +75,10 @@ class PoissonGoalsModel:
         repr_str += "\n"
         repr_str += "\n"
 
+        if not self.fitted:
+            repr_str += "Status: Model not fitted"
+            return repr_str
+
         repr_str += "Number of parameters: {0}".format(self.n_params)
         repr_str += "\n"
         repr_str += "Log Likelihood: {0}".format(round(self.loglikelihood, 3))
