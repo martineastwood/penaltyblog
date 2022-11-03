@@ -7,6 +7,8 @@ penaltyblog.code-workspace
 
 .vscode/
 
+wget-log
+
 # C extensions
 *.so
 
