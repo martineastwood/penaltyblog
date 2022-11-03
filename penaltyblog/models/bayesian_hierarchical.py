@@ -63,7 +63,6 @@ class BayesianHierarchicalGoalModel:
         self.fixtures["goals_away"] = self.fixtures["goals_away"].astype(int)
         self.fixtures["weights"] = weights
         self.fixtures = self.fixtures.reset_index(drop=True)
-        self.fixtures["weights"] = weights
 
         self.n_teams = len(self.fixtures["team_home"].unique())
 
@@ -189,11 +188,11 @@ class BayesianHierarchicalGoalModel:
             intercept = pm.Flat("intercept")
 
             # attack parameters
-            tau_att = pm.Gamma("tau_att", 1, 1)
+            tau_att = pm.Gamma("tau_att", 0.1, 0.1)
             atts_star = pm.Normal("atts_star", mu=0, tau=tau_att, shape=self.n_teams)
 
             # defence parameters
-            tau_def = pm.Gamma("tau_def", 1, 1)
+            tau_def = pm.Gamma("tau_def", 0.1, 0.1)
             def_star = pm.Normal("def_star", mu=0, tau=tau_def, shape=self.n_teams)
 
             # apply sum zero constraints
@@ -205,18 +204,16 @@ class BayesianHierarchicalGoalModel:
             away_theta = tt.exp(intercept + atts[away_team] + defs[home_team])
 
             # weights
-            weights = pm.Data("weights", self.fixtures["weights"].values, mutable=False)
+            weights = pm.Data("weights", self.fixtures["weights"], mutable=False)
 
-            # goal expectation
             pm.Potential(
                 "home_goals",
-                pm.logp(pm.Poisson.dist(mu=home_theta), goals_home_obs),
-            ) * weights
-
+                weights * pm.logp(pm.Poisson.dist(mu=home_theta), goals_home_obs),
+            )
             pm.Potential(
                 "away_goals",
-                pm.logp(pm.Poisson.dist(mu=away_theta), goals_away_obs),
-            ) * weights
+                weights * pm.logp(pm.Poisson.dist(mu=away_theta), goals_away_obs),
+            )
 
             self.trace = pm.sample(
                 self.draws, tune=1500, cores=self.n_jobs, return_inferencedata=False

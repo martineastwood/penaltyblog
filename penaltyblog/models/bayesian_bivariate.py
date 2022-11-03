@@ -62,7 +62,6 @@ class BayesianBivariateGoalModel:
         self.fixtures["goals_away"] = self.fixtures["goals_away"].astype(int)
         self.fixtures["weights"] = weights
         self.fixtures = self.fixtures.reset_index(drop=True)
-        self.fixtures["weights"] = weights
 
         self.n_teams = len(self.fixtures["team_home"].unique())
 
@@ -187,8 +186,6 @@ class BayesianBivariateGoalModel:
         home_team = self.fixtures["home_index"].values
         away_team = self.fixtures["away_index"].values
 
-        weights = self.fixtures["weights"].values
-
         with pm.Model():
             # attack
             tau_att = pm.Gamma("tau_att", 1, 1)
@@ -221,13 +218,15 @@ class BayesianBivariateGoalModel:
             # goal expectation
             pm.Potential(
                 "home_goals",
-                pm.logp(pm.Poisson.dist(mu=lambda1 + lambda3), goals_home_obs),
-            ) * weights
+                weights
+                * pm.logp(pm.Poisson.dist(mu=lambda1 + lambda3), goals_home_obs),
+            )
 
             pm.Potential(
                 "away_goals",
-                pm.logp(pm.Poisson.dist(mu=lambda2 + lambda3), goals_away_obs),
-            ) * weights
+                weights
+                * pm.logp(pm.Poisson.dist(mu=lambda2 + lambda3), goals_away_obs),
+            )
 
             self.trace = pm.sample(
                 self.draws,

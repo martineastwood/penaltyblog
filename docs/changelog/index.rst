@@ -13,6 +13,7 @@ v0.5.1 (2022-10-11)
 
 - Fixed bug in goals models when printing out instance before fitting it
 - Changed the default value for `xi` in `dixon_coles_weights` weights function to `0.0018`
+- Improved how the weighted decay was applied in the Bayesian goal models
 
 
 v0.5.0 (2022-10-11)

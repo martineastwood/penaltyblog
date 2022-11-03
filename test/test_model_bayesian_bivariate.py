@@ -5,15 +5,10 @@ import penaltyblog as pb
 
 
 def test_model():
-    df = pd.concat(
-        [
-            pb.scrapers.FootballData("ENG Premier League", "2018-2019").get_fixtures(),
-            pb.scrapers.FootballData("ENG Premier League", "2019-2020").get_fixtures(),
-        ]
-    )
-    df["weights"] = pb.models.dixon_coles_weights(df["date"])
+    df = pb.scrapers.FootballData("ENG Premier League", "2021-2022").get_fixtures()
+    df["weights"] = pb.models.dixon_coles_weights(df["date"], 0.001)
 
-    clf = pb.models.BayesianHierarchicalGoalModel(
+    clf = pb.models.BayesianBivariateGoalModel(
         df["goals_home"],
         df["goals_away"],
         df["team_home"],
@@ -22,6 +17,9 @@ def test_model():
     )
     clf.fit()
     params = clf.get_params()
+
+    print(clf)
+
     assert params["attack_Man City"] > 0.5
 
     probs = clf.predict("Liverpool", "Wolves")
@@ -30,7 +28,7 @@ def test_model():
     assert len(probs.home_draw_away) == 3
     assert 0.6 < probs.total_goals("over", 1.5) < 0.8
     assert 0.3 < probs.asian_handicap("home", 1.5) < 0.5
-    assert 0.4 < probs.both_teams_to_score < 0.7
+    assert 0.3 < probs.both_teams_to_score < 0.5
 
 
 def test_unfitted_raises_error():
