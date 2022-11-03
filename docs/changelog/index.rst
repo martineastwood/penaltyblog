@@ -8,7 +8,7 @@ penaltyblog follows the SemVer versioning guidelines. For more information,
 see `semver.org <http://semver.org/>`_
 
 
-v0.5.1 (2022-10-11)
+v0.5.1 (2022-11-03)
 ^^^^^^^^^^^^^^^^^^^
 
 - Fixed bug in goals models when printing out instance before fitting it
