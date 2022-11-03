@@ -6,7 +6,7 @@ import penaltyblog as pb
 
 def test_understat_wrong_league():
     with pytest.raises(ValueError):
-        under = pb.scrapers.Understat("FRA Premier League", "2020-2021")
+        pb.scrapers.Understat("FRA Premier League", "2020-2021")
 
 
 def test_understat_get_fixtures():
@@ -42,8 +42,23 @@ def test_understat_shots():
 
 def test_understat_fixture_info():
     under = pb.scrapers.Understat("ENG Premier League", "2020-2021")
-    df = under.get_shots("14090")
+    df = under.get_fixture_info("14090")
     assert type(df) == pd.DataFrame
+    assert df.shape[0] == 1
+
+
+def test_understat_player_season():
+    under = pb.scrapers.Understat("ENG Premier League", "2020-2021")
+    df = under.get_player_season(8260)
+    assert type(df) == pd.DataFrame
+    assert df.shape[0] > 0
+
+
+def test_understat_player_shots():
+    under = pb.scrapers.Understat("ENG Premier League", "2020-2021")
+    df = under.get_player_shots(8260)
+    assert type(df) == pd.DataFrame
+    assert df.shape[0] > 0
 
 
 def test_map_season():
