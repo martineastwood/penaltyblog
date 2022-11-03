@@ -16,12 +16,6 @@ def test_model():
         df["weights"],
     )
     clf.fit()
-    params = clf.get_params()
-
-    print(clf)
-
-    assert params["attack_Man City"] > 0.5
-
     probs = clf.predict("Liverpool", "Wolves")
     assert type(probs) == pb.models.FootballProbabilityGrid
     assert type(probs.home_draw_away) == list
