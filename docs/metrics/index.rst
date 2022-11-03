@@ -6,6 +6,6 @@ measuring the performance of football model predictions.
 
 .. toctree::
    :maxdepth: 1
-   :caption: Contents:
+   :caption: Examples:
 
    rps

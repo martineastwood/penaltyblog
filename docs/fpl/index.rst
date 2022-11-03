@@ -5,6 +5,6 @@ Functions for scraping data from the Fantasy Premier League website, and for mat
 
 .. toctree::
    :maxdepth: 1
-   :caption: Contents:
+   :caption: Examples:
 
    fpl

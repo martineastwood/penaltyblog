@@ -5,6 +5,6 @@ Functions for estimating the implied odds from bookmaker's odds. Includes multip
 
 .. toctree::
    :maxdepth: 1
-   :caption: Contents:
+   :caption: Examples:
 
    implied

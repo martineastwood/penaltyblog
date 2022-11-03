@@ -20,7 +20,7 @@ See the examples below for more details on how to use the scrapers.
 
 .. toctree::
    :maxdepth: 1
-   :caption: Contents:
+   :caption: Examples:
 
    espn
    clubelo
