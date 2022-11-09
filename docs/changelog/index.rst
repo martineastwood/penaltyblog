@@ -4,8 +4,13 @@ Changelog
 Version Numbering
 #################
 
-penaltyblog follows the SemVer versioning guidelines. For more information,
+`penaltyblog` follows the SemVer versioning guidelines. For more information,
 see `semver.org <http://semver.org/>`_
+
+v0.6.0 (xxxxx)
+^^^^^^^^^^^^^^
+
+- added `goal expectancy` function
 
 
 v0.5.1 (2022-11-03)
