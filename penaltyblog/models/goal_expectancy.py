@@ -3,7 +3,9 @@ from scipy.optimize import minimize
 from scipy.stats import poisson
 
 
-def goal_expectancy(home: float, draw: float, away: float) -> dict:
+def goal_expectancy(
+    home: float, draw: float, away: float, dc_adj: bool = True, rho: float = 0.001
+) -> dict:
     """
     Estimates the home and away team's goal expectancy based on the
     home, draw, away probabilities
@@ -16,6 +18,10 @@ def goal_expectancy(home: float, draw: float, away: float) -> dict:
         Probability of draw
     away : float
         Probability of away win
+    dc_adj : bool
+        Whether to apply the Dixon and Coles adjustment
+    rho : float
+        The value for rho within the Dixon and Coles adjustment
 
     Returns
     ----------
@@ -33,7 +39,7 @@ def goal_expectancy(home: float, draw: float, away: float) -> dict:
     res = minimize(
         fun=_mse,
         x0=[0.5, -0.5],
-        args=(home, draw, away),
+        args=(home, draw, away, dc_adj, rho),
         options=options,
     )
 
@@ -47,7 +53,14 @@ def goal_expectancy(home: float, draw: float, away: float) -> dict:
     return output
 
 
-def _mse(params: list, home: float, draw: float, away: float):
+def _mse(
+    params: list,
+    home: float,
+    draw: float,
+    away: float,
+    dc_adj: bool = True,
+    rho: float = 0.001,
+):
     """
     Loss function used internally by the `goal_expectancy function` to
     calculate the mean squared error of the estimate
@@ -58,6 +71,13 @@ def _mse(params: list, home: float, draw: float, away: float):
     mu2 = poisson(exp_params[1]).pmf(np.arange(0, 15))
 
     mat = np.outer(mu1, mu2)
+
+    if dc_adj:
+        # apply Dixon and Coles adjustment
+        mat[0, 0] *= 1 - exp_params[0] * exp_params[1] * rho
+        mat[0, 1] *= 1 + exp_params[0] * rho
+        mat[1, 0] *= 1 + exp_params[1] * rho
+        mat[1, 1] *= 1 - rho
 
     pred = np.array(
         [

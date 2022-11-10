@@ -11,18 +11,18 @@ from .football_probability_grid import FootballProbabilityGrid
 class PoissonGoalsModel:
     """Poisson model for predicting outcomes of football (soccer) matches
 
-    Methods
-    -------
-    fit()
-        fits a Poisson model to the data to calculate the team strengths.
-        Must be called before the
-        model can be used to predict game outcomes
+     Methods
+     -------
+     fit()
+         fits a Poisson model to the data to calculate the team strengths.
+         Must be called before the
+         model can be used to predict game outcomes
 
     predict(home_team, away_team, max_goals=15)
-        predict the outcome of a football (soccer) game between the home_team and away_team
+         predict the outcome of a football (soccer) game between the home_team and away_team
 
-    get_params()
-        Returns the fitted parameters from the model
+     get_params()
+         Returns the fitted parameters from the model
     """
 
     def __init__(self, goals_home, goals_away, teams_home, teams_away, weights=1):
