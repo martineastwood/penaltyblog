@@ -197,23 +197,18 @@ class BayesianRandomInterceptGoalModel:
             tau_def = pm.Gamma("tau_def", 1, 1)
             def_star = pm.Normal("def_star", mu=0, tau=tau_def, shape=self.n_teams)
 
-            # rho
-            tau_rho = pm.Gamma("tau_rho", 1, 1)
-            rho = pm.Normal("rho", mu=0, tau=tau_rho, shape=self.n_teams)
-
-            # flat parameters
-            mu = pm.Flat("mu")
-            eta = pm.Flat("eta")
+            # additional parameters
+            mu = pm.Flat("mu")  # intercept
+            eta = pm.Flat("eta")  # homefield advantage
+            gamma = pm.Normal("gamma", mu=0, tau=1)
 
             # apply sum zero constraints
             atts = pm.Deterministic("atts", atts_star - tt.mean(atts_star))
             defs = pm.Deterministic("defs", def_star - tt.mean(def_star))
 
             # calulate theta
-            lambda1 = tt.exp(
-                mu + eta + atts[home_team] + defs[away_team] + rho[home_team]
-            )
-            lambda2 = tt.exp(mu + atts[away_team] + defs[home_team] + rho[away_team])
+            lambda1 = tt.exp(mu + eta + atts[home_team] - defs[away_team] + gamma)
+            lambda2 = tt.exp(mu + atts[away_team] - defs[home_team] + gamma)
 
             # weights
             weights = pm.Data("weights", self.fixtures["weights"].values, mutable=False)
