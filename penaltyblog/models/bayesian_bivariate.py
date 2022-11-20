@@ -210,7 +210,7 @@ class BayesianBivariateGoalModel:
             # calulate theta
             lambda1 = tt.exp(mu + eta + atts[home_team] + defs[away_team])
             lambda2 = tt.exp(mu + atts[away_team] + defs[home_team])
-            lambda3 = tt.exp(rho[away_team] + rho[away_team])
+            lambda3 = tt.exp(rho[home_team] + rho[away_team])
 
             # weights
             weights = pm.Data("weights", self.fixtures["weights"].values, mutable=False)
