@@ -28,5 +28,3 @@ If you are interested in the theory behind how the models work then you can take
 .. _`Poisson model`: http://www.pena.lt/y/2021/06/18/predicting-football-results-using-the-poisson-distribution/
 .. _`Dixon and Coles model`: http://www.pena.lt/y/2021/06/24/predicting-football-results-using-python-and-dixon-and-coles/
 .. _`Bayesian Hierarchical model`: http://www.pena.lt/y/2021/08/25/predicting-football-results-using-bayesian-statistics-with-python-and-pymc3
-
-/

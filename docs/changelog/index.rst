@@ -12,6 +12,7 @@ v0.6.0 (xxxxx)
 
 - added `goal expectancy` function
 - fixed bug in Bayesian Bivariate Goals model
+- Added Bayesian Random Intercept model
 
 v0.5.1 (2022-11-03)
 ^^^^^^^^^^^^^^^^^^^

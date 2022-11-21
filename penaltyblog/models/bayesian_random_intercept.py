@@ -10,17 +10,19 @@ from .football_probability_grid import FootballProbabilityGrid
 
 
 class BayesianRandomInterceptGoalModel:
-    """Bayesian random intercept poisson model for predicting outcomes of football
-    (soccer) matches.
+    """Bayesian random intercept model for predicting the number of goals scored
+    by the home and away teams. Extends the hierarchical model to fit the
+    intercept by team
 
     Methods
     -------
     fit()
-        fits a Bayesian random intercept poisson model to the data to calculate the team strengths.
-        Must be called before the model can be used to predict game outcomes
+        fits a Bayesian random imntercept model to the data to calculate the team
+        strengths. Must be called before the model can be used to predict game outcomes
 
     predict(home_team, away_team, max_goals=15)
-        predict the outcome of a football (soccer) game between the home_team and away_team
+        predict the outcome of a football (soccer) game between the home_team and
+        away_team
 
     get_params()
         Returns the fitted parameters from the model
@@ -105,6 +107,7 @@ class BayesianRandomInterceptGoalModel:
             self.n_jobs = n_jobs
 
         self.fitted = False
+        self.model = None
 
     def __repr__(self):
         repr_str = ""
@@ -123,8 +126,8 @@ class BayesianRandomInterceptGoalModel:
         repr_str += "Number of parameters: {0}".format(len(self.params))
         repr_str += "\n"
 
-        repr_str += "{0: <20} {1:<20} {2:<20} {3:<20}".format(
-            "Team", "Attack", "Defence", "rho"
+        repr_str += "{0:<20} {1:<20} {2:<20} {3:<20}".format(
+            "Team", "Intercept", "Attack", "Defence"
         )
         repr_str += "\n"
         repr_str += "-" * 80
@@ -132,7 +135,7 @@ class BayesianRandomInterceptGoalModel:
 
         attack = [None] * self.n_teams
         defence = [None] * self.n_teams
-        rho = [None] * self.n_teams
+        intercept = [None] * self.n_teams
         team = self.teams["team"].tolist()
 
         for k, v in self.params.items():
@@ -147,13 +150,13 @@ class BayesianRandomInterceptGoalModel:
             elif p == "defence":
                 idx = self.teams.query("team == @t").iloc[0]["team_index"]
                 defence[idx] = round(v, 3)
-            elif p == "rho":
+            elif p == "intercept":
                 idx = self.teams.query("team == @t").iloc[0]["team_index"]
-                rho[idx] = round(v, 3)
+                intercept[idx] = round(v, 3)
             else:
                 continue
 
-        for obj in zip(team, attack, defence, rho):
+        for obj in zip(team, intercept, attack, defence):
             repr_str += "{0:<20} {1:<20} {2:<20} {3:<20}".format(
                 obj[0],
                 obj[1],
@@ -162,12 +165,9 @@ class BayesianRandomInterceptGoalModel:
             )
             repr_str += "\n"
 
-        repr_str += "-" * 80
-        repr_str += "\n"
-
-        repr_str += "mu: {0}".format(round(self.params["mu"], 3))
-        repr_str += "\n"
-        repr_str += "eta: {0}".format(round(self.params["eta"], 3))
+        repr_str += "Home Advantage: {0}".format(
+            round(self.params["home_advantage"], 3)
+        )
         repr_str += "\n"
 
         return repr_str
@@ -186,54 +186,56 @@ class BayesianRandomInterceptGoalModel:
         home_team = self.fixtures["home_index"].values
         away_team = self.fixtures["away_index"].values
 
-        weights = self.fixtures["weights"].values
-
         with pm.Model():
-            # attack
-            tau_att = pm.Gamma("tau_att", 1, 1)
+            # Home advantaget
+            home = pm.Flat("home")
+
+            # Random Interceot
+            tau_int = pm.Gamma("tau_int", 0.1, 0.1)
+            intercept = pm.Normal(
+                "intercept",
+                mu=0,
+                tau=tau_int,
+                shape=self.n_teams,
+            )
+
+            # attack parameters
+            tau_att = pm.Gamma("tau_att", 0.1, 0.1)
             atts_star = pm.Normal("atts_star", mu=0, tau=tau_att, shape=self.n_teams)
 
-            # defence
-            tau_def = pm.Gamma("tau_def", 1, 1)
+            # defence parameters
+            tau_def = pm.Gamma("tau_def", 0.1, 0.1)
             def_star = pm.Normal("def_star", mu=0, tau=tau_def, shape=self.n_teams)
-
-            # additional parameters
-            mu = pm.Flat("mu")  # intercept
-            eta = pm.Flat("eta")  # homefield advantage
-            gamma = pm.Normal("gamma", mu=0, tau=1)
 
             # apply sum zero constraints
             atts = pm.Deterministic("atts", atts_star - tt.mean(atts_star))
             defs = pm.Deterministic("defs", def_star - tt.mean(def_star))
 
             # calulate theta
-            lambda1 = tt.exp(mu + eta + atts[home_team] - defs[away_team] + gamma)
-            lambda2 = tt.exp(mu + atts[away_team] - defs[home_team] + gamma)
-
-            # weights
-            weights = pm.Data("weights", self.fixtures["weights"].values, mutable=False)
-
-            # goal expectation
-            pm.Potential(
-                "home_goals",
-                weights * pm.logp(pm.Poisson.dist(mu=lambda1), goals_home_obs),
+            home_theta = tt.exp(
+                intercept[home_team] + home + atts[home_team] + defs[away_team]
+            )
+            away_theta = tt.exp(
+                intercept[away_team] + atts[away_team] + defs[home_team]
             )
 
+            # weights
+            weights = pm.Data("weights", self.fixtures["weights"], mutable=False)
+
+            pm.Potential(
+                "home_goals",
+                weights * pm.logp(pm.Poisson.dist(mu=home_theta), goals_home_obs),
+            )
             pm.Potential(
                 "away_goals",
-                weights * pm.logp(pm.Poisson.dist(mu=lambda2), goals_away_obs),
+                weights * pm.logp(pm.Poisson.dist(mu=away_theta), goals_away_obs),
             )
 
             self.trace = pm.sample(
-                self.draws,
-                tune=1500,
-                cores=self.n_jobs,
-                return_inferencedata=False,
-                target_accept=0.95,
+                self.draws, tune=1500, cores=self.n_jobs, return_inferencedata=False
             )
 
-        self.params["eta"] = np.mean(self.trace["eta"])
-        self.params["mu"] = np.mean(self.trace["mu"])
+        self.params["home_advantage"] = np.mean(self.trace["home"])
         for idx, row in self.teams.iterrows():
             self.params["attack_" + row["team"]] = np.mean(
                 [x[idx] for x in self.trace["atts"]]
@@ -241,8 +243,8 @@ class BayesianRandomInterceptGoalModel:
             self.params["defence_" + row["team"]] = np.mean(
                 [x[idx] for x in self.trace["defs"]]
             )
-            self.params["rho_" + row["team"]] = np.mean(
-                [x[idx] for x in self.trace["rho"]]
+            self.params["intercept_" + row["team"]] = np.mean(
+                [x[idx] for x in self.trace["intercept"]]
             )
 
         self.fitted = True
@@ -254,10 +256,12 @@ class BayesianRandomInterceptGoalModel:
         Parameters
         ----------
         home_team : str
-            The name of the home_team, must have been in the data the model was fitted on
+            The name of the home_team, must have been in the data the model was fitted
+            n
 
         away_team : str
-            The name of the away_team, must have been in the data the model was fitted on
+            The name of the away_team, must have been in the data the model was fitted
+            on
 
         max_goals : int
             The maximum number of goals to calculate the probabilities over.
@@ -295,27 +299,24 @@ class BayesianRandomInterceptGoalModel:
             )
 
         # get the parameters
-        eta = self.params["eta"]
-        mu = self.params["mu"]
+        home = self.params["home_advantage"]
+        intercept_home = self.params["intercept_" + home_team]
+        intercept_away = self.params["intercept_" + away_team]
         atts_home = self.params["attack_" + home_team]
         atts_away = self.params["attack_" + away_team]
         defs_home = self.params["defence_" + home_team]
         defs_away = self.params["defence_" + away_team]
-        rho_home = self.params["rho_" + home_team]
-        rho_away = self.params["rho_" + away_team]
 
         # calculate the goal vectors
-        lambda1 = np.exp(mu + eta + atts_home + defs_away + rho_home)
-        lambda2 = np.exp(mu + atts_away + defs_home + rho_away)
-
-        # calculate theta
-        home_goals_vector = poisson(lambda1).pmf(np.arange(0, max_goals))
-        away_goals_vector = poisson(lambda2).pmf(np.arange(0, max_goals))
+        home_goals = np.exp(intercept_home + home + atts_home + defs_away)
+        away_goals = np.exp(intercept_away + atts_away + defs_home)
+        home_goals_vector = poisson(home_goals).pmf(np.arange(0, max_goals))
+        away_goals_vector = poisson(away_goals).pmf(np.arange(0, max_goals))
 
         # get the probabilities for each possible score
         m = np.outer(home_goals_vector, away_goals_vector)
 
-        probability_grid = FootballProbabilityGrid(m, lambda1, lambda2)
+        probability_grid = FootballProbabilityGrid(m, home_goals, away_goals)
         return probability_grid
 
     def get_params(self) -> dict:
@@ -329,7 +330,8 @@ class BayesianRandomInterceptGoalModel:
         """
         if not self.fitted:
             raise ValueError(
-                "Model's parameters have not been fit yet, please call the `fit()` function first"
+                """Model's parameters have not been fit yet, please call the `fit()`
+                function first"""
             )
 
         return self.params

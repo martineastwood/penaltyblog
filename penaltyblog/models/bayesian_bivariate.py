@@ -16,11 +16,12 @@ class BayesianBivariateGoalModel:
     Methods
     -------
     fit()
-        fits a Bayesian bivariate poisson model to the data to calculate the team strengths.
-        Must be called before the model can be used to predict game outcomes
+        fits a Bayesian bivariate poisson model to the data to calculate the team
+        strengths. Must be called before the model can be used to predict game outcomes
 
     predict(home_team, away_team, max_goals=15)
-        predict the outcome of a football (soccer) game between the home_team and away_team
+        predict the outcome of a football (soccer) game between the home_team and
+        away_team
 
     get_params()
         Returns the fitted parameters from the model
