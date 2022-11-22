@@ -10,9 +10,10 @@ see `semver.org <http://semver.org/>`_
 v0.6.0 (xxxxx)
 ^^^^^^^^^^^^^^
 
-- added `goal expectancy` function
-- fixed bug in Bayesian Bivariate Goals model
+- Added `goal expectancy` function
+- Fixed bug in Bayesian Bivariate Goals model
 - Added Bayesian Random Intercept model
+- Tweaked pymc settings for Bayesian goal models so should now run faster
 
 v0.5.1 (2022-11-03)
 ^^^^^^^^^^^^^^^^^^^
