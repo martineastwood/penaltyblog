@@ -232,7 +232,10 @@ class BayesianRandomInterceptGoalModel:
             )
 
             self.trace = pm.sample(
-                self.draws, tune=1500, cores=self.n_jobs, return_inferencedata=False
+                int(self.draws / self.n_jobs),
+                tune=2000,
+                cores=self.n_jobs,
+                return_inferencedata=False,
             )
 
         self.params["home_advantage"] = np.mean(self.trace["home"])

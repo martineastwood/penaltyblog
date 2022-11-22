@@ -230,11 +230,10 @@ class BayesianBivariateGoalModel:
             )
 
             self.trace = pm.sample(
-                self.draws,
+                int(self.draws / self.n_jobs),
                 tune=2000,
                 cores=self.n_jobs,
                 return_inferencedata=False,
-                target_accept=0.95,
             )
 
         self.params["eta"] = np.mean(self.trace["eta"])
