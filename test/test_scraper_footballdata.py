@@ -6,7 +6,7 @@ import penaltyblog as pb
 
 def test_footballdata_wrong_league():
     with pytest.raises(ValueError):
-        fb = pb.scrapers.FootballData("FRA Premier League", "2020-2021")
+        _ = pb.scrapers.FootballData("FRA Premier League", "2020-2021")
 
 
 def test_footballdata_get_fixtures():
@@ -31,3 +31,14 @@ def test_footballdata_team_mappings():
     fb = pb.scrapers.FootballData("ENG Premier League", "2021-2022", team_mappings)
     df = fb.get_fixtures()
     assert "Wolverhampton Wanderers" in df["team_home"].unique()
+
+
+def test_footballdata_nat_error():
+    """
+    pandas was reading an extra blank row at end of csv that
+    was causing a NaT error to be thrown from having a null in index
+    """
+    mappings = pb.scrapers.get_example_team_name_mappings()
+    fb = pb.scrapers.FootballData("ENG Premier League", "2014-2015", mappings)
+    df = fb.get_fixtures()
+    assert df.shape[0] == 380
