@@ -21,7 +21,8 @@ class BayesianHierarchicalGoalModel:
         Must be called before the model can be used to predict game outcomes
 
     predict(home_team, away_team, max_goals=15)
-        predict the outcome of a football (soccer) game between the home_team and away_team
+        predict the outcome of a football (soccer) game between the home_team and
+        away_team
 
     get_params()
         Returns the fitted parameters from the model
@@ -216,7 +217,10 @@ class BayesianHierarchicalGoalModel:
             )
 
             self.trace = pm.sample(
-                self.draws, tune=1500, cores=self.n_jobs, return_inferencedata=False
+                int(self.draws / self.n_jobs),
+                tune=2000,
+                cores=self.n_jobs,
+                return_inferencedata=False,
             )
 
         self.params["home_advantage"] = np.mean(self.trace["home"])

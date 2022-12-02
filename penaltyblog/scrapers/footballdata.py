@@ -92,6 +92,7 @@ class FootballData(RequestsScraper):
             .assign(goals_home=lambda x: x["fthg"])
             .assign(goals_away=lambda x: x["ftag"])
             .pipe(self._map_teams, columns=["team_home", "team_away"])
+            .dropna(subset=["date"])
             .pipe(create_game_id)
             .set_index(["id"])
             .sort_index()

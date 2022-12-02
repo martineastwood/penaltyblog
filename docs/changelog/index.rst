@@ -4,9 +4,17 @@ Changelog
 Version Numbering
 #################
 
-penaltyblog follows the SemVer versioning guidelines. For more information,
+`penaltyblog` follows the SemVer versioning guidelines. For more information,
 see `semver.org <http://semver.org/>`_
 
+v0.6.0 (xxxxx)
+^^^^^^^^^^^^^^
+
+- Added `goal expectancy` function
+- Fixed bug in Bayesian Bivariate Goals model
+- Added Bayesian Random Intercept model
+- Tweaked pymc settings for Bayesian goal models so should now run faster
+- Fixed bug in Footballdata scraper where a null value was breaking the index column
 
 v0.5.1 (2022-11-03)
 ^^^^^^^^^^^^^^^^^^^

@@ -20,7 +20,8 @@ If you are interested in the theory behind how the models work then you can take
    rue_salvesen
    bayesian_hierarchical
    bayesian_bivariate
-
+   bayesian_random_intercept
+   goal_expectancy
 
 
 .. _`pena.lt/y/blog`: http://www.pena.lt/y/blog.html

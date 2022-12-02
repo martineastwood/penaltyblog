@@ -16,11 +16,12 @@ class BayesianBivariateGoalModel:
     Methods
     -------
     fit()
-        fits a Bayesian bivariate poisson model to the data to calculate the team strengths.
-        Must be called before the model can be used to predict game outcomes
+        fits a Bayesian bivariate poisson model to the data to calculate the team
+        strengths. Must be called before the model can be used to predict game outcomes
 
     predict(home_team, away_team, max_goals=15)
-        predict the outcome of a football (soccer) game between the home_team and away_team
+        predict the outcome of a football (soccer) game between the home_team and
+        away_team
 
     get_params()
         Returns the fitted parameters from the model
@@ -210,7 +211,7 @@ class BayesianBivariateGoalModel:
             # calulate theta
             lambda1 = tt.exp(mu + eta + atts[home_team] + defs[away_team])
             lambda2 = tt.exp(mu + atts[away_team] + defs[home_team])
-            lambda3 = tt.exp(rho[away_team] + rho[away_team])
+            lambda3 = tt.exp(rho[home_team] + rho[away_team])
 
             # weights
             weights = pm.Data("weights", self.fixtures["weights"].values, mutable=False)
@@ -229,11 +230,10 @@ class BayesianBivariateGoalModel:
             )
 
             self.trace = pm.sample(
-                self.draws,
+                int(self.draws / self.n_jobs),
                 tune=2000,
                 cores=self.n_jobs,
                 return_inferencedata=False,
-                target_accept=0.95,
             )
 
         self.params["eta"] = np.mean(self.trace["eta"])
