@@ -7,7 +7,7 @@ Version Numbering
 `penaltyblog` follows the SemVer versioning guidelines. For more information,
 see `semver.org <http://semver.org/>`_
 
-v0.6.0 (xxxxx)
+v0.6.0 (2022-12-02)
 ^^^^^^^^^^^^^^
 
 - Added `goal expectancy` function
