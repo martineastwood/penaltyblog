@@ -113,7 +113,12 @@ class RequestsScraper(BaseScraper):
             )
         }
 
+        self.cookies = None
+
         super().__init__(team_mappings=team_mappings)
 
     def get(self, url: str):
-        return requests.get(url, headers=self.headers).text
+        if self.cookies is not None:
+            return requests.get(url, headers=self.headers, cookies=self.cookies).text
+        else:
+            return requests.get(url, headers=self.headers).text
