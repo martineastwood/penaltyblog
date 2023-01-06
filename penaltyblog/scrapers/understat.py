@@ -49,6 +49,8 @@ class Understat(RequestsScraper):
 
         super().__init__(team_mappings=team_mappings)
 
+        self.cookies = {"beget": "begetok"}
+
     def _map_season(self, season) -> str:
         """
         Internal function to map the season name
