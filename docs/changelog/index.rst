@@ -7,6 +7,10 @@ Version Numbering
 `penaltyblog` follows the SemVer versioning guidelines. For more information,
 see `semver.org <http://semver.org/>`_
 
+v0.6.2 (xxxxxx)
+^^^^^^^^^^^^^^
+- Tweaked Unserstat scraper to avoid their bot detection
+
 v0.6.1 (2023-01-06)
 ^^^^^^^^^^^^^^
 - Tweaked Unserstat scraper to avoid their bot detection
