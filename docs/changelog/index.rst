@@ -10,6 +10,7 @@ see `semver.org <http://semver.org/>`_
 v0.6.2 (xxxxxx)
 ^^^^^^^^^^^^^^
 - Added FBRef scraper
+- Minimum python version supported is now py3.8
 
 v0.6.1 (2023-01-06)
 ^^^^^^^^^^^^^^
