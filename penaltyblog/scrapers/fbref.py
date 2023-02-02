@@ -128,10 +128,18 @@ class FBRef(RequestsScraper):
         """
         Internal function to format the player ages
         """
-        df["age_years"] = df["age"].str.split("-", expand=True)[0].astype(float)
-        df["age_days"] = df["age"].str.split("-", expand=True)[1].astype(float)
-        df["born"] = pd.to_datetime(df["born"])
-        df = df.drop("age", axis=1)
+        if "born" in df.columns:
+            df["born"] = pd.to_datetime(df["born"])
+
+        if "age" in df.columns:
+            if "-" in df["age"].iloc[0]:
+                df["age_years"] = df["age"].str.split("-", expand=True)[0].astype(float)
+                df["age_days"] = df["age"].str.split("-", expand=True)[1].astype(float)
+            else:
+                df["age_years"] = df["age"].astype(float)
+
+            df = df.drop("age", axis=1)
+
         return df
 
     def get_fixtures(self) -> pd.DataFrame:
