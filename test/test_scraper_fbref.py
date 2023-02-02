@@ -1,3 +1,5 @@
+import time
+
 import pandas as pd
 import pytest
 
@@ -44,6 +46,18 @@ def test_fbref_list_stat_types():
 def test_fbref_get_stats():
     fb = pb.scrapers.FBRef("ENG Premier League", "2021-2022")
     stats = fb.get_stats("standard")
+    assert type(stats) == dict
+    assert "players" in stats
+    assert "squad_for" in stats
+    assert "squad_against" in stats
+    assert stats["players"].shape[0] > 0
+    assert stats["squad_for"].shape[0] > 0
+    assert stats["squad_against"].shape[0] > 0
+
+    time.sleep(5)
+
+    fb = pb.scrapers.FBRef("ENG Premier League", "2022-2023")
+    stats = fb.get_stats("shooting")
     assert type(stats) == dict
     assert "players" in stats
     assert "squad_for" in stats
