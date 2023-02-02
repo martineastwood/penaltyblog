@@ -17,7 +17,7 @@ The **penaltyblog** Python package contains lots of useful code from [pena.lt/y/
 
 **penaltyblog** includes functions for:
 
-- Scraping football data from sources such as football-data.co.uk, ESPN, Club Elo, Understat and Fantasy Premier League
+- Scraping football data from sources such as football-data.co.uk, FBRef, ESPN, Club Elo, Understat, SoFifa and Fantasy Premier League
 - Modelling of football matches using Poisson-based models, such as Dixon and Coles, and Bayesian models
 - Predicting probabilities for many betting markets, e.g. Asian handicaps, over/under, total goals etc
 - Modelling football team's abilities using Massey ratings and Colley ratings
