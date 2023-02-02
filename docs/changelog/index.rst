@@ -9,7 +9,7 @@ see `semver.org <http://semver.org/>`_
 
 v0.6.2 (xxxxxx)
 ^^^^^^^^^^^^^^
-- Tweaked Unserstat scraper to avoid their bot detection
+- Added FBRef scraper
 
 v0.6.1 (2023-01-06)
 ^^^^^^^^^^^^^^

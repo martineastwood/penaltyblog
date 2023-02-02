@@ -1,48 +1,34 @@
-# import unittest
-# import penaltyblog as pb
+import pandas as pd
+import pytest
 
-# COUNTRY = "England"
-# COMPETITION = "Premier League"
-# SEASON = "2021-2022"
+import penaltyblog as pb
 
 
-# class TestFbRef(unittest.TestCase):
-#     def test_country(self):
-#         countries = pb.fbref.list_countries()
-#         self.assertGreater(len(countries), 0)
-
-#         country = pb.fbref.get_country(COUNTRY)
-#         self.assertEqual(country.country, COUNTRY)
-#         self.assertEqual(country.governing_body, "UEFA")
-
-#         competitions = country.list_competitions()
-#         self.assertGreater(len(competitions), 0)
-#         self.assertTrue(COMPETITION in competitions)
-
-#     def test_competitions(self):
-#         country = pb.fbref.get_country(COUNTRY)
-#         competition = country.get_competition(COMPETITION)
-
-#         self.assertEqual(competition.competition_name, COMPETITION)
-#         self.assertEqual(competition.country.country, COUNTRY)
-
-#         seasons = competition.list_seasons()
-#         self.assertGreater(len(seasons), 0)
-#         self.assertTrue(SEASON in seasons)
-
-#     def test_seasons(self):
-#         country = pb.fbref.get_country(COUNTRY)
-#         competition = country.get_competition(COMPETITION)
-#         season = competition.get_season(SEASON)
-
-#         self.assertEqual(season.season_name, SEASON)
-#         self.assertEqual(season.competition.competition_name, COMPETITION)
-#         self.assertEqual(season.competition.country.country, COUNTRY)
-
-#         tbl = season.get_league_table()
-#         self.assertEqual(tbl["Squad"].iloc[0], "Manchester City")
-#         self.assertEqual(tbl["Squad"].iloc[20], "Norwich City")
+def test_fbref_wrong_league():
+    with pytest.raises(ValueError):
+        _ = pb.scrapers.FBRef("FRA Premier League", "2020-2021")
 
 
-# if __name__ == "__main__":
-#     unittest.main()
+def test_fbref_get_fixtures():
+    fb = pb.scrapers.FBRef("ENG Premier League", "2021-2022")
+    df = fb.get_fixtures()
+    assert type(df) == pd.DataFrame
+    assert "1628812800---brentford---arsenal" in df.index
+
+
+def test_fbref_list_competitions():
+    df = pb.scrapers.FBRef.list_competitions()
+    assert type(df) == list
+
+
+def test_fbref_team_mappings():
+    team_mappings = pb.scrapers.get_example_team_name_mappings()
+    fb = pb.scrapers.FBRef("ENG Premier League", "2021-2022", team_mappings)
+    df = fb.get_fixtures()
+    assert "Wolverhampton Wanderers" in df["team_home"].unique()
+
+
+def test_fbref_wrong_stat_type():
+    with pytest.raises(ValueError):
+        fb = pb.scrapers.FBRef("ENG Premier League", "2021-2022")
+        fb.get_stats("wrong_stat_type")
