@@ -38,7 +38,7 @@ def test_fbref_wrong_stat_type():
 
 def test_fbref_list_stat_types():
     fb = pb.scrapers.FBRef("ENG Premier League", "2021-2022")
-    stats = fb.get_stat_types()
+    stats = fb.list_stat_types()
     assert type(stats) == list
     assert len(stats) > 0
 

@@ -180,7 +180,7 @@ class FBRef(RequestsScraper):
 
         return df
 
-    def get_stat_types(self) -> list:
+    def list_stat_types(self) -> list:
         return COMPETITION_MAPPINGS[self.competition]["fbref"]["stats"]
 
     def get_stats(self, stat_type: str = "standard") -> dict:
@@ -190,14 +190,15 @@ class FBRef(RequestsScraper):
         Parameters
         ----------
         stat_type : str
-            see self.get_stat_types for the available stats
+            see self.list_stat_types for the available stats
 
 
         Returns
         ----------
-        Returns a dict of dataframes, with a dataframe for `squad_for`, `squad_against` and `players` stats
+        Returns a dict of dataframes, with a keys for
+        `squad_for`, `squad_against` and `players` stats
         """
-        if stat_type not in self.get_stat_types():
+        if stat_type not in self.list_stat_types():
             raise ValueError("Stat type not available for this competition")
 
         if stat_type == "standard":
