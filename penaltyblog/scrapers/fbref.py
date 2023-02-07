@@ -119,7 +119,7 @@ class FBRef(RequestsScraper):
             if "90" in col:
                 df[col] = df[col].astype(float)
             elif "playing_time" in col:
-                df[col] = df[col].astype(int)
+                df[col] = df[col].astype(float)
             elif "expected" in col:
                 df[col] = df[col].astype(float)
         return df
