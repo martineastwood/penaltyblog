@@ -2,6 +2,7 @@ from . import (  # noqa
     backtest,
     fpl,
     implied,
+    kelly,
     metrics,
     models,
     ratings,

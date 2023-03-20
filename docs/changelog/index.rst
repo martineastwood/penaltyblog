@@ -7,7 +7,13 @@ Version Numbering
 `penaltyblog` follows the SemVer versioning guidelines. For more information,
 see `semver.org <http://semver.org/>`_
 
-v0.6.2 (xxxxxx)
+v0.8.0 (xxx)
+^^^^^^^^^^^^^^
+- Added Backtest framework for backtesting betting stategies
+- Added function to calculate the Kelly Criterion
+
+
+v0.7.0 (2023-03-13)
 ^^^^^^^^^^^^^^
 - Added FBRef scraper
 - Minimum python version supported is now py3.8
