@@ -4,7 +4,7 @@ test:
 	poetry run coverage run -m pytest
 
 test_subset:
-	poetry run pytest -v test/test_kelly_criterion.py
+	poetry run pytest -v test/test_elo.py
 
 coverage:
 	poetry run coverage run -m pytest
