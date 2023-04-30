@@ -1,3 +1,5 @@
+from typing import Optional
+
 import pandas as pd
 
 from .account import Account
@@ -11,7 +13,11 @@ class Context:
     """
 
     def __init__(
-        self, account: Account, lookback: pd.DataFrame, fixture: pd.Series, model=None
+        self,
+        account: Account,
+        lookback: pd.DataFrame,
+        fixture: Optional[pd.Series],
+        model=None,
     ):
         """
         Parameters

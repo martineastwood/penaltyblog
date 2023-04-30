@@ -24,6 +24,8 @@ webdriver-manager = "^3.8.3"
 lxml = "^4.9.1"
 cssselect = "^1.1.0"
 pymc = "^4.1.4"
+tqdm = "^4.65.0"
+ipywidgets = "^8.0.5"
 
 [tool.poetry.dev-dependencies]
 black = "^22.6.0"

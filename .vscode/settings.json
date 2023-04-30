@@ -1,3 +1,4 @@
 {
-    "restructuredtext.confPath": ""
+    "restructuredtext.confPath": "",
+    "python.analysis.typeCheckingMode": "off"
 }

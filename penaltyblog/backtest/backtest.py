@@ -1,5 +1,8 @@
+from typing import Callable, Optional
+
 import numpy as np
 import pandas as pd
+from tqdm.auto import tqdm
 
 from .account import Account
 from .context import Context
@@ -66,7 +69,9 @@ class Backtest:
             .unique()
         )
 
-    def start(self, bankroll: float, logic: callable, trainer: callable = None):
+    def start(
+        self, bankroll: float, logic: Callable, trainer: Optional[Callable] = None
+    ):
         """
         Parameters
         ----------
@@ -96,18 +101,25 @@ class Backtest:
         -------
             None
         """
-        self.account = Account(bankroll, self.stop_at_negative)
+        self.account = Account(bankroll)
 
-        for date in self.window:
+        # for date in self.window:
+        for date in tqdm(self.window):
             self.account.current_date = date
             lookback = self.df[self.df["date"] < date]
             test = self.df[self.df["date"] == date]
 
+            ctx = Context(self.account, lookback, None)
+
+            if trainer is not None:
+                ctx.model = trainer(ctx)
+
             for _, row in test.iterrows():
-                ctx = Context(self.account, lookback, row)
-                try:
-                    logic(ctx)
-                except ValueError:
+                ctx.fixture = row
+
+                logic(ctx)
+
+                if self.stop_at_negative and self.account.current_bankroll < 0:
                     return None
 
     def results(self) -> dict:

@@ -7,19 +7,15 @@ class Account:
         Places a virtual bet
     """
 
-    def __init__(self, bankroll: float, stop_at_negative: bool = False):
+    def __init__(self, bankroll: float):
         """
         Parameters
         ----------
         bankroll : float
             The initial starting bankroll
-
-        stop_at_negative : bool
-            If True then the backtest will stop as soon as the bankroll goes below zero
         """
 
         self.bankroll = self.current_bankroll = bankroll
-        self.stop_at_negative = stop_at_negative
         self.current_date = None
 
         self.history = list()
@@ -54,6 +50,3 @@ class Account:
             self.current_bankroll = self.bankroll + bet["profit"]
 
         self.tracker.append(self.current_bankroll)
-
-        if self.stop_at_negative and self.current_bankroll < 0:
-            raise ValueError("Bankroll below zero")

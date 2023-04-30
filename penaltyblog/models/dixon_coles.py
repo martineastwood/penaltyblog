@@ -183,8 +183,6 @@ class DixonColesGoalModel:
                 options=options,
             )
 
-            print(self._res)
-
         self._params = self._res["x"]
         self.n_params = len(self._params)
         self.loglikelihood = self._res["fun"] * -1
