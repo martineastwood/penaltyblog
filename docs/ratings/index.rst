@@ -9,3 +9,4 @@ Models for rating / ranking football (soccer) teams.
 
    colley_ratings
    massey_ratings
+   elo_ratings
