@@ -11,7 +11,7 @@ v0.8.0 (xxx)
 ^^^^^^^^^^^^^^
 - Added Backtest framework for backtesting betting stategies
 - Added function to calculate the Kelly Criterion
-- Added Elo ratings
+- Added class for calculating Elo ratings
 
 v0.7.0 (2023-03-13)
 ^^^^^^^^^^^^^^
