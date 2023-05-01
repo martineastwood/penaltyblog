@@ -20,7 +20,7 @@ The **penaltyblog** Python package contains lots of useful code from [pena.lt/y/
 - Scraping football data from sources such as football-data.co.uk, FBRef, ESPN, Club Elo, Understat, SoFifa and Fantasy Premier League
 - Modelling of football matches using Poisson-based models, such as Dixon and Coles, and Bayesian models
 - Predicting probabilities for many betting markets, e.g. Asian handicaps, over/under, total goals etc
-- Modelling football team's abilities using Massey ratings and Colley ratings
+- Modelling football team's abilities using Massey ratings, Colley ratings and Elo ratings
 - Estimating the implied odds from bookmaker's odds by removing the overround using multiple different methods
 - Mathematically optimising your fantasy football team
 
@@ -37,7 +37,7 @@ examples for:
 - [Scraping football data](https://penaltyblog.readthedocs.io/en/latest/scrapers/index.html)
 - [Predicting football matches and betting markets](https://penaltyblog.readthedocs.io/en/latest/models/index.html)
 - [Estimating the implied odds from bookmakers odds](https://penaltyblog.readthedocs.io/en/latest/implied/index.html)
-- [Calculate Massey and Colley ratings](https://penaltyblog.readthedocs.io/en/latest/ratings/index.html)
+- [Calculate Massey, Colley and Elo ratings](https://penaltyblog.readthedocs.io/en/latest/ratings/index.html)
 
 ## References
 
