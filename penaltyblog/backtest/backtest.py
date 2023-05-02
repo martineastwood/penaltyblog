@@ -135,6 +135,7 @@ class Backtest:
         successful_bets = sum([x["outcome"] for x in self.account.history])
         successful_bet_pc = successful_bets / total_bets * 100
         max_bankroll = np.max(self.account.tracker)
+        min_bankroll = np.min(self.account.tracker)
         roi = total_profit / self.account.bankroll * 100
 
         output = {
@@ -142,6 +143,7 @@ class Backtest:
             "Successful Bets": successful_bets,
             "Successful Bet %": successful_bet_pc,
             "Max Bankroll": max_bankroll,
+            "Min Bankroll": min_bankroll,
             "Profit": total_profit,
             "ROI": roi,
         }
