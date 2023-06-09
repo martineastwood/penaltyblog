@@ -85,7 +85,7 @@ class Backtest:
             `logic` function and how to use the `ctx` object. `ctx` will contain an instance
             of the `Account` class, which contains functions for placing virtual bets,
             `lookback` which contains all the fuxtures prior to the date of the current fixture,
-            `fixture` which is the current fixture being processed, and optionally `model` is
+            `fixture` which is the current fixture being processed, and optionally `model` if
             a trainer function is used.
 
         trainer : callable
@@ -94,7 +94,7 @@ class Backtest:
             argument called `ctx`, which contains the the information required to
             train the model and should return the trained model. See the example notebooks
             for more examples of the `trainer` function and how to use the `ctx` object. The
-            trainer function gets called once per unique date and then is made availble to
+            trainer function gets called once per unique date and then is made available to
             all fixtures for that date.
 
         Returns

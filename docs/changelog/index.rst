@@ -12,6 +12,7 @@ v0.8.0 (xxx)
 - Added Backtest framework for backtesting betting stategies
 - Added function to calculate the Kelly Criterion
 - Added class for calculating Elo ratings
+- Fixed bug in FBRef scraper for player age and year or birth
 
 v0.7.0 (2023-03-13)
 ^^^^^^^^^^^^^^
@@ -20,7 +21,7 @@ v0.7.0 (2023-03-13)
 
 v0.6.1 (2023-01-06)
 ^^^^^^^^^^^^^^
-- Tweaked Unserstat scraper to avoid their bot detection
+- Tweaked Understat scraper to avoid their bot detection
 
 v0.6.0 (2022-12-02)
 ^^^^^^^^^^^^^^

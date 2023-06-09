@@ -32,7 +32,6 @@ class FBRef(RequestsScraper):
     source = "fbref"
 
     def __init__(self, competition, season, team_mappings=None):
-
         self._check_competition(competition)
 
         self.base_url = "https://fbref.com/en/comps/"
@@ -129,13 +128,13 @@ class FBRef(RequestsScraper):
         Internal function to format the player ages
         """
         if "born" in df.columns:
-            df["born"] = pd.to_datetime(df["born"])
+            df["born"] = df["born"].astype("int64")
 
         if "age" in df.columns:
-            if "-" in df["age"].iloc[0]:
+            try:
                 df["age_years"] = df["age"].str.split("-", expand=True)[0].astype(float)
                 df["age_days"] = df["age"].str.split("-", expand=True)[1].astype(float)
-            else:
+            except Exception:
                 df["age_years"] = df["age"].astype(float)
 
             df = df.drop("age", axis=1)
