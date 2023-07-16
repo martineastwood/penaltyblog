@@ -1,3 +1,4 @@
+import collections
 import warnings
 
 import numpy as np
@@ -244,6 +245,43 @@ class RueSalvesenGoalModel:
                 "Model's parameters have not been fit yet, please call the `fit()` "
                 "function before making any predictions"
             )
+
+        if isinstance(home_team, str) and isinstance(away_team, str):
+            return self._predict(home_team, away_team, max_goals)
+
+        elif isinstance(home_team, collections.abc.Sequence) and isinstance(
+            away_team, collections.abc.Sequence
+        ):
+            results = [
+                self._predict(x[0], x[1], max_goals) for x in zip(home_team, away_team)
+            ]
+            return results
+
+        else:
+            raise ValueError("Team data types not recognised")
+
+    def _predict(self, home_team, away_team, max_goals=15):
+        """
+        Predicts the probabilities of the different possible match outcomes
+
+        Parameters
+        ----------
+        home_team : str
+            The name of the home_team, must have been in the data the model was fitted on
+
+        away_team : str
+            The name of the away_team, must have been in the data the model was fitted on
+
+        max_goals : int
+            The maximum number of goals to calculate the probabilities over.
+            Reducing this will improve performance slightly at the expensive of acuuracy
+
+        Returns
+        -------
+        FootballProbabilityGrid
+            A class providing access to a range of probabilites, such as 1x2,
+            asian handicaps, over unders etc
+        """
 
         # check we have parameters for teams
         if home_team not in self.teams:

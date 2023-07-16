@@ -22,6 +22,16 @@ def test_rs_model():
     assert 0.6 < probs.total_goals("over", 1.5) < 0.9
     assert 0.3 < probs.asian_handicap("home", 1.5) < 0.5
 
+    probs = clf.predict(["Liverpool", "Wolves"], ["Wolves", "Liverpool"])
+    print(type(probs))
+    assert type(probs) == list
+    assert type(probs[0]) == pb.models.FootballProbabilityGrid
+    assert len(probs) == 2
+    assert len(probs[0].home_draw_away) == 3
+    assert 0.6 < probs[0].total_goals("over", 1.5) < 0.9
+    assert 0.3 < probs[0].asian_handicap("home", 1.5) < 0.5
+    assert 0.4 < probs[0].both_teams_to_score < 0.7
+
 
 def test_unfitted_raises_error():
     fb = pb.scrapers.FootballData("ENG Premier League", "2019-2020")
