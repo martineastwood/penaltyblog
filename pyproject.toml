@@ -8,7 +8,7 @@ license = "MIT"
 include = [
     "LICENSE",
 ]
-keywords = ["football", "soccer",  "goals", "modelling", "dixon coles", "poisson", "bayesian", "scraper", "scraping"]
+keywords = ["football", "soccer",  "goals", "modelling", "dixon coles", "poisson", "bayesian", "scraper", "scraping", "backtest"]
 repository = "https://github.com/martineastwood/penaltyblog"
 homepage = "https://github.com/martineastwood/penaltyblog"
 
