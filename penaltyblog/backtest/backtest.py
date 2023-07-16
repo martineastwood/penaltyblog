@@ -133,9 +133,13 @@ class Backtest:
         total_bets = len(self.account.history)
         total_profit = self.account.current_bankroll - self.account.bankroll
         successful_bets = sum([x["outcome"] for x in self.account.history])
-        successful_bet_pc = successful_bets / total_bets * 100
-        max_bankroll = np.max(self.account.tracker)
-        min_bankroll = np.min(self.account.tracker)
+        successful_bet_pc = 0 if total_bets == 0 else successful_bets / total_bets * 100
+        max_bankroll = (
+            None if len(self.account.tracker) == 0 else np.max(self.account.tracker)
+        )
+        min_bankroll = (
+            None if len(self.account.tracker) == 0 else np.min(self.account.tracker)
+        )
         roi = total_profit / self.account.bankroll * 100
 
         output = {

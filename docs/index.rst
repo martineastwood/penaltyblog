@@ -26,6 +26,7 @@ Installation
    :maxdepth: 1
    :caption: Quick Start
 
+   backtest/index
    fpl/index
    implied/index
    metrics/index
