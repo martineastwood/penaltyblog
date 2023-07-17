@@ -39,4 +39,8 @@ Installation
 Useful Links
 ####################
 
-- `Walkthrough of using the scrapers <http://www.pena.lt/y/2022/08/05/scraping-football-data-using-penaltyblog-python-package/>`_
+- `Walkthrough of using the web scrapers <http://www.pena.lt/y/2022/08/05/scraping-football-data-using-penaltyblog-python-package/>`_
+- `Poisson goal model example <http://www.pena.lt/y/2021/06/18/predicting-football-results-using-the-poisson-distribution/>`_
+- `Dixon and Coles goal model example <http://www.pena.lt/y/2021/06/24/predicting-football-results-using-python-and-dixon-and-coles/>`_
+- `Bayesian Hierarchical goal model example <http://www.pena.lt/y/2021/08/25/predicting-football-results-using-bayesian-statistics-with-python-and-pymc3/>`_
+- `How to calculate goal expectancy <https://pena.lt/y/2022/12/02/goal-expectancy-from-bookmakers-odds-using-python/>`_
