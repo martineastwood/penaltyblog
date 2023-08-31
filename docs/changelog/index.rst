@@ -17,16 +17,16 @@ v0.8.0 (xxx)
 - Fixed mapping of Belgium leagues in football-data scraper
 
 v0.7.0 (2023-03-13)
-^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^
 - Added FBRef scraper
 - Minimum python version supported is now py3.8
 
 v0.6.1 (2023-01-06)
-^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^
 - Tweaked Understat scraper to avoid their bot detection
 
 v0.6.0 (2022-12-02)
-^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^
 
 - Added `goal expectancy` function
 - Fixed bug in Bayesian Bivariate Goals model
@@ -35,7 +35,7 @@ v0.6.0 (2022-12-02)
 - Fixed bug in Footballdata scraper where a null value was breaking the index column
 
 v0.5.1 (2022-11-03)
-^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^
 
 - Fixed bug in goals models when printing out instance before fitting it
 - Changed the default value for `xi` in `dixon_coles_weights` weights function to `0.0018`
@@ -43,7 +43,7 @@ v0.5.1 (2022-11-03)
 
 
 v0.5.0 (2022-10-11)
-^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^
 
 - Added `get_player_season` to understat scraper
 - Added `get_player_shots` to understat scraper
@@ -57,7 +57,7 @@ v0.5.0 (2022-10-11)
 
 
 v0.4.0 (2022-08-08)
-^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^
 
 - General bug fixes
 - Reorganized internal structure of package
