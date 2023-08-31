@@ -15,7 +15,7 @@ COMPETITION_MAPPINGS = {
                 "misc",
             ],
         },
-        "footballdata": {"slug": "D2"},
+        "footballdata": {"slug": "B1"},
         "espn": {"slug": "ger.2"},
     },
     "BEL First Division B": {
@@ -28,7 +28,6 @@ COMPETITION_MAPPINGS = {
                 "misc",
             ],
         },
-        "footballdata": {"slug": "D2"},
         "espn": {"slug": "ger.2"},
     },
     "DEU Bundesliga 1": {
