@@ -9,11 +9,12 @@ see `semver.org <http://semver.org/>`_
 
 v0.8.0 (xxx)
 ^^^^^^^^^^^^^^
-- Added Backtest framework for backtesting betting stategies
+- Added initial Backtest framework for backtesting betting stategies
 - Added function to calculate the Kelly Criterion
 - Added class for calculating Elo ratings
 - Fixed bug in FBRef scraper for player age and year of birth
 - All goal models can now take iterables as team inputs
+- Fixed mapping of Belgium leagues in football-data scraper
 
 v0.7.0 (2023-03-13)
 ^^^^^^^^^^^^^^
