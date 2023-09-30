@@ -128,7 +128,7 @@ class FBRef(RequestsScraper):
         Internal function to format the player ages
         """
         if "born" in df.columns:
-            df["born"] = df["born"].astype("int64")
+            df["born"] = df["born"].astype("Int64")
 
         if "age" in df.columns:
             try:

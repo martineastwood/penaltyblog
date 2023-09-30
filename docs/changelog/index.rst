@@ -7,7 +7,12 @@ Version Numbering
 `penaltyblog` follows the SemVer versioning guidelines. For more information,
 see `semver.org <http://semver.org/>`_
 
-v0.8.0 (xxx)
+
+v0.8.1 (2023-09-31)
+^^^^^^^^^^^^^^
+- Changed fbref `born` column to Int64 dtype to allow NULL values
+
+v0.8.0 (2023-08-31)
 ^^^^^^^^^^^^^^
 - Added initial Backtest framework for backtesting betting stategies
 - Added function to calculate the Kelly Criterion

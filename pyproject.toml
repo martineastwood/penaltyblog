@@ -1,14 +1,23 @@
 [tool.poetry]
 name = "penaltyblog"
-version = "0.8.0"
+version = "0.8.1"
 description = "Library from http://pena.lt/y/blog for scraping and modelling football (soccer) data"
 authors = ["Martin Eastwood <martin.eastwood@gmx.com>"]
 readme = "README.md"
 license = "MIT"
-include = [
-    "LICENSE",
+include = ["LICENSE"]
+keywords = [
+    "football",
+    "soccer",
+    "goals",
+    "modelling",
+    "dixon coles",
+    "poisson",
+    "bayesian",
+    "scraper",
+    "scraping",
+    "backtest",
 ]
-keywords = ["football", "soccer",  "goals", "modelling", "dixon coles", "poisson", "bayesian", "scraper", "scraping", "backtest"]
 repository = "https://github.com/martineastwood/penaltyblog"
 homepage = "https://github.com/martineastwood/penaltyblog"
 
