@@ -3,8 +3,9 @@ import tempfile
 import cmdstanpy
 import numpy as np
 import pandas as pd
-from football_probability_grid import FootballProbabilityGrid
 from scipy.stats import poisson
+
+from .football_probability_grid import FootballProbabilityGrid
 
 
 class StanHierarchicalGoalModel:
@@ -147,6 +148,25 @@ class StanHierarchicalGoalModel:
 
         return team, attack, defence
 
+    def get_params(self):
+        if not self.fitted:
+            raise ValueError("Model must be fit before getting parameters")
+
+        draws, att_params, defs_params = self._get_model_parameters()
+        team, attack, defence = self._format_team_parameters(
+            draws, att_params, defs_params
+        )
+
+        params = {
+            "teams": team,
+            "attack": dict(zip(team, attack)),
+            "defence": dict(zip(team, defence)),
+            "home_advantage": round(draws["home"].mean(), 3),
+            "intercept": round(draws["intercept"].mean(), 3),
+        }
+
+        return params
+
     def __repr__(self):
         repr_str = "Module: Penaltyblog\n\nModel: Bayesian Hierarchical (Stan)\n\n"
 
@@ -226,14 +246,3 @@ class StanHierarchicalGoalModel:
         m = np.outer(home_goals_vector, away_goals_vector)
 
         return FootballProbabilityGrid(m, home_theta, away_theta)
-
-
-df = pd.read_csv("/Users/martin/Downloads/E0.csv")
-
-print(df.head())
-
-clf = StanHierarchicalGoalModel(df["FTHG"], df["FTAG"], df["HomeTeam"], df["AwayTeam"])
-clf.fit()
-grid = clf.predict("Liverpool", "Wolves")
-print(grid)
-print(clf)
