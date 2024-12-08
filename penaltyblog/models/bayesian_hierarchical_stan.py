@@ -3,12 +3,11 @@ import tempfile
 import cmdstanpy
 import numpy as np
 import pandas as pd
+from football_probability_grid import FootballProbabilityGrid
 from scipy.stats import poisson
 
-from .football_probability_grid import FootballProbabilityGrid
 
-
-class StanHierarchicalGoalModel:
+class BayesianHierarchicalGoalModel:
     """Bayesian Hierarchical model for predicting outcomes of football
     (soccer) matches. Based on the paper by Baio and Blangiardo from
     https://discovery.ucl.ac.uk/id/eprint/16040/1/16040.pdf
@@ -216,33 +215,64 @@ class StanHierarchicalGoalModel:
     def _get_team_index(self, team_name):
         return self.teams.loc[self.teams["team"] == team_name, "team_index"].iloc[0] - 1
 
-    def _calculate_theta(self, draws, home_team, away_team):
-        home = draws["home"].mean()
-        intercept = draws["intercept"].mean()
-
-        home_idx = self._get_team_index(home_team)
-        away_idx = self._get_team_index(away_team)
-
-        home_atts = draws[f"atts[{home_idx}]"].mean()
-        away_atts = draws[f"atts[{away_idx}]"].mean()
-        home_defs = draws[f"defs[{home_idx}]"].mean()
-        away_defs = draws[f"defs[{away_idx}]"].mean()
-
-        home_theta = np.exp(intercept + home + home_atts + away_defs)
-        away_theta = np.exp(intercept + away_atts + home_defs)
-
-        return home_theta, away_theta
-
-    def predict(self, home_team, away_team, max_goals=15):
+    def predict(self, home_team, away_team, max_goals=15, n_samples=1000):
         if not self.fit_result:
             raise ValueError("Model must be fit before making predictions")
 
         draws = self.fit_result.draws_pd()
-        home_theta, away_theta = self._calculate_theta(draws, home_team, away_team)
 
-        home_goals_vector = poisson.pmf(np.arange(max_goals), home_theta)
-        away_goals_vector = poisson.pmf(np.arange(max_goals), away_theta)
+        home_idx = self._get_team_index(home_team)
+        away_idx = self._get_team_index(away_team)
 
-        m = np.outer(home_goals_vector, away_goals_vector)
+        samples = draws.sample(n=n_samples, replace=True)
 
-        return FootballProbabilityGrid(m, home_theta, away_theta)
+        # Compute Poisson rates
+        lambda_home_samples = np.exp(
+            samples["intercept"]
+            + samples[f"atts[{home_idx}]"]
+            + samples[f"defs[{away_idx}]"]
+            + samples["home"]
+        )
+
+        lambda_away_samples = np.exp(
+            samples["intercept"]
+            + samples[f"atts[{away_idx}]"]
+            + samples[f"defs[{home_idx}]"]
+        )
+        score_probs = np.zeros((max_goals + 1, max_goals + 1))
+
+        home_goal_probs = poisson.pmf(
+            np.arange(max_goals + 1)[:, None], lambda_home_samples.values
+        )
+        away_goal_probs = poisson.pmf(
+            np.arange(max_goals + 1)[None, :], lambda_away_samples.values[:, None]
+        )
+        score_probs = (
+            np.tensordot(home_goal_probs, away_goal_probs, axes=(1, 0)) / n_samples
+        )
+
+        home_goal_expectancy = np.sum(
+            score_probs.sum(axis=1) * np.arange(max_goals + 1)
+        )
+        away_goal_expectancy = np.sum(
+            score_probs.sum(axis=0) * np.arange(max_goals + 1)
+        )
+
+        return FootballProbabilityGrid(
+            score_probs, home_goal_expectancy, away_goal_expectancy
+        )
+
+
+if __name__ == "__main__":
+
+    df = pd.read_csv("/Users/martin/Downloads/E0.csv")
+
+    print(df.head())
+
+    clf = BayesianHierarchicalGoalModel(
+        df["FTHG"], df["FTAG"], df["HomeTeam"], df["AwayTeam"]
+    )
+    clf.fit()
+    grid = clf.predict("Liverpool", "Wolves")
+    print(grid)
+    print(clf)
