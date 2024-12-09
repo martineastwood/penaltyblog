@@ -11,7 +11,7 @@ if __name__ == "__main__":
     clf = pb.models.BayesianBivariateGoalModel(
         df["FTHG"], df["FTAG"], df["HomeTeam"], df["AwayTeam"]
     )
-    clf.fit(draws=2500)
+    clf.fit(draws=5000)
     grid = clf.predict("Liverpool", "Wolves")
     print(grid)
     print(clf)

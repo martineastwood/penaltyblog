@@ -8,69 +8,58 @@ from scipy.stats import poisson
 from .football_probability_grid import FootballProbabilityGrid
 
 
-class BayesianHierarchicalGoalModel:
-    """Bayesian Hierarchical model for predicting football match outcomes"""
+class BayesianBivariateGoalModel:
+    """Bayesian Bivariate Poisson Model for Predicting Soccer Matches"""
 
     STAN_MODEL = """
     data {
-        int N;                           // number of matches
-        int n_teams;                     // number of teams
+        int<lower=0> N;                 // Number of matches
+        int<lower=1> n_teams;           // Number of teams
         array[N] int goals_home;         // home goals scored
         array[N] int goals_away;         // away goals scored
         array[N] int<lower=1,upper=n_teams> home_team;  // home team indices
         array[N] int<lower=1,upper=n_teams> away_team;  // away team indices
-        vector[N] weights;               // match weights
     }
+
     parameters {
-        real home;                    // home advantage
-        real intercept;               // global intercept
-        real<lower=0.001, upper=100> tau_att;
-        real<lower=0.001, upper=100> tau_def;
-        vector[n_teams] atts_star;    // raw attack parameters
-        vector[n_teams] def_star;     // raw defense parameters
+        real home_advantage;
+        vector[n_teams] attack;
+        vector[n_teams] defense;
+        real<lower=0,upper=1> rho;
     }
+
     transformed parameters {
-        vector[n_teams] atts;         // centered attack parameters
-        vector[n_teams] defs;         // centered defense parameters
-        vector[N] home_theta;         // home scoring rates
-        vector[N] away_theta;         // away scoring rates
-
-        atts = atts_star - mean(atts_star);
-        defs = def_star - mean(def_star);
+        vector[N] lambda_home;
+        vector[N] lambda_away;
 
         for (i in 1:N) {
-            home_theta[i] = exp(intercept + home + atts[home_team[i]] + defs[away_team[i]]);
-            away_theta[i] = exp(intercept + atts[away_team[i]] + defs[home_team[i]]);
+            lambda_home[i] = exp(home_advantage + attack[home_team[i]] - defense[away_team[i]]);
+            lambda_away[i] = exp(attack[away_team[i]] - defense[home_team[i]]);
         }
     }
+
     model {
-        tau_att ~ gamma(0.1, 0.1);
-        tau_def ~ gamma(0.1, 0.1);
-        atts_star ~ normal(0, inv_sqrt(tau_att));
-        def_star ~ normal(0, inv_sqrt(tau_def));
+        // Priors
+        home_advantage ~ normal(0, 1);
+        attack ~ normal(0, 1);
+        defense ~ normal(0, 1);
+        rho ~ beta(2, 2);
 
+        // Likelihood
         for (i in 1:N) {
-            target += weights[i] * poisson_lpmf(goals_home[i] | home_theta[i]);
-            target += weights[i] * poisson_lpmf(goals_away[i] | away_theta[i]);
-        }
-    }
-    generated quantities {
-        vector[N] log_lik;
-        for (i in 1:N) {
-            log_lik[i] = poisson_lpmf(goals_home[i] | home_theta[i]) +
-                        poisson_lpmf(goals_away[i] | away_theta[i]);
+            target += poisson_log_lpmf(goals_home[i] | log(lambda_home[i])) +
+                      poisson_log_lpmf(goals_away[i] | log(lambda_away[i]));
         }
     }
     """
 
-    def __init__(self, goals_home, goals_away, teams_home, teams_away, weights=1):
+    def __init__(self, goals_home, goals_away, teams_home, teams_away):
         self.fixtures = pd.DataFrame(
             {
                 "goals_home": goals_home,
                 "goals_away": goals_away,
                 "team_home": teams_home,
                 "team_away": teams_away,
-                "weights": weights,
             }
         )
         self._setup_teams()
@@ -79,28 +68,35 @@ class BayesianHierarchicalGoalModel:
         self.fitted = False
 
     def _setup_teams(self):
-        self.teams = (
-            pd.DataFrame({"team": self.fixtures["team_home"].unique()})
-            .sort_values("team")
+        unique_teams = pd.DataFrame(
+            {
+                "team": pd.concat(
+                    [self.fixtures["team_home"], self.fixtures["team_away"]]
+                ).unique()
+            }
+        )
+        unique_teams = (
+            unique_teams.sort_values("team")
             .reset_index(drop=True)
             .assign(team_index=lambda x: np.arange(len(x)) + 1)
         )
 
         self.n_teams = len(self.fixtures["team_home"].unique())
 
+        self.teams = unique_teams
         self.fixtures = (
-            self.fixtures.merge(self.teams, left_on="team_home", right_on="team")
+            self.fixtures.merge(unique_teams, left_on="team_home", right_on="team")
             .rename(columns={"team_index": "home_index"})
             .drop("team", axis=1)
-            .merge(self.teams, left_on="team_away", right_on="team")
+            .merge(unique_teams, left_on="team_away", right_on="team")
             .rename(columns={"team_index": "away_index"})
             .drop("team", axis=1)
         )
 
     def _get_model_parameters(self):
         draws = self.fit_result.draws_pd()
-        att_params = [x for x in draws.columns if "atts_star" in x]
-        defs_params = [x for x in draws.columns if "def_star" in x]
+        att_params = [x for x in draws.columns if "attack" in x]
+        defs_params = [x for x in draws.columns if "defence" in x]
         return draws, att_params, defs_params
 
     def _format_team_parameters(self, draws, att_params, defs_params):
@@ -117,27 +113,8 @@ class BayesianHierarchicalGoalModel:
 
         return team, attack, defence
 
-    def get_params(self):
-        if not self.fitted:
-            raise ValueError("Model must be fit before getting parameters")
-
-        draws, att_params, defs_params = self._get_model_parameters()
-        team, attack, defence = self._format_team_parameters(
-            draws, att_params, defs_params
-        )
-
-        params = {
-            "teams": team,
-            "attack": dict(zip(team, attack)),
-            "defence": dict(zip(team, defence)),
-            "home_advantage": round(draws["home"].mean(), 3),
-            "intercept": round(draws["intercept"].mean(), 3),
-        }
-
-        return params
-
     def __repr__(self):
-        repr_str = "Module: Penaltyblog\n\nModel: Bayesian Hierarchical (Stan)\n\n"
+        repr_str = "Module: Penaltyblog\n\nModel: Bayesian Bivariate (Stan)\n\n"
 
         if not self.fitted:
             return repr_str + "Status: Model not fitted"
@@ -156,11 +133,11 @@ class BayesianHierarchicalGoalModel:
 
         repr_str += "-" * 60 + "\n"
         repr_str += f"Home Advantage: {round(draws['home'].mean(), 3)}\n"
-        repr_str += f"Intercept: {round(draws['intercept'].mean(), 3)}\n"
+        # repr_str += f"Intercept: {round(draws['intercept'].mean(), 3)}\n"
 
         return repr_str
 
-    def fit(self, draws=5000):
+    def fit(self, draws=5000, warmup=2000):
         data = {
             "N": len(self.fixtures),
             "n_teams": len(self.teams),
@@ -168,7 +145,6 @@ class BayesianHierarchicalGoalModel:
             "goals_away": self.fixtures["goals_away"].values,
             "home_team": self.fixtures["home_index"].values,
             "away_team": self.fixtures["away_index"].values,
-            "weights": self.fixtures["weights"].values,
         }
 
         with tempfile.NamedTemporaryFile(mode="w", suffix=".stan") as tmp:
@@ -176,11 +152,29 @@ class BayesianHierarchicalGoalModel:
             tmp.flush()
             self.model = cmdstanpy.CmdStanModel(stan_file=tmp.name)
             self.fit_result = self.model.sample(
-                data=data, iter_sampling=draws, iter_warmup=2000
+                data=data, iter_sampling=draws, iter_warmup=warmup
             )
 
         self.fitted = True
         return self
+
+    def get_params(self):
+        if not self.fitted:
+            raise ValueError("Model must be fit before getting parameters")
+
+        draws = self.fit_result.draws_pd()
+        team_names = self.teams["team"].tolist()
+        attack = draws.filter(like="attack").mean().values
+        defense = draws.filter(like="defense").mean().values
+
+        params = {
+            "teams": team_names,
+            "attack": dict(zip(team_names, np.round(attack, 3))),
+            "defense": dict(zip(team_names, np.round(defense, 3))),
+            "home_advantage": round(draws["home_advantage"].mean(), 3),
+            "rho": round(draws["rho"].mean(), 3),
+        }
+        return params
 
     def predict(self, home_team, away_team, max_goals=15, n_samples=1000):
         if not self.fitted:
@@ -192,23 +186,19 @@ class BayesianHierarchicalGoalModel:
         samples = draws.sample(n=n_samples, replace=True)
 
         lambda_home = np.exp(
-            samples["intercept"]
-            + samples[f"atts[{home_idx}]"]
-            + samples[f"defs[{away_idx}]"]
-            + samples["home"]
+            samples["home_advantage"]
+            + samples[f"attack[{home_idx}]"]
+            - samples[f"defense[{away_idx}]"]
         )
 
         lambda_away = np.exp(
-            samples["intercept"]
-            + samples[f"atts[{away_idx}]"]
-            + samples[f"defs[{home_idx}]"]
+            samples[f"attack[{away_idx}]"] - samples[f"defense[{home_idx}]"]
         )
 
         home_probs = poisson.pmf(np.arange(max_goals + 1)[:, None], lambda_home.values)
         away_probs = poisson.pmf(
             np.arange(max_goals + 1)[None, :], lambda_away.values[:, None]
         )
-
         score_probs = np.tensordot(home_probs, away_probs, axes=(1, 0)) / n_samples
 
         home_expectancy = np.sum(score_probs.sum(axis=1) * np.arange(max_goals + 1))
@@ -217,4 +207,7 @@ class BayesianHierarchicalGoalModel:
         return FootballProbabilityGrid(score_probs, home_expectancy, away_expectancy)
 
     def _get_team_index(self, team_name):
-        return self.teams.loc[self.teams["team"] == team_name, "team_index"].iloc[0] - 1
+        idx = self.teams.loc[self.teams["team"] == team_name, "team_index"]
+        if idx.empty:
+            raise ValueError(f"Team {team_name} not found.")
+        return idx.iloc[0] - 1

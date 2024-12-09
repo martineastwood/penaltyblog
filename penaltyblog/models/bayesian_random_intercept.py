@@ -3,8 +3,9 @@ import tempfile
 import cmdstanpy
 import numpy as np
 import pandas as pd
-from football_probability_grid import FootballProbabilityGrid
 from scipy.stats import poisson
+
+from .football_probability_grid import FootballProbabilityGrid
 
 
 class BayesianRandomInterceptGoalModel:

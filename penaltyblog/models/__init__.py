@@ -1,3 +1,4 @@
+from .bayesian_bivariate import BayesianBivariateGoalModel  # noqa
 from .bayesian_hierarchical import BayesianHierarchicalGoalModel  # noqa
 from .bayesian_random_intercept import BayesianRandomInterceptGoalModel  # noqa
 from .dixon_coles import DixonColesGoalModel  # noqa
