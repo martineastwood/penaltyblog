@@ -1,380 +1,238 @@
-import collections
-import os
+import tempfile
 
-import aesara.tensor as tt
+import cmdstanpy
 import numpy as np
 import pandas as pd
-import pymc as pm
+from football_probability_grid import FootballProbabilityGrid
 from scipy.stats import poisson
-
-from .football_probability_grid import FootballProbabilityGrid
 
 
 class BayesianRandomInterceptGoalModel:
-    """Bayesian random intercept model for predicting the number of goals scored
-    by the home and away teams. Extends the hierarchical model to fit the
-    intercept by team
+    """Bayesian Hierarchical model for predicting football match outcomes"""
 
-    Methods
-    -------
-    fit()
-        fits a Bayesian random imntercept model to the data to calculate the team
-        strengths. Must be called before the model can be used to predict game outcomes
+    STAN_MODEL = """
+    data {
+        int N;                           // number of matches
+        int n_teams;                     // number of teams
+        array[N] int goals_home;         // home goals scored
+        array[N] int goals_away;         // away goals scored
+        array[N] int<lower=1,upper=n_teams> home_team;  // home team indices
+        array[N] int<lower=1,upper=n_teams> away_team;  // away team indices
+        vector[N] weights;               // match weights
+    }
+    parameters {
+        real home;                    // home advantage
+        real global_intercept;        // global intercept
+        real<lower=0.001, upper=100> tau_att;
+        real<lower=0.001, upper=100> tau_def;
+        real<lower=0.001, upper=100> tau_int;  // random intercept variance
+        vector[n_teams] random_int;   // team-specific random intercepts
+        vector[n_teams] atts_star;    // raw attack parameters
+        vector[n_teams] def_star;     // raw defense parameters
+    }
+    transformed parameters {
+        vector[n_teams] atts;         // centered attack parameters
+        vector[n_teams] defs;         // centered defense parameters
+        vector[N] home_theta;         // home scoring rates
+        vector[N] away_theta;         // away scoring rates
 
-    predict(home_team, away_team, max_goals=15)
-        predict the outcome of a football (soccer) game between the home_team and
-        away_team
+        atts = atts_star - mean(atts_star);
+        defs = def_star - mean(def_star);
 
-    get_params()
-        Returns the fitted parameters from the model
+        for (i in 1:N) {
+            home_theta[i] = exp(global_intercept + random_int[home_team[i]] +
+                            home + atts[home_team[i]] + defs[away_team[i]]);
+            away_theta[i] = exp(global_intercept + random_int[away_team[i]] +
+                            atts[away_team[i]] + defs[home_team[i]]);
+        }
+    }
+    model {
+        // Priors
+        tau_att ~ gamma(0.1, 0.1);
+        tau_def ~ gamma(0.1, 0.1);
+        tau_int ~ gamma(0.1, 0.1);
+
+        // Random effects
+        random_int ~ normal(0, inv_sqrt(tau_int));
+        atts_star ~ normal(0, inv_sqrt(tau_att));
+        def_star ~ normal(0, inv_sqrt(tau_def));
+
+        // Likelihood
+        for (i in 1:N) {
+            target += weights[i] * poisson_lpmf(goals_home[i] | home_theta[i]);
+            target += weights[i] * poisson_lpmf(goals_away[i] | away_theta[i]);
+        }
+    }
+    generated quantities {
+        vector[N] log_lik;
+        for (i in 1:N) {
+            log_lik[i] = poisson_lpmf(goals_home[i] | home_theta[i]) +
+                        poisson_lpmf(goals_away[i] | away_theta[i]);
+        }
+    }
     """
 
-    def __init__(
-        self,
-        goals_home,
-        goals_away,
-        teams_home,
-        teams_away,
-        weights=1,
-        n_jobs=None,
-        draws=2500,
-    ):
-        """
-        Parameters
-        ----------
-        goals_home : list
-            A list or pd.Series of goals scored by the home_team
-        goals_away : list
-            A list or pd.Series of goals scored by the away_team
-        teams_home : list
-            A list or pd.Series of team_names for the home_team
-        teams_away : list
-            A list or pd.Series of team_names for the away_team
-        weights : list
-            A list or pd.Series of weights for the data,
-            the lower the weight the less the match has on the output.
-            A scalar value of 1 indicates equal weighting for each observation
-        n_jobs : int or None
-            Number of chains to run in parallel
-        draws : int
-            Number of samples to draw from the model
-        """
-        self.fixtures = pd.DataFrame([goals_home, goals_away, teams_home, teams_away]).T
-        self.fixtures.columns = ["goals_home", "goals_away", "team_home", "team_away"]
-        self.fixtures["goals_home"] = self.fixtures["goals_home"].astype(int)
-        self.fixtures["goals_away"] = self.fixtures["goals_away"].astype(int)
-        self.fixtures["weights"] = weights
-        self.fixtures = self.fixtures.reset_index(drop=True)
+    def __init__(self, goals_home, goals_away, teams_home, teams_away, weights=1):
+        self.fixtures = pd.DataFrame(
+            {
+                "goals_home": goals_home,
+                "goals_away": goals_away,
+                "team_home": teams_home,
+                "team_away": teams_away,
+                "weights": weights,
+            }
+        )
+        self._setup_teams()
+        self.model = None
+        self.fit_result = None
+        self.fitted = False
+
+    def _setup_teams(self):
+        self.teams = (
+            pd.DataFrame({"team": self.fixtures["team_home"].unique()})
+            .sort_values("team")
+            .reset_index(drop=True)
+            .assign(team_index=lambda x: np.arange(len(x)) + 1)
+        )
 
         self.n_teams = len(self.fixtures["team_home"].unique())
 
-        self.teams = (
-            self.fixtures[["team_home"]]
-            .drop_duplicates()
-            .sort_values("team_home")
-            .reset_index(drop=True)
-            .assign(team_index=np.arange(self.n_teams))
-            .rename(columns={"team_home": "team"})
-        )
-
         self.fixtures = (
-            self.fixtures.merge(
-                self.teams,
-                left_on="team_home",
-                right_on="team",
-                how="left",
-            )
+            self.fixtures.merge(self.teams, left_on="team_home", right_on="team")
             .rename(columns={"team_index": "home_index"})
-            .drop(["team"], axis=1)
-            .merge(
-                self.teams,
-                left_on="team_away",
-                right_on="team",
-                how="left",
-            )
+            .drop("team", axis=1)
+            .merge(self.teams, left_on="team_away", right_on="team")
             .rename(columns={"team_index": "away_index"})
-            .drop(["team"], axis=1)
+            .drop("team", axis=1)
         )
 
-        self.trace = None
-        self.draws = draws
-        self.params = dict()
+    def _get_model_parameters(self):
+        draws = self.fit_result.draws_pd()
+        att_params = [x for x in draws.columns if "atts_star" in x]
+        defs_params = [x for x in draws.columns if "def_star" in x]
+        int_params = [x for x in draws.columns if "random_int" in x]
+        return draws, att_params, defs_params, int_params
 
-        if n_jobs == -1 or n_jobs is None:
-            self.n_jobs = os.cpu_count()
-        elif n_jobs == 0:
-            self.n_jobs = 1
-        else:
-            self.n_jobs = n_jobs
-
-        self.fitted = False
-        self.model = None
-
-    def __repr__(self):
-        repr_str = ""
-        repr_str += "Module: Penaltyblog"
-        repr_str += "\n"
-        repr_str += "\n"
-
-        repr_str += "Model: Bayesian Random Intercept"
-        repr_str += "\n"
-        repr_str += "\n"
-
-        if not self.fitted:
-            repr_str += "Status: Model not fitted"
-            return repr_str
-
-        repr_str += "Number of parameters: {0}".format(len(self.params))
-        repr_str += "\n"
-
-        repr_str += "{0:<20} {1:<20} {2:<20} {3:<20}".format(
-            "Team", "Intercept", "Attack", "Defence"
-        )
-        repr_str += "\n"
-        repr_str += "-" * 80
-        repr_str += "\n"
-
+    def _format_team_parameters(self, draws, att_params, defs_params, int_params):
         attack = [None] * self.n_teams
         defence = [None] * self.n_teams
-        intercept = [None] * self.n_teams
+        random_int = [None] * self.n_teams
         team = self.teams["team"].tolist()
 
-        for k, v in self.params.items():
-            if "_" not in k:
-                continue
+        atts = draws[att_params].mean()
+        defs = draws[defs_params].mean()
+        ints = draws[int_params].mean()
 
-            p = k.split("_")[0]
-            t = k.split("_")[1]  # noqa
-            if p == "attack":
-                idx = self.teams.query("team == @t").iloc[0]["team_index"]
-                attack[idx] = round(v, 3)
-            elif p == "defence":
-                idx = self.teams.query("team == @t").iloc[0]["team_index"]
-                defence[idx] = round(v, 3)
-            elif p == "intercept":
-                idx = self.teams.query("team == @t").iloc[0]["team_index"]
-                intercept[idx] = round(v, 3)
-            else:
-                continue
+        for idx, _ in enumerate(team):
+            attack[idx] = round(atts.iloc[idx], 3)
+            defence[idx] = round(defs.iloc[idx], 3)
+            random_int[idx] = round(ints.iloc[idx], 3)
 
-        for obj in zip(team, intercept, attack, defence):
-            repr_str += "{0:<20} {1:<20} {2:<20} {3:<20}".format(
-                obj[0],
-                obj[1],
-                obj[2],
-                obj[3],
-            )
-            repr_str += "\n"
+        return team, attack, defence, random_int
 
-        repr_str += "Home Advantage: {0}".format(
-            round(self.params["home_advantage"], 3)
+    def get_params(self):
+        if not self.fitted:
+            raise ValueError("Model must be fit before getting parameters")
+
+        draws, att_params, defs_params, int_params = self._get_model_parameters()
+        team, attack, defence, ints = self._format_team_parameters(
+            draws, att_params, defs_params, int_params
         )
-        repr_str += "\n"
+
+        params = {
+            "teams": team,
+            "attack": dict(zip(team, attack)),
+            "defence": dict(zip(team, defence)),
+            "home_advantage": round(draws["home"].mean(), 3),
+            "intercept": round(draws["intercept"].mean(), 3),
+            "random_intercept": dict(zip(team, ints)),
+        }
+
+        return params
+
+    def __repr__(self):
+        repr_str = "Module: Penaltyblog\n\nModel: Bayesian Hierarchical Random Intercept (Stan)\n\n"
+
+        if not self.fitted:
+            return repr_str + "Status: Model not fitted"
+
+        draws, att_params, defs_params, int_params = self._get_model_parameters()
+        team, attack, defence, ints = self._format_team_parameters(
+            draws, att_params, defs_params, int_params
+        )
+
+        repr_str += f"Number of parameters: {len(att_params) + len(defs_params) + 2}\n"
+        repr_str += "{0: <20} {1:<20} {2:<20} {3:<20}".format(
+            "Team", "Attack", "Defence", "Intercept"
+        )
+        repr_str += "\n" + "-" * 80 + "\n"
+
+        for t, a, d, r in zip(team, attack, defence, ints):
+            repr_str += "{0: <20} {1:<20} {2:<20} {3:<20}\n".format(t, a, d, r)
+
+        repr_str += "-" * 60 + "\n"
+        repr_str += f"Home Advantage: {round(draws['home'].mean(), 3)}\n"
+        repr_str += f"Intercept: {round(draws['global_intercept'].mean(), 3)}\n"
 
         return repr_str
 
-    def __str__(self):
-        return self.__repr__()
+    def fit(self, draws=5000):
+        data = {
+            "N": len(self.fixtures),
+            "n_teams": len(self.teams),
+            "goals_home": self.fixtures["goals_home"].values,
+            "goals_away": self.fixtures["goals_away"].values,
+            "home_team": self.fixtures["home_index"].values,
+            "away_team": self.fixtures["away_index"].values,
+            "weights": self.fixtures["weights"].values,
+        }
 
-    def fit(self):
-        """
-        Fits the model to the data and calculates the team strengths,
-        home advantage and intercept. Should be called before `predict` can be used
-        """
-        goals_home_obs = self.fixtures["goals_home"].values
-        goals_away_obs = self.fixtures["goals_away"].values
-
-        home_team = self.fixtures["home_index"].values
-        away_team = self.fixtures["away_index"].values
-
-        with pm.Model():
-            # Home advantaget
-            home = pm.Flat("home")
-
-            # Random Interceot
-            tau_int = pm.Gamma("tau_int", 0.1, 0.1)
-            intercept = pm.Normal(
-                "intercept",
-                mu=0,
-                tau=tau_int,
-                shape=self.n_teams,
-            )
-
-            # attack parameters
-            tau_att = pm.Gamma("tau_att", 0.1, 0.1)
-            atts_star = pm.Normal("atts_star", mu=0, tau=tau_att, shape=self.n_teams)
-
-            # defence parameters
-            tau_def = pm.Gamma("tau_def", 0.1, 0.1)
-            def_star = pm.Normal("def_star", mu=0, tau=tau_def, shape=self.n_teams)
-
-            # apply sum zero constraints
-            atts = pm.Deterministic("atts", atts_star - tt.mean(atts_star))
-            defs = pm.Deterministic("defs", def_star - tt.mean(def_star))
-
-            # calulate theta
-            home_theta = tt.exp(
-                intercept[home_team] + home + atts[home_team] + defs[away_team]
-            )
-            away_theta = tt.exp(
-                intercept[away_team] + atts[away_team] + defs[home_team]
-            )
-
-            # weights
-            weights = pm.Data("weights", self.fixtures["weights"], mutable=False)
-
-            pm.Potential(
-                "home_goals",
-                weights * pm.logp(pm.Poisson.dist(mu=home_theta), goals_home_obs),
-            )
-            pm.Potential(
-                "away_goals",
-                weights * pm.logp(pm.Poisson.dist(mu=away_theta), goals_away_obs),
-            )
-
-            self.trace = pm.sample(
-                int(self.draws / self.n_jobs),
-                tune=2000,
-                cores=self.n_jobs,
-                return_inferencedata=False,
-            )
-
-        self.params["home_advantage"] = np.mean(self.trace["home"])
-        for idx, row in self.teams.iterrows():
-            self.params["attack_" + row["team"]] = np.mean(
-                [x[idx] for x in self.trace["atts"]]
-            )
-            self.params["defence_" + row["team"]] = np.mean(
-                [x[idx] for x in self.trace["defs"]]
-            )
-            self.params["intercept_" + row["team"]] = np.mean(
-                [x[idx] for x in self.trace["intercept"]]
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".stan") as tmp:
+            tmp.write(self.STAN_MODEL)
+            tmp.flush()
+            self.model = cmdstanpy.CmdStanModel(stan_file=tmp.name)
+            self.fit_result = self.model.sample(
+                data=data, iter_sampling=draws, iter_warmup=2000
             )
 
         self.fitted = True
+        return self
 
-    def predict(self, home_team, away_team, max_goals=15) -> FootballProbabilityGrid:
-        """
-        Predicts the probabilities of the different possible match outcomes
-
-        Parameters
-        ----------
-        home_team : str
-            The name of the home_team, must have been in the data the model was fitted
-            n
-
-        away_team : str
-            The name of the away_team, must have been in the data the model was fitted
-            on
-
-        max_goals : int
-            The maximum number of goals to calculate the probabilities over.
-            Reducing this will improve performance slightly at the expensive of acuuracy
-
-        Returns
-        -------
-        FootballProbabilityGrid
-            A class providing access to a range of probabilites,
-            such as 1x2, asian handicaps, over unders etc
-        """
+    def predict(self, home_team, away_team, max_goals=15, n_samples=1000):
         if not self.fitted:
-            raise ValueError(
-                (
-                    "Model's parameters have not been fit yet, please call the `fit()` "
-                    "function before making any predictions"
-                )
-            )
+            raise ValueError("Model must be fit before making predictions")
 
-        if isinstance(home_team, str) and isinstance(away_team, str):
-            return self._predict(home_team, away_team, max_goals)
+        draws = self.fit_result.draws_pd()
+        home_idx = self._get_team_index(home_team)
+        away_idx = self._get_team_index(away_team)
+        samples = draws.sample(n=n_samples, replace=True)
 
-        elif isinstance(home_team, collections.abc.Sequence) and isinstance(
-            away_team, collections.abc.Sequence
-        ):
-            results = [
-                self._predict(x[0], x[1], max_goals) for x in zip(home_team, away_team)
-            ]
-            return results
+        lambda_home = np.exp(
+            samples["global_intercept"]
+            + samples[f"random_int[{home_idx}]"]
+            + samples[f"atts[{home_idx}]"]
+            + samples[f"defs[{away_idx}]"]
+            + samples["home"]
+        )
 
-        else:
-            raise ValueError("Team data types not recognised")
+        lambda_away = np.exp(
+            samples["global_intercept"]
+            + samples[f"random_int[{away_idx}]"]
+            + samples[f"atts[{away_idx}]"]
+            + samples[f"defs[{home_idx}]"]
+        )
 
-    def _predict(self, home_team, away_team, max_goals=15) -> FootballProbabilityGrid:
-        """
-        Predicts the probabilities of the different possible match outcomes
+        home_probs = poisson.pmf(np.arange(max_goals + 1)[:, None], lambda_home.values)
+        away_probs = poisson.pmf(
+            np.arange(max_goals + 1)[None, :], lambda_away.values[:, None]
+        )
 
-        Parameters
-        ----------
-        home_team : str
-            The name of the home_team, must have been in the data the model was fitted
-            n
+        score_probs = np.tensordot(home_probs, away_probs, axes=(1, 0)) / n_samples
 
-        away_team : str
-            The name of the away_team, must have been in the data the model was fitted
-            on
+        home_expectancy = np.sum(score_probs.sum(axis=1) * np.arange(max_goals + 1))
+        away_expectancy = np.sum(score_probs.sum(axis=0) * np.arange(max_goals + 1))
 
-        max_goals : int
-            The maximum number of goals to calculate the probabilities over.
-            Reducing this will improve performance slightly at the expensive of acuuracy
+        return FootballProbabilityGrid(score_probs, home_expectancy, away_expectancy)
 
-        Returns
-        -------
-        FootballProbabilityGrid
-            A class providing access to a range of probabilites,
-            such as 1x2, asian handicaps, over unders etc
-        """
-
-        # check we have parameters for teams
-        if home_team not in self.teams["team"].tolist():
-            raise ValueError(
-                (
-                    "No parameters for home team - "
-                    "please ensure the team was included in the training data"
-                )
-            )
-
-        if away_team not in self.teams["team"].tolist():
-            raise ValueError(
-                (
-                    "No parameters for away team - "
-                    "please ensure the team was included in the training data"
-                )
-            )
-
-        # get the parameters
-        home = self.params["home_advantage"]
-        intercept_home = self.params["intercept_" + home_team]
-        intercept_away = self.params["intercept_" + away_team]
-        atts_home = self.params["attack_" + home_team]
-        atts_away = self.params["attack_" + away_team]
-        defs_home = self.params["defence_" + home_team]
-        defs_away = self.params["defence_" + away_team]
-
-        # calculate the goal vectors
-        home_goals = np.exp(intercept_home + home + atts_home + defs_away)
-        away_goals = np.exp(intercept_away + atts_away + defs_home)
-        home_goals_vector = poisson(home_goals).pmf(np.arange(0, max_goals))
-        away_goals_vector = poisson(away_goals).pmf(np.arange(0, max_goals))
-
-        # get the probabilities for each possible score
-        m = np.outer(home_goals_vector, away_goals_vector)
-
-        probability_grid = FootballProbabilityGrid(m, home_goals, away_goals)
-        return probability_grid
-
-    def get_params(self) -> dict:
-        """
-        Provides access to the model's fitted parameters
-
-        Returns
-        -------
-        dict
-            A dict containing the model's parameters
-        """
-        if not self.fitted:
-            raise ValueError(
-                """Model's parameters have not been fit yet, please call the `fit()`
-                function first"""
-            )
-
-        return self.params
+    def _get_team_index(self, team_name):
+        return self.teams.loc[self.teams["team"] == team_name, "team_index"].iloc[0] - 1

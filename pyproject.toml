@@ -19,16 +19,14 @@ keywords = [
 ]
 requires-python = ">=3.10"
 dependencies = [
-    "aesara==2.8.10",
     "pandas",
-    "numpy==1.25.2",
+    "numpy",
     "scipy",
     "PuLP",
     "selenium",
     "webdriver-manager",
     "lxml",
     "cssselect",
-    "pymc==5.8.0",
     "tqdm",
 ]
 
