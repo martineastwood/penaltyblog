@@ -19,12 +19,13 @@ class BayesianBivariateGoalModel:
         array[N] int goals_away;         // away goals scored
         array[N] int<lower=1,upper=n_teams> home_team;  // home team indices
         array[N] int<lower=1,upper=n_teams> away_team;  // away team indices
+        vector[N] weights;               // match weights
     }
 
     parameters {
-        real home_advantage;
+        real home;
         vector[n_teams] attack;
-        vector[n_teams] defense;
+        vector[n_teams] defence;
         real<lower=0,upper=1> rho;
     }
 
@@ -33,33 +34,34 @@ class BayesianBivariateGoalModel:
         vector[N] lambda_away;
 
         for (i in 1:N) {
-            lambda_home[i] = exp(home_advantage + attack[home_team[i]] - defense[away_team[i]]);
-            lambda_away[i] = exp(attack[away_team[i]] - defense[home_team[i]]);
+            lambda_home[i] = exp(home + attack[home_team[i]] - defence[away_team[i]]);
+            lambda_away[i] = exp(attack[away_team[i]] - defence[home_team[i]]);
         }
     }
 
     model {
         // Priors
-        home_advantage ~ normal(0, 1);
+        home ~ normal(0, 1);
         attack ~ normal(0, 1);
-        defense ~ normal(0, 1);
+        defence ~ normal(0, 1);
         rho ~ beta(2, 2);
 
         // Likelihood
         for (i in 1:N) {
-            target += poisson_log_lpmf(goals_home[i] | log(lambda_home[i])) +
-                      poisson_log_lpmf(goals_away[i] | log(lambda_away[i]));
+            target += weights[i] * (poisson_log_lpmf(goals_home[i] | log(lambda_home[i])) +
+                      poisson_log_lpmf(goals_away[i] | log(lambda_away[i])));
         }
     }
     """
 
-    def __init__(self, goals_home, goals_away, teams_home, teams_away):
+    def __init__(self, goals_home, goals_away, teams_home, teams_away, weights=1):
         self.fixtures = pd.DataFrame(
             {
                 "goals_home": goals_home,
                 "goals_away": goals_away,
                 "team_home": teams_home,
                 "team_away": teams_away,
+                "weights": weights,
             }
         )
         self._setup_teams()
@@ -145,6 +147,7 @@ class BayesianBivariateGoalModel:
             "goals_away": self.fixtures["goals_away"].values,
             "home_team": self.fixtures["home_index"].values,
             "away_team": self.fixtures["away_index"].values,
+            "weights": self.fixtures["weights"].values,
         }
 
         with tempfile.NamedTemporaryFile(mode="w", suffix=".stan") as tmp:
@@ -171,7 +174,7 @@ class BayesianBivariateGoalModel:
             "teams": team_names,
             "attack": dict(zip(team_names, np.round(attack, 3))),
             "defense": dict(zip(team_names, np.round(defense, 3))),
-            "home_advantage": round(draws["home_advantage"].mean(), 3),
+            "home_advantage": round(draws["home"].mean(), 3),
             "rho": round(draws["rho"].mean(), 3),
         }
         return params
@@ -186,13 +189,13 @@ class BayesianBivariateGoalModel:
         samples = draws.sample(n=n_samples, replace=True)
 
         lambda_home = np.exp(
-            samples["home_advantage"]
+            samples["home"]
             + samples[f"attack[{home_idx}]"]
-            - samples[f"defense[{away_idx}]"]
+            - samples[f"defence[{away_idx}]"]
         )
 
         lambda_away = np.exp(
-            samples[f"attack[{away_idx}]"] - samples[f"defense[{home_idx}]"]
+            samples[f"attack[{away_idx}]"] - samples[f"defence[{home_idx}]"]
         )
 
         home_probs = poisson.pmf(np.arange(max_goals + 1)[:, None], lambda_home.values)
