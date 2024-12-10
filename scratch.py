@@ -15,3 +15,4 @@ if __name__ == "__main__":
     grid = clf.predict("Liverpool", "Wolves")
     print(grid)
     print(clf)
+    print(clf.get_params())

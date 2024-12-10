@@ -145,7 +145,6 @@ class BayesianRandomInterceptGoalModel:
             "attack": dict(zip(team, attack)),
             "defence": dict(zip(team, defence)),
             "home_advantage": round(draws["home"].mean(), 3),
-            "intercept": round(draws["intercept"].mean(), 3),
             "random_intercept": dict(zip(team, ints)),
         }
 

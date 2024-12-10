@@ -168,12 +168,12 @@ class BayesianBivariateGoalModel:
         draws = self.fit_result.draws_pd()
         team_names = self.teams["team"].tolist()
         attack = draws.filter(like="attack").mean().values
-        defense = draws.filter(like="defense").mean().values
+        defence = draws.filter(like="defence").mean().values
 
         params = {
             "teams": team_names,
             "attack": dict(zip(team_names, np.round(attack, 3))),
-            "defense": dict(zip(team_names, np.round(defense, 3))),
+            "defence": dict(zip(team_names, np.round(defence, 3))),
             "home_advantage": round(draws["home"].mean(), 3),
             "rho": round(draws["rho"].mean(), 3),
         }
