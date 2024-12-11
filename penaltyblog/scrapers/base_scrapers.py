@@ -2,9 +2,6 @@ from typing import Iterable
 
 import pandas as pd
 import requests
-from selenium import webdriver
-from selenium.webdriver import FirefoxOptions
-from webdriver_manager.firefox import GeckoDriverManager
 
 from .common import COMPETITION_MAPPINGS
 
@@ -64,42 +61,6 @@ class BaseScraper:
         return df
 
 
-class SeleniumScraper(BaseScraper):
-    """
-    Base Scraper class that all selenium-based scrapers inherit from
-    """
-
-    def __init__(self):
-        self.options = FirefoxOptions()
-        self.options.add_argument("--headless")
-        self.options.add_argument("--blink-settings=imagesEnabled=false")
-        self.options.set_preference("dom.max_script_run_time", 15)
-
-        self.driver = webdriver.Firefox(
-            executable_path=GeckoDriverManager().install(), options=self.options
-        )
-        self.driver.delete_all_cookies()
-
-        super().__init__()
-
-    def close_browser(self):
-        """
-        Quit the browsers and frees its resources
-        """
-        self.driver.quit()
-
-    def get(self, url: str):
-        """
-        Loads in the url into selenium
-
-        Parameters
-        ----------
-        url : str
-            The URL of interest
-        """
-        self.driver.get(url)
-
-
 class RequestsScraper(BaseScraper):
     """
     Base scraper that all request-based scrapers inherit from
@@ -117,7 +78,7 @@ class RequestsScraper(BaseScraper):
 
         super().__init__(team_mappings=team_mappings)
 
-    def get(self, url: str):
+    def get(self, url: str) -> str:
         if self.cookies is not None:
             return requests.get(url, headers=self.headers, cookies=self.cookies).text
         else:

@@ -1,31 +1,35 @@
-def criterion(decimal_odds: float, true_prob: float, fraction: float = 1) -> float:
-    """
-    The Kelly Criterion is a formula that determines the
-    optimal theoretical size for a bet.
+from typing import Union
 
-    https://en.wikipedia.org/wiki/Kelly_criterion
+import numpy as np
+from numpy.typing import NDArray
+
+
+def criterion(
+    decimal_odds: Union[float, NDArray],
+    true_prob: Union[float, NDArray],
+    fraction: float = 1.0,
+) -> Union[float, NDArray]:
+    """
+    Calculate the optimal bet size using the Kelly Criterion.
 
     Parameters
     ----------
-    decimal_odds : float
-        The odds for the event in European decimal format, e.g. 1.50
-
-    true_prob : float
-        The true probability of the event e.g. 0-1
-
-    fraction : float
-        The fraction of the Kelly Criterion to use. A value of 1.0 gives the full
-        Kelly, 0.5 is a half Kelly etc. Reducing the fraction reduces the amount
-        recommended to wager while reducing volatility
+    decimal_odds : float or np.ndarray
+        The odds in European decimal format (e.g., 1.50)
+    true_prob : float or np.ndarray
+        The true probability of the event (0-1)
+    fraction : float, default=1.0
+        Fraction of Kelly to use (e.g., 0.5 for Half Kelly)
 
     Returns
     -------
-    float
-        The recomended fraction of the bank roll to wager
+    float or np.ndarray
+        Recommended fraction of bankroll to wager
 
     Examples
     --------
     >>> criterion(1.5, 0.7, 1/3)
+    >>> criterion(np.array([1.5, 2.0]), np.array([0.7, 0.5]), 0.5)
     """
     crit = ((true_prob * decimal_odds) - 1) / (decimal_odds - 1)
-    return crit * fraction
+    return np.clip(crit * fraction, 0, 1)

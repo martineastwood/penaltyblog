@@ -2,9 +2,10 @@
 
 test:
 	coverage run -m pytest
+	coverage report -m
 
 test_subset:
-	pytest -v test/test_backtest.py
+	pytest -v test/test_kelly_criterion.py
 
 coverage:
 	coverage run -m pytest

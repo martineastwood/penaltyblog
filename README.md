@@ -13,6 +13,12 @@
 </div>
 
 
+<div align="center">
+  <img src="logo.png" alt="Penalty Blog Logo" width="200">
+</div>
+
+
+
 The **penaltyblog** Python package contains lots of useful code from [pena.lt/y/blog](http://pena.lt/y/blog.html) for working with football (soccer) data.
 
 **penaltyblog** includes functions for:

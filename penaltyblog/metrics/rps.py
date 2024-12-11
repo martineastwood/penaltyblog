@@ -1,34 +1,29 @@
 import numpy as np
 
 
-def rps(probs, outcome):
+def rps(probs: np.ndarray, outcome: int) -> float:
     """
     Calculate the Ranked Probability Score
 
     Parameters
     ----------
-    probs : list
-        A list of the predicted probabilities of each outcome occurring
-
+    probs : array-like
+        The predicted probabilities of each outcome occurring
     outcome : int
-        An integer designating which index in `probs` was the observed outcome
+        Index of the observed outcome in `probs`
 
     Returns
     -------
     float
-        The Ranked Probability Score as floating point number
+        The Ranked Probability Score
 
     Examples
     --------
     >>> rps([0.8, 0.1, 0.1], 0)
     """
+    probs = np.asarray(probs)
     cum_probs = np.cumsum(probs)
-    cum_outcomes = np.zeros(len(probs))
+    cum_outcomes = np.zeros_like(probs)
     cum_outcomes[outcome] = 1
     cum_outcomes = np.cumsum(cum_outcomes)
-
-    sum_rps = 0
-    for i in range(len(probs)):
-        sum_rps += (cum_probs[i] - cum_outcomes[i]) ** 2
-
-    return sum_rps / (len(probs) - 1)
+    return np.sum((cum_probs - cum_outcomes) ** 2) / (len(probs) - 1)

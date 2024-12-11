@@ -22,9 +22,7 @@ See the examples below for more details on how to use the scrapers.
    :maxdepth: 1
    :caption: Examples:
 
-   espn
    fbref
    clubelo
    footballdata
    understat
-   sofifa

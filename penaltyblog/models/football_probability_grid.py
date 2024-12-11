@@ -1,160 +1,108 @@
-class FootballProbabilityGrid(list):
+from typing import Callable, List
+
+import numpy as np
+
+
+class FootballProbabilityGrid:
+    """
+    Class for calculating probabilities of football outcomes.
+    """
+
     def __init__(
         self,
-        goal_matrix: list,
+        goal_matrix: List[List[float]],
         home_goal_expectation: float,
         away_goal_expectation: float,
     ):
-        list.__init__(self, goal_matrix)
+        """
+        Calculate probabilities of football outcomes.
+
+        Parameters
+        ----------
+        goal_matrix : List[List[float]] Matrix of probabilities for each goal difference
+        home_goal_expectation : float Expected number of goals for home
+        away_goal_expectation : float Expected number of goals for away
+        """
+        self.grid = np.array(goal_matrix)
         self.home_goal_expectation = home_goal_expectation
         self.away_goal_expectation = away_goal_expectation
 
-    def __repr__(self):
-        repr_str = ""
-        repr_str += "Module: Penaltyblog"
-        repr_str += "\n"
-        repr_str += "\n"
+    def __repr__(self) -> str:
+        return (
+            f"Module: Penaltyblog\n\n"
+            f"Class: FootballProbabilityGrid\n\n"
+            f"Home Goal Expectation: {self.home_goal_expectation}\n"
+            f"Away Goal Expectation: {self.away_goal_expectation}\n\n"
+            f"Home Win: {self.home_win}\n"
+            f"Draw: {self.draw}\n"
+            f"Away Win: {self.away_win}\n"
+        )
 
-        repr_str += "Class: FootballProbabilityGrid"
-        repr_str += "\n"
-        repr_str += "\n"
-
-        repr_str += "Home Goal Expectation: {0}".format(self.home_goal_expectation)
-        repr_str += "\n"
-        repr_str += "Away Goal Expectation: {0}".format(self.away_goal_expectation)
-        repr_str += "\n"
-        repr_str += "\n"
-
-        repr_str += "Home Win: {0}".format(self.home_win)
-        repr_str += "\n"
-        repr_str += "Draw: {0}".format(self.draw)
-        repr_str += "\n"
-        repr_str += "Away Win: {0}".format(self.away_win)
-        repr_str += "\n"
-
-        return repr_str
-
-    def __str__(self):
-        return self.__repr__()
-
-    def _sum(self, func):
+    def _sum(self, condition: Callable[[int, int], bool]) -> float:
+        rows, cols = self.grid.shape
         return sum(
-            [
-                self[a][b]
-                for a in range(len(self))
-                for b in range(len(self))
-                if func(a, b)
-            ]
+            self.grid[i, j] for i in range(rows) for j in range(cols) if condition(i, j)
         )
 
     @property
     def home_win(self) -> float:
-        """
-        Probability of home win
-
-        Returns
-        ------
-        float
-            Probability of home win
-        """
+        """Probability of home win"""
         return self._sum(lambda a, b: a > b)
 
     @property
     def draw(self) -> float:
-        """
-        Probability of draw
-
-        Returns
-        ------
-        float
-            Probability of draw
-        """
+        """Probability of draw"""
         return self._sum(lambda a, b: a == b)
 
     @property
     def away_win(self) -> float:
-        """
-        Probability of away win
-
-        Returns
-        ------
-        float
-            Probability of away win
-        """
+        """Probability of away win"""
         return self._sum(lambda a, b: a < b)
 
     @property
     def both_teams_to_score(self) -> float:
-        """
-        Probability of both teams scoring
-
-        Returns
-        ------
-        float
-            Probability of both teams scoring
-        """
+        """Probability of both teams scoring"""
         return self._sum(lambda a, b: a > 0 and b > 0)
 
     @property
-    def home_draw_away(self) -> list:
-        """
-        1x2 Probabilities
-
-        Returns
-        ------
-        list
-            Probability of home win
-        """
+    def home_draw_away(self) -> List[float]:
+        """1x2 Probabilities"""
         return [self.home_win, self.draw, self.away_win]
 
     def total_goals(self, over_under: str, strike: float) -> float:
         """
-        Predicts the probabilities of `total goals` market
+        Calculate probabilities for total goals market
 
         Parameters
         ----------
         over_under : str
-            Whether probabilities are for over / under the
-            total goals value - must be one of ['over', 'under']
-
+            'over' or 'under'
         strike : float
-            The total goals value for the market
-
-        Returns
-        ------
-        float
-            Probability of over / under the strike occurring
+            Total goals value
         """
-        if over_under == "over":
-            func = lambda a, b: a + b > strike
-        elif over_under == "under":
-            func = lambda a, b: a + b < strike
-        else:
-            raise ValueError("over_under must be one of ['over', 'under']")
-        return self._sum(func)
+        conditions = {
+            "over": lambda a, b: a + b > strike,
+            "under": lambda a, b: a + b < strike,
+        }
+        if over_under not in conditions:
+            raise ValueError("over_under must be 'over' or 'under'")
+        return self._sum(conditions[over_under])
 
     def asian_handicap(self, home_away: str, strike: float) -> float:
         """
-        Predicts the probabilities of `asian handicap` market
+        Calculate probabilities for asian handicap market
 
         Parameters
         ----------
         home_away : str
-            Whether probabilities are for home / away team -
-            must be one of ['home', 'away']
-
-        goals : float
-            The total goals value
-
-        Returns
-        ------
-        float
-            Probability of home / away team outscoring the strike
+            'home' or 'away'
+        strike : float
+            Handicap value
         """
-        if home_away == "home":
-            func = lambda a, b: a - b > strike
-        elif home_away == "away":
-            func = lambda a, b: b - a > strike
-        else:
-            raise ValueError("home_away must be one of ['home', 'away']")
-        return self._sum(func)
+        conditions = {
+            "home": lambda a, b: a - b > strike,
+            "away": lambda a, b: b - a > strike,
+        }
+        if home_away not in conditions:
+            raise ValueError("home_away must be 'home' or 'away'")
+        return self._sum(conditions[home_away])

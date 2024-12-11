@@ -1,7 +1,9 @@
 import numpy as np
+import pandas as pd
+from numpy.typing import NDArray
 
 
-def rho_correction_vec(df):
+def rho_correction_vec(df: pd.DataFrame) -> NDArray:
     dc_adj = np.select(
         [
             (df["goals_home"] == 0) & (df["goals_away"] == 0),
@@ -20,7 +22,9 @@ def rho_correction_vec(df):
     return dc_adj
 
 
-def rho_correction(goals_home, goals_away, home_exp, away_exp, rho):
+def rho_correction(
+    goals_home: int, goals_away: int, home_exp: float, away_exp: float, rho: float
+) -> float:
     """
     Applies the dixon and coles correction
     """
@@ -36,7 +40,7 @@ def rho_correction(goals_home, goals_away, home_exp, away_exp, rho):
         return 1.0
 
 
-def dixon_coles_weights(dates, xi=0.0018, base_date=None):
+def dixon_coles_weights(dates, xi=0.0018, base_date=None) -> NDArray:
     """
     Calculates a decay curve based on the algorithm given by
     Dixon and Coles in their paper
