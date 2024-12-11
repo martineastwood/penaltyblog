@@ -10,16 +10,16 @@ see `semver.org <http://semver.org/>`_
 v0.9.0 (xxxx-xx-xx)
 ^^^^^^^^^^^^^^
 - Removed pymc as a dependency
-- Updated dependency versions
+- Updated all other dependency versions
 - Added support for Python 3.13
-- Rewrote Bayesian Hierarchical model into Stan instead of pymc and updated prediction method to integtate over the posterior rather than just sampling the mid-point
-- Rewrote Bayesian Random Intercept model into Stan instead of pymc, updated model to use a more accurate random intercept, and updated prediction method to integtate over the posterior rather than just sampling the mid-point
-- Rewrote Bayesian Bivariate model into Stan instead of pymc, improved model so converges better, and updated prediction method to integtate over the posterior rather than just sampling the mid-point
+- Rewrote `BayesianHierarchicalGoalModel` model into Stan instead of pymc and updated prediction method to integtate over the posterior rather than just sampling the mid-point
+- Rewrote `BayesianRandomInterceptGoalModel` into Stan instead of pymc, updated model to use a more accurate random intercept, and updated prediction method to integtate over the posterior rather than just sampling the mid-point
+- Rewrote `BayesianBivariateGoalModel` into Stan instead of pymc, improved model so converges better, and updated prediction method to integtate over the posterior rather than just sampling the mid-point
 - Removed obsolete sofifa and espn scrapers
 - Optimised RPS calculation
 - Optimised ELO code
 - Refactored Kelly Criterion code
-- Updated FootballProbabilityGrid to store its internal matrix as a numpy array
+- Updated `FootballProbabilityGrid` to store its internal matrix as a numpy array
 - Updated all examples
 - Increased unit test coverage
 - Added CI/CD
