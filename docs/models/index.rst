@@ -21,6 +21,7 @@ If you are interested in the theory behind how the models work then you can take
    bayesian_hierarchical
    bayesian_bivariate
    bayesian_random_intercept
+   bayesian_skellam
    goal_expectancy
 
 

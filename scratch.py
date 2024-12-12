@@ -8,7 +8,7 @@ if __name__ == "__main__":
 
     print(df.head())
 
-    clf = pb.models.BayesianBivariateGoalModel(
+    clf = pb.models.BayesianSkellamGoalModel(
         df["FTHG"], df["FTAG"], df["HomeTeam"], df["AwayTeam"]
     )
     clf.fit(draws=5000)
