@@ -60,10 +60,10 @@ pb.install_stan()
 To learn how to use `penaltyblog`, you can read the [documentation](https://penaltyblog.readthedocs.io/en/stable/) and look at the
 examples for:
 
-- [Scraping football data](https://penaltyblog.readthedocs.io/en/latest/scrapers/index.html)
-- [Predicting football matches and betting markets](https://penaltyblog.readthedocs.io/en/latest/models/index.html)
-- [Estimating the implied odds from bookmakers odds](https://penaltyblog.readthedocs.io/en/latest/implied/index.html)
-- [Calculate Massey, Colley and Elo ratings](https://penaltyblog.readthedocs.io/en/latest/ratings/index.html)
+- [Scraping football data](https://penaltyblog.readthedocs.io/en/stable/scrapers/index.html)
+- [Predicting football matches and betting markets](https://penaltyblog.readthedocs.io/en/stable/models/index.html)
+- [Estimating the implied odds from bookmakers odds](https://penaltyblog.readthedocs.io/en/stable/implied/index.html)
+- [Calculate Massey, Colley and Elo ratings](https://penaltyblog.readthedocs.io/en/stable/ratings/index.html)
 
 ## References
 
