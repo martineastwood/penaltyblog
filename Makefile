@@ -8,7 +8,7 @@ test_subset:
 	pytest -v test/test_kelly_criterion.py
 
 coverage:
-	coverage run -m pytest
+	coverage run -m -F pytest
 	coverage report -m
 
 precommit:
