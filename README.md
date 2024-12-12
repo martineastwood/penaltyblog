@@ -38,7 +38,7 @@ The **penaltyblog** Python package contains lots of useful code from [pena.lt/y/
 
 ## Stan
 
-The Bayesian models in penaltyblog require the [Stan probabilistic programming language](https://mc-stan.org/) to function. You can use the following command to install Stan directly from the penaltyblog package:
+The Bayesian models in `penaltyblog` require the [Stan probabilistic programming language](https://mc-stan.org/) to function. You can use the following command to install Stan directly from the penaltyblog package:
 
 ```python
 import penaltyblog as pb
@@ -48,7 +48,7 @@ pb.install_stan()
 
 ## Documentation
 
-To learn how to use penaltyblog, you can read the [documentation](https://penaltyblog.readthedocs.io/en/latest/) and look at the
+To learn how to use `penaltyblog`, you can read the [documentation](https://penaltyblog.readthedocs.io/en/latest/) and look at the
 examples for:
 
 - [Scraping football data](https://penaltyblog.readthedocs.io/en/latest/scrapers/index.html)
