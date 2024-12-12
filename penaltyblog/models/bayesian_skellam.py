@@ -60,7 +60,7 @@ class BayesianSkellamGoalModel:
         goals_away: Union[Sequence[int], NDArray],
         teams_home: Union[Sequence[int], NDArray],
         teams_away: Union[Sequence[int], NDArray],
-        weights: Union[float, Sequence[float], NDArray],
+        weights: Union[float, Sequence[float], NDArray] = 1.0,
     ):
         self.fixtures = pd.DataFrame(
             {

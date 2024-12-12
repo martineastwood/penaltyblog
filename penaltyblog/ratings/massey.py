@@ -1,5 +1,8 @@
+from typing import Sequence, Union
+
 import numpy as np
 import pandas as pd
+from numpy.typing import NDArray
 
 
 class Massey:
@@ -8,25 +11,25 @@ class Massey:
 
     Parameters
     ----------
-    goals_home : list
+    goals_home : array-like
         List of goals scored by the home teams
 
-    goals_away : list
+    goals_away : array-like
         List of goals scored by the away teams
 
-    teams_home : list
+    teams_home : array-like
         List of names of the home teams
 
-    teams_away : list
+    teams_away : array-like
         List of names of the away teams
     """
 
     def __init__(
         self,
-        goals_home,
-        goals_away,
-        teams_home,
-        teams_away,
+        goals_home: Union[Sequence[int], NDArray],
+        goals_away: Union[Sequence[int], NDArray],
+        teams_home: Sequence[str],
+        teams_away: Sequence[str],
     ):
         self.goals_home = goals_home
         self.goals_away = goals_away

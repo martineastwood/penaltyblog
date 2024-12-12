@@ -7,7 +7,7 @@ Version Numbering
 `penaltyblog` follows the SemVer versioning guidelines. For more information,
 see `semver.org <http://semver.org/>`_
 
-v0.9.0 (xxxx-xx-xx)
+v1.0.0 (xxxx-xx-xx)
 ^^^^^^^^^^^^^^
 - Removed pymc as a dependency
 - Updated all other dependency versions
@@ -19,13 +19,15 @@ v0.9.0 (xxxx-xx-xx)
 - Removed obsolete sofifa and espn scrapers
 - Optimised RPS calculation
 - Optimised ELO code
-- Refactored Kelly Criterion code
+- Optimised Kelly Criterion code
 - Updated `FootballProbabilityGrid` to store its internal matrix as a numpy array
 - Updated all example notebooks
 - Increased unit test coverage
 - Added CI/CD
 - Removed Poetry from build step
 - Updated documentation
+- Added type hinting to `Colley` class
+- Added type hinting to `Massey` class
 
 v0.8.1 (2023-09-31)
 ^^^^^^^^^^^^^^

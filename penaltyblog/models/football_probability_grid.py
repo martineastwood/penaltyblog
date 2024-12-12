@@ -1,6 +1,7 @@
 from typing import Callable, List
 
 import numpy as np
+from numpy.typing import NDArray
 
 
 class FootballProbabilityGrid:
@@ -10,7 +11,7 @@ class FootballProbabilityGrid:
 
     def __init__(
         self,
-        goal_matrix: List[List[float]],
+        goal_matrix: NDArray,
         home_goal_expectation: float,
         away_goal_expectation: float,
     ):

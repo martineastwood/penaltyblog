@@ -81,7 +81,7 @@ class BayesianRandomInterceptGoalModel:
         goals_away: Union[Sequence[int], NDArray],
         teams_home: Union[Sequence[int], NDArray],
         teams_away: Union[Sequence[int], NDArray],
-        weights: Union[float, Sequence[float], NDArray],
+        weights: Union[float, Sequence[float], NDArray] = 1.0,
     ):
         self.fixtures = pd.DataFrame(
             {
@@ -214,7 +214,7 @@ class BayesianRandomInterceptGoalModel:
             tmp.flush()
             self.model = cmdstanpy.CmdStanModel(stan_file=tmp.name)
             self.fit_result = self.model.sample(
-                data=data, iter_sampling=draws, warmup=2000
+                data=data, iter_sampling=draws, iter_warmup=warmup
             )
 
         self.fitted = True
