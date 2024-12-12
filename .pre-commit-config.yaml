@@ -13,10 +13,3 @@ repos:
     hooks:
       - id: isort
         name: isort (python)
--   repo: https://github.com/PyCQA/flake8
-    rev: 3.8.4
-    hooks:
-    -   id: flake8
-        name: flake8 ./penaltyblog
-        files: ^penaltyblog/
-        args: [--config, setup.cfg]

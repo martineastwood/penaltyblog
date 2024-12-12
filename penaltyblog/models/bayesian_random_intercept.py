@@ -1,8 +1,10 @@
 import tempfile
+from typing import Dict, Sequence, Union
 
 import cmdstanpy
 import numpy as np
 import pandas as pd
+from numpy.typing import NDArray
 from scipy.stats import poisson
 
 from .football_probability_grid import FootballProbabilityGrid
@@ -73,7 +75,14 @@ class BayesianRandomInterceptGoalModel:
     }
     """
 
-    def __init__(self, goals_home, goals_away, teams_home, teams_away, weights=1):
+    def __init__(
+        self,
+        goals_home: Union[Sequence[int], NDArray],
+        goals_away: Union[Sequence[int], NDArray],
+        teams_home: Union[Sequence[int], NDArray],
+        teams_away: Union[Sequence[int], NDArray],
+        weights: Union[float, Sequence[float], NDArray],
+    ):
         self.fixtures = pd.DataFrame(
             {
                 "goals_home": goals_home,
@@ -131,7 +140,13 @@ class BayesianRandomInterceptGoalModel:
 
         return team, attack, defence, random_int
 
-    def get_params(self):
+    def get_params(self) -> Dict:
+        """
+        Returns the fitted parameters of the Bayesian Bivariate Goal Model.
+
+        Returns:
+            dict: A dictionary containing the fitted parameters of the model.
+        """
         if not self.fitted:
             raise ValueError("Model must be fit before getting parameters")
 
@@ -176,7 +191,14 @@ class BayesianRandomInterceptGoalModel:
 
         return repr_str
 
-    def fit(self, draws=5000):
+    def fit(self, draws: int = 5000, warmup: int = 2000):
+        """
+        Fits the Bayesian Bivariate Goal Model to the provided match data.
+
+        Args:
+            draws (int, optional): Number of posterior draws to generate, defaults to 5000.
+            warmup (int, optional): Number of warmup draws, defaults to 2000.
+        """
         data = {
             "N": len(self.fixtures),
             "n_teams": len(self.teams),
@@ -192,13 +214,28 @@ class BayesianRandomInterceptGoalModel:
             tmp.flush()
             self.model = cmdstanpy.CmdStanModel(stan_file=tmp.name)
             self.fit_result = self.model.sample(
-                data=data, iter_sampling=draws, iter_warmup=2000
+                data=data, iter_sampling=draws, warmup=2000
             )
 
         self.fitted = True
         return self
 
-    def predict(self, home_team, away_team, max_goals=15, n_samples=1000):
+    def predict(
+        self, home_team: str, away_team: str, max_goals: int = 15, n_samples: int = 1000
+    ) -> FootballProbabilityGrid:
+        """
+        Predicts the probability of goals scored by a home team and an away team.
+
+        Args:
+            home_team (str): The name of the home team.
+            away_team (str): The name of the away team.
+            max_goals (int, optional): The maximum number of goals to consider, defaults to 15.
+            n_samples (int, optional): The number of samples to use for prediction, defaults to 1000.
+
+        Returns:
+                FootballProbabilityGrid: A FootballProbabilityGrid object containing
+                the predicted probabilities.
+        """
         if not self.fitted:
             raise ValueError("Model must be fit before making predictions")
 
