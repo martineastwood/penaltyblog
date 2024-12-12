@@ -7,7 +7,7 @@ Version Numbering
 `penaltyblog` follows the SemVer versioning guidelines. For more information,
 see `semver.org <http://semver.org/>`_
 
-v1.0.0 (xxxx-xx-xx)
+v1.0.0 (2024-12-12)
 ^^^^^^^^^^^^^^^^^^^^
 - Removed pymc as a dependency
 - Updated all other dependency versions
