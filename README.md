@@ -57,7 +57,7 @@ pb.install_stan()
 
 ## Documentation
 
-To learn how to use `penaltyblog`, you can read the [documentation](https://penaltyblog.readthedocs.io/en/latest/) and look at the
+To learn how to use `penaltyblog`, you can read the [documentation](https://penaltyblog.readthedocs.io/en/stable/) and look at the
 examples for:
 
 - [Scraping football data](https://penaltyblog.readthedocs.io/en/latest/scrapers/index.html)
