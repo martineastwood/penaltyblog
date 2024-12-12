@@ -8,7 +8,7 @@ Version Numbering
 see `semver.org <http://semver.org/>`_
 
 v1.0.0 (xxxx-xx-xx)
-^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^
 - Removed pymc as a dependency
 - Updated all other dependency versions
 - Added support for Python 3.13
@@ -30,11 +30,11 @@ v1.0.0 (xxxx-xx-xx)
 - Added type hinting to `Massey` class
 
 v0.8.1 (2023-09-31)
-^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^
 - Changed fbref `born` column to Int64 dtype to allow NULL values
 
 v0.8.0 (2023-08-31)
-^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^
 - Added initial Backtest framework for backtesting betting stategies
 - Added function to calculate the Kelly Criterion
 - Added class for calculating Elo ratings
