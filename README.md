@@ -1,3 +1,10 @@
+<img src="https://raw.githubusercontent.com/martineastwood/penaltyblog/refs/heads/master/logo.png" width="0" height="0" style="display:none;"/>
+
+<meta property="og:image" content="https://raw.githubusercontent.com/martineastwood/penaltyblog/refs/heads/master/logo.png" />
+<meta property="og:image:alt" content="penaltyblog python package for soccer modeling" />
+<meta name="twitter:image" content="https://raw.githubusercontent.com/martineastwood/penaltyblog/refs/heads/master/logo.png">
+<meta name="twitter:card" content="summary_large_image">
+
 # Penalty Blog
 
 <div align="center">
