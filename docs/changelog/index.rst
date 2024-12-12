@@ -12,14 +12,14 @@ v1.0.0 (2024-12-12)
 - Removed pymc as a dependency
 - Updated all other dependency versions
 - Added support for Python 3.13
-- Rewrote `BayesianHierarchicalGoalModel` model into Stan instead of pymc and updated prediction method to integtate over the posterior rather than just sampling the mid-point
-- Rewrote `BayesianRandomInterceptGoalModel` into Stan instead of pymc, updated model to use a more accurate random intercept, and updated prediction method to integtate over the posterior rather than just sampling the mid-point
-- Rewrote `BayesianBivariateGoalModel` into Stan instead of pymc, improved model so converges better, and updated prediction method to integtate over the posterior rather than just sampling the mid-point
+- Rewrote `BayesianHierarchicalGoalModel` model into Stan instead of pymc and updated prediction method to integrate over the posterior rather than just sampling the mid-point
+- Rewrote `BayesianRandomInterceptGoalModel` into Stan instead of pymc, updated model to use a more accurate random intercept, and updated prediction method to integrate over the posterior rather than just sampling the mid-point
+- Rewrote `BayesianBivariateGoalModel` into Stan instead of pymc, improved model so converges better, and updated prediction method to integrate over the posterior rather than just sampling the mid-point
 - Added `BayesianSkellamGoalModel` model for predicting outcomes of football (soccer) matches based on the Skellam distribution
 - Removed obsolete sofifa and espn scrapers
-- Optimised RPS calculation
-- Optimised ELO code
-- Optimised Kelly Criterion code
+- Optimised `RPS` calculation
+- Optimised `ELO` code
+- Optimised `Kelly Criterion` code
 - Updated `FootballProbabilityGrid` to store its internal matrix as a numpy array
 - Updated all example notebooks
 - Increased unit test coverage
