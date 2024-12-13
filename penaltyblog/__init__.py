@@ -1,3 +1,5 @@
+import platform
+
 from . import backtest, fpl, implied, kelly, metrics, models, ratings, scrapers
 from .version import __version__
 
@@ -8,4 +10,7 @@ def install_stan():
     """
     import cmdstanpy
 
-    cmdstanpy.install_cmdstan()
+    if platform.system() == "Windows":
+        cmdstanpy.install_cmdstan(compiler=True)
+    else:
+        cmdstanpy.install_cmdstan()

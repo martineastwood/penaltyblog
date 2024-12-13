@@ -7,6 +7,10 @@ Version Numbering
 `penaltyblog` follows the SemVer versioning guidelines. For more information,
 see `semver.org <http://semver.org/>`_
 
+v1.0.1 (2024-12-13)
+^^^^^^^^^^^^^^^^^^^^
+- updated `install_stan` to install the C++ toolchain on Windows if required
+
 v1.0.0 (2024-12-12)
 ^^^^^^^^^^^^^^^^^^^^
 - Removed pymc as a dependency
