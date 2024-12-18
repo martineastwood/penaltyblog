@@ -5,10 +5,10 @@ test:
 	coverage report -m
 
 test_subset:
-	pytest -v test/test_kelly_criterion.py
+	pytest -v test/test_model_bayesian_bivariate.py
 
 coverage:
-	coverage run -m -F pytest
+	coverage run -m pytest
 	coverage report -m
 
 precommit:

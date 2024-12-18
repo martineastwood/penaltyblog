@@ -10,7 +10,4 @@ def install_stan():
     """
     import cmdstanpy
 
-    if platform.system() == "Windows":
-        cmdstanpy.install_cmdstan(compiler=True)
-    else:
-        cmdstanpy.install_cmdstan()
+    cmdstanpy.install_cmdstan(compiler=True)

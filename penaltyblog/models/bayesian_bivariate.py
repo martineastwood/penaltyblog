@@ -1,16 +1,13 @@
-import tempfile
-from typing import Dict, Sequence, Union
+from typing import Dict
 
-import cmdstanpy
 import numpy as np
-import pandas as pd
-from numpy.typing import NDArray
 from scipy.stats import poisson
 
+from .base_bayesian_model import BaseBayesianGoalModel
 from .football_probability_grid import FootballProbabilityGrid
 
 
-class BayesianBivariateGoalModel:
+class BayesianBivariateGoalModel(BaseBayesianGoalModel):
     """Bayesian Bivariate Poisson Model for Predicting Soccer Matches"""
 
     STAN_MODEL = """
@@ -55,66 +52,6 @@ class BayesianBivariateGoalModel:
         }
     }
     """
-
-    def __init__(
-        self,
-        goals_home: Union[Sequence[int], NDArray],
-        goals_away: Union[Sequence[int], NDArray],
-        teams_home: Union[Sequence[int], NDArray],
-        teams_away: Union[Sequence[int], NDArray],
-        weights: Union[float, Sequence[float], NDArray] = 1.0,
-    ):
-        """
-        Initializes the BayesianBivariateGoalModel instance with the provided match data.
-
-        Args:
-            goals_home (array-like): List of home team goals scored in each match.
-            goals_away (array-like): List of away team goals scored in each match.
-            teams_home (array-like): List of home team names for each match.
-            teams_away (array-like): List of away team names for each match.
-            weights (array-like, optional): List of match weights, defaults to 1 for each match.
-
-        The provided data is used to create a pandas DataFrame `self.fixtures` containing the match information. The `_setup_teams()` method is called to set up the team indices. The `model`, `fit_result`, and `fitted` attributes are initialized to `None` and `False` respectively.
-        """
-        self.fixtures = pd.DataFrame(
-            {
-                "goals_home": goals_home,
-                "goals_away": goals_away,
-                "team_home": teams_home,
-                "team_away": teams_away,
-                "weights": weights,
-            }
-        )
-        self._setup_teams()
-        self.model = None
-        self.fit_result = None
-        self.fitted = False
-
-    def _setup_teams(self):
-        unique_teams = pd.DataFrame(
-            {
-                "team": pd.concat(
-                    [self.fixtures["team_home"], self.fixtures["team_away"]]
-                ).unique()
-            }
-        )
-        unique_teams = (
-            unique_teams.sort_values("team")
-            .reset_index(drop=True)
-            .assign(team_index=lambda x: np.arange(len(x)) + 1)
-        )
-
-        self.n_teams = len(self.fixtures["team_home"].unique())
-
-        self.teams = unique_teams
-        self.fixtures = (
-            self.fixtures.merge(unique_teams, left_on="team_home", right_on="team")
-            .rename(columns={"team_index": "home_index"})
-            .drop("team", axis=1)
-            .merge(unique_teams, left_on="team_away", right_on="team")
-            .rename(columns={"team_index": "away_index"})
-            .drop("team", axis=1)
-        )
 
     def _get_model_parameters(self):
         draws = self.fit_result.draws_pd()
@@ -178,15 +115,7 @@ class BayesianBivariateGoalModel:
             "weights": self.fixtures["weights"].values,
         }
 
-        with tempfile.NamedTemporaryFile(mode="w", suffix=".stan") as tmp:
-            tmp.write(self.STAN_MODEL)
-            tmp.flush()
-            self.model = cmdstanpy.CmdStanModel(stan_file=tmp.name)
-            self.fit_result = self.model.sample(
-                data=data, iter_sampling=draws, iter_warmup=warmup
-            )
-
-        self.fitted = True
+        self._compile_and_fit_stan_model(self.STAN_MODEL, data, draws, warmup)
         return self
 
     def get_params(self) -> Dict:

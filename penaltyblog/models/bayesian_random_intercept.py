@@ -1,16 +1,13 @@
-import tempfile
-from typing import Dict, Sequence, Union
+from typing import Dict
 
-import cmdstanpy
 import numpy as np
-import pandas as pd
-from numpy.typing import NDArray
 from scipy.stats import poisson
 
+from .base_bayesian_model import BaseBayesianGoalModel
 from .football_probability_grid import FootballProbabilityGrid
 
 
-class BayesianRandomInterceptGoalModel:
+class BayesianRandomInterceptGoalModel(BaseBayesianGoalModel):
     """Bayesian Hierarchical model for predicting football match outcomes"""
 
     STAN_MODEL = """
@@ -74,47 +71,6 @@ class BayesianRandomInterceptGoalModel:
         }
     }
     """
-
-    def __init__(
-        self,
-        goals_home: Union[Sequence[int], NDArray],
-        goals_away: Union[Sequence[int], NDArray],
-        teams_home: Union[Sequence[int], NDArray],
-        teams_away: Union[Sequence[int], NDArray],
-        weights: Union[float, Sequence[float], NDArray] = 1.0,
-    ):
-        self.fixtures = pd.DataFrame(
-            {
-                "goals_home": goals_home,
-                "goals_away": goals_away,
-                "team_home": teams_home,
-                "team_away": teams_away,
-                "weights": weights,
-            }
-        )
-        self._setup_teams()
-        self.model = None
-        self.fit_result = None
-        self.fitted = False
-
-    def _setup_teams(self):
-        self.teams = (
-            pd.DataFrame({"team": self.fixtures["team_home"].unique()})
-            .sort_values("team")
-            .reset_index(drop=True)
-            .assign(team_index=lambda x: np.arange(len(x)) + 1)
-        )
-
-        self.n_teams = len(self.fixtures["team_home"].unique())
-
-        self.fixtures = (
-            self.fixtures.merge(self.teams, left_on="team_home", right_on="team")
-            .rename(columns={"team_index": "home_index"})
-            .drop("team", axis=1)
-            .merge(self.teams, left_on="team_away", right_on="team")
-            .rename(columns={"team_index": "away_index"})
-            .drop("team", axis=1)
-        )
 
     def _get_model_parameters(self):
         draws = self.fit_result.draws_pd()
@@ -209,15 +165,8 @@ class BayesianRandomInterceptGoalModel:
             "weights": self.fixtures["weights"].values,
         }
 
-        with tempfile.NamedTemporaryFile(mode="w", suffix=".stan") as tmp:
-            tmp.write(self.STAN_MODEL)
-            tmp.flush()
-            self.model = cmdstanpy.CmdStanModel(stan_file=tmp.name)
-            self.fit_result = self.model.sample(
-                data=data, iter_sampling=draws, iter_warmup=warmup
-            )
+        self._compile_and_fit_stan_model(self.STAN_MODEL, data, draws, warmup)
 
-        self.fitted = True
         return self
 
     def predict(

@@ -2,10 +2,14 @@ Changelog
 ===========
 
 Version Numbering
-#################
+###################
 
 `penaltyblog` follows the SemVer versioning guidelines. For more information,
 see `semver.org <http://semver.org/>`_
+
+v1.0.2 (2024-12-18)
+^^^^^^^^^^^^^^^^^^^^
+- updated how the Bayesian models handle the Stan files to prevent access denied issues on Windows
 
 v1.0.1 (2024-12-13)
 ^^^^^^^^^^^^^^^^^^^^
