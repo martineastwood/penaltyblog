@@ -9,16 +9,16 @@ see `semver.org <http://semver.org/>`_
 
 v1.0.3 (2024-12-19)
 ^^^^^^^^^^^^^^^^^^^^
-- fixed bug in how the Bayesian models indexed teams in the predict function
-- all goals model now only predict individual team names rather than iterables of team names as was causing compatibility issues between different sequence objects.
+- Fixed bug in how the Bayesian models indexed teams in the predict function
+- Goals model now only predict individual team names rather than iterables of team names as was causing compatibility issues between different sequence objects.
 
 v1.0.2 (2024-12-18)
 ^^^^^^^^^^^^^^^^^^^^
-- updated how the Bayesian models handle the Stan files to prevent access denied issues on Windows
+- Updated how the Bayesian models handle the Stan files to prevent access denied issues on Windows
 
 v1.0.1 (2024-12-13)
 ^^^^^^^^^^^^^^^^^^^^
-- updated `install_stan` to install the C++ toolchain on Windows if required
+- Updated `install_stan` to install the C++ toolchain on Windows if required
 
 v1.0.0 (2024-12-12)
 ^^^^^^^^^^^^^^^^^^^^
