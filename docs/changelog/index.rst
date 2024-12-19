@@ -7,6 +7,11 @@ Version Numbering
 `penaltyblog` follows the SemVer versioning guidelines. For more information,
 see `semver.org <http://semver.org/>`_
 
+v1.0.3 (2024-12-19)
+^^^^^^^^^^^^^^^^^^^^
+- fixed bug in how the Bayesian models indexed teams in the predict function
+- all goals model now only predict individual team names rather than iterables of team names as was causing compatibility issues between different sequence objects.
+
 v1.0.2 (2024-12-18)
 ^^^^^^^^^^^^^^^^^^^^
 - updated how the Bayesian models handle the Stan files to prevent access denied issues on Windows
