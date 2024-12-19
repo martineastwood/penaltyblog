@@ -100,3 +100,6 @@ class BaseBayesianGoalModel:
         raise NotImplementedError(
             "The '__repr__' method must be implemented in subclasses."
         )
+
+    def _get_team_index(self, team_name):
+        return self.teams.loc[self.teams["team"] == team_name, "team_index"].iloc[0]

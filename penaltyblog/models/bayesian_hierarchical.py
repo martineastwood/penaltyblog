@@ -177,18 +177,23 @@ class BayesianHierarchicalGoalModel(BaseBayesianGoalModel):
         away_idx = self._get_team_index(away_team)
         samples = draws.sample(n=n_samples, replace=True)
 
-        lambda_home = np.exp(
-            samples["intercept"]
-            + samples[f"atts[{home_idx}]"]
-            + samples[f"defs[{away_idx}]"]
-            + samples["home"]
-        )
+        try:
+            lambda_home = np.exp(
+                samples["intercept"]
+                + samples[f"atts[{home_idx}]"]
+                + samples[f"defs[{away_idx}]"]
+                + samples["home"]
+            )
 
-        lambda_away = np.exp(
-            samples["intercept"]
-            + samples[f"atts[{away_idx}]"]
-            + samples[f"defs[{home_idx}]"]
-        )
+            lambda_away = np.exp(
+                samples["intercept"]
+                + samples[f"atts[{away_idx}]"]
+                + samples[f"defs[{home_idx}]"]
+            )
+        except:
+            import pdb
+
+            pdb.set_trace()
 
         home_probs = poisson.pmf(np.arange(max_goals + 1)[:, None], lambda_home.values)
         away_probs = poisson.pmf(
@@ -201,6 +206,3 @@ class BayesianHierarchicalGoalModel(BaseBayesianGoalModel):
         away_expectancy = np.sum(score_probs.sum(axis=0) * np.arange(max_goals + 1))
 
         return FootballProbabilityGrid(score_probs, home_expectancy, away_expectancy)
-
-    def _get_team_index(self, team_name):
-        return self.teams.loc[self.teams["team"] == team_name, "team_index"].iloc[0] - 1

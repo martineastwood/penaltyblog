@@ -5,7 +5,7 @@ test:
 	coverage report -m
 
 test_subset:
-	pytest -v test/test_model_bayesian_bivariate.py
+	pytest -v test/test_model_dixon_coles.py
 
 coverage:
 	coverage run -m pytest

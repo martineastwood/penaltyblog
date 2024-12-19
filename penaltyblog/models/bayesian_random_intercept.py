@@ -219,6 +219,3 @@ class BayesianRandomInterceptGoalModel(BaseBayesianGoalModel):
         away_expectancy = np.sum(score_probs.sum(axis=0) * np.arange(max_goals + 1))
 
         return FootballProbabilityGrid(score_probs, home_expectancy, away_expectancy)
-
-    def _get_team_index(self, team_name):
-        return self.teams.loc[self.teams["team"] == team_name, "team_index"].iloc[0] - 1

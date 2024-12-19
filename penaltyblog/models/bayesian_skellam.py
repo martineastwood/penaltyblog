@@ -182,9 +182,3 @@ class BayesianSkellamGoalModel(BaseBayesianGoalModel):
         away_expectancy = np.sum(score_probs.sum(axis=0) * np.arange(max_goals + 1))
 
         return FootballProbabilityGrid(score_probs, home_expectancy, away_expectancy)
-
-    def _get_team_index(self, team_name):
-        idx = self.teams.loc[self.teams["team"] == team_name, "team_index"]
-        if idx.empty:
-            raise ValueError(f"Team {team_name} not found.")
-        return idx.iloc[0] - 1

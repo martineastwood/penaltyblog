@@ -28,7 +28,7 @@ def test_model():
     assert 0.0 < probs.total_goals("over", 1.5) < 1.0
     assert 0.0 < probs.asian_handicap("home", 1.5) < 1.0
     assert 0.0 < probs.both_teams_to_score < 1.0
-    assert clf._get_team_index("Arsenal") == 0
+    assert clf._get_team_index("Arsenal") == 1
 
 
 def test_unfitted_raises_error():
