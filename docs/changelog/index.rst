@@ -7,6 +7,10 @@ Version Numbering
 `penaltyblog` follows the SemVer versioning guidelines. For more information,
 see `semver.org <http://semver.org/>`_
 
+v1.0.4 (2025-01-10)
+^^^^^^^^^^^^^^^^^^^^
+- Moved stan code to separate files to prevent access denied issues on Windows
+
 v1.0.3 (2024-12-19)
 ^^^^^^^^^^^^^^^^^^^^
 - Fixed bug in how the Bayesian models indexed teams in the predict function
