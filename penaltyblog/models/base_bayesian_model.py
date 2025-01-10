@@ -59,7 +59,7 @@ class BaseBayesianGoalModel:
         )
 
     def _compile_and_fit_stan_model(
-        self, stan_model: str, data: Dict, draws: int, warmup: int
+        self, stan_file: str, data: Dict, draws: int, warmup: int
     ) -> cmdstanpy.CmdStanMCMC:
         """
         Compiles and fits the Stan model.
@@ -73,18 +73,10 @@ class BaseBayesianGoalModel:
         Returns:
             cmdstanpy.CmdStanMCMC: The fit result object.
         """
-        fd, path = tempfile.mkstemp(suffix=".stan", text=True)
-        try:
-            with os.fdopen(fd, "w") as tmp:
-                tmp.write(stan_model)
-
-            self.model = cmdstanpy.CmdStanModel(stan_file=path)
-            self.fit_result = self.model.sample(
-                data=data, iter_sampling=draws, iter_warmup=warmup
-            )
-
-        finally:
-            os.remove(path)
+        self.model = cmdstanpy.CmdStanModel(stan_file=stan_file)
+        self.fit_result = self.model.sample(
+            data=data, iter_sampling=draws, iter_warmup=warmup
+        )
         self.fitted = True
         return self.fit_result
 

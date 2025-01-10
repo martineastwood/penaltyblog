@@ -1,6 +1,8 @@
+import os
 from typing import Dict
 
 import numpy as np
+from numpy.typing import NDArray
 from scipy.stats import poisson
 
 from .base_bayesian_model import BaseBayesianGoalModel
@@ -10,48 +12,11 @@ from .football_probability_grid import FootballProbabilityGrid
 class BayesianBivariateGoalModel(BaseBayesianGoalModel):
     """Bayesian Bivariate Poisson Model for Predicting Soccer Matches"""
 
-    STAN_MODEL = """
-    data {
-        int<lower=0> N;                 // Number of matches
-        int<lower=1> n_teams;           // Number of teams
-        array[N] int goals_home;         // home goals scored
-        array[N] int goals_away;         // away goals scored
-        array[N] int<lower=1,upper=n_teams> home_team;  // home team indices
-        array[N] int<lower=1,upper=n_teams> away_team;  // away team indices
-        vector[N] weights;               // match weights
-    }
-
-    parameters {
-        real home;
-        vector[n_teams] attack;
-        vector[n_teams] defence;
-        real<lower=0,upper=1> rho;
-    }
-
-    transformed parameters {
-        vector[N] lambda_home;
-        vector[N] lambda_away;
-
-        for (i in 1:N) {
-            lambda_home[i] = exp(home + attack[home_team[i]] - defence[away_team[i]]);
-            lambda_away[i] = exp(attack[away_team[i]] - defence[home_team[i]]);
-        }
-    }
-
-    model {
-        // Priors
-        home ~ normal(0, 1);
-        attack ~ normal(0, 1);
-        defence ~ normal(0, 1);
-        rho ~ beta(2, 2);
-
-        // Likelihood
-        for (i in 1:N) {
-            target += weights[i] * (poisson_log_lpmf(goals_home[i] | log(lambda_home[i])) +
-                      poisson_log_lpmf(goals_away[i] | log(lambda_away[i])));
-        }
-    }
-    """
+    STAN_FILE = os.path.join(
+        os.path.dirname(__file__),
+        "stan_files",
+        "bayesian_bivariate_goal_model.stan",
+    )
 
     def _get_model_parameters(self):
         draws = self.fit_result.draws_pd()
@@ -115,7 +80,7 @@ class BayesianBivariateGoalModel(BaseBayesianGoalModel):
             "weights": self.fixtures["weights"].values,
         }
 
-        self._compile_and_fit_stan_model(self.STAN_MODEL, data, draws, warmup)
+        self._compile_and_fit_stan_model(self.STAN_FILE, data, draws, warmup)
         return self
 
     def get_params(self) -> Dict:
