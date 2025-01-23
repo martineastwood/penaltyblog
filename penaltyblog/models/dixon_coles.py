@@ -118,12 +118,10 @@ class DixonColesGoalModel:
         return self.__repr__()
 
     @staticmethod
-    def _fit(params, fixtures, teams):
+    def _fit(params, fixtures, teams, n_teams):
         """
         Internal method, not to called directly by the user
         """
-        n_teams = len(teams)
-
         # Extract parameter values
         attack_params = params[:n_teams]
         defence_params = params[n_teams : n_teams * 2]
@@ -196,7 +194,7 @@ class DixonColesGoalModel:
             self._res = minimize(
                 self._fit,
                 self._params,
-                args=(processed_fixtures, self.teams),
+                args=(processed_fixtures, self.teams, self.n_teams),
                 constraints=constraints,
                 bounds=bounds,
                 options=options,

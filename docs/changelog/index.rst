@@ -7,6 +7,10 @@ Version Numbering
 `penaltyblog` follows the SemVer versioning guidelines. For more information,
 see `semver.org <http://semver.org/>`_
 
+v1.0.5 ()
+^^^^^^^^^^^^^^^^^^^^
+- Refactored Dixon and Coles loss function to be ~15x faster
+
 v1.0.4 (2025-01-10)
 ^^^^^^^^^^^^^^^^^^^^
 - Moved stan code to separate files to prevent access denied issues on Windows
