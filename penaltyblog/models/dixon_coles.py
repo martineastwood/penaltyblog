@@ -124,33 +124,34 @@ class DixonColesGoalModel:
         """
         n_teams = len(teams)
 
-        params_df = (
-            pd.DataFrame(params[:n_teams], columns=["attack"])
-            .assign(defence=params[n_teams : n_teams * 2])
-            .assign(team=teams)
-        )
+        # Extract parameter values
+        attack_params = params[:n_teams]
+        defence_params = params[n_teams : n_teams * 2]
+        hfa = params[-2]
+        rho = params[-1]
 
-        df2 = (
-            fixtures.merge(params_df, left_on="team_home", right_on="team")
-            .rename(columns={"attack": "home_attack", "defence": "home_defence"})
-            .drop("team", axis=1)
-            .merge(params_df, left_on="team_away", right_on="team")
-            .rename(columns={"attack": "away_attack", "defence": "away_defence"})
-            .assign(hfa=params[-2])
-            .assign(rho=params[-1])
-        )
+        # Extract preprocessed fixture data
+        home_idx = fixtures["home_idx"]
+        away_idx = fixtures["away_idx"]
+        goals_home = fixtures["goals_home"]
+        goals_away = fixtures["goals_away"]
+        weights = fixtures["weights"]
 
-        df2["home_exp"] = np.exp(df2["hfa"] + df2["home_attack"] + df2["away_defence"])
-        df2["away_exp"] = np.exp(df2["away_attack"] + df2["home_defence"])
-        df2["home_llk"] = poisson.logpmf(df2["goals_home"], df2["home_exp"])
-        df2["away_llk"] = poisson.logpmf(df2["goals_away"], df2["away_exp"])
-        df2["dc_adj"] = rho_correction_vec(df2)
+        # Compute expected goals
+        home_exp = np.exp(hfa + attack_params[home_idx] + defence_params[away_idx])
+        away_exp = np.exp(attack_params[away_idx] + defence_params[home_idx])
 
-        df2["llk"] = (df2["home_llk"] + df2["away_llk"] + np.log(df2["dc_adj"])) * df2[
-            "weights"
-        ]
+        # Vectorized Poisson log-likelihood calculations
+        home_llk = poisson.logpmf(goals_home, home_exp)
+        away_llk = poisson.logpmf(goals_away, away_exp)
 
-        return -df2["llk"].sum()
+        # Apply rho correction
+        dc_adj = rho_correction_vec_np(goals_home, goals_away, home_exp, away_exp, rho)
+
+        # Calculate final log-likelihood
+        llk = (home_llk + away_llk + np.log(dc_adj)) * weights
+
+        return -np.sum(llk)
 
     def fit(self):
         """
@@ -169,17 +170,33 @@ class DixonColesGoalModel:
             }
         ]
 
-        bounds = [(-3, 3)] * self.n_teams
-        bounds += [(-3, 3)] * self.n_teams
-        bounds += [(0, 2)]
-        bounds += [(-2, 2)]
+        bounds = [(-3, 3)] * self.n_teams * 2 + [(0, 2), (-2, 2)]
+
+        # Pre-process fixtures to avoid redundant computation
+        team_to_idx = {team: idx for idx, team in enumerate(self.teams)}
+        self.fixtures["team_home_idx"] = (
+            self.fixtures["team_home"].map(team_to_idx).astype(np.int32)
+        )
+        self.fixtures["team_away_idx"] = (
+            self.fixtures["team_away"].map(team_to_idx).astype(np.int32)
+        )
+        self.fixtures["weights"] = self.fixtures["weights"].astype(np.float64)
+
+        # Convert necessary columns to NumPy arrays for better performance
+        processed_fixtures = {
+            "home_idx": self.fixtures["team_home_idx"].values,
+            "away_idx": self.fixtures["team_away_idx"].values,
+            "goals_home": self.fixtures["goals_home"].values,
+            "goals_away": self.fixtures["goals_away"].values,
+            "weights": self.fixtures["weights"].values,
+        }
 
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             self._res = minimize(
                 self._fit,
                 self._params,
-                args=(self.fixtures, self.teams),
+                args=(processed_fixtures, self.teams),
                 constraints=constraints,
                 bounds=bounds,
                 options=options,
@@ -294,3 +311,22 @@ class DixonColesGoalModel:
             )
         )
         return params
+
+
+def rho_correction_vec_np(goals_home, goals_away, home_exp, away_exp, rho):
+    """
+    Vectorized implementation of the Dixon-Coles adjustment.
+    """
+    return np.where(
+        (goals_home == 0) & (goals_away == 0),
+        1 - rho,
+        np.where(
+            (goals_home == 0) & (goals_away == 1),
+            1 + rho,
+            np.where(
+                (goals_home == 1) & (goals_away == 0),
+                1 + rho,
+                np.where((goals_home == 1) & (goals_away == 1), 1 - rho, 1),
+            ),
+        ),
+    )
