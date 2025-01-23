@@ -1,9 +1,11 @@
 import collections
 import collections.abc
 import warnings
+from typing import Dict
 
 import numpy as np
 import pandas as pd
+from numpy.typing import NDArray
 from scipy.optimize import minimize
 from scipy.stats import poisson
 
@@ -118,26 +120,28 @@ class DixonColesGoalModel:
         return self.__repr__()
 
     @staticmethod
-    def _fit(params, fixtures, teams, n_teams):
+    def _fit(params: NDArray, fixtures: Dict, n_teams: int):
         """
         Internal method, not to called directly by the user
         """
         # Extract parameter values
         attack_params = params[:n_teams]
         defence_params = params[n_teams : n_teams * 2]
-        hfa = params[-2]
-        rho = params[-1]
+        hfa, rho = params[-2:]
 
         # Extract preprocessed fixture data
-        home_idx = fixtures["home_idx"]
-        away_idx = fixtures["away_idx"]
         goals_home = fixtures["goals_home"]
         goals_away = fixtures["goals_away"]
-        weights = fixtures["weights"]
 
         # Compute expected goals
-        home_exp = np.exp(hfa + attack_params[home_idx] + defence_params[away_idx])
-        away_exp = np.exp(attack_params[away_idx] + defence_params[home_idx])
+        home_exp = np.exp(
+            hfa
+            + attack_params[fixtures["home_idx"]]
+            + defence_params[fixtures["away_idx"]]
+        )
+        away_exp = np.exp(
+            attack_params[fixtures["away_idx"]] + defence_params[fixtures["home_idx"]]
+        )
 
         # Vectorized Poisson log-likelihood calculations
         home_llk = poisson.logpmf(goals_home, home_exp)
@@ -147,7 +151,7 @@ class DixonColesGoalModel:
         dc_adj = rho_correction_vec_np(goals_home, goals_away, home_exp, away_exp, rho)
 
         # Calculate final log-likelihood
-        llk = (home_llk + away_llk + np.log(dc_adj)) * weights
+        llk = (home_llk + away_llk + np.log(dc_adj)) * fixtures["weights"]
 
         return -np.sum(llk)
 
@@ -194,7 +198,7 @@ class DixonColesGoalModel:
             self._res = minimize(
                 self._fit,
                 self._params,
-                args=(processed_fixtures, self.teams, self.n_teams),
+                args=(processed_fixtures, self.n_teams),
                 constraints=constraints,
                 bounds=bounds,
                 options=options,
