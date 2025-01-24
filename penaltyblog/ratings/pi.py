@@ -1,9 +1,14 @@
-import numpy as np
 from scipy.stats import norm
 
 
 class PiRatingSystem:
-    def __init__(self, alpha=0.15, beta=0.10, k=0.75, sigma=1.0):
+    def __init__(
+        self,
+        alpha: float = 0.15,
+        beta: float = 0.10,
+        k: float = 0.75,
+        sigma: float = 1.0,
+    ):
         """
         Initialize the Pi-Rating system parameters based on
         http://www.constantinou.info/downloads/papers/pi-ratings.pdf
@@ -19,23 +24,26 @@ class PiRatingSystem:
         self.k = k
         self.sigma = sigma
         self.team_ratings = {}
+        self.rating_history = []
 
-    def initialize_team(self, team):
+    def initialize_team(self, team: str):
         """Initialize a team with a home and away rating of 0 if not already present."""
         if team not in self.team_ratings:
             self.team_ratings[team] = {"home": 0.0, "away": 0.0}
 
-    def expected_goal_difference(self, home_team, away_team):
+    def expected_goal_difference(self, home_team: str, away_team: str) -> float:
         """Calculate the expected goal difference based on current ratings."""
         home_rating = self.team_ratings[home_team]["home"]
         away_rating = self.team_ratings[away_team]["away"]
         return home_rating - away_rating
 
-    def diminishing_error(self, error):
+    def diminishing_error(self, error: float) -> float:
         """Apply diminishing returns to large score discrepancies."""
         return error / (1 + self.k * abs(error))
 
-    def update_ratings(self, home_team, away_team, observed_goal_difference):
+    def update_ratings(
+        self, home_team: str, away_team: str, observed_goal_difference: int, date=None
+    ):
         """
         Update pi-ratings based on the observed goal difference.
 
@@ -43,6 +51,7 @@ class PiRatingSystem:
         - home_team (str): Name of the home team.
         - away_team (str): Name of the away team.
         - observed_goal_difference (int): Actual goal difference (home - away).
+        - date (datetime): Date of the match (optional).
         """
         self.initialize_team(home_team)
         self.initialize_team(away_team)
@@ -60,7 +69,25 @@ class PiRatingSystem:
         self.team_ratings[away_team]["home"] -= self.beta * adjusted_error
         self.team_ratings[away_team]["away"] -= self.alpha * adjusted_error
 
-    def get_team_rating(self, team):
+        if date is not None:
+            self.rating_history.append(
+                {
+                    "week": date,
+                    "team": home_team,
+                    "home_rating": self.team_ratings[home_team]["home"],
+                    "away_rating": self.team_ratings[home_team]["away"],
+                }
+            )
+            self.rating_history.append(
+                {
+                    "week": date,
+                    "team": away_team,
+                    "home_rating": self.team_ratings[away_team]["home"],
+                    "away_rating": self.team_ratings[away_team]["away"],
+                }
+            )
+
+    def get_team_rating(self, team: str) -> float:
         """Return the average rating of a team (home and away)."""
         if team in self.team_ratings:
             return (
@@ -68,7 +95,7 @@ class PiRatingSystem:
             ) / 2
         return 0.0
 
-    def calculate_match_probabilities(self, home_team, away_team):
+    def calculate_match_probabilities(self, home_team: str, away_team: str) -> dict:
         """
         Calculate the probabilities of a home win, draw, and away win.
         """

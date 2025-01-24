@@ -10,6 +10,7 @@ see `semver.org <http://semver.org/>`_
 v1.0.5 ()
 ^^^^^^^^^^^^^^^^^^^^
 - Refactored Dixon and Coles loss function to be ~15x faster
+- Added Pi Ratings System based on http://www.constantinou.info/downloads/papers/pi-ratings.pdf
 
 v1.0.4 (2025-01-10)
 ^^^^^^^^^^^^^^^^^^^^
