@@ -3,6 +3,8 @@ import pandas as pd
 from scipy.optimize import minimize
 from scipy.stats import poisson
 
+from .football_probability_grid import FootballProbabilityGrid
+
 
 class BivariatePoissonGoalModel:
     """
@@ -112,3 +114,44 @@ class BivariatePoissonGoalModel:
         self._params = result.x
         self.fitted = True
         self.aic = 2 * len(self._params) + 2 * result.fun
+
+    def predict(self, home_team, away_team, max_goals=10):
+        if not self.fitted:
+            raise ValueError("Model has not been fitted yet.")
+
+        home_idx = np.where(self.teams == home_team)[0][0]
+        away_idx = np.where(self.teams == away_team)[0][0]
+
+        home_attack = self._params[home_idx]
+        away_attack = self._params[away_idx]
+        home_defence = self._params[home_idx + self.n_teams]
+        away_defence = self._params[away_idx + self.n_teams]
+        home_adv = self._params[-2]
+        lambda_c = self._params[-1]
+
+        lambda_home = np.exp(home_adv + home_attack + away_defence)
+        lambda_away = np.exp(away_attack + home_defence)
+
+        home_goals = np.arange(max_goals)
+        away_goals = np.arange(max_goals)
+        home_pmf = poisson.pmf(home_goals[:, None], lambda_home)
+        away_pmf = poisson.pmf(away_goals, lambda_away)
+        m = np.dot(home_pmf, away_pmf.T)
+
+        return FootballProbabilityGrid(m, home_goals, away_goals)
+
+    def get_params(self):
+        if not self.fitted:
+            raise ValueError(
+                "Model's parameters have not been fit yet, please call the `fit()` function first"
+            )
+
+        params = dict(
+            zip(
+                ["attack_" + team for team in self.teams]
+                + ["defence_" + team for team in self.teams]
+                + ["home_advantage", "lambda_c"],
+                self._params,
+            )
+        )
+        return params

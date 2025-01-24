@@ -1,4 +1,3 @@
-import collections
 import collections.abc
 import warnings
 from typing import Dict
