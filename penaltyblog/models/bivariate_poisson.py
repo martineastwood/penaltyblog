@@ -29,11 +29,13 @@ class BivariatePoissonGoalModel:
 
         self._res = None
         self.fitted = False
+        self.aic = None
 
     def __repr__(self):
         repr_str = "Bivariate Poisson Goal Model\n"
         repr_str += "Fitted: {}\n".format(self.fitted)
         if self.fitted:
+            repr_str += "AIC: {:.3f}\n".format(self.aic)
             repr_str += "Parameters:\n"
             for i, team in enumerate(self.teams):
                 repr_str += f"{team}: Attack {self._params[i]:.3f}, Defence {self._params[i + self.n_teams]:.3f}\n"
@@ -43,95 +45,70 @@ class BivariatePoissonGoalModel:
             repr_str += "Model has not been fitted yet.\n"
         return repr_str
 
-    def _log_likelihood(self, params, fixtures, n_teams):
+    def _log_likelihood(self, params, data, n_teams):
         attack_params = params[:n_teams]
         defence_params = params[n_teams : n_teams * 2]
         home_adv, lambda_c = params[-2:]
 
-        home_idx = fixtures["home_idx"]
-        away_idx = fixtures["away_idx"]
-        goals_home = fixtures["goals_home"]
-        goals_away = fixtures["goals_away"]
+        home_idx = data["home_idx"]
+        away_idx = data["away_idx"]
+        goals_home = data["goals_home"]
+        goals_away = data["goals_away"]
 
         lambda_home = np.exp(
-            home_adv + attack_params[home_idx] + defence_params[away_idx]
-        )
-        lambda_away = np.exp(attack_params[away_idx] + defence_params[home_idx])
-
-        # Bivariate Poisson log-likelihood
-        joint_ll = (
-            np.log(
-                sum(
-                    poisson.pmf(goals_home - k, lambda_home)
-                    * poisson.pmf(goals_away - k, lambda_away)
-                    * poisson.pmf(k, lambda_c)
-                    for k in range(0, min(goals_home, goals_away) + 1)
-                )
+            np.clip(
+                home_adv + attack_params[home_idx] + defence_params[away_idx], -10, 10
             )
-            * fixtures["weights"]
         )
+        lambda_away = np.exp(
+            np.clip(attack_params[away_idx] + defence_params[home_idx], -10, 10)
+        )
+        lambda_c = np.clip(lambda_c, 1e-5, None)
 
-        return -np.sum(joint_ll)
+        # Vectorized computation
+        max_goals = max(goals_home.max(), goals_away.max()) + 1
+        k_range = np.arange(max_goals)
+
+        home_pmf = poisson.pmf(goals_home[:, None] - k_range, lambda_home[:, None])
+        away_pmf = poisson.pmf(goals_away[:, None] - k_range, lambda_away[:, None])
+        k_pmf = poisson.pmf(k_range, lambda_c)
+
+        likelihood_matrix = home_pmf * away_pmf * k_pmf
+        likelihoods = np.sum(likelihood_matrix, axis=1)
+
+        # Avoid zero values
+        likelihoods = np.clip(likelihoods, 1e-10, None)
+
+        if np.any(np.isnan(likelihoods)) or np.any(np.isinf(likelihoods)):
+            return np.inf
+
+        return -np.sum(np.log(likelihoods) * data["weights"])
 
     def fit(self):
         team_to_idx = {team: idx for idx, team in enumerate(self.teams)}
-        self.fixtures["home_idx"] = self.fixtures["team_home"].map(team_to_idx)
-        self.fixtures["away_idx"] = self.fixtures["team_away"].map(team_to_idx)
+        processed_fixtures = {
+            "home_idx": self.fixtures["team_home"].map(team_to_idx).values,
+            "away_idx": self.fixtures["team_away"].map(team_to_idx).values,
+            "goals_home": self.fixtures["goals_home"].values,
+            "goals_away": self.fixtures["goals_away"].values,
+            "weights": self.fixtures["weights"].values,
+        }
 
-        options = {"maxiter": 100, "disp": False}
-        bounds = [(-3, 3)] * self.n_teams * 2 + [(0, 2), (0, 2)]
+        options = {"maxiter": 500, "disp": True}
+        bounds = [(-2, 2)] * self.n_teams * 2 + [(0, 1), (0, 1)]  # Tighter bounds
 
         result = minimize(
             self._log_likelihood,
             self._params,
-            args=(self.fixtures, self.n_teams),
+            args=(processed_fixtures, self.n_teams),
             bounds=bounds,
+            method="L-BFGS-B",  # Better suited for bound-constrained optimization
             options=options,
         )
 
+        if not result.success:
+            print("Optimization did not converge:", result.message)
+
         self._params = result.x
         self.fitted = True
-
-    def predict(self, home_team, away_team, max_goals=10):
-        if not self.fitted:
-            raise ValueError("Model has not been fitted yet.")
-
-        home_idx = np.where(self.teams == home_team)[0][0]
-        away_idx = np.where(self.teams == away_team)[0][0]
-
-        home_attack = self._params[home_idx]
-        away_attack = self._params[away_idx]
-        home_defence = self._params[home_idx + self.n_teams]
-        away_defence = self._params[away_idx + self.n_teams]
-        home_adv = self._params[-2]
-        lambda_c = self._params[-1]
-
-        lambda_home = np.exp(home_adv + home_attack + away_defence)
-        lambda_away = np.exp(away_attack + home_defence)
-
-        score_matrix = np.zeros((max_goals, max_goals))
-
-        for i in range(max_goals):
-            for j in range(max_goals):
-                score_matrix[i, j] = sum(
-                    poisson.pmf(i - k, lambda_home)
-                    * poisson.pmf(j - k, lambda_away)
-                    * poisson.pmf(k, lambda_c)
-                    for k in range(0, min(i, j) + 1)
-                )
-
-        return score_matrix
-
-    def get_params(self):
-        if not self.fitted:
-            raise ValueError("Model has not been fitted yet.")
-
-        params = dict(
-            zip(
-                ["attack_" + team for team in self.teams]
-                + ["defence_" + team for team in self.teams]
-                + ["home_advantage", "lambda_c"],
-                self._params,
-            )
-        )
-        return params
+        self.aic = 2 * len(self._params) + 2 * result.fun
