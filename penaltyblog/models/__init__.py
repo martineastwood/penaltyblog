@@ -1,12 +1,9 @@
-from .bayesian_bivariate import BayesianBivariateGoalModel  # noqa
-from .bayesian_hierarchical import BayesianHierarchicalGoalModel  # noqa
-from .bayesian_random_intercept import BayesianRandomInterceptGoalModel  # noqa
-from .bayesian_skellam import BayesianSkellamGoalModel  # noqa
 from .bivariate_poisson import BivariatePoissonGoalModel  # noqa
 from .dixon_coles import DixonColesGoalModel  # noqa
 from .football_probability_grid import FootballProbabilityGrid  # noqa
 from .goal_expectancy import goal_expectancy  # noqa
 from .negative_binomial import NegativeBinomialGoalModel  # noqa
 from .poisson import PoissonGoalsModel  # noqa
-from .rue_salvesen import RueSalvesenGoalModel  # noqa
+from .poisson_copula import PoissonCopulaGoalsModel  # noqa
 from .utils import dixon_coles_weights  # noqa
+from .weibull_copula import WeibullCopulaGoalsModel  # noqa

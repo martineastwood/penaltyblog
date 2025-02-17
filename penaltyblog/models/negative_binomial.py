@@ -3,6 +3,8 @@ import pandas as pd
 from scipy.optimize import minimize
 from scipy.stats import nbinom
 
+from .football_probability_grid import FootballProbabilityGrid
+
 
 class NegativeBinomialGoalModel:
     """
@@ -86,8 +88,8 @@ class NegativeBinomialGoalModel:
             "weights": self.fixtures["weights"].values,
         }
 
-        options = {"maxiter": 500, "disp": True}
-        bounds = [(-2, 2)] * self.n_teams * 2 + [(0, 2)]  # Tighter bounds
+        options = {"maxiter": 500, "disp": False}
+        bounds = [(-2, 2)] * self.n_teams * 2 + [(-4, 4), (1e-5, 1000)]
 
         result = minimize(
             self._neg_binomial_log_likelihood,
@@ -131,9 +133,11 @@ class NegativeBinomialGoalModel:
             away_goals, dispersion, dispersion / (dispersion + lambda_away)
         ).T
 
-        score_matrix = home_pmf @ away_pmf
+        m = np.outer(home_pmf, away_pmf)
 
-        return score_matrix
+        probability_grid = FootballProbabilityGrid(m, lambda_home, lambda_away)
+
+        return probability_grid
 
     def get_params(self):
         if not self.fitted:

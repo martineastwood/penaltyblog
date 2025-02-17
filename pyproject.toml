@@ -22,7 +22,6 @@ requires-python = ">=3.10"
 
 dependencies = [
     "beautifulsoup4",
-    "cmdstanpy",
     "cssselect",
     "lxml",
     "html5lib",

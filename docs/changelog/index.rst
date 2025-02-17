@@ -7,10 +7,17 @@ Version Numbering
 `penaltyblog` follows the SemVer versioning guidelines. For more information,
 see `semver.org <http://semver.org/>`_
 
-v1.0.5 ()
+v1.1.0 ()
 ^^^^^^^^^^^^^^^^^^^^
-- Refactored Dixon and Coles loss function to be ~15x faster
+- Refactored Dixon and Coles goals model to fit ~15x faster
+- Refactored Poisson goals model to fit ~15x faster
+- Added Negative Binomial Goals Model
+- Added Bivariate Poisson Goals Model based on Karlis & Ntzoufras approach
+- Added Poisson Copula Goals Model
+- Added Bivariate Weibull Count Copula Goals Model based on https://blogs.salford.ac.uk/business-school/wp-content/uploads/sites/7/2016/09/paper.pdf
 - Added Pi Ratings System based on http://www.constantinou.info/downloads/papers/pi-ratings.pdf
+- Temporarily removed Stan models from package due to ongoing issues on Windows. Hopefully, I'll find a nicer way to package these up so I can include them again.
+- Temporarily removed Rue and Salvesen model while I revist its implementation (It wasn't the proper model, more of a hydrid Dixon and Coles model With some of Rue and Salvesen's ideas thrown in)
 
 v1.0.4 (2025-01-10)
 ^^^^^^^^^^^^^^^^^^^^

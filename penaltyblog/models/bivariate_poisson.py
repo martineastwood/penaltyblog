@@ -8,8 +8,10 @@ from .football_probability_grid import FootballProbabilityGrid
 
 class BivariatePoissonGoalModel:
     """
-    Bivariate Poisson model for predicting soccer match outcomes
-    using the approach by Karlis and Ntzoufras.
+    Karlis & Ntzoufras Bivariate Poisson for soccer, with:
+      X = W1 + W3
+      Y = W2 + W3
+    where W1, W2, W3 ~ independent Poisson(lambda1, lambda2, lambda3).
     """
 
     def __init__(self, goals_home, goals_away, teams_home, teams_away, weights=1):
@@ -26,68 +28,99 @@ class BivariatePoissonGoalModel:
         self.n_teams = len(self.teams)
 
         self._params = np.concatenate(
-            ([1] * self.n_teams, [-1] * self.n_teams, [0.25], [0.1])
-        )  # Home advantage and lambda (correlation)
+            (
+                [0.0] * self.n_teams,  # Attack
+                [0.0] * self.n_teams,  # Defense
+                [0.1],  # Home advantage
+                [0.0],  # correlation_param => lambda3 = exp(0)=1
+            )
+        )
 
-        self._res = None
         self.fitted = False
         self.aic = None
+        self._res = None
 
     def __repr__(self):
-        repr_str = "Bivariate Poisson Goal Model\n"
-        repr_str += "Fitted: {}\n".format(self.fitted)
+        rep = "Bivariate Poisson Goal Model (Karlis–Ntzoufras)\n"
+        rep += f"Fitted: {self.fitted}\n"
         if self.fitted:
-            repr_str += "AIC: {:.3f}\n".format(self.aic)
-            repr_str += "Parameters:\n"
+            rep += f"AIC: {self.aic:.3f}\n"
+            rep += "Parameters:\n"
             for i, team in enumerate(self.teams):
-                repr_str += f"{team}: Attack {self._params[i]:.3f}, Defence {self._params[i + self.n_teams]:.3f}\n"
-            repr_str += f"Home Advantage: {self._params[-2]:.3f}\n"
-            repr_str += f"Lambda (Correlation): {self._params[-1]:.3f}\n"
+                rep += f"  {team}: Attack={self._params[i]:.3f}, Defense={self._params[self.n_teams + i]:.3f}\n"
+            rep += f"  Home Advantage: {self._params[-2]:.3f}\n"
+            rep += f"  Correlation (log-lambda3): {self._params[-1]:.3f}\n"
+            rep += f"     => lambda3 = exp({self._params[-1]:.3f}) = {np.exp(self._params[-1]):.3f}\n"
         else:
-            repr_str += "Model has not been fitted yet.\n"
-        return repr_str
+            rep += "Model not fitted yet.\n"
+        return rep
 
-    def _log_likelihood(self, params, data, n_teams):
+    def _log_likelihood(self, params, data):
+        """
+        Computes the negative log-likelihood of the Bivariate Poisson model,
+        using:
+        (1) Precomputation of Poisson PMFs for lambda3 (avoiding repeats),
+        (2) Vectorization for the inner sum over k to reduce Python loops.
+        """
+        n_teams = self.n_teams
+
+        # Unpack parameters
         attack_params = params[:n_teams]
-        defence_params = params[n_teams : n_teams * 2]
-        home_adv, lambda_c = params[-2:]
+        defense_params = params[n_teams : 2 * n_teams]
+        home_adv = params[-2]
+        correlation_log = params[-1]
+        lambda3 = np.exp(correlation_log)
 
+        # Unpack data arrays
         home_idx = data["home_idx"]
         away_idx = data["away_idx"]
         goals_home = data["goals_home"]
         goals_away = data["goals_away"]
+        weights = data["weights"]
 
-        lambda_home = np.exp(
-            np.clip(
-                home_adv + attack_params[home_idx] + defence_params[away_idx], -10, 10
-            )
-        )
-        lambda_away = np.exp(
-            np.clip(attack_params[away_idx] + defence_params[home_idx], -10, 10)
-        )
-        lambda_c = np.clip(lambda_c, 1e-5, None)
+        # Compute lambda1, lambda2 for every match
+        lambda1 = np.exp(home_adv + attack_params[home_idx] + defense_params[away_idx])
+        lambda2 = np.exp(attack_params[away_idx] + defense_params[home_idx])
 
-        # Vectorized computation
+        # Prepare a lookup for Poisson PMF for all unique λ1/λ2 values,
+        # up to max_goals in the dataset:
         max_goals = max(goals_home.max(), goals_away.max()) + 1
-        k_range = np.arange(max_goals)
+        unique_lambdas = np.unique(np.concatenate([lambda1, lambda2]))
+        pmf_lookup = {
+            lam: np.array([poisson.pmf(k, lam) for k in range(max_goals)])
+            for lam in unique_lambdas
+        }
 
-        home_pmf = poisson.pmf(goals_home[:, None] - k_range, lambda_home[:, None])
-        away_pmf = poisson.pmf(goals_away[:, None] - k_range, lambda_away[:, None])
-        k_pmf = poisson.pmf(k_range, lambda_c)
+        # (Part 1) Precompute the Poisson PMF for lambda3 just once
+        lambda3_pmf = np.array([poisson.pmf(k, lambda3) for k in range(max_goals)])
 
-        likelihood_matrix = home_pmf * away_pmf * k_pmf
-        likelihoods = np.sum(likelihood_matrix, axis=1)
+        # Accumulate the log-likelihood in a vector
+        log_likelihoods = np.zeros_like(goals_home, dtype=float)
 
-        # Avoid zero values
-        likelihoods = np.clip(likelihoods, 1e-10, None)
+        for i in range(len(goals_home)):
+            gh = goals_home[i]
+            ga = goals_away[i]
 
-        if np.any(np.isnan(likelihoods)) or np.any(np.isinf(likelihoods)):
-            return np.inf
+            lam1 = lambda1[i]
+            lam2 = lambda2[i]
 
-        return -np.sum(np.log(likelihoods) * data["weights"])
+            # (Part 2) Vectorized sum over k
+            kmax = min(gh, ga)
+            k_range = np.arange(kmax + 1)
+            like_ij = np.sum(
+                pmf_lookup[lam1][gh - k_range]
+                * pmf_lookup[lam2][ga - k_range]
+                * lambda3_pmf[k_range]
+            )
+
+            # Numeric guard against log(0)
+            like_ij = max(like_ij, 1e-10)
+            log_likelihoods[i] = weights[i] * np.log(like_ij)
+
+        return -np.sum(log_likelihoods)
 
     def fit(self):
-        team_to_idx = {team: idx for idx, team in enumerate(self.teams)}
+        team_to_idx = {team: i for i, team in enumerate(self.teams)}
         processed_fixtures = {
             "home_idx": self.fixtures["team_home"].map(team_to_idx).values,
             "away_idx": self.fixtures["team_away"].map(team_to_idx).values,
@@ -96,62 +129,84 @@ class BivariatePoissonGoalModel:
             "weights": self.fixtures["weights"].values,
         }
 
-        options = {"maxiter": 500, "disp": True}
-        bounds = [(-2, 2)] * self.n_teams * 2 + [(0, 1), (0, 1)]  # Tighter bounds
+        bnds = [(-3, 3)] * (2 * self.n_teams) + [(-2, 2), (-3, 3)]
 
-        result = minimize(
-            self._log_likelihood,
-            self._params,
-            args=(processed_fixtures, self.n_teams),
-            bounds=bounds,
-            method="L-BFGS-B",  # Better suited for bound-constrained optimization
-            options=options,
+        opt = minimize(
+            fun=self._log_likelihood,
+            x0=self._params,
+            args=(processed_fixtures,),
+            bounds=bnds,
+            method="L-BFGS-B",
+            options={"maxiter": 300, "disp": False},
         )
 
-        if not result.success:
-            print("Optimization did not converge:", result.message)
+        if not opt.success:
+            print("WARNING: Optimization did not fully converge:", opt.message)
 
-        self._params = result.x
+        self._params = opt.x
         self.fitted = True
-        self.aic = 2 * len(self._params) + 2 * result.fun
+
+        self.aic = 2 * len(self._params) + 2 * opt.fun
+        self._res = opt
 
     def predict(self, home_team, away_team, max_goals=10):
+        """
+        Construct a score probability matrix P(X=x, Y=y) for x,y in [0..max_goals-1].
+        Using the same bivariate Poisson formula with lam1, lam2, lam3.
+        """
         if not self.fitted:
-            raise ValueError("Model has not been fitted yet.")
+            raise ValueError("Model is not yet fitted. Call `.fit()` first.")
 
-        home_idx = np.where(self.teams == home_team)[0][0]
-        away_idx = np.where(self.teams == away_team)[0][0]
-
-        home_attack = self._params[home_idx]
-        away_attack = self._params[away_idx]
-        home_defence = self._params[home_idx + self.n_teams]
-        away_defence = self._params[away_idx + self.n_teams]
+        # Extract parameters
+        attack_params = self._params[: self.n_teams]
+        defense_params = self._params[self.n_teams : 2 * self.n_teams]
         home_adv = self._params[-2]
-        lambda_c = self._params[-1]
+        correlation_log = self._params[-1]
+        lam3 = np.exp(correlation_log)
 
-        lambda_home = np.exp(home_adv + home_attack + away_defence)
-        lambda_away = np.exp(away_attack + home_defence)
+        # Get the correct indices
+        try:
+            i_home = np.where(self.teams == home_team)[0][0]
+            i_away = np.where(self.teams == away_team)[0][0]
+        except IndexError:
+            raise ValueError(
+                f"Team not found in training set: {home_team} or {away_team}"
+            )
 
-        home_goals = np.arange(max_goals)
-        away_goals = np.arange(max_goals)
-        home_pmf = poisson.pmf(home_goals[:, None], lambda_home)
-        away_pmf = poisson.pmf(away_goals, lambda_away)
-        m = np.dot(home_pmf, away_pmf.T)
+        lam1 = np.exp(home_adv + attack_params[i_home] + defense_params[i_away])
+        lam2 = np.exp(attack_params[i_away] + defense_params[i_home])
 
-        return FootballProbabilityGrid(m, home_goals, away_goals)
+        score_matrix = np.zeros((max_goals, max_goals))
+
+        for x in range(max_goals):
+            for y in range(max_goals):
+                p_xy = 0.0
+                for k in range(min(x, y) + 1):
+                    p_xy += (
+                        poisson.pmf(x - k, lam1)
+                        * poisson.pmf(y - k, lam2)
+                        * poisson.pmf(k, lam3)
+                    )
+                score_matrix[x, y] = p_xy
+
+        return FootballProbabilityGrid(score_matrix, lam1, lam2)
 
     def get_params(self):
+        """
+        Return the fitted parameters in a dictionary.
+        """
         if not self.fitted:
-            raise ValueError(
-                "Model's parameters have not been fit yet, please call the `fit()` function first"
-            )
+            raise ValueError("Model is not yet fitted. Call `.fit()` first.")
 
-        params = dict(
-            zip(
-                ["attack_" + team for team in self.teams]
-                + ["defence_" + team for team in self.teams]
-                + ["home_advantage", "lambda_c"],
-                self._params,
-            )
+        # Construct dictionary
+        param_names = (
+            [f"attack_{t}" for t in self.teams]
+            + [f"defense_{t}" for t in self.teams]
+            + ["home_adv", "correlation_log"]
         )
-        return params
+        vals = list(self._params)
+        result = dict(zip(param_names, vals))
+
+        # Also show lambda3 explicitly
+        result["lambda3"] = np.exp(result["correlation_log"])
+        return result
