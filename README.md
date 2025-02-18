@@ -71,3 +71,4 @@ examples for:
 - Joseph Buchdahl (2015) The Wisdom of the Crowd
 - Gianluca Baio and Marta A. Blangiardo (2010) Bayesian Hierarchical Model for the Prediction of Football Results
 - Dimitris Karlis and Ioannis Ntzoufras (2003) Analysis of Sports Data by Using Bivariate Poisson Models
+- Anthony C. Constantinou and Norman E. Fenton (2013) Determining the level of ability of football teams by dynamic ratings based on the relative discrepancies in scores between adversaries
