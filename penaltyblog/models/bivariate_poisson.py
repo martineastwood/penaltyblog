@@ -3,6 +3,7 @@ import pandas as pd
 from scipy.optimize import minimize
 from scipy.stats import poisson
 
+from .custom_types import GoalInput, ParamsOutput, TeamInput, WeightInput
 from .football_probability_grid import FootballProbabilityGrid
 
 
@@ -14,7 +15,30 @@ class BivariatePoissonGoalModel:
     where W1, W2, W3 ~ independent Poisson(lambda1, lambda2, lambda3).
     """
 
-    def __init__(self, goals_home, goals_away, teams_home, teams_away, weights=1):
+    def __init__(
+        self,
+        goals_home: GoalInput,
+        goals_away: GoalInput,
+        teams_home: TeamInput,
+        teams_away: TeamInput,
+        weights: WeightInput = 1,
+    ):
+        """
+        Initialises the BivariatePoissonGoalModel class.
+
+        Parameters
+        ----------
+        goals_home : array_like
+            The number of goals scored by the home team
+        goals_away : array_like
+            The number of goals scored by the away team
+        teams_home : array_like
+            The names of the home teams
+        teams_away : array_like
+            The names of the away teams
+        weights : array_like, optional
+            The weights of the matches, by default 1
+        """
         self.fixtures = pd.DataFrame(
             {
                 "goals_home": goals_home,
@@ -42,7 +66,7 @@ class BivariatePoissonGoalModel:
         self.n_params = None
         self.loglikelihood = None
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         lines = ["Module: Penaltyblog", "", "Model: Bivariate Poisson", ""]
 
         if not self.fitted:
@@ -79,7 +103,7 @@ class BivariatePoissonGoalModel:
 
         return "\n".join(lines)
 
-    def _log_likelihood(self, params, data):
+    def _log_likelihood(self, params, data) -> float:
         """
         Computes the negative log-likelihood of the Bivariate Poisson model,
         using:
@@ -144,6 +168,9 @@ class BivariatePoissonGoalModel:
         return -np.sum(log_likelihoods)
 
     def fit(self):
+        """
+        Fits the Bivariate Poisson model to the data.
+        """
         team_to_idx = {team: i for i, team in enumerate(self.teams)}
         processed_fixtures = {
             "home_idx": self.fixtures["team_home"].map(team_to_idx).values,
@@ -175,10 +202,25 @@ class BivariatePoissonGoalModel:
         self._res = opt
         self.loglikelihood = -self._res.fun
 
-    def predict(self, home_team, away_team, max_goals=10):
+    def predict(
+        self, home_team: str, away_team: str, max_goals: int = 10
+    ) -> FootballProbabilityGrid:
         """
-        Construct a score probability matrix P(X=x, Y=y) for x,y in [0..max_goals-1].
-        Using the same bivariate Poisson formula with lam1, lam2, lam3.
+        Predicts the probability of each scoreline for a given home and away team.
+
+        Parameters
+        ----------
+        home_team : str
+            The name of the home team
+        away_team : str
+            The name of the away team
+        max_goals : int, optional
+            The maximum number of goals to consider, by default 10
+
+        Returns
+        -------
+        FootballProbabilityGrid
+            A FootballProbabilityGrid object containing the probability of each scoreline
         """
         if not self.fitted:
             raise ValueError("Model is not yet fitted. Call `.fit()` first.")
@@ -217,7 +259,7 @@ class BivariatePoissonGoalModel:
 
         return FootballProbabilityGrid(score_matrix, lam1, lam2)
 
-    def get_params(self):
+    def get_params(self) -> ParamsOutput:
         """
         Return the fitted parameters in a dictionary.
         """

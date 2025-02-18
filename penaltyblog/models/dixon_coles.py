@@ -7,12 +7,14 @@ from numpy.typing import NDArray
 from scipy.optimize import minimize
 from scipy.stats import poisson
 
+from .custom_types import GoalInput, ParamsOutput, TeamInput, WeightInput
 from .football_probability_grid import FootballProbabilityGrid
 from .numba_helpers import numba_poisson_logpmf, numba_rho_correction_llh
 
 
 class DixonColesGoalModel:
-    """Dixon and Coles adjusted Poisson model for predicting outcomes of football
+    """
+    Dixon and Coles adjusted Poisson model for predicting outcomes of football
     (soccer) matches
 
     Methods
@@ -28,7 +30,31 @@ class DixonColesGoalModel:
         Returns the fitted parameters from the model
     """
 
-    def __init__(self, goals_home, goals_away, teams_home, teams_away, weights=1):
+    def __init__(
+        self,
+        goals_home: GoalInput,
+        goals_away: GoalInput,
+        teams_home: TeamInput,
+        teams_away: TeamInput,
+        weights: WeightInput = 1,
+    ):
+        """
+        Dixon and Coles adjusted Poisson model for predicting outcomes of football
+        (soccer) matches
+
+        Parameters
+        ----------
+        goals_home : array_like
+            The number of goals scored by the home team in each match
+        goals_away : array_like
+            The number of goals scored by the away team in each match
+        teams_home : array_like
+            The name of the home team in each match
+        teams_away : array_like
+            The name of the away team in each match
+        weights : array_like, optional
+            The weight of each match, by default 1
+        """
         self.goals_home = np.array(goals_home, dtype=int)
         self.goals_away = np.array(goals_away, dtype=int)
         self.teams_home = np.array(teams_home)
@@ -65,7 +91,7 @@ class DixonColesGoalModel:
         self.n_params = None
         self.fitted = False
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         lines = ["Module: Penaltyblog", "", "Model: Dixon and Coles", ""]
 
         if not self.fitted:
@@ -105,7 +131,7 @@ class DixonColesGoalModel:
     def __str__(self):
         return self.__repr__()
 
-    def _fit(self, params: NDArray):
+    def _fit(self, params: NDArray) -> float:
         """
         Internal method, not to called directly by the user
         """
@@ -122,7 +148,7 @@ class DixonColesGoalModel:
     def fit(self):
         """
         Fits the model to the data and calculates the team strengths,
-        home advantage and intercept. Should be called before `predict` can be used
+        home advantage and intercept. Must be called before `predict` can be used
         """
         options = {
             "maxiter": 100,
@@ -154,7 +180,9 @@ class DixonColesGoalModel:
         self.aic = -2 * (self.loglikelihood) + 2 * self.n_params
         self.fitted = True
 
-    def predict(self, home_team, away_team, max_goals=15):
+    def predict(
+        self, home_team: str, away_team: str, max_goals: int = 15
+    ) -> FootballProbabilityGrid:
         """
         Predicts the probabilities of the different possible match outcomes
 
@@ -162,10 +190,8 @@ class DixonColesGoalModel:
         ----------
         home_team : str
             The name of the home_team, must have been in the data the model was fitted on
-
         away_team : str
             The name of the away_team, must have been in the data the model was fitted on
-
         max_goals : int
             The maximum number of goals to calculate the probabilities over.
             Reducing this will improve performance slightly at the expensive of acuuracy
@@ -234,9 +260,9 @@ class DixonColesGoalModel:
 
         return probability_grid
 
-    def get_params(self):
+    def get_params(self) -> ParamsOutput:
         """
-        Provides access to the model's fitted parameters
+        Returns the model's fitted parameters as a dictionary
 
         Returns
         -------
@@ -259,27 +285,37 @@ class DixonColesGoalModel:
         return params
 
 
-def rho_correction_vec_np(goals_home, goals_away, home_exp, away_exp, rho):
-    """Optimized Dixon-Coles adjustment"""
-    # Create boolean masks for all conditions at once
-    both_zero = (goals_home == 0) & (goals_away == 0)
-    one_zero = (goals_home == 0) & (goals_away == 1)
-    zero_one = (goals_home == 1) & (goals_away == 0)
-    both_one = (goals_home == 1) & (goals_away == 1)
-
-    # Use boolean indexing for faster computation
-    result = np.ones_like(goals_home, dtype=float)
-    result[both_zero | both_one] -= rho
-    result[one_zero | zero_one] += rho
-
-    return result
-
-
 @njit
 def _numba_neg_log_likelihood(
     params, n_teams, home_idx, away_idx, goals_home, goals_away, weights
-):
-    """Optimized negative log-likelihood function using Numba"""
+) -> float:
+    """
+    Internal method, not to be called directly by the user
+
+    Calculates the negative log-likelihood of the Dixon and Coles model
+
+    Parameters
+    ----------
+    params : array_like
+        The parameters of the model
+    n_teams : int
+        The number of teams in the league
+    home_idx : array_like
+        The indices of the home teams in the data
+    away_idx : array_like
+        The indices of the away teams in the data
+    goals_home : array_like
+        The number of goals scored by the home teams
+    goals_away : array_like
+        The number of goals scored by the away teams
+    weights : array_like
+        The weights of the matches
+
+    Returns
+    -------
+    float
+        The negative log-likelihood of the Dixon and Coles model
+    """
     attack_params = params[:n_teams]
     defense_params = params[n_teams : 2 * n_teams]
     hfa, rho = params[-2:]

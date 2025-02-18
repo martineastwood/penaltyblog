@@ -3,16 +3,52 @@ import pandas as pd
 from scipy.optimize import minimize
 from scipy.stats import nbinom
 
+from .custom_types import GoalInput, ParamsOutput, TeamInput, WeightInput
 from .football_probability_grid import FootballProbabilityGrid
 
 
 class NegativeBinomialGoalModel:
     """
-    Negative Binomial model for predicting soccer match outcomes
+    Negative Binomial model for predicting outcomes of football (soccer) matches
     handling overdispersion in goal data.
+
+    Methods
+    -------
+    fit()
+        fits a Negative Binomial model to the data to calculate the team strengths.
+        Must be called before the model can be used to predict game outcomes
+
+    predict(home_team, away_team, max_goals=10)
+        predicts the probability of each scoreline for a given home and away team
+
+    get_params()
+        provides access to the model's fitted parameters
     """
 
-    def __init__(self, goals_home, goals_away, teams_home, teams_away, weights=1):
+    def __init__(
+        self,
+        goals_home: GoalInput,
+        goals_away: GoalInput,
+        teams_home: TeamInput,
+        teams_away: TeamInput,
+        weights: WeightInput = 1,
+    ):
+        """
+        Initialises the NegativeBinomialGoalModel class.
+
+        Parameters
+        ----------
+        goals_home : array_like
+            The number of goals scored by the home team
+        goals_away : array_like
+            The number of goals scored by the away team
+        teams_home : array_like
+            The names of the home teams
+        teams_away : array_like
+            The names of the away teams
+        weights : array_like, optional
+            The weights of the matches, by default 1
+        """
         self.fixtures = pd.DataFrame(
             {
                 "goals_home": goals_home,
@@ -72,7 +108,24 @@ class NegativeBinomialGoalModel:
 
         return "\n".join(lines)
 
-    def _neg_binomial_log_likelihood(self, params, data, n_teams):
+    def _neg_binomial_log_likelihood(self, params, data, n_teams) -> float:
+        """
+        Calculates the negative log-likelihood of the Negative Binomial model.
+
+        Parameters
+        ----------
+        params : array_like
+            The parameters of the model
+        data : dict
+            The data used to fit the model
+        n_teams : int
+            The number of teams in the league
+
+        Returns
+        -------
+        float
+            The negative log-likelihood of the Negative Binomial model
+        """
         attack_params = params[:n_teams]
         defence_params = params[n_teams : n_teams * 2]
         home_adv, dispersion = params[-2:]
@@ -104,6 +157,9 @@ class NegativeBinomialGoalModel:
         return -np.sum(log_likelihood * data["weights"])
 
     def fit(self):
+        """
+        Fits the Negative Binomial model to the data.
+        """
         team_to_idx = {team: idx for idx, team in enumerate(self.teams)}
         processed_fixtures = {
             "home_idx": self.fixtures["team_home"].map(team_to_idx).values,
@@ -134,7 +190,26 @@ class NegativeBinomialGoalModel:
         self.aic = -2 * self.loglikelihood + 2 * self.n_params
         self.fitted = True
 
-    def predict(self, home_team, away_team, max_goals=10):
+    def predict(
+        self, home_team: str, away_team: str, max_goals=10
+    ) -> FootballProbabilityGrid:
+        """
+        Predicts the probability of each scoreline for a given home and away team.
+
+        Parameters
+        ----------
+        home_team : str
+            The name of the home team
+        away_team : str
+            The name of the away team
+        max_goals : int, optional
+            The maximum number of goals to consider, by default 10
+
+        Returns
+        -------
+        FootballProbabilityGrid
+            A FootballProbabilityGrid object containing the probability of each scoreline
+        """
         if not self.fitted:
             raise ValueError("Model has not been fitted yet.")
 
@@ -166,7 +241,10 @@ class NegativeBinomialGoalModel:
 
         return probability_grid
 
-    def get_params(self):
+    def get_params(self) -> ParamsOutput:
+        """
+        Returns the parameters of the Negative Binomial model.
+        """
         if not self.fitted:
             raise ValueError(
                 "Model's parameters have not been fit yet, please call the `fit()` function first"

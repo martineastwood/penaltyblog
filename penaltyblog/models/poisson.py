@@ -5,12 +5,52 @@ import numpy as np
 from numba import njit
 from scipy.optimize import minimize
 
+from .custom_types import GoalInput, ParamsOutput, TeamInput, WeightInput
 from .football_probability_grid import FootballProbabilityGrid
 from .numba_helpers import numba_poisson_logpmf, numba_poisson_pmf
 
 
 class PoissonGoalsModel:
-    def __init__(self, goals_home, goals_away, teams_home, teams_away, weights=1):
+    """
+    Poisson model for predicting outcomes of football (soccer) matches
+
+    Methods
+    -------
+    fit()
+        fits a Poisson model to the data to calculate the team strengths.
+        Must be called before the model can be used to predict game outcomes
+
+    predict(home_team, away_team, max_goals=15)
+        predicts the probability of each scoreline for a given home and away team
+
+    get_params()
+        provides access to the model's fitted parameters
+    """
+
+    def __init__(
+        self,
+        goals_home: GoalInput,
+        goals_away: GoalInput,
+        teams_home: TeamInput,
+        teams_away: TeamInput,
+        weights: WeightInput = 1,
+    ):
+        """
+        Poisson model for predicting outcomes of football (soccer) matches
+
+        Parameters
+        ----------
+        goals_home : array_like
+            The number of goals scored by the home team in each match
+        goals_away : array_like
+            The number of goals scored by the away team in each match
+        teams_home : array_like
+            The name of the home team in each match
+        teams_away : array_like
+            The name of the away team in each match
+        weights : array_like, optional
+            The weight of each match, by default 1
+        """
         self.goals_home = np.array(goals_home, dtype=int)
         self.goals_away = np.array(goals_away, dtype=int)
         self.teams_home = np.array(teams_home)
@@ -46,7 +86,7 @@ class PoissonGoalsModel:
         self.home_idx = np.array([self.team_to_idx[t] for t in self.teams_home])
         self.away_idx = np.array([self.team_to_idx[t] for t in self.teams_away])
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         lines = ["Module: Penaltyblog", "", "Model: Poisson", ""]
 
         if not self.fitted:
@@ -82,7 +122,7 @@ class PoissonGoalsModel:
 
         return "\n".join(lines)
 
-    def _neg_log_likelihood(self, params):
+    def _neg_log_likelihood(self, params) -> float:
         """Negative Log-Likelihood optimized with Numba"""
 
         return _numba_neg_log_likelihood(
@@ -96,6 +136,9 @@ class PoissonGoalsModel:
         )
 
     def fit(self):
+        """
+        Fits the Poisson model to the data using maximum likelihood estimation
+        """
         options = {"maxiter": 100, "disp": False}
         constraints = [
             {"type": "eq", "fun": lambda x: sum(x[: self.n_teams]) - self.n_teams}
@@ -119,7 +162,26 @@ class PoissonGoalsModel:
         self.aic = -2 * self.loglikelihood + 2 * self.n_params
         self.fitted = True
 
-    def predict(self, home_team, away_team, max_goals=15):
+    def predict(
+        self, home_team: str, away_team: str, max_goals: int = 15
+    ) -> FootballProbabilityGrid:
+        """
+        Predicts the probability of each scoreline for a given home and away team
+
+        Parameters
+        ----------
+        home_team : str
+            The name of the home team
+        away_team : str
+            The name of the away team
+        max_goals : int, optional
+            The maximum number of goals to consider, by default 15
+
+        Returns
+        -------
+        FootballProbabilityGrid
+            A FootballProbabilityGrid object containing the probabilities of each scoreline
+        """
         if not self.fitted:
             raise ValueError(
                 "Model's parameters have not been fit yet. Please call `fit()` first."
@@ -151,7 +213,7 @@ class PoissonGoalsModel:
         # Return FootballProbabilityGrid
         return FootballProbabilityGrid(score_matrix, lambda_home, lambda_away)
 
-    def get_params(self):
+    def get_params(self) -> ParamsOutput:
         if not self.fitted:
             raise ValueError(
                 "Model's parameters have not been fit yet. Call `fit()` first."
@@ -171,8 +233,34 @@ class PoissonGoalsModel:
 @njit
 def _numba_neg_log_likelihood(
     params, n_teams, home_idx, away_idx, goals_home, goals_away, weights
-):
-    """Optimized negative log-likelihood function using Numba"""
+) -> float:
+    """
+    Internal method, not to be called directly by the user
+
+    Calculates the negative log-likelihood of the Poisson model
+
+    Parameters
+    ----------
+    params : array_like
+        The parameters of the model
+    n_teams : int
+        The number of teams in the league
+    home_idx : array_like
+        The indices of the home teams in the data
+    away_idx : array_like
+        The indices of the away teams in the data
+    goals_home : array_like
+        The number of goals scored by the home teams
+    goals_away : array_like
+        The number of goals scored by the away teams
+    weights : array_like
+        The weights of the matches
+
+    Returns
+    -------
+    float
+        The negative log-likelihood of the Poisson model
+    """
     attack_params = params[:n_teams]
     defense_params = params[n_teams : 2 * n_teams]
     home_advantage = params[-1]

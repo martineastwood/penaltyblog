@@ -3,13 +3,54 @@ import warnings
 
 import numpy as np
 from numba import njit
+from numpy.typing import NDArray
 from scipy.optimize import minimize
 
+from .custom_types import GoalInput, ParamsOutput, TeamInput, WeightInput
 from .football_probability_grid import FootballProbabilityGrid
 
 
 class WeibullCopulaGoalsModel:
-    def __init__(self, goals_home, goals_away, teams_home, teams_away, weights=None):
+    """
+    Weibull Copula model for predicting outcomes of football (soccer) matches
+
+    Methods
+    -------
+    fit()
+        fits a Weibull Copula model to the data to calculate the team strengths.
+        Must be called before the model can be used to predict game outcomes
+
+    predict(home_team, away_team, max_goals=15)
+        predicts the probability of each scoreline for a given home and away team
+
+    get_params()
+        provides access to the model's fitted parameters
+    """
+
+    def __init__(
+        self,
+        goals_home: GoalInput,
+        goals_away: GoalInput,
+        teams_home: TeamInput,
+        teams_away: TeamInput,
+        weights: WeightInput = None,
+    ):
+        """
+        Initialises the WeibullCopulaGoalModel class.
+
+        Parameters
+        ----------
+        goals_home : array_like
+            The number of goals scored by the home team
+        goals_away : array_like
+            The number of goals scored by the away team
+        teams_home : array_like
+            The names of the home teams
+        teams_away : array_like
+            The names of the away teams
+        weights : array_like, optional
+            The weights of the matches, by default None
+        """
         self.goals_home = np.asarray(goals_home, dtype=int)
         self.goals_away = np.asarray(goals_away, dtype=int)
         self.teams_home = np.asarray(teams_home, dtype=object)
@@ -53,7 +94,7 @@ class WeibullCopulaGoalsModel:
         self.max_goals = 15
         self.jmax = 25
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         lines = [
             "Module: Penaltyblog",
             "",
@@ -96,7 +137,7 @@ class WeibullCopulaGoalsModel:
 
         return "\n".join(lines)
 
-    def _get_alpha_table_for_shape(self, shape):
+    def _get_alpha_table_for_shape(self, shape) -> NDArray:
         """
         Return the precomputed alpha table for given shape,
         caching if repeated calls with same shape.
@@ -111,7 +152,7 @@ class WeibullCopulaGoalsModel:
         self._alpha_cache_A = A
         return A
 
-    def _neg_log_likelihood(self, params):
+    def _neg_log_likelihood(self, params: NDArray) -> float:
         # unpack
         atk = params[: self.n_teams]
         dfc = params[self.n_teams : 2 * self.n_teams]
@@ -145,7 +186,7 @@ class WeibullCopulaGoalsModel:
 
     def fit(self):
         """
-        Fit using L-BFGS-B with some recommended bounds.
+        Fits the Weibull Copula model to the data.
         """
         # create bounds
         bnds = []
@@ -181,10 +222,25 @@ class WeibullCopulaGoalsModel:
         self.fitted = True
         return self
 
-    def predict(self, home_team, away_team, max_goals=15):
+    def predict(
+        self, home_team: str, away_team: str, max_goals: int = 15
+    ) -> FootballProbabilityGrid:
         """
-        Return a matrix of size (max_goals+1, max_goals+1) giving
-        P(X=i, Y=j).
+        Predicts the probability of each market for a given home and away team.
+
+        Parameters
+        ----------
+        home_team : str
+            The name of the home team
+        away_team : str
+            The name of the away team
+        max_goals : int, optional
+            The maximum number of goals to consider, by default 15
+
+        Returns
+        -------
+        FootballProbabilityGrid
+            A FootballProbabilityGrid object containing the probability of each scoreline
         """
         if not self.fitted:
             raise ValueError("Call fit() first.")
@@ -212,6 +268,24 @@ class WeibullCopulaGoalsModel:
         score_matrix = predict_score_matrix_numba(lamH, lamA, A, max_goals, kappa)
 
         return FootballProbabilityGrid(score_matrix, lamH, lamA)
+
+    def get_params(self) -> ParamsOutput:
+        """
+        Return the fitted parameters in a dictionary.
+        """
+        if not self.fitted:
+            raise ValueError("Model is not yet fitted. Call `.fit()` first.")
+
+        # Construct dictionary
+        param_names = (
+            [f"attack_{t}" for t in self.teams]
+            + [f"defense_{t}" for t in self.teams]
+            + ["home_adv", "shape", "kappa"]
+        )
+        vals = list(self._params)
+        result = dict(zip(param_names, vals))
+
+        return result
 
 
 @njit

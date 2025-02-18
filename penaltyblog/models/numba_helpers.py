@@ -40,3 +40,45 @@ def numba_rho_correction_llh(goals_home, goals_away, lambda_home, lambda_away, r
         - (goals_home == 1 and goals_away == 0) * rho
         + (goals_home == 1 and goals_away == 1) * rho
     )
+
+
+@njit()
+def frank_copula_pdf(u, v, kappa) -> float:
+    """
+    Computes the Frank copula probability density function with numerical stability.
+
+    Parameters
+    ----------
+    u : array_like
+        First uniform random variable
+    v : array_like
+        Second uniform random variable
+    kappa : float
+        Copula parameter
+
+    Returns
+    -------
+    array_like
+        Frank copula probability density function evaluated at (u, v)
+    """
+    if np.abs(kappa) < 1e-5:  # If kappa is close to 0, return independence
+        return np.ones_like(u)
+
+    # Compute exponentials
+    exp_neg_kappa = np.exp(-kappa)
+    exp_neg_kappa_u = np.exp(-kappa * u)
+    exp_neg_kappa_v = np.exp(-kappa * v)
+    exp_neg_kappa_uv = np.exp(-kappa * (u + v))
+
+    num = kappa * exp_neg_kappa_uv * (1 - exp_neg_kappa)
+
+    # Compute denominator safely
+    denom = (exp_neg_kappa - 1 + (exp_neg_kappa_u - 1) * (exp_neg_kappa_v - 1)) ** 2
+    denom = np.maximum(denom, 1e-10)  # Prevent division by zero
+
+    copula_density = num / denom
+
+    # Ensure probabilities remain within a valid range
+    copula_density = np.clip(copula_density, 1e-10, 1)
+
+    return copula_density
