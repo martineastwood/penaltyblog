@@ -6,7 +6,7 @@ from numba import njit
 from scipy.optimize import minimize
 
 from .football_probability_grid import FootballProbabilityGrid
-from .utils import numba_poisson_logpmf, numba_poisson_pmf
+from .numba_helpers import numba_poisson_logpmf, numba_poisson_pmf
 
 
 class PoissonGoalsModel:

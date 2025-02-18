@@ -1,16 +1,14 @@
 import warnings
 from math import exp
-from typing import Dict
 
 import numpy as np
-import pandas as pd
 from numba import njit
 from numpy.typing import NDArray
 from scipy.optimize import minimize
 from scipy.stats import poisson
 
 from .football_probability_grid import FootballProbabilityGrid
-from .utils import numba_poisson_logpmf, numba_rho_correction_llh
+from .numba_helpers import numba_poisson_logpmf, numba_rho_correction_llh
 
 
 class DixonColesGoalModel:
@@ -31,27 +29,16 @@ class DixonColesGoalModel:
     """
 
     def __init__(self, goals_home, goals_away, teams_home, teams_away, weights=1):
-        """
-        Parameters
-        ----------
-        goals_home : list
-            A list or pd.Series of goals scored by the home_team
-        goals_away : list
-            A list or pd.Series of goals scored by the away_team
-        teams_home : list
-            A list or pd.Series of team_names for the home_team
-        teams_away : list
-            A list or pd.Series of team_names for the away_team
-        weights : list
-            A list or pd.Series of weights for the data,
-            the lower the weight the less the match has on the output
-        """
+        self.goals_home = np.array(goals_home, dtype=int)
+        self.goals_away = np.array(goals_away, dtype=int)
+        self.teams_home = np.array(teams_home)
+        self.teams_away = np.array(teams_away)
+        self.weights = np.array(weights)
 
-        self.fixtures = pd.DataFrame([goals_home, goals_away, teams_home, teams_away]).T
-        self.fixtures.columns = ["goals_home", "goals_away", "team_home", "team_away"]
-        self.fixtures["goals_home"] = self.fixtures["goals_home"].astype(int)
-        self.fixtures["goals_away"] = self.fixtures["goals_away"].astype(int)
-        self.fixtures["weights"] = weights
+        try:
+            len(self.weights)
+        except:
+            self.weights = np.ones_like(self.goals_home)
 
         self.teams = np.sort(np.unique(np.concatenate([teams_home, teams_away])))
         self.n_teams = len(self.teams)
@@ -64,6 +51,13 @@ class DixonColesGoalModel:
                 [-0.1],  # rho
             )
         )
+
+        # Precompute team index mapping for performance improvement
+        self.team_to_idx = {team: i for i, team in enumerate(self.teams)}
+
+        # Convert team names to indices for fast lookup
+        self.home_idx = np.array([self.team_to_idx[t] for t in self.teams_home])
+        self.away_idx = np.array([self.team_to_idx[t] for t in self.teams_away])
 
         self._res = None
         self.loglikelihood = None
@@ -111,19 +105,18 @@ class DixonColesGoalModel:
     def __str__(self):
         return self.__repr__()
 
-    @staticmethod
-    def _fit(params: NDArray, fixtures: Dict, n_teams: int):
+    def _fit(self, params: NDArray):
         """
         Internal method, not to called directly by the user
         """
         return _numba_neg_log_likelihood(
             params,
-            n_teams,
-            fixtures["home_idx"],
-            fixtures["away_idx"],
-            fixtures["goals_home"],
-            fixtures["goals_away"],
-            fixtures["weights"],
+            self.n_teams,
+            self.home_idx,
+            self.away_idx,
+            self.goals_home,
+            self.goals_away,
+            self.weights,
         )
 
     def fit(self):
@@ -145,31 +138,11 @@ class DixonColesGoalModel:
 
         bounds = [(-3, 3)] * self.n_teams * 2 + [(0, 2), (-2, 2)]
 
-        # Pre-process fixtures to avoid redundant computation
-        team_to_idx = {team: idx for idx, team in enumerate(self.teams)}
-        self.fixtures["team_home_idx"] = (
-            self.fixtures["team_home"].map(team_to_idx).astype(np.int32)
-        )
-        self.fixtures["team_away_idx"] = (
-            self.fixtures["team_away"].map(team_to_idx).astype(np.int32)
-        )
-        self.fixtures["weights"] = self.fixtures["weights"].astype(np.float64)
-
-        # Convert necessary columns to NumPy arrays for better performance
-        processed_fixtures = {
-            "home_idx": self.fixtures["team_home_idx"].values,
-            "away_idx": self.fixtures["team_away_idx"].values,
-            "goals_home": self.fixtures["goals_home"].values,
-            "goals_away": self.fixtures["goals_away"].values,
-            "weights": self.fixtures["weights"].values,
-        }
-
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             self._res = minimize(
                 self._fit,
                 self._params,
-                args=(processed_fixtures, self.n_teams),
                 constraints=constraints,
                 bounds=bounds,
                 options=options,

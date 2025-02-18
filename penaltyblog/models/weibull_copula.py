@@ -8,6 +8,212 @@ from scipy.optimize import minimize
 from .football_probability_grid import FootballProbabilityGrid
 
 
+class WeibullCopulaGoalsModel:
+    def __init__(self, goals_home, goals_away, teams_home, teams_away, weights=None):
+        self.goals_home = np.asarray(goals_home, dtype=int)
+        self.goals_away = np.asarray(goals_away, dtype=int)
+        self.teams_home = np.asarray(teams_home, dtype=object)
+        self.teams_away = np.asarray(teams_away, dtype=object)
+        if weights is None:
+            weights = np.ones_like(self.goals_home, dtype=float)
+        self.weights = np.asarray(weights, dtype=float)
+
+        self.teams = np.sort(np.unique(np.concatenate([teams_home, teams_away])))
+        self.n_teams = len(self.teams)
+
+        # Quick guess initialization
+        rng = np.random.default_rng()
+        atk_init = rng.normal(1.0, 0.1, self.n_teams)
+        def_init = rng.normal(-1.0, 0.1, self.n_teams)
+        home_init = np.array([0.5 + rng.normal(0, 0.1)])
+        shape_init = np.array([1.2])
+        kappa_init = np.array([1.5])
+
+        self._params = np.concatenate(
+            [atk_init, def_init, home_init, shape_init, kappa_init]
+        )
+
+        # Pre-map team -> index for faster loops
+        self.team_to_idx = {team: i for i, team in enumerate(self.teams)}
+        self.home_idx = np.vectorize(self.team_to_idx.get)(self.teams_home)
+        self.away_idx = np.vectorize(self.team_to_idx.get)(self.teams_away)
+
+        # Bookkeeping
+        self._res = None
+        self.loglikelihood = None
+        self.aic = None
+        self.n_params = len(self._params)
+        self.fitted = False
+
+        # For reusing the alpha table if shape doesn't change too much
+        self._alpha_cache_shape = None
+        self._alpha_cache_A = None
+
+        # global or user-chosen
+        self.max_goals = 15
+        self.jmax = 25
+
+    def __repr__(self):
+        lines = [
+            "Module: Penaltyblog",
+            "",
+            "Model: Bivariate Weibull Count + Copula",
+            "",
+        ]
+
+        if not self.fitted:
+            lines.append("Status: Model not fitted")
+            return "\n".join(lines)
+
+        lines.extend(
+            [
+                f"Number of parameters: {self.n_params}",
+                f"Log Likelihood: {round(self.loglikelihood, 3)}",
+                f"AIC: {round(self.aic, 3)}",
+                "",
+                "{0: <20} {1:<20} {2:<20}".format("Team", "Attack", "Defence"),
+                "-" * 60,
+            ]
+        )
+
+        for idx, team in enumerate(self.teams):
+            lines.append(
+                "{0: <20} {1:<20} {2:<20}".format(
+                    team,
+                    round(self._params[idx], 3),
+                    round(self._params[idx + self.n_teams], 3),
+                )
+            )
+
+        lines.extend(
+            [
+                "-" * 60,
+                f"Home Advantage: {round(self._params[-3], 3)}",
+                f"Weibull Shape: {round(self._params[-2], 3)}",
+                f"Kappa: {round(self._params[-1], 3)}",
+            ]
+        )
+
+        return "\n".join(lines)
+
+    def _get_alpha_table_for_shape(self, shape):
+        """
+        Return the precomputed alpha table for given shape,
+        caching if repeated calls with same shape.
+        """
+        # You might do exact matches or something more sophisticated if shape changes.
+        # We'll do an exact match for clarity:
+        if self._alpha_cache_shape == shape:
+            return self._alpha_cache_A
+        # else recompute
+        A = precompute_alpha_table(shape, max_goals=self.max_goals, jmax=self.jmax)
+        self._alpha_cache_shape = shape
+        self._alpha_cache_A = A
+        return A
+
+    def _neg_log_likelihood(self, params):
+        # unpack
+        atk = params[: self.n_teams]
+        dfc = params[self.n_teams : 2 * self.n_teams]
+        home_adv = params[-3]
+        shape = params[-2]
+        kappa = params[-1]
+
+        # If shape <= 0 => invalid, penalize
+        if shape <= 0.0:
+            return 1e15
+
+        # Precompute alpha array for this shape
+        A = self._get_alpha_table_for_shape(shape)
+        if A is None:
+            return 1e15  # shape was invalid
+
+        return neg_log_likelihood_numba(
+            self.goals_home,
+            self.goals_away,
+            self.weights,
+            self.home_idx,
+            self.away_idx,
+            atk,
+            dfc,
+            home_adv,
+            shape,
+            kappa,
+            A,
+            self.max_goals,
+        )
+
+    def fit(self):
+        """
+        Fit using L-BFGS-B with some recommended bounds.
+        """
+        # create bounds
+        bnds = []
+        # Attack in [-3,3]
+        for _ in range(self.n_teams):
+            bnds.append((-3, 3))
+        # Defense in [-3,3]
+        for _ in range(self.n_teams):
+            bnds.append((-3, 3))
+        # home advantage in [-2,2]
+        bnds.append((-2, 2))
+        # shape in (0.01, 2.5)
+        bnds.append((1e-2, 2.5))
+        # kappa in [-5,10]
+        bnds.append((-5, 5))
+
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", category=RuntimeWarning)
+
+            res = minimize(
+                self._neg_log_likelihood,
+                x0=self._params,
+                method="L-BFGS-B",
+                bounds=bnds,
+                options={"maxiter": 250, "ftol": 1e-7, "disp": False},
+            )
+
+        self._res = res
+        self._params = res.x
+        self.loglikelihood = -res.fun
+        self.n_params = len(res.x)
+        self.aic = -2.0 * self.loglikelihood + 2.0 * self.n_params
+        self.fitted = True
+        return self
+
+    def predict(self, home_team, away_team, max_goals=15):
+        """
+        Return a matrix of size (max_goals+1, max_goals+1) giving
+        P(X=i, Y=j).
+        """
+        if not self.fitted:
+            raise ValueError("Call fit() first.")
+
+        atk = self._params[: self.n_teams]
+        dfc = self._params[self.n_teams : 2 * self.n_teams]
+        home_adv = self._params[-3]
+        shape = self._params[-2]
+        kappa = self._params[-1]
+
+        # find indexes
+        idx_home = np.where(self.teams == home_team)[0]
+        idx_away = np.where(self.teams == away_team)[0]
+        if len(idx_home) == 0 or len(idx_away) == 0:
+            raise ValueError("Team not in training data.")
+
+        iH, iA = idx_home[0], idx_away[0]
+        lamH = np.exp(home_adv + atk[iH] + dfc[iA])
+        lamA = np.exp(atk[iA] + dfc[iH])
+
+        # precompute alpha table for shape
+        A = self._get_alpha_table_for_shape(shape)
+
+        # get the score matrix
+        score_matrix = predict_score_matrix_numba(lamH, lamA, A, max_goals, kappa)
+
+        return FootballProbabilityGrid(score_matrix, lamH, lamA)
+
+
 @njit
 def gamma_numba(x):
     """
@@ -238,209 +444,3 @@ def predict_score_matrix_numba(lam_home, lam_away, A, max_goals, kappa):
             score_matrix[i, j] = p_ij
 
     return score_matrix
-
-
-class WeibullCopulaGoalsModel:
-    def __init__(self, goals_home, goals_away, teams_home, teams_away, weights=None):
-        self.goals_home = np.asarray(goals_home, dtype=int)
-        self.goals_away = np.asarray(goals_away, dtype=int)
-        self.teams_home = np.asarray(teams_home, dtype=object)
-        self.teams_away = np.asarray(teams_away, dtype=object)
-        if weights is None:
-            weights = np.ones_like(self.goals_home, dtype=float)
-        self.weights = np.asarray(weights, dtype=float)
-
-        self.teams = np.sort(np.unique(np.concatenate([teams_home, teams_away])))
-        self.n_teams = len(self.teams)
-
-        # Quick guess initialization
-        rng = np.random.default_rng()
-        atk_init = rng.normal(1.0, 0.1, self.n_teams)
-        def_init = rng.normal(-1.0, 0.1, self.n_teams)
-        home_init = np.array([0.5 + rng.normal(0, 0.1)])
-        shape_init = np.array([1.2])
-        kappa_init = np.array([1.5])
-
-        self._params = np.concatenate(
-            [atk_init, def_init, home_init, shape_init, kappa_init]
-        )
-
-        # Pre-map team -> index for faster loops
-        self.team_to_idx = {team: i for i, team in enumerate(self.teams)}
-        self.home_idx = np.vectorize(self.team_to_idx.get)(self.teams_home)
-        self.away_idx = np.vectorize(self.team_to_idx.get)(self.teams_away)
-
-        # Bookkeeping
-        self._res = None
-        self.loglikelihood = None
-        self.aic = None
-        self.n_params = len(self._params)
-        self.fitted = False
-
-        # For reusing the alpha table if shape doesn't change too much
-        self._alpha_cache_shape = None
-        self._alpha_cache_A = None
-
-        # global or user-chosen
-        self.max_goals = 15
-        self.jmax = 25
-
-    def __repr__(self):
-        lines = [
-            "Module: Penaltyblog",
-            "",
-            "Model: Bivariate Weibull Count + Copula",
-            "",
-        ]
-
-        if not self.fitted:
-            lines.append("Status: Model not fitted")
-            return "\n".join(lines)
-
-        lines.extend(
-            [
-                f"Number of parameters: {self.n_params}",
-                f"Log Likelihood: {round(self.loglikelihood, 3)}",
-                f"AIC: {round(self.aic, 3)}",
-                "",
-                "{0: <20} {1:<20} {2:<20}".format("Team", "Attack", "Defence"),
-                "-" * 60,
-            ]
-        )
-
-        for idx, team in enumerate(self.teams):
-            lines.append(
-                "{0: <20} {1:<20} {2:<20}".format(
-                    team,
-                    round(self._params[idx], 3),
-                    round(self._params[idx + self.n_teams], 3),
-                )
-            )
-
-        lines.extend(
-            [
-                "-" * 60,
-                f"Home Advantage: {round(self._params[-3], 3)}",
-                f"Weibull Shape: {round(self._params[-2], 3)}",
-                f"Kappa: {round(self._params[-1], 3)}",
-            ]
-        )
-
-        return "\n".join(lines)
-
-    def _get_alpha_table_for_shape(self, shape):
-        """
-        Return the precomputed alpha table for given shape,
-        caching if repeated calls with same shape.
-        """
-        # You might do exact matches or something more sophisticated if shape changes.
-        # We'll do an exact match for clarity:
-        if self._alpha_cache_shape == shape:
-            return self._alpha_cache_A
-        # else recompute
-        A = precompute_alpha_table(shape, max_goals=self.max_goals, jmax=self.jmax)
-        self._alpha_cache_shape = shape
-        self._alpha_cache_A = A
-        return A
-
-    def _neg_log_likelihood(self, params):
-        # unpack
-        atk = params[: self.n_teams]
-        dfc = params[self.n_teams : 2 * self.n_teams]
-        home_adv = params[-3]
-        shape = params[-2]
-        kappa = params[-1]
-
-        # If shape <= 0 => invalid, penalize
-        if shape <= 0.0:
-            return 1e15
-
-        # Precompute alpha array for this shape
-        A = self._get_alpha_table_for_shape(shape)
-        if A is None:
-            return 1e15  # shape was invalid
-
-        return neg_log_likelihood_numba(
-            self.goals_home,
-            self.goals_away,
-            self.weights,
-            self.home_idx,
-            self.away_idx,
-            atk,
-            dfc,
-            home_adv,
-            shape,
-            kappa,
-            A,
-            self.max_goals,
-        )
-
-    def fit(self):
-        """
-        Fit using L-BFGS-B with some recommended bounds.
-        """
-        # create bounds
-        bnds = []
-        # Attack in [-3,3]
-        for _ in range(self.n_teams):
-            bnds.append((-3, 3))
-        # Defense in [-3,3]
-        for _ in range(self.n_teams):
-            bnds.append((-3, 3))
-        # home advantage in [-2,2]
-        bnds.append((-2, 2))
-        # shape in (0.01, 2.5)
-        bnds.append((1e-2, 2.5))
-        # kappa in [-5,10]
-        bnds.append((-5, 5))
-
-        with warnings.catch_warnings():
-            warnings.filterwarnings("ignore", category=RuntimeWarning)
-
-            res = minimize(
-                self._neg_log_likelihood,
-                x0=self._params,
-                method="L-BFGS-B",
-                bounds=bnds,
-                options={"maxiter": 250, "ftol": 1e-7, "disp": False},
-            )
-
-        self._res = res
-        self._params = res.x
-        self.loglikelihood = -res.fun
-        self.n_params = len(res.x)
-        self.aic = -2.0 * self.loglikelihood + 2.0 * self.n_params
-        self.fitted = True
-        return self
-
-    def predict(self, home_team, away_team, max_goals=15):
-        """
-        Return a matrix of size (max_goals+1, max_goals+1) giving
-        P(X=i, Y=j).
-        """
-        if not self.fitted:
-            raise ValueError("Call fit() first.")
-
-        atk = self._params[: self.n_teams]
-        dfc = self._params[self.n_teams : 2 * self.n_teams]
-        home_adv = self._params[-3]
-        shape = self._params[-2]
-        kappa = self._params[-1]
-
-        # find indexes
-        idx_home = np.where(self.teams == home_team)[0]
-        idx_away = np.where(self.teams == away_team)[0]
-        if len(idx_home) == 0 or len(idx_away) == 0:
-            raise ValueError("Team not in training data.")
-
-        iH, iA = idx_home[0], idx_away[0]
-        lamH = np.exp(home_adv + atk[iH] + dfc[iA])
-        lamA = np.exp(atk[iA] + dfc[iH])
-
-        # precompute alpha table for shape
-        A = self._get_alpha_table_for_shape(shape)
-
-        # get the score matrix
-        score_matrix = predict_score_matrix_numba(lamH, lamA, A, max_goals, kappa)
-
-        return FootballProbabilityGrid(score_matrix, lamH, lamA)
