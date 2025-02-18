@@ -30,7 +30,7 @@ def numba_poisson_pmf(lambda_home, lambda_away, max_goals):
 
 
 @njit
-def numba_rho_correction(goals_home, goals_away, lambda_home, lambda_away, rho):
+def numba_rho_correction_llh(goals_home, goals_away, lambda_home, lambda_away, rho):
     # Explicitly define types for Numba
     goals_home = float64(goals_home)
     goals_away = float64(goals_away)

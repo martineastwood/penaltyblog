@@ -10,7 +10,7 @@ from scipy.optimize import minimize
 from scipy.stats import poisson
 
 from .football_probability_grid import FootballProbabilityGrid
-from .utils import numba_poisson_logpmf, numba_rho_correction, rho_correction
+from .utils import numba_poisson_logpmf, numba_rho_correction_llh
 
 
 class DixonColesGoalModel:
@@ -324,7 +324,7 @@ def _numba_neg_log_likelihood(
             numba_poisson_logpmf(goals_home[i], lambda_home)
             + numba_poisson_logpmf(goals_away[i], lambda_away)
             + np.log(
-                numba_rho_correction(
+                numba_rho_correction_llh(
                     goals_home[i], goals_away[i], lambda_home, lambda_away, rho
                 )
             )
