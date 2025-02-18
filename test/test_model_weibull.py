@@ -3,9 +3,8 @@ import pytest
 import penaltyblog as pb
 
 
-def test_poisson_model():
-    fb = pb.scrapers.FootballData("ENG Premier League", "2019-2020")
-    df = fb.get_fixtures()
+def test_poisson_model(fixtures):
+    df = fixtures
 
     clf = pb.models.WeibullCopulaGoalsModel(
         df["goals_home"], df["goals_away"], df["team_home"], df["team_away"]
@@ -23,9 +22,8 @@ def test_poisson_model():
     assert 0.2 < probs.asian_handicap("home", 1.5) < 0.5
 
 
-def test_unfitted_raises_error():
-    fb = pb.scrapers.FootballData("ENG Premier League", "2019-2020")
-    df = fb.get_fixtures()
+def test_unfitted_raises_error(fixtures):
+    df = fixtures
     clf = pb.models.WeibullCopulaGoalsModel(
         df["goals_home"], df["goals_away"], df["team_home"], df["team_away"]
     )
@@ -37,9 +35,8 @@ def test_unfitted_raises_error():
         clf.get_params()
 
 
-def test_unfitted_repr():
-    fb = pb.scrapers.FootballData("ENG Premier League", "2019-2020")
-    df = fb.get_fixtures()
+def test_unfitted_repr(fixtures):
+    df = fixtures
     clf = pb.models.WeibullCopulaGoalsModel(
         df["goals_home"], df["goals_away"], df["team_home"], df["team_away"]
     )

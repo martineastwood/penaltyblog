@@ -18,6 +18,7 @@ v1.1.0 ()
 - Added Pi Ratings System based on http://www.constantinou.info/downloads/papers/pi-ratings.pdf
 - Temporarily removed Stan models from package due to ongoing issues on Windows. Hopefully, I'll find a nicer way to package these up so I can include them again.
 - Temporarily removed Rue and Salvesen model while I revist its implementation (It wasn't the proper model, more of a hydrid Dixon and Coles model With some of Rue and Salvesen's ideas thrown in)
+- Updated models examples in documentation
 
 v1.0.4 (2025-01-10)
 ^^^^^^^^^^^^^^^^^^^^
