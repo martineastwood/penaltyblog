@@ -1,3 +1,9 @@
+"""
+Account module
+
+Used to make and track bets made during the backtest
+"""
+
 from typing import Any, Dict, List
 
 

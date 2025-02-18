@@ -1,3 +1,9 @@
+"""
+Backtest module
+
+Used to backtest different betting strategies.
+"""
+
 from typing import Callable, Optional
 
 import numpy as np
@@ -121,6 +127,7 @@ class Backtest:
 
                 if self.stop_at_negative and self.account.current_bankroll < 0:
                     return None
+        return None
 
     def results(self) -> dict:
         """

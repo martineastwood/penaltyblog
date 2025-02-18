@@ -1,3 +1,9 @@
+"""
+Context object passed into the `logic` and `trainer` functions.
+Contains the account object, lookback data, fixture being processed
+and optionally a trained model
+"""
+
 from typing import Optional
 
 import pandas as pd

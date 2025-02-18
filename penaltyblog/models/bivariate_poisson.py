@@ -1,15 +1,16 @@
-from typing import Any, Optional
+import warnings
 
 import numpy as np
-import pandas as pd
 from numba import njit
+from numpy.typing import NDArray
 from scipy.optimize import minimize
 
+from .base_model import BaseGoalsModel
 from .custom_types import GoalInput, ParamsOutput, TeamInput, WeightInput
 from .football_probability_grid import FootballProbabilityGrid
 
 
-class BivariatePoissonGoalModel:
+class BivariatePoissonGoalModel(BaseGoalsModel):
     """
     Karlis & Ntzoufras Bivariate Poisson for soccer, with:
       X = W1 + W3
@@ -23,7 +24,7 @@ class BivariatePoissonGoalModel:
         goals_away: GoalInput,
         teams_home: TeamInput,
         teams_away: TeamInput,
-        weights: WeightInput = 1,
+        weights: WeightInput = None,
     ):
         """
         Initialises the BivariatePoissonGoalModel class.
@@ -39,19 +40,9 @@ class BivariatePoissonGoalModel:
         teams_away : array_like
             The names of the away teams
         weights : array_like, optional
-            The weights of the matches, by default 1
+            The weights of the matches, by default None
         """
-        self.fixtures = pd.DataFrame(
-            {
-                "goals_home": goals_home,
-                "goals_away": goals_away,
-                "team_home": teams_home,
-                "team_away": teams_away,
-                "weights": weights,
-            }
-        )
-        self.teams = np.sort(np.unique(np.concatenate([teams_home, teams_away])))
-        self.n_teams = len(self.teams)
+        super().__init__(goals_home, goals_away, teams_home, teams_away, weights)
 
         self._params = np.concatenate(
             (
@@ -61,12 +52,6 @@ class BivariatePoissonGoalModel:
                 [0.0],  # correlation_param => lambda3 = exp(0)=1
             )
         )
-
-        self.fitted: bool = False
-        self.aic: Optional[float] = None
-        self._res: Optional[Any] = None
-        self.n_params: Optional[int] = None
-        self.loglikelihood: Optional[float] = None
 
     def __repr__(self) -> str:
         lines = ["Module: Penaltyblog", "", "Model: Bivariate Poisson", ""]
@@ -109,7 +94,7 @@ class BivariatePoissonGoalModel:
 
         return "\n".join(lines)
 
-    def _log_likelihood(self, params, data) -> float:
+    def _loss_function(self, params: NDArray) -> float:
         """
         Computes the negative log-likelihood of the Bivariate Poisson model,
         using:
@@ -127,47 +112,40 @@ class BivariatePoissonGoalModel:
 
         # Compute lambdas
         lambda1 = np.exp(
-            home_adv
-            + attack_params[data["home_idx"]]
-            + defense_params[data["away_idx"]]
+            home_adv + attack_params[self.home_idx] + defense_params[self.away_idx]
         )
-        lambda2 = np.exp(
-            attack_params[data["away_idx"]] + defense_params[data["home_idx"]]
-        )
+        lambda2 = np.exp(attack_params[self.away_idx] + defense_params[self.home_idx])
 
         return _compute_total_likelihood(
-            data["goals_home"],
-            data["goals_away"],
+            self.goals_home,
+            self.goals_away,
             lambda1,
             lambda2,
             lambda3,
-            data["weights"],
-            max(data["goals_home"].max(), data["goals_away"].max()) + 1,
+            self.weights,
+            max(self.goals_home.max(), self.goals_away.max()) + 1,
         )
 
     def fit(self):
         """
         Fits the Bivariate Poisson model to the data.
         """
-        team_to_idx = {team: i for i, team in enumerate(self.teams)}
-        processed_fixtures = {
-            "home_idx": self.fixtures["team_home"].map(team_to_idx).values,
-            "away_idx": self.fixtures["team_away"].map(team_to_idx).values,
-            "goals_home": self.fixtures["goals_home"].values,
-            "goals_away": self.fixtures["goals_away"].values,
-            "weights": self.fixtures["weights"].values,
-        }
-
+        options = {"maxiter": 100, "disp": False}
+        constraints = [
+            {"type": "eq", "fun": lambda x: sum(x[: self.n_teams]) - self.n_teams}
+        ]
         bnds = [(-3, 3)] * (2 * self.n_teams) + [(-2, 2), (-3, 3)]
 
-        self._res = minimize(
-            fun=self._log_likelihood,
-            x0=self._params,
-            args=(processed_fixtures,),
-            bounds=bnds,
-            method="L-BFGS-B",
-            options={"maxiter": 300, "disp": False},
-        )
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            self._res = minimize(
+                self._loss_function,
+                self._params,
+                constraints=constraints,
+                bounds=bnds,
+                options=options,
+                method="L-BFGS-B",
+            )
 
         if not self._res.success:
             raise ValueError(f"Optimization failed with message: {self._res.message}")

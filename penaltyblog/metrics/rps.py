@@ -1,3 +1,9 @@
+"""
+Ranked Probability Score
+
+Calculates the Ranked Probability Score (RPS) for a given set of probabilities and outcomes.
+"""
+
 import numpy as np
 
 

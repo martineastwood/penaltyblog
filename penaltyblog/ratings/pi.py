@@ -1,9 +1,20 @@
+"""
+Pi Rating System
+
+Calculates the Pi ratings for a group of teams.
+"""
+
 from typing import Any, Dict, List
 
 from scipy.stats import norm
 
 
 class PiRatingSystem:
+    """
+    Pi-Rating system parameters based on
+    http://www.constantinou.info/downloads/papers/pi-ratings.pdf
+    """
+
     def __init__(
         self,
         alpha: float = 0.15,
@@ -118,26 +129,3 @@ class PiRatingSystem:
             print(
                 f"{team}: Home = {ratings['home']:.2f}, Away = {ratings['away']:.2f}, Average = {self.get_team_rating(team):.2f}"
             )
-
-
-# Example usage
-# pi_rating = PiRatingSystem()
-
-# # Simulated match results: (home_team, away_team, home_goals - away_goals)
-# match_results = [
-#     ("Team A", "Team B", 2),
-#     ("Team B", "Team C", -1),
-#     ("Team C", "Team A", 0),
-#     ("Team A", "Team B", 1),
-# ]
-
-# # Process match results
-# for home_team, away_team, goal_diff in match_results:
-#     pi_rating.update_ratings(home_team, away_team, goal_diff)
-
-# # Display the final ratings
-# pi_rating.display_ratings()
-
-# # Calculate and display match probabilities
-# probabilities = pi_rating.calculate_match_probabilities("Team A", "Team B")
-# print(f"Probabilities - Home Win: {probabilities['home_win']:.2%}, Draw: {probabilities['draw']:.2%}, Away Win: {probabilities['away_win']:.2%}")

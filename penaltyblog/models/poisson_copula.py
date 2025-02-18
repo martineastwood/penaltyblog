@@ -5,12 +5,13 @@ import numpy as np
 from scipy.optimize import minimize
 from scipy.stats import poisson
 
+from .base_model import BaseGoalsModel
 from .custom_types import GoalInput, ParamsOutput, TeamInput, WeightInput
 from .football_probability_grid import FootballProbabilityGrid
 from .numba_helpers import frank_copula_pdf
 
 
-class PoissonCopulaGoalsModel:
+class PoissonCopulaGoalsModel(BaseGoalsModel):
     """
     Poisson Copula model for predicting outcomes of football (soccer) matches
     Methods
@@ -32,7 +33,7 @@ class PoissonCopulaGoalsModel:
         goals_away: GoalInput,
         teams_home: TeamInput,
         teams_away: TeamInput,
-        weights: WeightInput = 1,
+        weights: WeightInput = None,
     ):
         """
         Poisson Copula model for predicting outcomes of football (soccer) matches
@@ -50,14 +51,7 @@ class PoissonCopulaGoalsModel:
         weights : array_like, optional
             The weight of each match (default is 1)
         """
-        self.goals_home = np.array(goals_home, dtype=int)
-        self.goals_away = np.array(goals_away, dtype=int)
-        self.teams_home = np.array(teams_home)
-        self.teams_away = np.array(teams_away)
-        self.weights = np.array(weights)
-
-        self.teams = np.sort(np.unique(np.concatenate([teams_home, teams_away])))
-        self.n_teams = len(self.teams)
+        super().__init__(goals_home, goals_away, teams_home, teams_away, weights)
 
         self._params = np.concatenate(
             (
@@ -67,12 +61,6 @@ class PoissonCopulaGoalsModel:
                 [0.5],  # Frank copula parameter (kappa)
             )
         )
-
-        self.fitted: bool = False
-        self.aic: Optional[float] = None
-        self._res: Optional[Any] = None
-        self.n_params: Optional[int] = None
-        self.loglikelihood: Optional[float] = None
 
     def __repr__(self) -> str:
         lines = ["Module: Penaltyblog", "", "Model: Poisson + Copula", ""]
@@ -115,7 +103,7 @@ class PoissonCopulaGoalsModel:
 
         return "\n".join(lines)
 
-    def _neg_log_likelihood(self, params):
+    def _loss_function(self, params):
         """
         Negative log-likelihood function for the Poisson Copula model.
 
@@ -169,7 +157,7 @@ class PoissonCopulaGoalsModel:
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             self._res = minimize(
-                self._neg_log_likelihood,
+                self._loss_function,
                 self._params,
                 constraints=constraints,
                 bounds=bounds,

@@ -1,3 +1,9 @@
+"""
+Kelly Criterion
+
+Calculates the Kelly Criterion for a given set of odds and probabilities.
+"""
+
 from typing import Union
 
 import numpy as np

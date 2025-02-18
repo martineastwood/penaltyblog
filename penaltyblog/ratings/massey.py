@@ -1,3 +1,9 @@
+"""
+Massey Rating System
+
+Calculates the Massey ratings for a group of teams.
+"""
+
 from typing import Sequence, Union
 
 import numpy as np
@@ -5,7 +11,7 @@ import pandas as pd
 from numpy.typing import NDArray
 
 
-class Massey:
+class Massey:  # pylint: disable=too-few-public-methods
     """
     Calculates each team's Massey ratings
 
@@ -31,6 +37,18 @@ class Massey:
         teams_home: Sequence[str],
         teams_away: Sequence[str],
     ):
+        """
+        Parameters
+        ----------
+        goals_home : array-like
+            List of goals scored by the home teams
+        goals_away : array-like
+            List of goals scored by the away teams
+        teams_home : array-like
+            List of names of the home teams
+        teams_away : array-like
+            List of names of the away teams
+        """
         self.goals_home = goals_home
         self.goals_away = goals_away
         self.teams_home = teams_home
@@ -53,14 +71,14 @@ class Massey:
         fixtures["goals_home"] = fixtures["goals_home"].astype(int)
         fixtures["goals_away"] = fixtures["goals_away"].astype(int)
 
-        M = _build_m(fixtures, teams)
+        m = _build_m(fixtures, teams)
         p = _build_p(fixtures, teams)
-        r = _solve_ratings(M, p)
+        r = _solve_ratings(m, p)
 
         t = _build_t(fixtures, teams)
         f = _build_f(fixtures, teams)
-        Tr_f = (np.diag(t) * r) - f
-        d = _solve_d(t, Tr_f)
+        tr_f = (np.diag(t) * r) - f
+        d = _solve_d(t, tr_f)
         o = r - d
 
         res = pd.DataFrame([teams, r, o, d]).T
@@ -72,31 +90,26 @@ class Massey:
 
 def _build_m(fixtures, teams):
     n_teams = len(teams)
-    M = np.zeros([n_teams, n_teams])
+    m = np.zeros([n_teams, n_teams])
     for _, row in fixtures.iterrows():
         h = np.where(teams == row["team_home"])[0][0]
         a = np.where(teams == row["team_away"])[0][0]
 
-        M[h, a] = M[h, a] - 1
-        M[a, h] = M[a, h] - 1
+        m[h, a] = m[h, a] - 1
+        m[a, h] = m[a, h] - 1
 
-    for i in range(len(M)):
-        M[i, i] = np.abs(
-            np.sum(
-                M[
-                    i,
-                ]
-            )
-        )
+    for i in range(len(m)):
+        m[i, i] = np.abs(np.sum(m[i,]))
 
-    M = np.vstack((M, [1 for x in range(n_teams)]))
+    m = np.vstack((m, [1 for x in range(n_teams)]))
 
-    return M
+    return m
 
 
 def _build_p(fixtures, teams):
-    p = list()
+    p = []
     for team in teams:
+        _ = team  # keeps pylint happy
         home = fixtures.query("team_home == @team")
         away = fixtures.query("team_away == @team")
 
@@ -109,13 +122,13 @@ def _build_p(fixtures, teams):
     return p
 
 
-def _solve_ratings(M, p):
-    ratings = np.linalg.lstsq(M, p, rcond=None)[0]
+def _solve_ratings(m, p):
+    ratings = np.linalg.lstsq(m, p, rcond=None)[0]
     return ratings
 
 
-def _solve_d(t, Tr_f):
-    ratings = np.linalg.lstsq(t, Tr_f, rcond=None)[0]
+def _solve_d(t, tr_f):
+    ratings = np.linalg.lstsq(t, tr_f, rcond=None)[0]
     return ratings
 
 
@@ -131,18 +144,15 @@ def _build_t(fixtures, teams):
         t[a, h] = t[a, h] + 1
 
     for i in range(len(t)):
-        t[i, i] = np.sum(
-            t[
-                i,
-            ]
-        )
+        t[i, i] = np.sum(t[i,])
 
     return t
 
 
 def _build_f(fixtures, teams):
-    f = list()
+    f = []
     for team in teams:
+        _ = team  # keeps pylint happy
         home = fixtures.query("team_home == @team")
         away = fixtures.query("team_away == @team")
         goals_for = home["goals_home"].sum() + away["goals_away"].sum()

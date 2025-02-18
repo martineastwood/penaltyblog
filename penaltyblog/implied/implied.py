@@ -1,3 +1,9 @@
+"""
+Implied Probabilities
+
+Calculates the implied probabilities for a given set of odds.
+"""
+
 from typing import Any, Dict, List
 
 import numpy as np

@@ -5,24 +5,29 @@ import numpy as np
 from numba import njit
 from scipy.optimize import minimize
 
+from .base_model import BaseGoalsModel
 from .football_probability_grid import FootballProbabilityGrid
 
 
-class ZeroInflatedPoissonGoalsModel:
-    def __init__(self, goals_home, goals_away, teams_home, teams_away, weights=1):
-        self.goals_home = np.array(goals_home, dtype=int)
-        self.goals_away = np.array(goals_away, dtype=int)
-        self.teams_home = np.array(teams_home)
-        self.teams_away = np.array(teams_away)
-        self.weights = np.array(weights)
+class ZeroInflatedPoissonGoalsModel(BaseGoalsModel):
+    def __init__(self, goals_home, goals_away, teams_home, teams_away, weights=None):
+        """
+        Initialises the ZeroInflatedPoissonGoalsModel class.
 
-        try:
-            len(self.weights)
-        except:
-            self.weights = np.ones_like(self.goals_home)
-
-        self.teams = np.sort(np.unique(np.concatenate([teams_home, teams_away])))
-        self.n_teams = len(self.teams)
+        Parameters
+        ----------
+        goals_home : array_like
+            The number of goals scored by the home team
+        goals_away : array_like
+            The number of goals scored by the away team
+        teams_home : array_like
+            The names of the home teams
+        teams_away : array_like
+            The names of the away teams
+        weights : array_like, optional
+            The weights of the matches, by default None
+        """
+        super().__init__(goals_home, goals_away, teams_home, teams_away, weights)
 
         self._params = np.concatenate(
             (
@@ -32,19 +37,6 @@ class ZeroInflatedPoissonGoalsModel:
                 [0.1],  # Zero-inflation probability (logit scale)
             )
         )
-
-        self._res = None
-        self.loglikelihood = None
-        self.aic = None
-        self.n_params = None
-        self.fitted = False
-
-        # Precompute team index mapping for performance improvement
-        self.team_to_idx = {team: i for i, team in enumerate(self.teams)}
-
-        # Convert team names to indices for fast lookup
-        self.home_idx = np.array([self.team_to_idx[t] for t in self.teams_home])
-        self.away_idx = np.array([self.team_to_idx[t] for t in self.teams_away])
 
     def __repr__(self):
         lines = ["Module: Penaltyblog", "", "Model: Zero-inflated Poisson", ""]
@@ -83,7 +75,7 @@ class ZeroInflatedPoissonGoalsModel:
 
         return "\n".join(lines)
 
-    def _neg_log_likelihood(self, params):
+    def _loss_function(self, params):
         """Negative Log-Likelihood optimized with Numba"""
 
         return _numba_neg_log_likelihood_zip(
@@ -108,7 +100,7 @@ class ZeroInflatedPoissonGoalsModel:
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             self._res = minimize(
-                self._neg_log_likelihood,
+                self._loss_function,
                 self._params,
                 constraints=constraints,
                 bounds=bounds,

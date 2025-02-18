@@ -1,3 +1,9 @@
+"""
+Colley Rating System
+
+Calculates the Colley ratings for a group of teams.
+"""
+
 from typing import Sequence, Union
 
 import numpy as np
@@ -5,7 +11,7 @@ import pandas as pd
 from numpy.typing import NDArray
 
 
-class Colley:
+class Colley:  # pylint: disable=too-few-public-methods
     """
     Calculates each team's Colley ratings
 
@@ -62,9 +68,9 @@ class Colley:
             self.goals_home, self.goals_away, self.teams_home, self.teams_away
         )
 
-        C, b = _build_C_b(fixtures, teams, self.include_draws, self.draw_weight)
+        c, b = _build_c_b(fixtures, teams, self.include_draws, self.draw_weight)
 
-        r = _solve_r(C, b)
+        r = _solve_r(c, b)
         r = pd.DataFrame([teams, r]).T
         r.columns = ["team", "rating"]
         r = r.sort_values("rating", ascending=False)
@@ -81,22 +87,22 @@ def _build_fixtures(goals_home, goals_away, teams_home, teams_away):
     return fixtures
 
 
-def _solve_r(C, b):
-    r = np.linalg.solve(C, b)
+def _solve_r(c, b):
+    r = np.linalg.solve(c, b)
     return r
 
 
-def _build_C_b(fixtures, teams, include_draws, draw_weight):
+def _build_c_b(fixtures, teams, include_draws, draw_weight):
     n_teams = len(teams)
-    C = np.zeros([n_teams, n_teams])
+    c = np.zeros([n_teams, n_teams])
     b = np.zeros([n_teams])
 
     for _, row in fixtures.iterrows():
         h = np.where(teams == row["team_home"])[0][0]
         a = np.where(teams == row["team_away"])[0][0]
 
-        C[h, a] = C[h, a] - 1
-        C[a, h] = C[a, h] - 1
+        c[h, a] = c[h, a] - 1
+        c[a, h] = c[a, h] - 1
 
         if row["goals_home"] > row["goals_away"]:
             b[h] += 1
@@ -111,7 +117,7 @@ def _build_C_b(fixtures, teams, include_draws, draw_weight):
                 b[h] += draw_weight
                 b[a] += draw_weight
 
-    np.fill_diagonal(C, np.abs(C.sum(axis=1)) + 2)
+    np.fill_diagonal(c, np.abs(c.sum(axis=1)) + 2)
     b = 1 + b * 0.5
 
-    return C, b
+    return c, b

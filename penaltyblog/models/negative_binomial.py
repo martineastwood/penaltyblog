@@ -1,13 +1,15 @@
+import warnings
+
 import numpy as np
-import pandas as pd
 from scipy.optimize import minimize
 from scipy.stats import nbinom
 
+from .base_model import BaseGoalsModel
 from .custom_types import GoalInput, ParamsOutput, TeamInput, WeightInput
 from .football_probability_grid import FootballProbabilityGrid
 
 
-class NegativeBinomialGoalModel:
+class NegativeBinomialGoalModel(BaseGoalsModel):
     """
     Negative Binomial model for predicting outcomes of football (soccer) matches
     handling overdispersion in goal data.
@@ -31,7 +33,7 @@ class NegativeBinomialGoalModel:
         goals_away: GoalInput,
         teams_home: TeamInput,
         teams_away: TeamInput,
-        weights: WeightInput = 1,
+        weights: WeightInput = None,
     ):
         """
         Initialises the NegativeBinomialGoalModel class.
@@ -47,29 +49,13 @@ class NegativeBinomialGoalModel:
         teams_away : array_like
             The names of the away teams
         weights : array_like, optional
-            The weights of the matches, by default 1
+            The weights of the matches, by default None
         """
-        self.fixtures = pd.DataFrame(
-            {
-                "goals_home": goals_home,
-                "goals_away": goals_away,
-                "team_home": teams_home,
-                "team_away": teams_away,
-                "weights": weights,
-            }
-        )
-        self.teams = np.sort(np.unique(np.concatenate([teams_home, teams_away])))
-        self.n_teams = len(self.teams)
+        super().__init__(goals_home, goals_away, teams_home, teams_away, weights)
 
         self._params = np.concatenate(
             ([1] * self.n_teams, [-1] * self.n_teams, [0.25], [0.1])
         )  # Home advantage and dispersion parameter
-
-        self._res = None
-        self.fitted = False
-        self.aic = None
-        self.n_params = None
-        self.loglikelihood = None
 
     def __repr__(self):
         lines = ["Module: Penaltyblog", "", "Model: Negative Binomial", ""]
@@ -108,7 +94,7 @@ class NegativeBinomialGoalModel:
 
         return "\n".join(lines)
 
-    def _neg_binomial_log_likelihood(self, params, data, n_teams) -> float:
+    def _loss_function(self, params) -> float:
         """
         Calculates the negative log-likelihood of the Negative Binomial model.
 
@@ -126,27 +112,24 @@ class NegativeBinomialGoalModel:
         float
             The negative log-likelihood of the Negative Binomial model
         """
-        attack_params = params[:n_teams]
-        defence_params = params[n_teams : n_teams * 2]
+        attack_params = params[: self.n_teams]
+        defence_params = params[self.n_teams : self.n_teams * 2]
         home_adv, dispersion = params[-2:]
 
-        home_idx = data["home_idx"]
-        away_idx = data["away_idx"]
-        goals_home = data["goals_home"]
-        goals_away = data["goals_away"]
-
         lambda_home = np.exp(
-            home_adv + attack_params[home_idx] + defence_params[away_idx]
+            home_adv + attack_params[self.home_idx] + defence_params[self.away_idx]
         )
-        lambda_away = np.exp(attack_params[away_idx] + defence_params[home_idx])
+        lambda_away = np.exp(
+            attack_params[self.away_idx] + defence_params[self.home_idx]
+        )
 
         dispersion = np.clip(dispersion, 1e-5, None)
 
         home_ll = nbinom.logpmf(
-            goals_home, dispersion, dispersion / (dispersion + lambda_home)
+            self.goals_home, dispersion, dispersion / (dispersion + lambda_home)
         )
         away_ll = nbinom.logpmf(
-            goals_away, dispersion, dispersion / (dispersion + lambda_away)
+            self.goals_away, dispersion, dispersion / (dispersion + lambda_away)
         )
 
         log_likelihood = home_ll + away_ll
@@ -154,29 +137,23 @@ class NegativeBinomialGoalModel:
         if np.any(np.isnan(log_likelihood)) or np.any(np.isinf(log_likelihood)):
             return np.inf
 
-        return -np.sum(log_likelihood * data["weights"])
+        return -np.sum(log_likelihood * self.weights)
 
     def fit(self):
         """
         Fits the Negative Binomial model to the data.
         """
-        team_to_idx = {team: idx for idx, team in enumerate(self.teams)}
-        processed_fixtures = {
-            "home_idx": self.fixtures["team_home"].map(team_to_idx).values,
-            "away_idx": self.fixtures["team_away"].map(team_to_idx).values,
-            "goals_home": self.fixtures["goals_home"].values,
-            "goals_away": self.fixtures["goals_away"].values,
-            "weights": self.fixtures["weights"].values,
-        }
-
         options = {"maxiter": 500, "disp": False}
         bounds = [(-2, 2)] * self.n_teams * 2 + [(-4, 4), (1e-5, 1000)]
+        constraints = [
+            {"type": "eq", "fun": lambda x: sum(x[: self.n_teams]) - self.n_teams}
+        ]
 
         self._res = minimize(
-            self._neg_binomial_log_likelihood,
+            self._loss_function,
             self._params,
-            args=(processed_fixtures, self.n_teams),
             bounds=bounds,
+            constraints=constraints,
             method="L-BFGS-B",
             options=options,
         )
