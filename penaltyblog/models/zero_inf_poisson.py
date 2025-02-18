@@ -155,8 +155,8 @@ class ZeroInflatedPoissonGoalsModel:
         away_attack = self._params[away_idx]
         home_defense = self._params[home_idx + self.n_teams]
         away_defense = self._params[away_idx + self.n_teams]
-        home_advantage = self._params[-2]  # Second last parameter (home advantage)
-        zero_inflation = self._params[-1]  # Last parameter (zero-inflation)
+        home_advantage = self._params[-2]
+        zero_inflation = self._params[-1]
 
         # Compute expected goals
         lambda_home = np.exp(home_advantage + home_attack + away_defense)
@@ -214,8 +214,8 @@ def _numba_neg_log_likelihood_zip(
     """Optimized negative log-likelihood function for Zero-Inflated Poisson using Numba"""
     attack_params = params[:n_teams]
     defense_params = params[n_teams : 2 * n_teams]
-    home_advantage = params[-2]  # Second last parameter
-    zero_inflation = params[-1]  # Last parameter
+    home_advantage = params[-2]
+    zero_inflation = params[-1]
 
     n_matches = len(goals_home)
     log_likelihood = 0.0

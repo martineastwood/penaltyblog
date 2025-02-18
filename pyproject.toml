@@ -26,6 +26,7 @@ dependencies = [
     "lxml",
     "html5lib",
     "ipywidgets",
+    "numba",
     "numpy",
     "pandas",
     "PuLP",
