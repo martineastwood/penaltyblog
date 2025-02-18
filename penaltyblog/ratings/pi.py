@@ -1,3 +1,5 @@
+from typing import Any, Dict, List
+
 from scipy.stats import norm
 
 
@@ -23,8 +25,8 @@ class PiRatingSystem:
         self.beta = beta
         self.k = k
         self.sigma = sigma
-        self.team_ratings = {}
-        self.rating_history = []
+        self.team_ratings: Dict[str, Dict[str, float]] = {}
+        self.rating_history: List[Dict[str, Any]] = []
 
     def initialize_team(self, team: str):
         """Initialize a team with a home and away rating of 0 if not already present."""

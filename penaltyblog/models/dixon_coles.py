@@ -1,5 +1,6 @@
 import warnings
 from math import exp
+from typing import Any, Optional
 
 import numpy as np
 from numba import njit
@@ -85,11 +86,11 @@ class DixonColesGoalModel:
         self.home_idx = np.array([self.team_to_idx[t] for t in self.teams_home])
         self.away_idx = np.array([self.team_to_idx[t] for t in self.teams_away])
 
-        self._res = None
-        self.loglikelihood = None
-        self.aic = None
-        self.n_params = None
-        self.fitted = False
+        self.fitted: bool = False
+        self.aic: Optional[float] = None
+        self._res: Optional[Any] = None
+        self.n_params: Optional[int] = None
+        self.loglikelihood: Optional[float] = None
 
     def __repr__(self) -> str:
         lines = ["Module: Penaltyblog", "", "Model: Dixon and Coles", ""]
@@ -97,6 +98,10 @@ class DixonColesGoalModel:
         if not self.fitted:
             lines.append("Status: Model not fitted")
             return "\n".join(lines)
+
+        assert self.aic is not None
+        assert self.loglikelihood is not None
+        assert self.n_params is not None
 
         lines.extend(
             [
@@ -273,6 +278,9 @@ class DixonColesGoalModel:
             raise ValueError(
                 "Model's parameters have not been fit yet, please call the `fit()` function first"
             )
+
+        assert self.n_params is not None
+        assert self._res is not None
 
         params = dict(
             zip(

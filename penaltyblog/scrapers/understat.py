@@ -1,5 +1,6 @@
 import json
 import re
+from typing import Any, Dict
 
 import pandas as pd
 from lxml import html
@@ -91,7 +92,9 @@ class Understat(RequestsScraper):
                 script = str(script.encode(), "unicode-escape")
                 script = re.match(
                     r"var datesData = JSON\.parse\('(?P<json>.*?)'\)", script
-                ).group("json")
+                )
+                if script is not None:
+                    script = script.group("json")
                 events = json.loads(script)
                 break
 
@@ -103,7 +106,7 @@ class Understat(RequestsScraper):
             if not e["isResult"]:
                 continue
 
-            tmp = dict()
+            tmp: dict[str, Any] = dict()
             tmp["understat_id"] = str(e["id"])
             tmp["datetime"] = e["datetime"]
             tmp["team_home"] = e["h"]["title"]
@@ -153,7 +156,9 @@ class Understat(RequestsScraper):
                 script = str(script.encode(), "unicode-escape")
                 script = re.match(
                     r"var shotsData = JSON\.parse\('(?P<json>.*?)'\)", script
-                ).group("json")
+                )
+                if script is not None:
+                    script = script.group("json")
                 events = json.loads(script)
                 break
 
@@ -213,7 +218,9 @@ class Understat(RequestsScraper):
                 match_info = "match_info" + script.split(" match_info")[1]
                 script = re.match(
                     r"match_info = JSON\.parse\('(?P<json>.*?)'\)", match_info
-                ).group("json")
+                )
+                if script is not None:
+                    script = script.group("json")
                 events = json.loads(script)
                 break
 
@@ -278,7 +285,9 @@ class Understat(RequestsScraper):
                 script = str(script.encode(), "unicode-escape")
                 script = re.match(
                     r"var groupsData = JSON\.parse\('(?P<json>.*?)'\)", script
-                ).group("json")
+                )
+                if script is not None:
+                    script = script.group("json")
                 events = json.loads(script)
                 break
 
@@ -315,9 +324,13 @@ class Understat(RequestsScraper):
                 script = s.text
                 script = " ".join(script.split())
                 script = str(script.encode(), "unicode-escape")
+                if script is None:
+                    raise ValueError("Failed to parse script data")
                 script = re.match(
                     r"var shotsData = JSON\.parse\('(?P<json>.*?)'\)", script
-                ).group("json")
+                )
+                if script is not None:
+                    script = script.group("json")
                 events = json.loads(script)
                 break
 

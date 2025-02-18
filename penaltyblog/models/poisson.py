@@ -1,5 +1,6 @@
 import warnings
 from math import exp
+from typing import Any, Optional
 
 import numpy as np
 from numba import njit
@@ -73,11 +74,11 @@ class PoissonGoalsModel:
             )
         )
 
-        self._res = None
-        self.loglikelihood = None
-        self.aic = None
-        self.n_params = None
-        self.fitted = False
+        self.fitted: bool = False
+        self.aic: Optional[float] = None
+        self._res: Optional[Any] = None
+        self.n_params: Optional[int] = None
+        self.loglikelihood: Optional[float] = None
 
         # Precompute team index mapping for performance improvement
         self.team_to_idx = {team: i for i, team in enumerate(self.teams)}
@@ -92,6 +93,10 @@ class PoissonGoalsModel:
         if not self.fitted:
             lines.append("Status: Model not fitted")
             return "\n".join(lines)
+
+        assert self.aic is not None
+        assert self.loglikelihood is not None
+        assert self.n_params is not None
 
         lines.extend(
             [
@@ -218,6 +223,8 @@ class PoissonGoalsModel:
             raise ValueError(
                 "Model's parameters have not been fit yet. Call `fit()` first."
             )
+
+        assert self.n_params is not None
 
         params = dict(
             zip(

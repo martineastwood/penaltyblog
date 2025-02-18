@@ -5,7 +5,7 @@ def rps(probs: np.ndarray, outcome: int) -> float:
     """
     Calculate the Ranked Probability Score
     """
-    if not np.isscalar(outcome):
+    if not isinstance(outcome, (int, np.integer)):
         raise TypeError("outcome must be an integer")
 
     probs = np.asarray(probs, dtype=np.float64)

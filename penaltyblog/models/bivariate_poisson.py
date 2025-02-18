@@ -1,8 +1,9 @@
+from typing import Any, Optional
+
 import numpy as np
 import pandas as pd
 from numba import njit
 from scipy.optimize import minimize
-from scipy.stats import poisson
 
 from .custom_types import GoalInput, ParamsOutput, TeamInput, WeightInput
 from .football_probability_grid import FootballProbabilityGrid
@@ -61,11 +62,11 @@ class BivariatePoissonGoalModel:
             )
         )
 
-        self.fitted = False
-        self.aic = None
-        self._res = None
-        self.n_params = None
-        self.loglikelihood = None
+        self.fitted: bool = False
+        self.aic: Optional[float] = None
+        self._res: Optional[Any] = None
+        self.n_params: Optional[int] = None
+        self.loglikelihood: Optional[float] = None
 
     def __repr__(self) -> str:
         lines = ["Module: Penaltyblog", "", "Model: Bivariate Poisson", ""]
@@ -73,6 +74,10 @@ class BivariatePoissonGoalModel:
         if not self.fitted:
             lines.append("Status: Model not fitted")
             return "\n".join(lines)
+
+        assert self.aic is not None
+        assert self.loglikelihood is not None
+        assert self.n_params is not None
 
         lines.extend(
             [
@@ -309,7 +314,7 @@ def _compute_total_likelihood(
         like_ij = max(like_ij, 1e-10)
         log_likelihoods[i] = weights[i] * np.log(like_ij)
 
-    return -np.sum(log_likelihoods)
+    return float(-np.sum(log_likelihoods))
 
 
 @njit

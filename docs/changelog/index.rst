@@ -7,7 +7,7 @@ Version Numbering
 `penaltyblog` follows the SemVer versioning guidelines. For more information,
 see `semver.org <http://semver.org/>`_
 
-v1.1.0 ()
+v1.1.0 (xxxxx)
 ^^^^^^^^^^^^^^^^^^^^
 - Refactored Dixon and Coles goals model to fit ~20x faster
 - Refactored Poisson goals model to fit ~20x faster
@@ -19,6 +19,7 @@ v1.1.0 ()
 - Temporarily removed Stan models from package due to ongoing issues on Windows. Hopefully, I'll find a nicer way to package these up so I can include them again.
 - Temporarily removed Rue and Salvesen model while I revist its implementation (It wasn't the proper model, more of a hydrid Dixon and Coles model With some of Rue and Salvesen's ideas thrown in)
 - Updated models examples in documentation
+- Improved typehints to make mypy happier
 
 v1.0.4 (2025-01-10)
 ^^^^^^^^^^^^^^^^^^^^

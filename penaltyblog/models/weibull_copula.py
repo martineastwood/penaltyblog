@@ -1,5 +1,6 @@
 import math
 import warnings
+from typing import Any, Optional
 
 import numpy as np
 from numba import njit
@@ -80,11 +81,11 @@ class WeibullCopulaGoalsModel:
         self.away_idx = np.vectorize(self.team_to_idx.get)(self.teams_away)
 
         # Bookkeeping
-        self._res = None
-        self.loglikelihood = None
-        self.aic = None
-        self.n_params = len(self._params)
-        self.fitted = False
+        self.fitted: bool = False
+        self.aic: Optional[float] = None
+        self._res: Optional[Any] = None
+        self.n_params: Optional[int] = len(self._params)
+        self.loglikelihood: Optional[float] = None
 
         # For reusing the alpha table if shape doesn't change too much
         self._alpha_cache_shape = None
@@ -105,6 +106,10 @@ class WeibullCopulaGoalsModel:
         if not self.fitted:
             lines.append("Status: Model not fitted")
             return "\n".join(lines)
+
+        assert self.aic is not None
+        assert self.loglikelihood is not None
+        assert self.n_params is not None
 
         lines.extend(
             [
@@ -137,7 +142,7 @@ class WeibullCopulaGoalsModel:
 
         return "\n".join(lines)
 
-    def _get_alpha_table_for_shape(self, shape) -> NDArray:
+    def _get_alpha_table_for_shape(self, shape) -> Optional[NDArray]:
         """
         Return the precomputed alpha table for given shape,
         caching if repeated calls with same shape.
@@ -146,6 +151,7 @@ class WeibullCopulaGoalsModel:
         # We'll do an exact match for clarity:
         if self._alpha_cache_shape == shape:
             return self._alpha_cache_A
+
         # else recompute
         A = precompute_alpha_table(shape, max_goals=self.max_goals, jmax=self.jmax)
         self._alpha_cache_shape = shape
@@ -275,6 +281,8 @@ class WeibullCopulaGoalsModel:
         """
         if not self.fitted:
             raise ValueError("Model is not yet fitted. Call `.fit()` first.")
+
+        assert self.n_params is not None
 
         # Construct dictionary
         param_names = (

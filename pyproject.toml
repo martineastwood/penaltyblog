@@ -73,6 +73,7 @@ dev = [
     "jupyterlab>=3.4.4",
     "jupyterlab-code-formatter>=1.5.2",
     "setuptools>=75.6.0",
+    "types-requests>=2.28.11",
 ]
 
 [tool.coverage.paths]
@@ -91,3 +92,6 @@ profile = "black"
 src_paths = ["penaltyblog", "tests"]
 include_trailing_comma = true
 line_length = 79
+
+[tool.mypy]
+ignore_missing_imports = true
