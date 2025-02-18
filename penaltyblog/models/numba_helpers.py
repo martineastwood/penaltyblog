@@ -44,7 +44,7 @@ def numba_rho_correction_llh(goals_home, goals_away, lambda_home, lambda_away, r
 
 
 @njit()
-def frank_copula_pdf(u, v, kappa) -> NDArray:
+def frank_copula_pdf(u: NDArray, v: NDArray, kappa: float) -> NDArray:
     """
     Computes the Frank copula probability density function with numerical stability.
     """
