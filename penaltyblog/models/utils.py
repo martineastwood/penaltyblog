@@ -2,7 +2,7 @@ from math import exp, lgamma, log
 
 import numpy as np
 import pandas as pd
-from numba import njit
+from numba import float64, njit
 from numpy.typing import NDArray
 
 
@@ -27,6 +27,24 @@ def numba_poisson_pmf(lambda_home, lambda_away, max_goals):
         away_goals_vector[g] = exp(numba_poisson_logpmf(g, lambda_away))
 
     return home_goals_vector, away_goals_vector
+
+
+@njit
+def numba_rho_correction(goals_home, goals_away, lambda_home, lambda_away, rho):
+    # Explicitly define types for Numba
+    goals_home = float64(goals_home)
+    goals_away = float64(goals_away)
+    lambda_home = float64(lambda_home)
+    lambda_away = float64(lambda_away)
+    rho = float64(rho)
+
+    return (
+        1.0
+        + (goals_home == 0 and goals_away == 0) * rho
+        - (goals_home == 0 and goals_away == 1) * rho
+        - (goals_home == 1 and goals_away == 0) * rho
+        + (goals_home == 1 and goals_away == 1) * rho
+    )
 
 
 def rho_correction_vec(df: pd.DataFrame) -> NDArray:

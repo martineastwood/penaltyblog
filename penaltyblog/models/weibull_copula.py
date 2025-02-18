@@ -240,9 +240,6 @@ def predict_score_matrix_numba(lam_home, lam_away, A, max_goals, kappa):
     return score_matrix
 
 
-###################################
-# 3. MAIN MODEL CLASS
-###################################
 class WeibullCopulaGoalsModel:
     def __init__(self, goals_home, goals_away, teams_home, teams_away, weights=None):
         self.goals_home = np.asarray(goals_home, dtype=int)

@@ -1,15 +1,16 @@
-import collections.abc
 import warnings
+from math import exp
 from typing import Dict
 
 import numpy as np
 import pandas as pd
+from numba import njit
 from numpy.typing import NDArray
 from scipy.optimize import minimize
 from scipy.stats import poisson
 
 from .football_probability_grid import FootballProbabilityGrid
-from .utils import rho_correction_vec
+from .utils import numba_poisson_logpmf, numba_rho_correction, rho_correction
 
 
 class DixonColesGoalModel:
@@ -115,31 +116,15 @@ class DixonColesGoalModel:
         """
         Internal method, not to called directly by the user
         """
-        """Internal method, not to called directly by the user"""
-        # Extract all needed parameters and data at once
-        attack_params = params[:n_teams]
-        defence_params = params[n_teams : n_teams * 2]
-        hfa, rho = params[-2:]
-
-        goals_home = fixtures["goals_home"]
-        goals_away = fixtures["goals_away"]
-        home_idx = fixtures["home_idx"]
-        away_idx = fixtures["away_idx"]
-
-        # Compute expected goals in one step
-        home_exp = np.exp(hfa + attack_params[home_idx] + defence_params[away_idx])
-        away_exp = np.exp(attack_params[away_idx] + defence_params[home_idx])
-
-        # Calculate log-likelihoods
-        llk = (
-            poisson.logpmf(goals_home, home_exp)
-            + poisson.logpmf(goals_away, away_exp)
-            + np.log(
-                rho_correction_vec_np(goals_home, goals_away, home_exp, away_exp, rho)
-            )
-        ) * fixtures["weights"]
-
-        return -np.sum(llk)
+        return _numba_neg_log_likelihood(
+            params,
+            n_teams,
+            fixtures["home_idx"],
+            fixtures["away_idx"],
+            fixtures["goals_home"],
+            fixtures["goals_away"],
+            fixtures["weights"],
+        )
 
     def fit(self):
         """
@@ -315,3 +300,34 @@ def rho_correction_vec_np(goals_home, goals_away, home_exp, away_exp, rho):
     result[one_zero | zero_one] += rho
 
     return result
+
+
+@njit
+def _numba_neg_log_likelihood(
+    params, n_teams, home_idx, away_idx, goals_home, goals_away, weights
+):
+    """Optimized negative log-likelihood function using Numba"""
+    attack_params = params[:n_teams]
+    defense_params = params[n_teams : 2 * n_teams]
+    hfa, rho = params[-2:]
+
+    n_matches = len(goals_home)
+    log_likelihood = 0.0
+
+    for i in range(n_matches):
+        lambda_home = exp(
+            hfa + attack_params[home_idx[i]] + defense_params[away_idx[i]]
+        )
+        lambda_away = exp(attack_params[away_idx[i]] + defense_params[home_idx[i]])
+
+        log_likelihood += (
+            numba_poisson_logpmf(goals_home[i], lambda_home)
+            + numba_poisson_logpmf(goals_away[i], lambda_away)
+            + np.log(
+                numba_rho_correction(
+                    goals_home[i], goals_away[i], lambda_home, lambda_away, rho
+                )
+            )
+        ) * weights[i]
+
+    return -log_likelihood
