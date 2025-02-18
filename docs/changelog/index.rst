@@ -9,8 +9,8 @@ see `semver.org <http://semver.org/>`_
 
 v1.1.0 ()
 ^^^^^^^^^^^^^^^^^^^^
-- Refactored Dixon and Coles goals model to fit ~15x faster
-- Refactored Poisson goals model to fit ~15x faster
+- Refactored Dixon and Coles goals model to fit ~20x faster
+- Refactored Poisson goals model to fit ~20x faster
 - Added Negative Binomial Goals Model
 - Added Bivariate Poisson Goals Model based on Karlis & Ntzoufras approach
 - Added Poisson Copula Goals Model
