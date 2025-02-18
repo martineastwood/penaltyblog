@@ -33,9 +33,15 @@ The **penaltyblog** Python package contains lots of useful code from [pena.lt/y/
 **penaltyblog** includes functions for:
 
 - Scraping football data from sources such as football-data.co.uk, FBRef, Club Elo, Understat and Fantasy Premier League
-- Modelling of football matches using Poisson-based models, such as Dixon and Coles, and Bayesian models
+- Modelling of football matches using the following models:
+  - Poisson
+  - Poisson + Frank Capula
+  - Bivariate Poisson
+  - Zero-inflated Poisson
+  - Dixon and Coles
+  - Negative Binomial
 - Predicting probabilities for many betting markets, e.g. Asian handicaps, over/under, total goals etc
-- Modelling football team's abilities using Massey ratings, Colley ratings and Elo ratings
+- Modelling football team's abilities using Massey ratings, Colley ratings, Pi ratings and Elo ratings
 - Estimating the implied odds from bookmaker's odds by removing the overround using multiple different methods
 - Estimating goal expectancy from bookmaker's odds
 - Mathematically optimising your fantasy football team
@@ -44,16 +50,6 @@ The **penaltyblog** Python package contains lots of useful code from [pena.lt/y/
 
 `pip install penaltyblog`
 
-
-## Stan
-
-The Bayesian models in `penaltyblog` require the [Stan probabilistic programming language](https://mc-stan.org/) to function. You can use the following command to install Stan directly from the penaltyblog package:
-
-```python
-import penaltyblog as pb
-
-pb.install_stan()
-```
 
 ## Documentation
 
@@ -74,3 +70,4 @@ examples for:
 - Hyun Song Shin (1993) Measuring the Incidence of Insider Trading in a Market for State-Contingent Claims
 - Joseph Buchdahl (2015) The Wisdom of the Crowd
 - Gianluca Baio and Marta A. Blangiardo (2010) Bayesian Hierarchical Model for the Prediction of Football Results
+- Dimitris Karlis and Ioannis Ntzoufras (2003) Analysis of Sports Data by Using Bivariate Poisson Models
