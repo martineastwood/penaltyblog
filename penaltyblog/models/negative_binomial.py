@@ -182,7 +182,7 @@ class NegativeBinomialGoalModel:
         )
 
         if not self._res.success:
-            print("Optimization did not converge:", self._res.message)
+            raise ValueError(f"Optimization failed with message: {self._res.message}")
 
         self._params = self._res.x
         self.n_params = len(self._params)

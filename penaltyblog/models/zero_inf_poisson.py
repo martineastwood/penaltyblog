@@ -116,6 +116,9 @@ class ZeroInflatedPoissonGoalsModel:
                 method="SLSQP",
             )
 
+        if not self._res.success:
+            raise ValueError(f"Optimization failed with message: {self._res.message}")
+
         self._params = self._res.x
         self.n_params = len(self._params)
         self.loglikelihood = -self._res.fun

@@ -212,7 +212,7 @@ class WeibullCopulaGoalsModel:
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore", category=RuntimeWarning)
 
-            res = minimize(
+            self._res = minimize(
                 self._neg_log_likelihood,
                 x0=self._params,
                 method="L-BFGS-B",
@@ -220,13 +220,14 @@ class WeibullCopulaGoalsModel:
                 options={"maxiter": 250, "ftol": 1e-7, "disp": False},
             )
 
-        self._res = res
-        self._params = res.x
-        self.loglikelihood = -res.fun
-        self.n_params = len(res.x)
-        self.aic = -2.0 * self.loglikelihood + 2.0 * self.n_params
+        if not self._res.success:
+            raise ValueError(f"Optimization failed with message: {self._res.message}")
+
+        self._params = self._res.x
+        self.n_params = len(self._params)
+        self.loglikelihood = -self._res.fun
+        self.aic = -2 * self.loglikelihood + 2 * self.n_params
         self.fitted = True
-        return self
 
     def predict(
         self, home_team: str, away_team: str, max_goals: int = 15

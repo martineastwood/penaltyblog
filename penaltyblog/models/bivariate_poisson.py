@@ -160,7 +160,7 @@ class BivariatePoissonGoalModel:
 
         bnds = [(-3, 3)] * (2 * self.n_teams) + [(-2, 2), (-3, 3)]
 
-        opt = minimize(
+        self._res = minimize(
             fun=self._log_likelihood,
             x0=self._params,
             args=(processed_fixtures,),
@@ -169,16 +169,14 @@ class BivariatePoissonGoalModel:
             options={"maxiter": 300, "disp": False},
         )
 
-        if not opt.success:
-            print("WARNING: Optimization did not fully converge:", opt.message)
+        if not self._res.success:
+            raise ValueError(f"Optimization failed with message: {self._res.message}")
 
-        self._params = opt.x
-        self.fitted = True
+        self._params = self._res["x"]
         self.n_params = len(self._params)
-
-        self.aic = 2 * len(self._params) + 2 * opt.fun
-        self._res = opt
-        self.loglikelihood = -self._res.fun
+        self.loglikelihood = self._res["fun"] * -1
+        self.aic = -2 * (self.loglikelihood) + 2 * self.n_params
+        self.fitted = True
 
     def predict(
         self, home_team: str, away_team: str, max_goals: int = 10
