@@ -1,5 +1,6 @@
 import numpy as np
 import pandas as pd
+from numba import njit
 from scipy.optimize import minimize
 from scipy.stats import poisson
 
@@ -112,60 +113,32 @@ class BivariatePoissonGoalModel:
         """
         n_teams = self.n_teams
 
-        # Unpack parameters
+        # Parameter unpacking remains the same
         attack_params = params[:n_teams]
         defense_params = params[n_teams : 2 * n_teams]
         home_adv = params[-2]
         correlation_log = params[-1]
         lambda3 = np.exp(correlation_log)
 
-        # Unpack data arrays
-        home_idx = data["home_idx"]
-        away_idx = data["away_idx"]
-        goals_home = data["goals_home"]
-        goals_away = data["goals_away"]
-        weights = data["weights"]
+        # Compute lambdas
+        lambda1 = np.exp(
+            home_adv
+            + attack_params[data["home_idx"]]
+            + defense_params[data["away_idx"]]
+        )
+        lambda2 = np.exp(
+            attack_params[data["away_idx"]] + defense_params[data["home_idx"]]
+        )
 
-        # Compute lambda1, lambda2 for every match
-        lambda1 = np.exp(home_adv + attack_params[home_idx] + defense_params[away_idx])
-        lambda2 = np.exp(attack_params[away_idx] + defense_params[home_idx])
-
-        # Prepare a lookup for Poisson PMF for all unique λ1/λ2 values,
-        # up to max_goals in the dataset:
-        max_goals = max(goals_home.max(), goals_away.max()) + 1
-        unique_lambdas = np.unique(np.concatenate([lambda1, lambda2]))
-        pmf_lookup = {
-            lam: np.array([poisson.pmf(k, lam) for k in range(max_goals)])
-            for lam in unique_lambdas
-        }
-
-        # (Part 1) Precompute the Poisson PMF for lambda3 just once
-        lambda3_pmf = np.array([poisson.pmf(k, lambda3) for k in range(max_goals)])
-
-        # Accumulate the log-likelihood in a vector
-        log_likelihoods = np.zeros_like(goals_home, dtype=float)
-
-        for i in range(len(goals_home)):
-            gh = goals_home[i]
-            ga = goals_away[i]
-
-            lam1 = lambda1[i]
-            lam2 = lambda2[i]
-
-            # (Part 2) Vectorized sum over k
-            kmax = min(gh, ga)
-            k_range = np.arange(kmax + 1)
-            like_ij = np.sum(
-                pmf_lookup[lam1][gh - k_range]
-                * pmf_lookup[lam2][ga - k_range]
-                * lambda3_pmf[k_range]
-            )
-
-            # Numeric guard against log(0)
-            like_ij = max(like_ij, 1e-10)
-            log_likelihoods[i] = weights[i] * np.log(like_ij)
-
-        return -np.sum(log_likelihoods)
+        return _compute_total_likelihood(
+            data["goals_home"],
+            data["goals_away"],
+            lambda1,
+            lambda2,
+            lambda3,
+            data["weights"],
+            max(data["goals_home"].max(), data["goals_away"].max()) + 1,
+        )
 
     def fit(self):
         """
@@ -244,18 +217,7 @@ class BivariatePoissonGoalModel:
         lam1 = np.exp(home_adv + attack_params[i_home] + defense_params[i_away])
         lam2 = np.exp(attack_params[i_away] + defense_params[i_home])
 
-        score_matrix = np.zeros((max_goals, max_goals))
-
-        for x in range(max_goals):
-            for y in range(max_goals):
-                p_xy = 0.0
-                for k in range(min(x, y) + 1):
-                    p_xy += (
-                        poisson.pmf(x - k, lam1)
-                        * poisson.pmf(y - k, lam2)
-                        * poisson.pmf(k, lam3)
-                    )
-                score_matrix[x, y] = p_xy
+        score_matrix = _compute_score_matrix(lam1, lam2, lam3, max_goals)
 
         return FootballProbabilityGrid(score_matrix, lam1, lam2)
 
@@ -270,7 +232,7 @@ class BivariatePoissonGoalModel:
         param_names = (
             [f"attack_{t}" for t in self.teams]
             + [f"defense_{t}" for t in self.teams]
-            + ["home_adv", "correlation_log"]
+            + ["home_advantage", "correlation_log"]
         )
         vals = list(self._params)
         result = dict(zip(param_names, vals))
@@ -278,3 +240,94 @@ class BivariatePoissonGoalModel:
         # Also show lambda3 explicitly
         result["lambda3"] = np.exp(result["correlation_log"])
         return result
+
+
+@njit
+def _compute_match_likelihood(
+    goals_home: int,
+    goals_away: int,
+    lambda1: float,
+    lambda2: float,
+    lambda3: float,
+    weight: float,
+    pmf_lookup1: np.ndarray,
+    pmf_lookup2: np.ndarray,
+    lambda3_pmf: np.ndarray,
+) -> float:
+    kmax = min(goals_home, goals_away)
+    like_ij = 0.0
+
+    for k in range(kmax + 1):
+        like_ij += (
+            pmf_lookup1[goals_home - k] * pmf_lookup2[goals_away - k] * lambda3_pmf[k]
+        )
+
+    like_ij = max(like_ij, 1e-10)
+    return weight * np.log(like_ij)
+
+
+@njit
+def numba_poisson_pmf(k: int, lambda_: float, max_goals: int) -> float:
+    if k < 0 or k >= max_goals or lambda_ <= 0:
+        return 0.0
+    return np.exp(k * np.log(lambda_) - lambda_ - np.sum(np.log(np.arange(1, k + 1))))
+
+
+@njit
+def _compute_total_likelihood(
+    goals_home: np.ndarray,
+    goals_away: np.ndarray,
+    lambda1: np.ndarray,
+    lambda2: np.ndarray,
+    lambda3: float,
+    weights: np.ndarray,
+    max_goals: int,
+) -> float:
+    n_matches = len(goals_home)
+    log_likelihoods = np.zeros(n_matches)
+
+    # Precompute PMF lookups
+    lambda3_pmf = np.zeros(max_goals)
+    for k in range(max_goals):
+        lambda3_pmf[k] = numba_poisson_pmf(k, lambda3, max_goals)
+
+    for i in range(n_matches):
+        pmf1 = np.zeros(max_goals)
+        pmf2 = np.zeros(max_goals)
+        for k in range(max_goals):
+            pmf1[k] = numba_poisson_pmf(k, lambda1[i], max_goals)
+            pmf2[k] = numba_poisson_pmf(k, lambda2[i], max_goals)
+
+        like_ij = 0.0
+        kmax = min(goals_home[i], goals_away[i])
+
+        for k in range(kmax + 1):
+            like_ij += (
+                pmf1[goals_home[i] - k] * pmf2[goals_away[i] - k] * lambda3_pmf[k]
+            )
+
+        like_ij = max(like_ij, 1e-10)
+        log_likelihoods[i] = weights[i] * np.log(like_ij)
+
+    return -np.sum(log_likelihoods)
+
+
+@njit
+def _compute_score_matrix(
+    lam1: float, lam2: float, lam3: float, max_goals: int
+) -> np.ndarray:
+    score_matrix = np.zeros((max_goals, max_goals))
+
+    # Precompute PMF values for each lambda
+    pmf1 = np.array([numba_poisson_pmf(k, lam1, max_goals) for k in range(max_goals)])
+    pmf2 = np.array([numba_poisson_pmf(k, lam2, max_goals) for k in range(max_goals)])
+    pmf3 = np.array([numba_poisson_pmf(k, lam3, max_goals) for k in range(max_goals)])
+
+    for x in range(max_goals):
+        for y in range(max_goals):
+            p_xy = 0.0
+            for k in range(min(x, y) + 1):
+                p_xy += pmf1[x - k] * pmf2[y - k] * pmf3[k]
+            score_matrix[x, y] = p_xy
+
+    return score_matrix

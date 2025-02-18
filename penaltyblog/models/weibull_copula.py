@@ -280,7 +280,7 @@ class WeibullCopulaGoalsModel:
         param_names = (
             [f"attack_{t}" for t in self.teams]
             + [f"defense_{t}" for t in self.teams]
-            + ["home_adv", "shape", "kappa"]
+            + ["home_advantage", "shape", "kappa"]
         )
         vals = list(self._params)
         result = dict(zip(param_names, vals))

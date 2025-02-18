@@ -2,6 +2,7 @@ from math import exp, lgamma, log
 
 import numpy as np
 from numba import float64, njit
+from numpy.typing import NDArray
 
 
 @njit
@@ -43,26 +44,15 @@ def numba_rho_correction_llh(goals_home, goals_away, lambda_home, lambda_away, r
 
 
 @njit()
-def frank_copula_pdf(u, v, kappa) -> float:
+def frank_copula_pdf(u, v, kappa) -> NDArray:
     """
     Computes the Frank copula probability density function with numerical stability.
-
-    Parameters
-    ----------
-    u : array_like
-        First uniform random variable
-    v : array_like
-        Second uniform random variable
-    kappa : float
-        Copula parameter
-
-    Returns
-    -------
-    array_like
-        Frank copula probability density function evaluated at (u, v)
     """
+    # Convert to float64 array for consistent return types
+    result = np.ones_like(u, dtype=np.float64)
+
     if np.abs(kappa) < 1e-5:  # If kappa is close to 0, return independence
-        return np.ones_like(u)
+        return result
 
     # Compute exponentials
     exp_neg_kappa = np.exp(-kappa)
@@ -76,9 +66,7 @@ def frank_copula_pdf(u, v, kappa) -> float:
     denom = (exp_neg_kappa - 1 + (exp_neg_kappa_u - 1) * (exp_neg_kappa_v - 1)) ** 2
     denom = np.maximum(denom, 1e-10)  # Prevent division by zero
 
-    copula_density = num / denom
+    result = num / denom
+    result = np.clip(result, 1e-10, 1)
 
-    # Ensure probabilities remain within a valid range
-    copula_density = np.clip(copula_density, 1e-10, 1)
-
-    return copula_density
+    return result

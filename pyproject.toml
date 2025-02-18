@@ -27,7 +27,7 @@ dependencies = [
     "html5lib",
     "ipywidgets",
     "numba",
-    "numpy",
+    "numpy>=2.*",
     "pandas",
     "PuLP",
     "requests",
