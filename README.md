@@ -63,12 +63,12 @@ examples for:
 
 ## References
 
-- Mark J. Dixon and Stuart G. Coles (1997) Modelling Association Football Scores and Inefficiencies in the Football Betting Market
-- Håvard Rue and Øyvind Salvesen (1999) Prediction and Retrospective Analysis of Soccer Matches in a League
-- Anthony C. Constantinou and Norman E. Fenton (2012) Solving the problem of inadequate scoring rules for assessing probabilistic football forecast models
-- Hyun Song Shin (1992) Prices of State Contingent Claims with Insider Traders, and the Favourite-Longshot Bias
-- Hyun Song Shin (1993) Measuring the Incidence of Insider Trading in a Market for State-Contingent Claims
-- Joseph Buchdahl (2015) The Wisdom of the Crowd
-- Gianluca Baio and Marta A. Blangiardo (2010) Bayesian Hierarchical Model for the Prediction of Football Results
-- Dimitris Karlis and Ioannis Ntzoufras (2003) Analysis of Sports Data by Using Bivariate Poisson Models
-- Anthony C. Constantinou and Norman E. Fenton (2013) Determining the level of ability of football teams by dynamic ratings based on the relative discrepancies in scores between adversaries
+- Baio, Gianluca and Marta A. Blangiardo (2010) Bayesian Hierarchical Model for the Prediction of Football Results
+- Buchdahl, Joseph (2015) The Wisdom of the Crowd
+- Constantinou, Anthony C. and Norman E. Fenton (2012) Solving the problem of inadequate scoring rules for assessing probabilistic football forecast models
+- Constantinou, Anthony C. and Norman E. Fenton (2013) Determining the level of ability of football teams by dynamic ratings based on the relative discrepancies in scores between adversaries
+- Dixon, Mark J. and Stuart G. Coles (1997) Modelling Association Football Scores and Inefficiencies in the Football Betting Market
+- Karlis, Dimitris and Ioannis Ntzoufras (2003) Analysis of Sports Data by Using Bivariate Poisson Models
+- Rue, Håvard and Øyvind Salvesen (1999) Prediction and Retrospective Analysis of Soccer Matches in a League
+- Shin, Hyun Song (1992) Prices of State Contingent Claims with Insider Traders, and the Favourite-Longshot Bias
+- Shin, Hyun Song (1993) Measuring the Incidence of Insider Trading in a Market for State-Contingent Claims
