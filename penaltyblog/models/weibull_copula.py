@@ -11,59 +11,35 @@ from .football_probability_grid import FootballProbabilityGrid
 @njit
 def gamma_numba(x):
     """
-    Returns Gamma(x) by exponentiating gammaln(x).
-    Numba *does* know how to compile gammaln(x).
+    Work around since numba did not recognise gamma function
     """
     return math.exp(math.lgamma(x))
 
 
-###################################
-# 1. Frank Copula CDF
-###################################
-
-
 @njit()
 def frank_copula_cdf(u, v, kappa):
-    """
-    Frank copula CDF for 0 <= u,v <= 1 and real kappa.
-    For kappa ~ 0 => ~ independence => C(u,v) = u*v.
-    """
     if abs(kappa) < 1e-8:
         return u * v
     num = (np.exp(-kappa * u) - 1.0) * (np.exp(-kappa * v) - 1.0)
     denom = np.exp(-kappa) - 1.0
     inside = 1.0 + num / denom
     if inside <= 1e-14:
-        # numeric guard
-        return max(0.0, u * v)  # fallback to near independence
+        return max(0.0, u * v)
     return -(1.0 / kappa) * np.log(inside)
 
 
-###################################
-# 2. Precompute A[x,j] for the shape c
-###################################
 @njit()
 def precompute_alpha_table(c, max_goals=15, jmax=25):
-    """
-    Build a 2D array A[x,j], for x=0..max_goals, j=0..jmax, storing:
-      A[x,j] = (-1)^(x+j) * alpha_x^j / Gamma(c*j + 1),
-    where alpha_x^j is as per McShane et al. (2008).
-    """
-
-    # If shape invalid => return None
     if c <= 0:
         return None
 
     A = np.zeros((max_goals + 1, jmax + 1), dtype=float)
 
-    # We'll first build alpha_raw[x,j], ignoring sign and /Gamma(c*j+1).
     alpha_raw = np.zeros((max_goals + 1, jmax + 1), dtype=float)
 
-    # base x=0
     for j in range(jmax + 1):
         alpha_raw[0, j] = gamma_numba(c * j + 1.0) / gamma_numba(j + 1.0)
 
-    # recursion for x>0
     for x in range(max_goals):
         for j in range(x + 1, jmax + 1):
             tmp_sum = 0.0
@@ -75,7 +51,6 @@ def precompute_alpha_table(c, max_goals=15, jmax=25):
                 )
             alpha_raw[x + 1, j] = tmp_sum
 
-    # Now incorporate factor (-1)^(x+j) / Gamma(c*j+1)
     for x in range(max_goals + 1):
         for j in range(jmax + 1):
             sign = (-1) ** (x + j)
@@ -86,11 +61,7 @@ def precompute_alpha_table(c, max_goals=15, jmax=25):
 
 
 @njit()
-def fast_weibull_count_pmf(lam, A):
-    """
-    Given lam and the precomputed A[x,j], build the pmf up to A.shape[0]-1.
-    pmf[x] = sum_{j=x..jmax} lam^j * A[x,j], with renormalization.
-    """
+def weibull_count_pmf(lam, A):
     if lam <= 0:
         # degenerate => all mass at 0
         pmf = np.zeros(A.shape[0], dtype=float)
@@ -187,8 +158,8 @@ def neg_log_likelihood_numba(
         lam_home_i = math.exp(home_adv + atk[home_idx[i]] + dfc[away_idx[i]])
         lam_away_i = math.exp(atk[away_idx[i]] + dfc[home_idx[i]])
 
-        pmfX = fast_weibull_count_pmf(lam_home_i, A)
-        pmfY = fast_weibull_count_pmf(lam_away_i, A)
+        pmfX = weibull_count_pmf(lam_home_i, A)
+        pmfY = weibull_count_pmf(lam_away_i, A)
 
         cdfX = cdf_from_pmf(pmfX)
         cdfY = cdf_from_pmf(pmfY)
@@ -212,8 +183,8 @@ def predict_score_matrix_numba(lam_home, lam_away, A, max_goals, kappa):
     Returns a 2D NumPy array of shape (max_goals+1, max_goals+1).
     """
     # 1) Compute the marginal PMFs & CDFs
-    pmfH = fast_weibull_count_pmf(lam_home, A)
-    pmfA = fast_weibull_count_pmf(lam_away, A)
+    pmfH = weibull_count_pmf(lam_home, A)
+    pmfA = weibull_count_pmf(lam_away, A)
     cdfH = cdf_from_pmf(pmfH)
     cdfA = cdf_from_pmf(pmfA)
 
@@ -318,25 +289,47 @@ class WeibullCopulaGoalsModel:
         self.jmax = 25
 
     def __repr__(self):
-        repr_str = "Weibull Copula Goal Model\n"
-        repr_str += f"Fitted: {self.fitted}\n"
-        if self.fitted:
-            repr_str += f"AIC: {self.aic:.3f}\n"
-            repr_str += "Parameters:\n"
-            # Attack and Defense for each team
-            for i, team in enumerate(self.teams):
-                repr_str += (
-                    f"{team}: "
-                    f"Attack {self._params[i]:.3f}, "
-                    f"Defence {self._params[i + self.n_teams]:.3f}\n"
+        lines = [
+            "Module: Penaltyblog",
+            "",
+            "Model: Bivariate Weibull Count + Copula",
+            "",
+        ]
+
+        if not self.fitted:
+            lines.append("Status: Model not fitted")
+            return "\n".join(lines)
+
+        lines.extend(
+            [
+                f"Number of parameters: {self.n_params}",
+                f"Log Likelihood: {round(self.loglikelihood, 3)}",
+                f"AIC: {round(self.aic, 3)}",
+                "",
+                "{0: <20} {1:<20} {2:<20}".format("Team", "Attack", "Defence"),
+                "-" * 60,
+            ]
+        )
+
+        for idx, team in enumerate(self.teams):
+            lines.append(
+                "{0: <20} {1:<20} {2:<20}".format(
+                    team,
+                    round(self._params[idx], 3),
+                    round(self._params[idx + self.n_teams], 3),
                 )
-            # Recall our param order is: [attacks, defenses, home_adv, shape, kappa]
-            repr_str += f"Home Advantage: {self._params[-3]:.3f}\n"
-            repr_str += f"Weibull Shape: {self._params[-2]:.3f}\n"
-            repr_str += f"Kappa (Copula): {self._params[-1]:.3f}\n"
-        else:
-            repr_str += "Model has not been fitted yet.\n"
-        return repr_str
+            )
+
+        lines.extend(
+            [
+                "-" * 60,
+                f"Home Advantage: {round(self._params[-3], 3)}",
+                f"Weibull Shape: {round(self._params[-2], 3)}",
+                f"Kappa: {round(self._params[-1], 3)}",
+            ]
+        )
+
+        return "\n".join(lines)
 
     def _get_alpha_table_for_shape(self, shape):
         """

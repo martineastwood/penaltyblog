@@ -62,18 +62,41 @@ class PoissonCopulaGoalsModel:
         self.fitted = False
 
     def __repr__(self):
-        repr_str = "Poisson Copula Goal Model\n"
-        repr_str += f"Fitted: {self.fitted}\n"
-        if self.fitted:
-            repr_str += f"AIC: {self.aic:.3f}\n"
-            repr_str += "Parameters:\n"
-            for i, team in enumerate(self.teams):
-                repr_str += f"{team}: Attack {self._params[i]:.3f}, Defence {self._params[i + self.n_teams]:.3f}\n"
-            repr_str += f"Home Advantage: {self._params[-2]:.3f}\n"
-            repr_str += f"Kappa: {self._params[-1]:.3f}\n"
-        else:
-            repr_str += "Model has not been fitted yet.\n"
-        return repr_str
+        lines = ["Module: Penaltyblog", "", "Model: Poisson + Copula", ""]
+
+        if not self.fitted:
+            lines.append("Status: Model not fitted")
+            return "\n".join(lines)
+
+        lines.extend(
+            [
+                f"Number of parameters: {self.n_params}",
+                f"Log Likelihood: {round(self.loglikelihood, 3)}",
+                f"AIC: {round(self.aic, 3)}",
+                "",
+                "{0: <20} {1:<20} {2:<20}".format("Team", "Attack", "Defence"),
+                "-" * 60,
+            ]
+        )
+
+        for idx, team in enumerate(self.teams):
+            lines.append(
+                "{0: <20} {1:<20} {2:<20}".format(
+                    team,
+                    round(self._params[idx], 3),
+                    round(self._params[idx + self.n_teams], 3),
+                )
+            )
+
+        lines.extend(
+            [
+                "-" * 60,
+                f"Home Advantage: {round(self._params[-2], 3)}",
+                f"Kappa: {round(self._params[-1], 3)}",
+            ]
+        )
+
+        return "\n".join(lines)
 
     def _neg_log_likelihood(self, params):
         attack_params = params[: self.n_teams]

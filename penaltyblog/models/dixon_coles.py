@@ -71,49 +71,41 @@ class DixonColesGoalModel:
         self.fitted = False
 
     def __repr__(self):
-        repr_str = ""
-        repr_str += "Module: Penaltyblog"
-        repr_str += "\n"
-        repr_str += "\n"
-
-        repr_str += "Model: Dixon and Coles"
-        repr_str += "\n"
-        repr_str += "\n"
+        lines = ["Module: Penaltyblog", "", "Model: Dixon and Coles", ""]
 
         if not self.fitted:
-            repr_str += "Status: Model not fitted"
-            return repr_str
+            lines.append("Status: Model not fitted")
+            return "\n".join(lines)
 
-        repr_str += "Number of parameters: {0}".format(self.n_params)
-        repr_str += "\n"
-        repr_str += "Log Likelihood: {0}".format(round(self.loglikelihood, 3))
-        repr_str += "\n"
-        repr_str += "AIC: {0}".format(round(self.aic, 3))
-        repr_str += "\n"
-        repr_str += "\n"
-
-        repr_str += "{0: <20} {1:<20} {2:<20}".format("Team", "Attack", "Defence")
-        repr_str += "\n"
-        repr_str += "-" * 60
-        repr_str += "\n"
+        lines.extend(
+            [
+                f"Number of parameters: {self.n_params}",
+                f"Log Likelihood: {round(self.loglikelihood, 3)}",
+                f"AIC: {round(self.aic, 3)}",
+                "",
+                "{0: <20} {1:<20} {2:<20}".format("Team", "Attack", "Defence"),
+                "-" * 60,
+            ]
+        )
 
         for idx, team in enumerate(self.teams):
-            repr_str += "{0: <20} {1:<20} {2:<20}".format(
-                self.teams[idx],
-                round(self._params[idx], 3),
-                round(self._params[idx + self.n_teams], 3),
+            lines.append(
+                "{0: <20} {1:<20} {2:<20}".format(
+                    team,
+                    round(self._params[idx], 3),
+                    round(self._params[idx + self.n_teams], 3),
+                )
             )
-            repr_str += "\n"
 
-        repr_str += "-" * 60
-        repr_str += "\n"
+        lines.extend(
+            [
+                "-" * 60,
+                f"Home Advantage: {round(self._params[-2], 3)}",
+                f"Rho: {round(self._params[-1], 3)}",
+            ]
+        )
 
-        repr_str += "Home Advantage: {0}".format(round(self._params[-2], 3))
-        repr_str += "\n"
-        repr_str += "Rho: {0}".format(round(self._params[-1], 3))
-        repr_str += "\n"
-
-        return repr_str
+        return "\n".join(lines)
 
     def __str__(self):
         return self.__repr__()

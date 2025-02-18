@@ -32,20 +32,45 @@ class NegativeBinomialGoalModel:
         self._res = None
         self.fitted = False
         self.aic = None
+        self.n_params = None
+        self.loglikelihood = None
 
     def __repr__(self):
-        repr_str = "Negative Binomial Goal Model\n"
-        repr_str += "Fitted: {}\n".format(self.fitted)
-        if self.fitted:
-            repr_str += "AIC: {:.3f}\n".format(self.aic)
-            repr_str += "Parameters:\n"
-            for i, team in enumerate(self.teams):
-                repr_str += f"{team}: Attack {self._params[i]:.3f}, Defence {self._params[i + self.n_teams]:.3f}\n"
-            repr_str += f"Home Advantage: {self._params[-2]:.3f}\n"
-            repr_str += f"Dispersion Parameter: {self._params[-1]:.3f}\n"
-        else:
-            repr_str += "Model has not been fitted yet.\n"
-        return repr_str
+        lines = ["Module: Penaltyblog", "", "Model: Negative Binomial", ""]
+
+        if not self.fitted:
+            lines.append("Status: Model not fitted")
+            return "\n".join(lines)
+
+        lines.extend(
+            [
+                f"Number of parameters: {self.n_params}",
+                f"Log Likelihood: {round(self.loglikelihood, 3)}",
+                f"AIC: {round(self.aic, 3)}",
+                "",
+                "{0: <20} {1:<20} {2:<20}".format("Team", "Attack", "Defence"),
+                "-" * 60,
+            ]
+        )
+
+        for idx, team in enumerate(self.teams):
+            lines.append(
+                "{0: <20} {1:<20} {2:<20}".format(
+                    team,
+                    round(self._params[idx], 3),
+                    round(self._params[idx + self.n_teams], 3),
+                )
+            )
+
+        lines.extend(
+            [
+                "-" * 60,
+                f"Home Advantage: {round(self._params[-2], 3)}",
+                f"Dispersion: {round(self._params[-1], 3)}",
+            ]
+        )
+
+        return "\n".join(lines)
 
     def _neg_binomial_log_likelihood(self, params, data, n_teams):
         attack_params = params[:n_teams]
@@ -91,7 +116,7 @@ class NegativeBinomialGoalModel:
         options = {"maxiter": 500, "disp": False}
         bounds = [(-2, 2)] * self.n_teams * 2 + [(-4, 4), (1e-5, 1000)]
 
-        result = minimize(
+        self._res = minimize(
             self._neg_binomial_log_likelihood,
             self._params,
             args=(processed_fixtures, self.n_teams),
@@ -100,12 +125,14 @@ class NegativeBinomialGoalModel:
             options=options,
         )
 
-        if not result.success:
-            print("Optimization did not converge:", result.message)
+        if not self._res.success:
+            print("Optimization did not converge:", self._res.message)
 
-        self._params = result.x
+        self._params = self._res.x
+        self.n_params = len(self._params)
+        self.loglikelihood = -self._res.fun
+        self.aic = -2 * self.loglikelihood + 2 * self.n_params
         self.fitted = True
-        self.aic = 2 * len(self._params) + 2 * result.fun
 
     def predict(self, home_team, away_team, max_goals=10):
         if not self.fitted:

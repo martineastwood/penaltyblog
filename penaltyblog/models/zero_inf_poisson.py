@@ -1,15 +1,14 @@
 import warnings
-from math import exp
+from math import exp, lgamma, log
 
 import numpy as np
 from numba import njit
 from scipy.optimize import minimize
 
 from .football_probability_grid import FootballProbabilityGrid
-from .utils import numba_poisson_logpmf, numba_poisson_pmf
 
 
-class PoissonGoalsModel:
+class ZeroInflatedPoissonGoalsModel:
     def __init__(self, goals_home, goals_away, teams_home, teams_away, weights=1):
         self.goals_home = np.array(goals_home, dtype=int)
         self.goals_away = np.array(goals_away, dtype=int)
@@ -30,6 +29,7 @@ class PoissonGoalsModel:
                 np.ones(self.n_teams),  # Attack params
                 -np.ones(self.n_teams),  # Defense params
                 [0.5],  # Home advantage
+                [0.1],  # Zero-inflation probability (logit scale)
             )
         )
 
@@ -47,7 +47,7 @@ class PoissonGoalsModel:
         self.away_idx = np.array([self.team_to_idx[t] for t in self.teams_away])
 
     def __repr__(self):
-        lines = ["Module: Penaltyblog", "", "Model: Poisson", ""]
+        lines = ["Module: Penaltyblog", "", "Model: Zero-inflated Poisson", ""]
 
         if not self.fitted:
             lines.append("Status: Model not fitted")
@@ -76,7 +76,8 @@ class PoissonGoalsModel:
         lines.extend(
             [
                 "-" * 60,
-                f"Home Advantage: {round(self._params[-1], 3)}",
+                f"Home Advantage: {round(self._params[-2], 3)}",
+                f"Zero Inflation: {round(self._params[-1], 3)}",
             ]
         )
 
@@ -85,7 +86,7 @@ class PoissonGoalsModel:
     def _neg_log_likelihood(self, params):
         """Negative Log-Likelihood optimized with Numba"""
 
-        return _numba_neg_log_likelihood(
+        return _numba_neg_log_likelihood_zip(
             params,
             self.n_teams,
             self.home_idx,
@@ -100,7 +101,9 @@ class PoissonGoalsModel:
         constraints = [
             {"type": "eq", "fun": lambda x: sum(x[: self.n_teams]) - self.n_teams}
         ]
-        bounds = [(-3, 3)] * self.n_teams * 2 + [(0, 3)]
+        bounds = (
+            [(-3, 3)] * self.n_teams * 2 + [(0, 3)] + [(0, 1)]
+        )  # Bound zero-inflation between 0 and 1
 
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
@@ -110,7 +113,7 @@ class PoissonGoalsModel:
                 constraints=constraints,
                 bounds=bounds,
                 options=options,
-                method="L-BFGS-B",
+                method="SLSQP",
             )
 
         self._params = self._res.x
@@ -118,6 +121,23 @@ class PoissonGoalsModel:
         self.loglikelihood = -self._res.fun
         self.aic = -2 * self.loglikelihood + 2 * self.n_params
         self.fitted = True
+
+    def get_params(self):
+        if not self.fitted:
+            raise ValueError(
+                "Model's parameters have not been fit yet. Call `fit()` first."
+            )
+
+        params = dict(
+            zip(
+                ["attack_" + team for team in self.teams]
+                + ["defense_" + team for team in self.teams]
+                + ["home_advantage"]
+                + ["zero_inflation"],
+                self._params,
+            )
+        )
+        return params
 
     def predict(self, home_team, away_team, max_goals=15):
         if not self.fitted:
@@ -135,14 +155,16 @@ class PoissonGoalsModel:
         away_attack = self._params[away_idx]
         home_defense = self._params[home_idx + self.n_teams]
         away_defense = self._params[away_idx + self.n_teams]
-        home_advantage = self._params[-1]
+        home_advantage = self._params[-2]  # Second last parameter (home advantage)
+        zero_inflation = self._params[-1]  # Last parameter (zero-inflation)
 
+        # Compute expected goals
         lambda_home = np.exp(home_advantage + home_attack + away_defense)
         lambda_away = np.exp(away_attack + home_defense)
 
-        # Use a Numba-accelerated function to compute probability vectors
-        home_goals_vector, away_goals_vector = numba_poisson_pmf(
-            lambda_home, lambda_away, max_goals
+        # Compute ZIP Poisson PMF for home and away teams
+        home_goals_vector, away_goals_vector = _numba_zip_poisson_pmf(
+            lambda_home, lambda_away, zero_inflation, max_goals
         )
 
         # Compute score matrix
@@ -151,31 +173,49 @@ class PoissonGoalsModel:
         # Return FootballProbabilityGrid
         return FootballProbabilityGrid(score_matrix, lambda_home, lambda_away)
 
-    def get_params(self):
-        if not self.fitted:
-            raise ValueError(
-                "Model's parameters have not been fit yet. Call `fit()` first."
+
+@njit
+def _numba_zip_poisson_pmf(lambda_home, lambda_away, zero_inflation, max_goals):
+    """Computes Zero-Inflated Poisson PMF vectors using Numba"""
+    home_goals_vector = np.zeros(max_goals)
+    away_goals_vector = np.zeros(max_goals)
+
+    for g in range(max_goals):
+        if g == 0:
+            home_goals_vector[g] = zero_inflation + (1 - zero_inflation) * exp(
+                -lambda_home
+            )
+            away_goals_vector[g] = zero_inflation + (1 - zero_inflation) * exp(
+                -lambda_away
+            )
+        else:
+            home_goals_vector[g] = (1 - zero_inflation) * exp(
+                poisson_logpmf(g, lambda_home)
+            )
+            away_goals_vector[g] = (1 - zero_inflation) * exp(
+                poisson_logpmf(g, lambda_away)
             )
 
-        params = dict(
-            zip(
-                ["attack_" + team for team in self.teams]
-                + ["defense_" + team for team in self.teams]
-                + ["home_advantage"],
-                self._params,
-            )
-        )
-        return params
+    return home_goals_vector, away_goals_vector
 
 
 @njit
-def _numba_neg_log_likelihood(
+def poisson_logpmf(k, lambda_):
+    """Compute log PMF of Poisson manually since Numba doesn't support scipy.stats.poisson"""
+    if k < 0:
+        return -np.inf  # Log PMF should be negative infinity for invalid k
+    return k * log(lambda_) - lambda_ - lgamma(k + 1)
+
+
+@njit
+def _numba_neg_log_likelihood_zip(
     params, n_teams, home_idx, away_idx, goals_home, goals_away, weights
 ):
-    """Optimized negative log-likelihood function using Numba"""
+    """Optimized negative log-likelihood function for Zero-Inflated Poisson using Numba"""
     attack_params = params[:n_teams]
     defense_params = params[n_teams : 2 * n_teams]
-    home_advantage = params[-1]
+    home_advantage = params[-2]  # Second last parameter
+    zero_inflation = params[-1]  # Last parameter
 
     n_matches = len(goals_home)
     log_likelihood = 0.0
@@ -186,9 +226,21 @@ def _numba_neg_log_likelihood(
         )
         lambda_away = exp(attack_params[away_idx[i]] + defense_params[home_idx[i]])
 
-        log_likelihood += (
-            numba_poisson_logpmf(goals_home[i], lambda_home)
-            + numba_poisson_logpmf(goals_away[i], lambda_away)
-        ) * weights[i]
+        # Compute ZIP log-likelihood
+        if goals_home[i] == 0:
+            prob_zero = zero_inflation + (1 - zero_inflation) * exp(-lambda_home)
+            log_likelihood += log(prob_zero) * weights[i]
+        else:
+            log_likelihood += (
+                log(1 - zero_inflation) + poisson_logpmf(goals_home[i], lambda_home)
+            ) * weights[i]
+
+        if goals_away[i] == 0:
+            prob_zero = zero_inflation + (1 - zero_inflation) * exp(-lambda_away)
+            log_likelihood += log(prob_zero) * weights[i]
+        else:
+            log_likelihood += (
+                log(1 - zero_inflation) + poisson_logpmf(goals_away[i], lambda_away)
+            ) * weights[i]
 
     return -log_likelihood

@@ -7,3 +7,4 @@ from .poisson import PoissonGoalsModel  # noqa
 from .poisson_copula import PoissonCopulaGoalsModel  # noqa
 from .utils import dixon_coles_weights  # noqa
 from .weibull_copula import WeibullCopulaGoalsModel  # noqa
+from .zero_inf_poisson import ZeroInflatedPoissonGoalsModel  # noqa

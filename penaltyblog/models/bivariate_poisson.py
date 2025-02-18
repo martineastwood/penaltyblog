@@ -39,21 +39,45 @@ class BivariatePoissonGoalModel:
         self.fitted = False
         self.aic = None
         self._res = None
+        self.n_params = None
+        self.loglikelihood = None
 
     def __repr__(self):
-        rep = "Bivariate Poisson Goal Model (Karlis–Ntzoufras)\n"
-        rep += f"Fitted: {self.fitted}\n"
-        if self.fitted:
-            rep += f"AIC: {self.aic:.3f}\n"
-            rep += "Parameters:\n"
-            for i, team in enumerate(self.teams):
-                rep += f"  {team}: Attack={self._params[i]:.3f}, Defense={self._params[self.n_teams + i]:.3f}\n"
-            rep += f"  Home Advantage: {self._params[-2]:.3f}\n"
-            rep += f"  Correlation (log-lambda3): {self._params[-1]:.3f}\n"
-            rep += f"     => lambda3 = exp({self._params[-1]:.3f}) = {np.exp(self._params[-1]):.3f}\n"
-        else:
-            rep += "Model not fitted yet.\n"
-        return rep
+        lines = ["Module: Penaltyblog", "", "Model: Bivariate Poisson", ""]
+
+        if not self.fitted:
+            lines.append("Status: Model not fitted")
+            return "\n".join(lines)
+
+        lines.extend(
+            [
+                f"Number of parameters: {self.n_params}",
+                f"Log Likelihood: {round(self.loglikelihood, 3)}",
+                f"AIC: {round(self.aic, 3)}",
+                "",
+                "{0: <20} {1:<20} {2:<20}".format("Team", "Attack", "Defence"),
+                "-" * 60,
+            ]
+        )
+
+        for idx, team in enumerate(self.teams):
+            lines.append(
+                "{0: <20} {1:<20} {2:<20}".format(
+                    team,
+                    round(self._params[idx], 3),
+                    round(self._params[idx + self.n_teams], 3),
+                )
+            )
+
+        lines.extend(
+            [
+                "-" * 60,
+                f"Home Advantage: {round(self._params[-2], 3)}",
+                f"Correlation: {round(self._params[-1], 3)}",
+            ]
+        )
+
+        return "\n".join(lines)
 
     def _log_likelihood(self, params, data):
         """
@@ -145,9 +169,11 @@ class BivariatePoissonGoalModel:
 
         self._params = opt.x
         self.fitted = True
+        self.n_params = len(self._params)
 
         self.aic = 2 * len(self._params) + 2 * opt.fun
         self._res = opt
+        self.loglikelihood = -self._res.fun
 
     def predict(self, home_team, away_team, max_goals=10):
         """
