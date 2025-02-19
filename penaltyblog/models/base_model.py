@@ -1,6 +1,6 @@
 import pickle
 from abc import ABC, abstractmethod
-from typing import Any, Optional
+from typing import Any, Dict, Optional
 
 import numpy as np
 
@@ -131,3 +131,28 @@ class BaseGoalsModel(ABC):
         Must be implemented by the subclass.
         """
         raise NotImplementedError("Subclasses must implement this method.")
+
+    @abstractmethod
+    def get_params(self) -> Dict[str, Any]:
+        """
+        Returns the fitted parameters of the model.
+        """
+        raise NotImplementedError("Subclasses must implement this method.")
+
+    @property
+    def params(self) -> Dict[str, Any]:
+        """
+        Property to retrieve the fitted model parameters.
+        Same as `get_params()`, but allows attribute-like access.
+
+        Returns
+        -------
+        dict
+            A dictionary containing attack, defense, home advantage, and correlation parameters.
+
+        Raises
+        ------
+        ValueError
+            If the model has not been fitted yet.
+        """
+        return self.get_params()

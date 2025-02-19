@@ -241,21 +241,3 @@ class PoissonCopulaGoalsModel(BaseGoalsModel):
             )
         )
         return params
-
-    @property
-    def params(self) -> dict:
-        """
-        Property to retrieve the fitted model parameters.
-        Same as `get_params()`, but allows attribute-like access.
-
-        Returns
-        -------
-        dict
-            A dictionary containing attack, defense, home advantage, and correlation parameters.
-
-        Raises
-        ------
-        ValueError
-            If the model has not been fitted yet.
-        """
-        return self.get_params()

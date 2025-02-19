@@ -222,24 +222,6 @@ class BivariatePoissonGoalModel(BaseGoalsModel):
         result["lambda3"] = np.exp(result["correlation_log"])
         return result
 
-    @property
-    def params(self) -> dict:
-        """
-        Property to retrieve the fitted model parameters.
-        Same as `get_params()`, but allows attribute-like access.
-
-        Returns
-        -------
-        dict
-            A dictionary containing attack, defense, home advantage, and correlation parameters.
-
-        Raises
-        ------
-        ValueError
-            If the model has not been fitted yet.
-        """
-        return self.get_params()
-
 
 @njit
 def _compute_match_likelihood(
