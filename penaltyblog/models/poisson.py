@@ -3,6 +3,7 @@ from math import exp
 
 import numpy as np
 from numba import njit
+from numpy.typing import NDArray
 from scipy.optimize import minimize
 
 from .base_model import BaseGoalsModel
@@ -102,7 +103,7 @@ class PoissonGoalsModel(BaseGoalsModel):
 
         return "\n".join(lines)
 
-    def _loss_function(self, params) -> float:
+    def _loss_function(self, params: NDArray) -> float:
         """Negative Log-Likelihood optimized with Numba"""
 
         return _numba_neg_log_likelihood(
@@ -185,15 +186,12 @@ class PoissonGoalsModel(BaseGoalsModel):
         lambda_home = np.exp(home_advantage + home_attack + away_defense)
         lambda_away = np.exp(away_attack + home_defense)
 
-        # Use a Numba-accelerated function to compute probability vectors
         home_goals_vector, away_goals_vector = numba_poisson_pmf(
             lambda_home, lambda_away, max_goals
         )
 
-        # Compute score matrix
         score_matrix = np.outer(home_goals_vector, away_goals_vector)
 
-        # Return FootballProbabilityGrid
         return FootballProbabilityGrid(score_matrix, lambda_home, lambda_away)
 
     def get_params(self) -> ParamsOutput:
@@ -217,7 +215,13 @@ class PoissonGoalsModel(BaseGoalsModel):
 
 @njit
 def _numba_neg_log_likelihood(
-    params, n_teams, home_idx, away_idx, goals_home, goals_away, weights
+    params: NDArray,
+    n_teams: int,
+    home_idx: NDArray,
+    away_idx: NDArray,
+    goals_home: NDArray,
+    goals_away: NDArray,
+    weights: NDArray,
 ) -> float:
     """
     Internal method, not to be called directly by the user

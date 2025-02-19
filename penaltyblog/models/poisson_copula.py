@@ -103,7 +103,7 @@ class PoissonCopulaGoalsModel(BaseGoalsModel):
 
         return "\n".join(lines)
 
-    def _loss_function(self, params):
+    def _loss_function(self, params: np.ndarray) -> float:
         """
         Negative log-likelihood function for the Poisson Copula model.
 
@@ -174,7 +174,9 @@ class PoissonCopulaGoalsModel(BaseGoalsModel):
         self.aic = -2 * self.loglikelihood + 2 * self.n_params
         self.fitted = True
 
-    def predict(self, home_team, away_team, max_goals=15) -> FootballProbabilityGrid:
+    def predict(
+        self, home_team: str, away_team: str, max_goals: int = 15
+    ) -> FootballProbabilityGrid:
         """
         Predicts the probability of each scoreline for a given home and away team.
 
@@ -215,7 +217,6 @@ class PoissonCopulaGoalsModel(BaseGoalsModel):
         home_goals_vector = poisson(lambda_home).pmf(np.arange(max_goals))
         away_goals_vector = poisson(lambda_away).pmf(np.arange(max_goals))
 
-        # Compute score matrix
         score_matrix = np.outer(home_goals_vector, away_goals_vector)
 
         # Return FootballProbabilityGrid

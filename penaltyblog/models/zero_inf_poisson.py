@@ -1,16 +1,35 @@
+"""
+Zero-Inflated Poisson Model for Football Goal Scoring
+
+This module implements the Zero-Inflated Poisson model for predicting football match outcomes.
+"""
+
 import warnings
 from math import exp, lgamma, log
+from typing import Any, Dict
 
 import numpy as np
 from numba import njit
 from scipy.optimize import minimize
 
 from .base_model import BaseGoalsModel
+from .custom_types import GoalInput, ParamsOutput, TeamInput, WeightInput
 from .football_probability_grid import FootballProbabilityGrid
 
 
 class ZeroInflatedPoissonGoalsModel(BaseGoalsModel):
-    def __init__(self, goals_home, goals_away, teams_home, teams_away, weights=None):
+    """
+    Zero-Inflated Poisson Model for Football Goal Scoring
+    """
+
+    def __init__(
+        self,
+        goals_home: GoalInput,
+        goals_away: GoalInput,
+        teams_home: TeamInput,
+        teams_away: TeamInput,
+        weights: WeightInput = None,
+    ):
         """
         Initialises the ZeroInflatedPoissonGoalsModel class.
 
@@ -75,7 +94,7 @@ class ZeroInflatedPoissonGoalsModel(BaseGoalsModel):
 
         return "\n".join(lines)
 
-    def _loss_function(self, params):
+    def _loss_function(self, params: np.ndarray) -> float:
         """Negative Log-Likelihood optimized with Numba"""
 
         return _numba_neg_log_likelihood_zip(
@@ -93,9 +112,7 @@ class ZeroInflatedPoissonGoalsModel(BaseGoalsModel):
         constraints = [
             {"type": "eq", "fun": lambda x: sum(x[: self.n_teams]) - self.n_teams}
         ]
-        bounds = (
-            [(-3, 3)] * self.n_teams * 2 + [(0, 3)] + [(0, 1)]
-        )  # Bound zero-inflation between 0 and 1
+        bounds = [(-3, 3)] * self.n_teams * 2 + [(0, 3)] + [(0, 1)]
 
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
@@ -117,7 +134,7 @@ class ZeroInflatedPoissonGoalsModel(BaseGoalsModel):
         self.aic = -2 * self.loglikelihood + 2 * self.n_params
         self.fitted = True
 
-    def get_params(self):
+    def get_params(self) -> ParamsOutput:
         if not self.fitted:
             raise ValueError(
                 "Model's parameters have not been fit yet. Call `fit()` first."
@@ -134,7 +151,9 @@ class ZeroInflatedPoissonGoalsModel(BaseGoalsModel):
         )
         return params
 
-    def predict(self, home_team, away_team, max_goals=15):
+    def predict(
+        self, home_team: str, away_team: str, max_goals: int = 15
+    ) -> FootballProbabilityGrid:
         if not self.fitted:
             raise ValueError(
                 "Model's parameters have not been fit yet. Please call `fit()` first."
@@ -162,15 +181,15 @@ class ZeroInflatedPoissonGoalsModel(BaseGoalsModel):
             lambda_home, lambda_away, zero_inflation, max_goals
         )
 
-        # Compute score matrix
         score_matrix = np.outer(home_goals_vector, away_goals_vector)
 
-        # Return FootballProbabilityGrid
         return FootballProbabilityGrid(score_matrix, lambda_home, lambda_away)
 
 
 @njit
-def _numba_zip_poisson_pmf(lambda_home, lambda_away, zero_inflation, max_goals):
+def _numba_zip_poisson_pmf(
+    lambda_home: float, lambda_away: float, zero_inflation: float, max_goals: int
+):
     """Computes Zero-Inflated Poisson PMF vectors using Numba"""
     home_goals_vector = np.zeros(max_goals)
     away_goals_vector = np.zeros(max_goals)
@@ -195,7 +214,7 @@ def _numba_zip_poisson_pmf(lambda_home, lambda_away, zero_inflation, max_goals):
 
 
 @njit
-def poisson_logpmf(k, lambda_):
+def poisson_logpmf(k: int, lambda_: float) -> float:
     """Compute log PMF of Poisson manually since Numba doesn't support scipy.stats.poisson"""
     if k < 0:
         return -np.inf  # Log PMF should be negative infinity for invalid k
@@ -204,8 +223,14 @@ def poisson_logpmf(k, lambda_):
 
 @njit
 def _numba_neg_log_likelihood_zip(
-    params, n_teams, home_idx, away_idx, goals_home, goals_away, weights
-):
+    params: np.ndarray,
+    n_teams: int,
+    home_idx: np.ndarray,
+    away_idx: np.ndarray,
+    goals_home: np.ndarray,
+    goals_away: np.ndarray,
+    weights: np.ndarray,
+) -> float:
     """Optimized negative log-likelihood function for Zero-Inflated Poisson using Numba"""
     attack_params = params[:n_teams]
     defense_params = params[n_teams : 2 * n_teams]

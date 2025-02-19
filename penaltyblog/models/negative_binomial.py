@@ -94,7 +94,7 @@ class NegativeBinomialGoalModel(BaseGoalsModel):
 
         return "\n".join(lines)
 
-    def _loss_function(self, params) -> float:
+    def _loss_function(self, params: np.ndarray) -> float:
         """
         Calculates the negative log-likelihood of the Negative Binomial model.
 
@@ -149,14 +149,16 @@ class NegativeBinomialGoalModel(BaseGoalsModel):
             {"type": "eq", "fun": lambda x: sum(x[: self.n_teams]) - self.n_teams}
         ]
 
-        self._res = minimize(
-            self._loss_function,
-            self._params,
-            bounds=bounds,
-            constraints=constraints,
-            method="L-BFGS-B",
-            options=options,
-        )
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            self._res = minimize(
+                self._loss_function,
+                self._params,
+                bounds=bounds,
+                constraints=constraints,
+                method="L-BFGS-B",
+                options=options,
+            )
 
         if not self._res.success:
             raise ValueError(f"Optimization failed with message: {self._res.message}")
