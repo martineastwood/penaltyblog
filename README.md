@@ -28,23 +28,20 @@
 
 
 
-The **penaltyblog** Python package contains lots of useful code from [pena.lt/y/blog](http://pena.lt/y/blog.html) for working with football (soccer) data.
+# penaltyblog: Football Data & Modelling Made Easy
 
-**penaltyblog** includes functions for:
+**penaltyblog** is a Python package packed with tools from [pena.lt/y/blog](https://pena.lt/y/blog) for football (soccer) data analysis, modelling, and betting insights.
 
-- Scraping football data from sources such as football-data.co.uk, FBRef, Club Elo, Understat and Fantasy Premier League
-- Modelling of football matches using the following models:
-  - Poisson
-  - Poisson + Frank Capula
-  - Bivariate Poisson
-  - Zero-inflated Poisson
-  - Dixon and Coles
-  - Negative Binomial
-- Predicting probabilities for many betting markets, e.g. Asian handicaps, over/under, total goals etc
-- Modelling football team's abilities using Massey ratings, Colley ratings, Pi ratings and Elo ratings
-- Estimating the implied odds from bookmaker's odds by removing the overround using multiple different methods
-- Estimating goal expectancy from bookmaker's odds
-- Mathematically optimising your fantasy football team
+## Features
+- ⚽ **Scrape Data** – Pull match stats from sources like FBRef, Understat, Club Elo, and Fantasy Premier League.
+- 📊 **Model Matches** – Use Poisson, Bivariate Poisson, Dixon-Coles, and more to predict outcomes.
+- 💰 **Bet Smarter** – Estimate probabilities for Asian handicaps, over/under, total goals, and more.
+- 🏆 **Rank Teams** – Rate teams with Elo, Massey, Colley, and Pi methods.
+- 📈 **Decode Bookmaker Odds** – Remove overrounds and extract implied probabilities.
+- 🎯 **Fantasy Football Optimisation** – Build the best squad using mathematical optimisation.
+
+Get started and take your football analytics to the next level! 🚀
+
 
 ## Installation
 
