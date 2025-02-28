@@ -134,7 +134,7 @@ class PoissonGoalsModel(BaseGoalsModel):
                 constraints=constraints,
                 bounds=bounds,
                 options=options,
-                method="trust-constr",
+                method="SLSQP",
             )
 
         if not self._res.success:
