@@ -1,5 +1,4 @@
 import warnings
-from typing import Any, Optional
 
 import numpy as np
 from scipy.optimize import minimize
@@ -148,7 +147,7 @@ class PoissonCopulaGoalsModel(BaseGoalsModel):
         """
         Fits the Poisson Copula model to the data.
         """
-        options = {"maxiter": 500, "disp": False}
+        options = {"maxiter": 1000, "disp": False}
         constraints = [
             {"type": "eq", "fun": lambda x: sum(x[: self.n_teams]) - self.n_teams}
         ]
@@ -162,7 +161,6 @@ class PoissonCopulaGoalsModel(BaseGoalsModel):
                 constraints=constraints,
                 bounds=bounds,
                 options=options,
-                method="L-BFGS-B",
             )
 
         if not self._res.success:

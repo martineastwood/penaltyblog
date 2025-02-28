@@ -130,7 +130,7 @@ class BivariatePoissonGoalModel(BaseGoalsModel):
         """
         Fits the Bivariate Poisson model to the data.
         """
-        options = {"maxiter": 100, "disp": False}
+        options = {"maxiter": 1000, "disp": False}
         constraints = [
             {"type": "eq", "fun": lambda x: sum(x[: self.n_teams]) - self.n_teams}
         ]
@@ -144,7 +144,6 @@ class BivariatePoissonGoalModel(BaseGoalsModel):
                 constraints=constraints,
                 bounds=bnds,
                 options=options,
-                method="L-BFGS-B",
             )
 
         if not self._res.success:

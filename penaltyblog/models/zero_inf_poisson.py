@@ -108,7 +108,7 @@ class ZeroInflatedPoissonGoalsModel(BaseGoalsModel):
         )
 
     def fit(self):
-        options = {"maxiter": 100, "disp": False}
+        options = {"maxiter": 1000, "disp": False}
         constraints = [
             {"type": "eq", "fun": lambda x: sum(x[: self.n_teams]) - self.n_teams}
         ]
@@ -122,7 +122,6 @@ class ZeroInflatedPoissonGoalsModel(BaseGoalsModel):
                 constraints=constraints,
                 bounds=bounds,
                 options=options,
-                method="SLSQP",
             )
 
         if not self._res.success:

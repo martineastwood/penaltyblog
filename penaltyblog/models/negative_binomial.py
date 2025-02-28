@@ -143,7 +143,7 @@ class NegativeBinomialGoalModel(BaseGoalsModel):
         """
         Fits the Negative Binomial model to the data.
         """
-        options = {"maxiter": 500, "disp": False}
+        options = {"maxiter": 1000, "disp": False}
         bounds = [(-2, 2)] * self.n_teams * 2 + [(-4, 4), (1e-5, 1000)]
         constraints = [
             {"type": "eq", "fun": lambda x: sum(x[: self.n_teams]) - self.n_teams}
@@ -156,7 +156,6 @@ class NegativeBinomialGoalModel(BaseGoalsModel):
                 self._params,
                 bounds=bounds,
                 constraints=constraints,
-                method="L-BFGS-B",
                 options=options,
             )
 

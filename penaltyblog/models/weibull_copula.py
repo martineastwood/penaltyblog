@@ -215,9 +215,8 @@ class WeibullCopulaGoalsModel:
             self._res = minimize(
                 self._neg_log_likelihood,
                 x0=self._params,
-                method="L-BFGS-B",
                 bounds=bnds,
-                options={"maxiter": 250, "ftol": 1e-7, "disp": False},
+                options={"maxiter": 1000, "disp": False},
             )
 
         if not self._res.success:

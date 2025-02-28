@@ -131,7 +131,7 @@ class DixonColesGoalModel(BaseGoalsModel):
         home advantage and intercept. Must be called before `predict` can be used
         """
         options = {
-            "maxiter": 100,
+            "maxiter": 1000,
             "disp": False,
         }
 
