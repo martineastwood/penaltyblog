@@ -120,7 +120,7 @@ class PoissonGoalsModel(BaseGoalsModel):
         """
         Fits the Poisson model to the data using maximum likelihood estimation
         """
-        options = {"maxiter": 100, "disp": False}
+        options = {"maxiter": 1000, "disp": False}
         constraints = [
             {"type": "eq", "fun": lambda x: sum(x[: self.n_teams]) - self.n_teams}
         ]
@@ -134,7 +134,7 @@ class PoissonGoalsModel(BaseGoalsModel):
                 constraints=constraints,
                 bounds=bounds,
                 options=options,
-                method="L-BFGS-B",
+                method="trust-constr",
             )
 
         if not self._res.success:
