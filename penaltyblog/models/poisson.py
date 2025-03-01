@@ -182,14 +182,14 @@ class PoissonGoalsModel(BaseGoalsModel):
         away_defense = self._params[away_idx + self.n_teams]
         home_advantage = self._params[-1]
 
-        lambda_home = np.exp(home_advantage + home_attack + away_defense)
-        lambda_away = np.exp(away_attack + home_defense)
-
-        home_goals_vector, away_goals_vector = numba_poisson_pmf(
-            lambda_home, lambda_away, max_goals
+        score_matrix, lambda_home, lambda_away = compute_poisson_probabilities(
+            home_attack,
+            away_attack,
+            home_defense,
+            away_defense,
+            home_advantage,
+            max_goals,
         )
-
-        score_matrix = np.outer(home_goals_vector, away_goals_vector)
 
         return FootballProbabilityGrid(score_matrix, lambda_home, lambda_away)
 
@@ -210,6 +210,27 @@ class PoissonGoalsModel(BaseGoalsModel):
             )
         )
         return params
+
+
+@njit
+def compute_poisson_probabilities(
+    home_attack, away_attack, home_defense, away_defense, home_advantage, max_goals
+):
+    """
+    Numba-optimized function to compute Poisson probabilities for scorelines.
+    """
+    lambda_home = np.exp(home_advantage + home_attack + away_defense)
+    lambda_away = np.exp(away_attack + home_defense)
+
+    # Compute Poisson probabilities
+    home_goals_vector, away_goals_vector = numba_poisson_pmf(
+        lambda_home, lambda_away, max_goals
+    )
+
+    # Compute scoreline probability matrix
+    score_matrix = np.outer(home_goals_vector, away_goals_vector)
+
+    return score_matrix, lambda_home, lambda_away
 
 
 @njit
