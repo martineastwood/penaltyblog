@@ -1,19 +1,25 @@
+import ctypes
 import warnings
-from math import exp
 
 import numpy as np
-from numba import njit
 from numpy.typing import NDArray
 from scipy.optimize import minimize
-from scipy.stats import poisson
 
-from .base_model import BaseGoalsModel
-from .custom_types import GoalInput, ParamsOutput, TeamInput, WeightInput
-from .football_probability_grid import FootballProbabilityGrid
-from .numba_helpers import numba_poisson_logpmf, numba_rho_correction_llh
+from penaltyblog.golib.loss import dixon_coles_loss_function
+from penaltyblog.golib.probabilities import compute_dixon_coles_probabilities
+from penaltyblog.models.base_model import BaseGoalsModel
+from penaltyblog.models.custom_types import (
+    GoalInput,
+    ParamsOutput,
+    TeamInput,
+    WeightInput,
+)
+from penaltyblog.models.football_probability_grid import (
+    FootballProbabilityGrid,
+)
 
 
-class DixonColesGoalModel(BaseGoalsModel):
+class DixonColesGoalModelGo(BaseGoalsModel):
     """
     Dixon and Coles adjusted Poisson model for predicting outcomes of football
     (soccer) matches
@@ -115,14 +121,18 @@ class DixonColesGoalModel(BaseGoalsModel):
         """
         Internal method, not to called directly by the user
         """
-        return _numba_neg_log_likelihood(
-            params,
+        params = np.ascontiguousarray(params, dtype=np.float64)
+        params_ctypes = params.ctypes.data_as(ctypes.POINTER(ctypes.c_double))
+
+        return dixon_coles_loss_function(
+            params_ctypes,
             self.n_teams,
-            self.home_idx,
-            self.away_idx,
-            self.goals_home,
-            self.goals_away,
-            self.weights,
+            self.home_idx_ctypes,
+            self.away_idx_ctypes,
+            self.goals_home_ctypes,
+            self.goals_away_ctypes,
+            self.weights_ctypes,
+            len(self.goals_home),
         )
 
     def fit(self):
@@ -167,83 +177,53 @@ class DixonColesGoalModel(BaseGoalsModel):
         self, home_team: str, away_team: str, max_goals: int = 15
     ) -> FootballProbabilityGrid:
         """
-        Predicts the probabilities of the different possible match outcomes
+        Predicts the probability of each scoreline for a given home and away team
 
         Parameters
         ----------
         home_team : str
-            The name of the home_team, must have been in the data the model was fitted on
+            The name of the home team
         away_team : str
-            The name of the away_team, must have been in the data the model was fitted on
-        max_goals : int
-            The maximum number of goals to calculate the probabilities over.
-            Reducing this will improve performance slightly at the expensive of acuuracy
+            The name of the away team
+        max_goals : int, optional
+            The maximum number of goals to consider, by default 15
 
         Returns
         -------
         FootballProbabilityGrid
-            A class providing access to a range of probabilites,
-            such as 1x2, asian handicaps, over unders etc
+            A FootballProbabilityGrid object containing the probabilities of each scoreline
         """
         if not self.fitted:
             raise ValueError(
-                (
-                    "Model's parameters have not been fit yet, please call the `fit()` "
-                    "function before making any predictions"
-                )
+                "Model's parameters have not been fit yet. Please call `fit()` first."
             )
 
-        # check we have parameters for teams
-        if home_team not in self.teams:
-            raise ValueError(
-                (
-                    "No parameters for home team - "
-                    "please ensure the team was included in the training data"
-                )
-            )
+        if home_team not in self.teams or away_team not in self.teams:
+            raise ValueError("Both teams must have been in the training data.")
 
-        if away_team not in self.teams:
-            raise ValueError(
-                (
-                    "No parameters for away team - "
-                    "please ensure the team was included in the training data"
-                )
-            )
-
-        # get the relevant model parameters
-        home_idx = np.where(self.teams == home_team)[0][0]
-        away_idx = np.where(self.teams == away_team)[0][0]
+        home_idx = self.team_to_idx[home_team]
+        away_idx = self.team_to_idx[away_team]
 
         home_attack = self._params[home_idx]
         away_attack = self._params[away_idx]
-
-        home_defence = self._params[home_idx + self.n_teams]
-        away_defence = self._params[away_idx + self.n_teams]
-
+        home_defense = self._params[home_idx + self.n_teams]
+        away_defense = self._params[away_idx + self.n_teams]
         home_advantage = self._params[-2]
         rho = self._params[-1]
 
-        # calculate the goal expectation
-        home_goals = np.exp(home_advantage + home_attack + away_defence)
-        away_goals = np.exp(away_attack + home_defence)
-        home_goals_vector = poisson(home_goals).pmf(np.arange(0, max_goals))
-        away_goals_vector = poisson(away_goals).pmf(np.arange(0, max_goals))
+        score_matrix, lambda_home, lambda_away = compute_dixon_coles_probabilities(
+            home_attack,
+            away_attack,
+            home_defense,
+            away_defense,
+            home_advantage,
+            rho,
+            max_goals,
+        )
 
-        # get the probabilities for each possible score
-        m = np.outer(home_goals_vector, away_goals_vector)
+        print(lambda_home, lambda_away)
 
-        # apply Dixon and Coles adjustment
-        m[0, 0] *= 1 - home_goals * away_goals * rho
-        m[0, 1] *= 1 + home_goals * rho
-        m[1, 0] *= 1 + away_goals * rho
-        m[1, 1] *= 1 - rho
-
-        # and return the FootballProbabilityGrid
-        probability_grid = FootballProbabilityGrid(m, home_goals, away_goals)
-
-        print(home_goals, away_goals)
-
-        return probability_grid
+        return FootballProbabilityGrid(score_matrix, lambda_home, lambda_away)
 
     def get_params(self) -> ParamsOutput:
         """
@@ -289,60 +269,3 @@ class DixonColesGoalModel(BaseGoalsModel):
             If the model has not been fitted yet.
         """
         return self.get_params()
-
-
-@njit
-def _numba_neg_log_likelihood(
-    params, n_teams, home_idx, away_idx, goals_home, goals_away, weights
-) -> float:
-    """
-    Internal method, not to be called directly by the user
-
-    Calculates the negative log-likelihood of the Dixon and Coles model
-
-    Parameters
-    ----------
-    params : array_like
-        The parameters of the model
-    n_teams : int
-        The number of teams in the league
-    home_idx : array_like
-        The indices of the home teams in the data
-    away_idx : array_like
-        The indices of the away teams in the data
-    goals_home : array_like
-        The number of goals scored by the home teams
-    goals_away : array_like
-        The number of goals scored by the away teams
-    weights : array_like
-        The weights of the matches
-
-    Returns
-    -------
-    float
-        The negative log-likelihood of the Dixon and Coles model
-    """
-    attack_params = params[:n_teams]
-    defense_params = params[n_teams : 2 * n_teams]
-    hfa, rho = params[-2:]
-
-    n_matches = len(goals_home)
-    log_likelihood = 0.0
-
-    for i in range(n_matches):
-        lambda_home = exp(
-            hfa + attack_params[home_idx[i]] + defense_params[away_idx[i]]
-        )
-        lambda_away = exp(attack_params[away_idx[i]] + defense_params[home_idx[i]])
-
-        log_likelihood += (
-            numba_poisson_logpmf(goals_home[i], lambda_home)
-            + numba_poisson_logpmf(goals_away[i], lambda_away)
-            + np.log(
-                numba_rho_correction_llh(
-                    goals_home[i], goals_away[i], lambda_home, lambda_away, rho
-                )
-            )
-        ) * weights[i]
-
-    return -log_likelihood

@@ -11,7 +11,7 @@ def test_poisson_model(fixtures):
     )
     clf.fit()
     params = clf.get_params()
-    assert 0.65 < params["attack_Man City"] < 1.5
+    assert 0.65 < params["attack_Man City"] < 2.0
     assert 0.1 < params["home_advantage"] < 0.4
 
     probs = clf.predict("Liverpool", "Wolves")

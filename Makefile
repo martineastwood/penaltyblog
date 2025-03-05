@@ -20,3 +20,6 @@ docs:
 
 jupyter:
 	jupyter lab --no-browser --port=8080 --ip="*"
+
+golib:
+	cd penaltyblog/gosrc && go build -o ../golib/penaltyblog.so -buildmode=c-shared .

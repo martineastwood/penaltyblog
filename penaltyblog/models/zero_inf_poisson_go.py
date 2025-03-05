@@ -4,19 +4,27 @@ Zero-Inflated Poisson Model for Football Goal Scoring
 This module implements the Zero-Inflated Poisson model for predicting football match outcomes.
 """
 
+import ctypes
 import warnings
-from math import exp, lgamma, log
 
 import numpy as np
-from numba import njit
 from scipy.optimize import minimize
 
-from .base_model import BaseGoalsModel
-from .custom_types import GoalInput, ParamsOutput, TeamInput, WeightInput
-from .football_probability_grid import FootballProbabilityGrid
+from penaltyblog.golib.loss import zero_inflated_poisson_loss_function
+from penaltyblog.golib.probabilities import compute_zip_poisson_probabilities
+from penaltyblog.models.base_model import BaseGoalsModel
+from penaltyblog.models.custom_types import (
+    GoalInput,
+    ParamsOutput,
+    TeamInput,
+    WeightInput,
+)
+from penaltyblog.models.football_probability_grid import (
+    FootballProbabilityGrid,
+)
 
 
-class ZeroInflatedPoissonGoalsModel(BaseGoalsModel):
+class ZeroInflatedPoissonGoalsModelGo(BaseGoalsModel):
     """
     Zero-Inflated Poisson Model for Football Goal Scoring
     """
@@ -94,16 +102,19 @@ class ZeroInflatedPoissonGoalsModel(BaseGoalsModel):
         return "\n".join(lines)
 
     def _loss_function(self, params: np.ndarray) -> float:
-        """Negative Log-Likelihood optimized with Numba"""
+        """Negative Log-Likelihood optimized with Go"""
+        params = np.ascontiguousarray(params, dtype=np.float64)
+        params_ctypes = params.ctypes.data_as(ctypes.POINTER(ctypes.c_double))
 
-        return _numba_neg_log_likelihood_zip(
-            params,
+        return zero_inflated_poisson_loss_function(
+            params_ctypes,
             self.n_teams,
-            self.home_idx,
-            self.away_idx,
-            self.goals_home,
-            self.goals_away,
-            self.weights,
+            self.home_idx_ctypes,
+            self.away_idx_ctypes,
+            self.goals_home_ctypes,
+            self.goals_away_ctypes,
+            self.weights_ctypes,
+            len(self.goals_home),
         )
 
     def fit(self):
@@ -175,90 +186,14 @@ class ZeroInflatedPoissonGoalsModel(BaseGoalsModel):
         lambda_away = np.exp(away_attack + home_defense)
 
         # Compute ZIP Poisson PMF for home and away teams
-        home_goals_vector, away_goals_vector = _numba_zip_poisson_pmf(
-            lambda_home, lambda_away, zero_inflation, max_goals
+        score_matrix, lambda_home, lambda_away = compute_zip_poisson_probabilities(
+            home_attack,
+            away_attack,
+            home_defense,
+            away_defense,
+            home_advantage,
+            zero_inflation,
+            max_goals,
         )
-
-        score_matrix = np.outer(home_goals_vector, away_goals_vector)
 
         return FootballProbabilityGrid(score_matrix, lambda_home, lambda_away)
-
-
-@njit
-def _numba_zip_poisson_pmf(
-    lambda_home: float, lambda_away: float, zero_inflation: float, max_goals: int
-):
-    """Computes Zero-Inflated Poisson PMF vectors using Numba"""
-    home_goals_vector = np.zeros(max_goals)
-    away_goals_vector = np.zeros(max_goals)
-
-    for g in range(max_goals):
-        if g == 0:
-            home_goals_vector[g] = zero_inflation + (1 - zero_inflation) * exp(
-                -lambda_home
-            )
-            away_goals_vector[g] = zero_inflation + (1 - zero_inflation) * exp(
-                -lambda_away
-            )
-        else:
-            home_goals_vector[g] = (1 - zero_inflation) * exp(
-                poisson_logpmf(g, lambda_home)
-            )
-            away_goals_vector[g] = (1 - zero_inflation) * exp(
-                poisson_logpmf(g, lambda_away)
-            )
-
-    return home_goals_vector, away_goals_vector
-
-
-@njit
-def poisson_logpmf(k: int, lambda_: float) -> float:
-    """Compute log PMF of Poisson manually since Numba doesn't support scipy.stats.poisson"""
-    if k < 0:
-        return -np.inf  # Log PMF should be negative infinity for invalid k
-    return k * log(lambda_) - lambda_ - lgamma(k + 1)
-
-
-@njit
-def _numba_neg_log_likelihood_zip(
-    params: np.ndarray,
-    n_teams: int,
-    home_idx: np.ndarray,
-    away_idx: np.ndarray,
-    goals_home: np.ndarray,
-    goals_away: np.ndarray,
-    weights: np.ndarray,
-) -> float:
-    """Optimized negative log-likelihood function for Zero-Inflated Poisson using Numba"""
-    attack_params = params[:n_teams]
-    defense_params = params[n_teams : 2 * n_teams]
-    home_advantage = params[-2]
-    zero_inflation = params[-1]
-
-    n_matches = len(goals_home)
-    log_likelihood = 0.0
-
-    for i in range(n_matches):
-        lambda_home = exp(
-            home_advantage + attack_params[home_idx[i]] + defense_params[away_idx[i]]
-        )
-        lambda_away = exp(attack_params[away_idx[i]] + defense_params[home_idx[i]])
-
-        # Compute ZIP log-likelihood
-        if goals_home[i] == 0:
-            prob_zero = zero_inflation + (1 - zero_inflation) * exp(-lambda_home)
-            log_likelihood += log(prob_zero) * weights[i]
-        else:
-            log_likelihood += (
-                log(1 - zero_inflation) + poisson_logpmf(goals_home[i], lambda_home)
-            ) * weights[i]
-
-        if goals_away[i] == 0:
-            prob_zero = zero_inflation + (1 - zero_inflation) * exp(-lambda_away)
-            log_likelihood += log(prob_zero) * weights[i]
-        else:
-            log_likelihood += (
-                log(1 - zero_inflation) + poisson_logpmf(goals_away[i], lambda_away)
-            ) * weights[i]
-
-    return -log_likelihood

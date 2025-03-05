@@ -1,3 +1,4 @@
+import ctypes
 import pickle
 from abc import ABC, abstractmethod
 from typing import Any, Dict, Optional
@@ -25,10 +26,10 @@ class BaseGoalsModel(ABC):
         weights: Optional[Any] = None,
     ):
         # Convert inputs to numpy arrays
-        self.goals_home = np.asarray(goals_home, dtype=int)
-        self.goals_away = np.asarray(goals_away, dtype=int)
-        self.teams_home = np.asarray(teams_home)
-        self.teams_away = np.asarray(teams_away)
+        self.goals_home = np.asarray(goals_home, dtype=np.int32, order="C")
+        self.goals_away = np.asarray(goals_away, dtype=np.int32, order="C")
+        self.teams_home = np.asarray(teams_home, dtype=str, order="C")
+        self.teams_away = np.asarray(teams_away, dtype=str, order="C")
 
         n_matches = len(self.goals_home)
 
@@ -51,6 +52,23 @@ class BaseGoalsModel(ABC):
         self._res: Optional[Any] = None
         self.n_params: Optional[int] = None
         self.loglikelihood: Optional[float] = None
+
+        # create ctypes pointers
+        self.home_idx_ctypes = self.home_idx.ctypes.data_as(
+            ctypes.POINTER(ctypes.c_int)
+        )
+        self.away_idx_ctypes = self.away_idx.ctypes.data_as(
+            ctypes.POINTER(ctypes.c_int)
+        )
+        self.goals_home_ctypes = self.goals_home.ctypes.data_as(
+            ctypes.POINTER(ctypes.c_int)
+        )
+        self.goals_away_ctypes = self.goals_away.ctypes.data_as(
+            ctypes.POINTER(ctypes.c_int)
+        )
+        self.weights_ctypes = self.weights.ctypes.data_as(
+            ctypes.POINTER(ctypes.c_double)
+        )
 
     def _validate_inputs(self, n_matches: int):
         """Validates that all inputs have consistent dimensions and values."""
@@ -81,8 +99,12 @@ class BaseGoalsModel(ABC):
         )
         self.n_teams = len(self.teams)
         self.team_to_idx = {team: i for i, team in enumerate(self.teams)}
-        self.home_idx = np.array([self.team_to_idx[t] for t in self.teams_home])
-        self.away_idx = np.array([self.team_to_idx[t] for t in self.teams_away])
+        self.home_idx = np.array(
+            [self.team_to_idx[t] for t in self.teams_home], dtype=np.int32, order="C"
+        )
+        self.away_idx = np.array(
+            [self.team_to_idx[t] for t in self.teams_away], dtype=np.int32, order="C"
+        )
 
     def save(self, filepath: str):
         """

@@ -1,3 +1,4 @@
+import ctypes
 import warnings
 
 import numpy as np
@@ -5,12 +6,23 @@ from numba import njit
 from numpy.typing import NDArray
 from scipy.optimize import minimize
 
-from .base_model import BaseGoalsModel
-from .custom_types import GoalInput, ParamsOutput, TeamInput, WeightInput
-from .football_probability_grid import FootballProbabilityGrid
+from penaltyblog.golib.loss import bivariate_poisson_loss_function
+from penaltyblog.golib.probabilities import (
+    compute_bivariate_poisson_probabilities,
+)
+from penaltyblog.models.base_model import BaseGoalsModel
+from penaltyblog.models.custom_types import (
+    GoalInput,
+    ParamsOutput,
+    TeamInput,
+    WeightInput,
+)
+from penaltyblog.models.football_probability_grid import (
+    FootballProbabilityGrid,
+)
 
 
-class BivariatePoissonGoalModel(BaseGoalsModel):
+class BivariatePoissonGoalModelGo(BaseGoalsModel):
     """
     Karlis & Ntzoufras Bivariate Poisson for soccer, with:
       X = W1 + W3
@@ -95,35 +107,18 @@ class BivariatePoissonGoalModel(BaseGoalsModel):
         return "\n".join(lines)
 
     def _loss_function(self, params: NDArray) -> float:
-        """
-        Computes the negative log-likelihood of the Bivariate Poisson model,
-        using:
-        (1) Precomputation of Poisson PMFs for lambda3 (avoiding repeats),
-        (2) Vectorization for the inner sum over k to reduce Python loops.
-        """
-        n_teams = self.n_teams
+        params = np.ascontiguousarray(params, dtype=np.float64)
+        params_ctypes = params.ctypes.data_as(ctypes.POINTER(ctypes.c_double))
 
-        # Parameter unpacking remains the same
-        attack_params = params[:n_teams]
-        defense_params = params[n_teams : 2 * n_teams]
-        home_adv = params[-2]
-        correlation_log = params[-1]
-        lambda3 = np.exp(correlation_log)
-
-        # Compute lambdas
-        lambda1 = np.exp(
-            home_adv + attack_params[self.home_idx] + defense_params[self.away_idx]
-        )
-        lambda2 = np.exp(attack_params[self.away_idx] + defense_params[self.home_idx])
-
-        return _compute_total_likelihood(
-            self.goals_home,
-            self.goals_away,
-            lambda1,
-            lambda2,
-            lambda3,
-            self.weights,
-            max(self.goals_home.max(), self.goals_away.max()) + 1,
+        return bivariate_poisson_loss_function(
+            params_ctypes,
+            self.n_teams,
+            self.home_idx_ctypes,
+            self.away_idx_ctypes,
+            self.goals_home_ctypes,
+            self.goals_away_ctypes,
+            self.weights_ctypes,
+            len(self.goals_home),
         )
 
     def fit(self):
@@ -178,28 +173,32 @@ class BivariatePoissonGoalModel(BaseGoalsModel):
         if not self.fitted:
             raise ValueError("Model is not yet fitted. Call `.fit()` first.")
 
-        # Extract parameters
-        attack_params = self._params[: self.n_teams]
-        defense_params = self._params[self.n_teams : 2 * self.n_teams]
-        home_adv = self._params[-2]
+        if home_team not in self.teams or away_team not in self.teams:
+            raise ValueError("Both teams must have been in the training data.")
+
+        home_idx = self.team_to_idx[home_team]
+        away_idx = self.team_to_idx[away_team]
+
+        home_attack = self._params[home_idx]
+        away_attack = self._params[away_idx]
+        home_defense = self._params[home_idx + self.n_teams]
+        away_defense = self._params[away_idx + self.n_teams]
+        home_advantage = self._params[-2]
         correlation_log = self._params[-1]
-        lam3 = np.exp(correlation_log)
 
-        # Get the correct indices
-        try:
-            i_home = np.where(self.teams == home_team)[0][0]
-            i_away = np.where(self.teams == away_team)[0][0]
-        except IndexError:
-            raise ValueError(
-                f"Team not found in training set: {home_team} or {away_team}"
+        score_matrix, lambda_home, lambda_away = (
+            compute_bivariate_poisson_probabilities(
+                home_attack,
+                away_attack,
+                home_defense,
+                away_defense,
+                home_advantage,
+                correlation_log,
+                max_goals,
             )
+        )
 
-        lam1 = np.exp(home_adv + attack_params[i_home] + defense_params[i_away])
-        lam2 = np.exp(attack_params[i_away] + defense_params[i_home])
-
-        score_matrix = _compute_score_matrix(lam1, lam2, lam3, max_goals)
-
-        return FootballProbabilityGrid(score_matrix, lam1, lam2)
+        return FootballProbabilityGrid(score_matrix, lambda_home, lambda_away)
 
     def get_params(self) -> ParamsOutput:
         """

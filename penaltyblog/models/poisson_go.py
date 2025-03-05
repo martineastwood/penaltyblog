@@ -1,18 +1,25 @@
+import ctypes
 import warnings
-from math import exp
 
 import numpy as np
-from numba import njit
 from numpy.typing import NDArray
 from scipy.optimize import minimize
 
-from .base_model import BaseGoalsModel
-from .custom_types import GoalInput, ParamsOutput, TeamInput, WeightInput
-from .football_probability_grid import FootballProbabilityGrid
-from .numba_helpers import numba_poisson_logpmf, numba_poisson_pmf
+from penaltyblog.golib.loss import poisson_loss_function
+from penaltyblog.golib.probabilities import compute_poisson_probabilities
+from penaltyblog.models.base_model import BaseGoalsModel
+from penaltyblog.models.custom_types import (
+    GoalInput,
+    ParamsOutput,
+    TeamInput,
+    WeightInput,
+)
+from penaltyblog.models.football_probability_grid import (
+    FootballProbabilityGrid,
+)
 
 
-class PoissonGoalsModel(BaseGoalsModel):
+class PoissonGoalsModelGo(BaseGoalsModel):
     """
     Poisson model for predicting outcomes of football (soccer) matches
 
@@ -105,22 +112,26 @@ class PoissonGoalsModel(BaseGoalsModel):
 
     def _loss_function(self, params: NDArray) -> float:
         """Negative Log-Likelihood optimized with Numba"""
+        params = np.ascontiguousarray(params, dtype=np.float64)
+        params_ctypes = params.ctypes.data_as(ctypes.POINTER(ctypes.c_double))
 
-        return _numba_neg_log_likelihood(
-            params,
+        llk = poisson_loss_function(
+            params_ctypes,
             self.n_teams,
-            self.home_idx,
-            self.away_idx,
-            self.goals_home,
-            self.goals_away,
-            self.weights,
+            self.home_idx_ctypes,
+            self.away_idx_ctypes,
+            self.goals_home_ctypes,
+            self.goals_away_ctypes,
+            self.weights_ctypes,
+            len(self.goals_home),
         )
+        return llk
 
     def fit(self):
         """
         Fits the Poisson model to the data using maximum likelihood estimation
         """
-        options = {"maxiter": 100, "disp": False}
+        options = {"maxiter": 1000, "disp": False}
         constraints = [
             {"type": "eq", "fun": lambda x: sum(x[: self.n_teams]) - self.n_teams}
         ]
@@ -213,84 +224,3 @@ class PoissonGoalsModel(BaseGoalsModel):
             )
         )
         return params
-
-
-# @njit
-def compute_poisson_probabilities(
-    home_attack, away_attack, home_defense, away_defense, home_advantage, max_goals
-):
-    """
-    Numba-optimized function to compute Poisson probabilities for scorelines.
-    """
-    lambda_home = np.exp(home_advantage + home_attack + away_defense)
-    lambda_away = np.exp(away_attack + home_defense)
-
-    # Compute Poisson probabilities
-    home_goals_vector, away_goals_vector = numba_poisson_pmf(
-        lambda_home, lambda_away, max_goals
-    )
-
-    # Compute scoreline probability matrix
-    score_matrix = np.outer(home_goals_vector, away_goals_vector)
-
-    return score_matrix, lambda_home, lambda_away
-
-
-# @njit()
-def _numba_neg_log_likelihood(
-    params: NDArray,
-    n_teams: int,
-    home_idx: NDArray,
-    away_idx: NDArray,
-    goals_home: NDArray,
-    goals_away: NDArray,
-    weights: NDArray,
-) -> float:
-    """
-    Internal method, not to be called directly by the user
-
-    Calculates the negative log-likelihood of the Poisson model
-
-    Parameters
-    ----------
-    params : array_like
-        The parameters of the model
-    n_teams : int
-        The number of teams in the league
-    home_idx : array_like
-        The indices of the home teams in the data
-    away_idx : array_like
-        The indices of the away teams in the data
-    goals_home : array_like
-        The number of goals scored by the home teams
-    goals_away : array_like
-        The number of goals scored by the away teams
-    weights : array_like
-        The weights of the matches
-
-    Returns
-    -------
-    float
-        The negative log-likelihood of the Poisson model
-    """
-    attack_params = params[:n_teams]
-    defense_params = params[n_teams : 2 * n_teams]
-    home_advantage = params[-1]
-
-    n_matches = len(goals_home)
-    log_likelihood = 0.0
-
-    # print(home_idx[:10])
-
-    for i in range(n_matches):
-        lambda_home = exp(
-            home_advantage + attack_params[home_idx[i]] + defense_params[away_idx[i]]
-        )
-        lambda_away = exp(attack_params[away_idx[i]] + defense_params[home_idx[i]])
-
-        log_likelihood += (
-            numba_poisson_logpmf(goals_home[i], lambda_home)
-            + numba_poisson_logpmf(goals_away[i], lambda_away) * weights[i]
-        )
-
-    return -log_likelihood
