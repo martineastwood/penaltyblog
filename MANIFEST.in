@@ -1,0 +1,3 @@
+include penaltyblog/golib/*.so
+include penaltyblog/golib/*.dll
+include penaltyblog/golib/*.dylib

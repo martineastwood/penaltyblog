@@ -48,14 +48,15 @@ Homepage = "https://github.com/martineastwood/penaltyblog"
 Repository = "https://github.com/martineastwood/penaltyblog"
 
 [build-system]
-requires = ["setuptools>=45", "wheel"]
+requires = ["setuptools", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools]
+packages = { find = {} }
 include-package-data = true
 
 [tool.setuptools.package-data]
-"models" = ["stan_files/*.stan"]
+penaltyblog = ["golib/*.so", "golib/*.dll", "golib/*.dylib"]
 
 [project.optional-dependencies]
 dev = [

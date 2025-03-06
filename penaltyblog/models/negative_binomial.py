@@ -1,12 +1,23 @@
+import ctypes
 import warnings
 
 import numpy as np
 from scipy.optimize import minimize
-from scipy.stats import nbinom
 
-from .base_model import BaseGoalsModel
-from .custom_types import GoalInput, ParamsOutput, TeamInput, WeightInput
-from .football_probability_grid import FootballProbabilityGrid
+from penaltyblog.golib.loss import negative_binomial_loss_function
+from penaltyblog.golib.probabilities import (
+    compute_negative_binomial_probabilities,
+)
+from penaltyblog.models.base_model import BaseGoalsModel
+from penaltyblog.models.custom_types import (
+    GoalInput,
+    ParamsOutput,
+    TeamInput,
+    WeightInput,
+)
+from penaltyblog.models.football_probability_grid import (
+    FootballProbabilityGrid,
+)
 
 
 class NegativeBinomialGoalModel(BaseGoalsModel):
@@ -112,38 +123,25 @@ class NegativeBinomialGoalModel(BaseGoalsModel):
         float
             The negative log-likelihood of the Negative Binomial model
         """
-        attack_params = params[: self.n_teams]
-        defence_params = params[self.n_teams : self.n_teams * 2]
-        home_adv, dispersion = params[-2:]
+        params = np.ascontiguousarray(params, dtype=np.float64)
+        params_ctypes = params.ctypes.data_as(ctypes.POINTER(ctypes.c_double))
 
-        lambda_home = np.exp(
-            home_adv + attack_params[self.home_idx] + defence_params[self.away_idx]
+        return negative_binomial_loss_function(
+            params_ctypes,
+            self.n_teams,
+            self.home_idx_ctypes,
+            self.away_idx_ctypes,
+            self.goals_home_ctypes,
+            self.goals_away_ctypes,
+            self.weights_ctypes,
+            len(self.goals_home),
         )
-        lambda_away = np.exp(
-            attack_params[self.away_idx] + defence_params[self.home_idx]
-        )
-
-        dispersion = np.clip(dispersion, 1e-5, None)
-
-        home_ll = nbinom.logpmf(
-            self.goals_home, dispersion, dispersion / (dispersion + lambda_home)
-        )
-        away_ll = nbinom.logpmf(
-            self.goals_away, dispersion, dispersion / (dispersion + lambda_away)
-        )
-
-        log_likelihood = home_ll + away_ll
-
-        if np.any(np.isnan(log_likelihood)) or np.any(np.isinf(log_likelihood)):
-            return np.inf
-
-        return -np.sum(log_likelihood * self.weights)
 
     def fit(self):
         """
         Fits the Negative Binomial model to the data.
         """
-        options = {"maxiter": 1000, "disp": False}
+        options = {"maxiter": 2500, "disp": False}
         bounds = [(-2, 2)] * self.n_teams * 2 + [(-4, 4), (1e-5, 1000)]
         constraints = [
             {"type": "eq", "fun": lambda x: sum(x[: self.n_teams]) - self.n_teams}
@@ -201,23 +199,20 @@ class NegativeBinomialGoalModel(BaseGoalsModel):
         home_adv = self._params[-2]
         dispersion = self._params[-1]
 
-        lambda_home = np.exp(home_adv + home_attack + away_defence)
-        lambda_away = np.exp(away_attack + home_defence)
-
-        home_goals = np.arange(max_goals)
-        away_goals = np.arange(max_goals)
-        home_pmf = nbinom.pmf(
-            home_goals[:, None], dispersion, dispersion / (dispersion + lambda_home)
+        # Compute probabilities using Go
+        score_matrix, lambda_home, lambda_away = (
+            compute_negative_binomial_probabilities(
+                home_attack,
+                away_attack,
+                home_defence,
+                away_defence,
+                home_adv,
+                dispersion,
+                max_goals,
+            )
         )
-        away_pmf = nbinom.pmf(
-            away_goals, dispersion, dispersion / (dispersion + lambda_away)
-        ).T
 
-        m = np.outer(home_pmf, away_pmf)
-
-        probability_grid = FootballProbabilityGrid(m, lambda_home, lambda_away)
-
-        return probability_grid
+        return FootballProbabilityGrid(score_matrix, lambda_home, lambda_away)
 
     def get_params(self) -> ParamsOutput:
         """

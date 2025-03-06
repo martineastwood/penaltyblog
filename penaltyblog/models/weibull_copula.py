@@ -1,3 +1,4 @@
+import ctypes
 import math
 import warnings
 from typing import Any, Optional
@@ -7,11 +8,23 @@ from numba import njit
 from numpy.typing import NDArray
 from scipy.optimize import minimize
 
-from .custom_types import GoalInput, ParamsOutput, TeamInput, WeightInput
-from .football_probability_grid import FootballProbabilityGrid
+from penaltyblog.golib.loss import weibull_copula_loss_function
+from penaltyblog.golib.probabilities import (
+    compute_weibull_copula_probabilities,
+)
+from penaltyblog.models.base_model import BaseGoalsModel
+from penaltyblog.models.custom_types import (
+    GoalInput,
+    ParamsOutput,
+    TeamInput,
+    WeightInput,
+)
+from penaltyblog.models.football_probability_grid import (
+    FootballProbabilityGrid,
+)
 
 
-class WeibullCopulaGoalsModel:
+class WeibullCopulaGoalsModel(BaseGoalsModel):
     """
     Weibull Copula model for predicting outcomes of football (soccer) matches
 
@@ -52,16 +65,7 @@ class WeibullCopulaGoalsModel:
         weights : array_like, optional
             The weights of the matches, by default None
         """
-        self.goals_home = np.asarray(goals_home, dtype=int)
-        self.goals_away = np.asarray(goals_away, dtype=int)
-        self.teams_home = np.asarray(teams_home, dtype=object)
-        self.teams_away = np.asarray(teams_away, dtype=object)
-        if weights is None:
-            weights = np.ones_like(self.goals_home, dtype=float)
-        self.weights = np.asarray(weights, dtype=float)
-
-        self.teams = np.sort(np.unique(np.concatenate([teams_home, teams_away])))
-        self.n_teams = len(self.teams)
+        super().__init__(goals_home, goals_away, teams_home, teams_away, weights)
 
         # Quick guess initialization
         rng = np.random.default_rng()
@@ -70,30 +74,12 @@ class WeibullCopulaGoalsModel:
         home_init = np.array([0.5 + rng.normal(0, 0.1)])
         shape_init = np.array([1.2])
         kappa_init = np.array([1.5])
+        self.max_goals = 15
+        self.jmax = 25
 
         self._params = np.concatenate(
             [atk_init, def_init, home_init, shape_init, kappa_init]
         )
-
-        # Pre-map team -> index for faster loops
-        self.team_to_idx = {team: i for i, team in enumerate(self.teams)}
-        self.home_idx = np.vectorize(self.team_to_idx.get)(self.teams_home)
-        self.away_idx = np.vectorize(self.team_to_idx.get)(self.teams_away)
-
-        # Bookkeeping
-        self.fitted: bool = False
-        self.aic: Optional[float] = None
-        self._res: Optional[Any] = None
-        self.n_params: Optional[int] = len(self._params)
-        self.loglikelihood: Optional[float] = None
-
-        # For reusing the alpha table if shape doesn't change too much
-        self._alpha_cache_shape = None
-        self._alpha_cache_A = None
-
-        # global or user-chosen
-        self.max_goals = 15
-        self.jmax = 25
 
     def __repr__(self) -> str:
         lines = [
@@ -159,35 +145,19 @@ class WeibullCopulaGoalsModel:
         return A
 
     def _neg_log_likelihood(self, params: NDArray) -> float:
-        # unpack
-        atk = params[: self.n_teams]
-        dfc = params[self.n_teams : 2 * self.n_teams]
-        home_adv = params[-3]
-        shape = params[-2]
-        kappa = params[-1]
+        params = np.ascontiguousarray(params, dtype=np.float64)
+        params_ctypes = params.ctypes.data_as(ctypes.POINTER(ctypes.c_double))
 
-        # If shape <= 0 => invalid, penalize
-        if shape <= 0.0:
-            return 1e15
-
-        # Precompute alpha array for this shape
-        A = self._get_alpha_table_for_shape(shape)
-        if A is None:
-            return 1e15  # shape was invalid
-
-        return neg_log_likelihood_numba(
-            self.goals_home,
-            self.goals_away,
-            self.weights,
-            self.home_idx,
-            self.away_idx,
-            atk,
-            dfc,
-            home_adv,
-            shape,
-            kappa,
-            A,
-            self.max_goals,
+        return weibull_copula_loss_function(
+            params_ctypes,
+            self.n_teams,
+            self.home_idx_ctypes,
+            self.away_idx_ctypes,
+            self.goals_home_ctypes,
+            self.goals_away_ctypes,
+            self.weights_ctypes,
+            len(self.goals_home),
+            ctypes.c_int(self.max_goals),
         )
 
     def fit(self):
@@ -248,30 +218,31 @@ class WeibullCopulaGoalsModel:
         FootballProbabilityGrid
             A FootballProbabilityGrid object containing the probability of each scoreline
         """
-        if not self.fitted:
-            raise ValueError("Call fit() first.")
+        if home_team not in self.teams or away_team not in self.teams:
+            raise ValueError("Both teams must have been in the training data.")
 
-        atk = self._params[: self.n_teams]
-        dfc = self._params[self.n_teams : 2 * self.n_teams]
-        home_adv = self._params[-3]
+        home_idx = self.team_to_idx[home_team]
+        away_idx = self.team_to_idx[away_team]
+
+        home_attack = self._params[home_idx]
+        away_attack = self._params[away_idx]
+        home_defense = self._params[home_idx + self.n_teams]
+        away_defense = self._params[away_idx + self.n_teams]
+        home_advantage = self._params[-3]
         shape = self._params[-2]
         kappa = self._params[-1]
 
-        # find indexes
-        idx_home = np.where(self.teams == home_team)[0]
-        idx_away = np.where(self.teams == away_team)[0]
-        if len(idx_home) == 0 or len(idx_away) == 0:
-            raise ValueError("Team not in training data.")
-
-        iH, iA = idx_home[0], idx_away[0]
-        lamH = np.exp(home_adv + atk[iH] + dfc[iA])
-        lamA = np.exp(atk[iA] + dfc[iH])
-
-        # precompute alpha table for shape
-        A = self._get_alpha_table_for_shape(shape)
-
         # get the score matrix
-        score_matrix = predict_score_matrix_numba(lamH, lamA, A, max_goals, kappa)
+        score_matrix, lamH, lamA = compute_weibull_copula_probabilities(
+            home_attack,
+            away_attack,
+            home_defense,
+            away_defense,
+            home_advantage,
+            shape,
+            kappa,
+            max_goals,
+        )
 
         return FootballProbabilityGrid(score_matrix, lamH, lamA)
 
@@ -312,235 +283,3 @@ class WeibullCopulaGoalsModel:
             If the model has not been fitted yet.
         """
         return self.get_params()
-
-
-@njit
-def gamma_numba(x):
-    """
-    Work around since numba did not recognise gamma function
-    """
-    return math.exp(math.lgamma(x))
-
-
-@njit()
-def frank_copula_cdf(u, v, kappa):
-    if abs(kappa) < 1e-8:
-        return u * v
-    num = (np.exp(-kappa * u) - 1.0) * (np.exp(-kappa * v) - 1.0)
-    denom = np.exp(-kappa) - 1.0
-    inside = 1.0 + num / denom
-    if inside <= 1e-14:
-        return max(0.0, u * v)
-    return -(1.0 / kappa) * np.log(inside)
-
-
-@njit()
-def precompute_alpha_table(c, max_goals=15, jmax=25):
-    if c <= 0:
-        return None
-
-    A = np.zeros((max_goals + 1, jmax + 1), dtype=float)
-
-    alpha_raw = np.zeros((max_goals + 1, jmax + 1), dtype=float)
-
-    for j in range(jmax + 1):
-        alpha_raw[0, j] = gamma_numba(c * j + 1.0) / gamma_numba(j + 1.0)
-
-    for x in range(max_goals):
-        for j in range(x + 1, jmax + 1):
-            tmp_sum = 0.0
-            for m in range(x, j):
-                tmp_sum += (
-                    alpha_raw[x, m]
-                    * gamma_numba(c * j - c * m + 1.0)
-                    / gamma_numba((j - m) + 1.0)
-                )
-            alpha_raw[x + 1, j] = tmp_sum
-
-    for x in range(max_goals + 1):
-        for j in range(jmax + 1):
-            sign = (-1) ** (x + j)
-            denom = gamma_numba(c * j + 1.0)
-            A[x, j] = sign * (alpha_raw[x, j] / denom)
-
-    return A
-
-
-@njit()
-def weibull_count_pmf(lam, A):
-    if lam <= 0:
-        # degenerate => all mass at 0
-        pmf = np.zeros(A.shape[0], dtype=float)
-        pmf[0] = 1.0
-        return pmf
-
-    max_goals = A.shape[0] - 1
-    jmax = A.shape[1] - 1
-    pmf = np.zeros(max_goals + 1, dtype=float)
-
-    # Precompute lam^j up to jmax
-    lam_powers = np.ones(jmax + 1, dtype=float)
-    for j in range(1, jmax + 1):
-        lam_powers[j] = lam_powers[j - 1] * lam
-
-    for x in range(max_goals + 1):
-        val = 0.0
-        for j in range(x, jmax + 1):
-            val += lam_powers[j] * A[x, j]
-        pmf[x] = val if val > 0 else 0.0
-
-    s = pmf.sum()
-    if s < 1e-14:
-        pmf = np.zeros_like(pmf)
-        pmf[0] = 1.0
-        return pmf
-    return pmf / s
-
-
-@njit()
-def cdf_from_pmf(p):
-    return np.cumsum(p)
-
-
-@njit()
-def compute_p_xy(x_i, y_i, cdfX, cdfY, max_goals, kappa):
-    """
-    Example: a stand-alone function that directly uses boundary checks
-    without calling separate Python functions for FX() or FY().
-    """
-
-    def FX(k):
-        if k < 0:
-            return 0.0
-        elif k > max_goals:
-            return 1.0
-        else:
-            return cdfX[k]
-
-    def FY(k):
-        if k < 0:
-            return 0.0
-        elif k > max_goals:
-            return 1.0
-        else:
-            return cdfY[k]
-
-    p_xy = (
-        frank_copula_cdf(FX(x_i), FY(y_i), kappa)
-        - frank_copula_cdf(FX(x_i - 1), FY(y_i), kappa)
-        - frank_copula_cdf(FX(x_i), FY(y_i - 1), kappa)
-        + frank_copula_cdf(FX(x_i - 1), FY(y_i - 1), kappa)
-    )
-    return p_xy
-
-
-@njit
-def neg_log_likelihood_numba(
-    goals_home,
-    goals_away,
-    weights,
-    home_idx,
-    away_idx,
-    atk,
-    dfc,
-    home_adv,
-    shape,
-    kappa,
-    A,
-    max_goals,
-):
-    """
-    The entire NLL loop in one jitted function.
-    A is the precomputed alpha table for 'shape'.
-    """
-    n = goals_home.size
-    total_ll = 0.0
-
-    for i in range(n):
-        x_i = goals_home[i]
-        y_i = goals_away[i]
-        w_i = weights[i]
-
-        lam_home_i = math.exp(home_adv + atk[home_idx[i]] + dfc[away_idx[i]])
-        lam_away_i = math.exp(atk[away_idx[i]] + dfc[home_idx[i]])
-
-        pmfX = weibull_count_pmf(lam_home_i, A)
-        pmfY = weibull_count_pmf(lam_away_i, A)
-
-        cdfX = cdf_from_pmf(pmfX)
-        cdfY = cdf_from_pmf(pmfY)
-
-        p_xy = compute_p_xy(x_i, y_i, cdfX, cdfY, max_goals, kappa)
-        if p_xy <= 0.0:
-            total_ll += w_i * (-999999.0)
-        else:
-            total_ll += w_i * math.log(p_xy)
-
-    return -total_ll
-
-
-@njit
-def predict_score_matrix_numba(lam_home, lam_away, A, max_goals, kappa):
-    """
-    Build the (max_goals+1 x max_goals+1) probability matrix for
-    P(X = i, Y = j), given lam_home, lam_away, precomputed alpha-table A,
-    and the Frank-copula parameter kappa.
-
-    Returns a 2D NumPy array of shape (max_goals+1, max_goals+1).
-    """
-    # 1) Compute the marginal PMFs & CDFs
-    pmfH = weibull_count_pmf(lam_home, A)
-    pmfA = weibull_count_pmf(lam_away, A)
-    cdfH = cdf_from_pmf(pmfH)
-    cdfA = cdf_from_pmf(pmfA)
-
-    # 2) Build the score_matrix
-    score_matrix = np.zeros((max_goals + 1, max_goals + 1), dtype=np.float64)
-
-    for i in range(max_goals + 1):
-        # boundary-check for i and i-1 in cdfH
-        if i < 0:
-            Fi = 0.0
-        elif i > max_goals:
-            Fi = 1.0
-        else:
-            Fi = cdfH[i]
-
-        i_m1 = i - 1
-        if i_m1 < 0:
-            Fi_m1 = 0.0
-        elif i_m1 > max_goals:
-            Fi_m1 = 1.0
-        else:
-            Fi_m1 = cdfH[i_m1]
-
-        for j in range(max_goals + 1):
-            # boundary-check for j and j-1 in cdfA
-            if j < 0:
-                Fj = 0.0
-            elif j > max_goals:
-                Fj = 1.0
-            else:
-                Fj = cdfA[j]
-
-            j_m1 = j - 1
-            if j_m1 < 0:
-                Fj_m1 = 0.0
-            elif j_m1 > max_goals:
-                Fj_m1 = 1.0
-            else:
-                Fj_m1 = cdfA[j_m1]
-
-            # 3) Frank copula difference
-            p_ij = (
-                frank_copula_cdf(Fi, Fj, kappa)
-                - frank_copula_cdf(Fi_m1, Fj, kappa)
-                - frank_copula_cdf(Fi, Fj_m1, kappa)
-                + frank_copula_cdf(Fi_m1, Fj_m1, kappa)
-            )
-
-            if p_ij < 0.0:
-                p_ij = 0.0
-            score_matrix[i, j] = p_ij
-
-    return score_matrix
