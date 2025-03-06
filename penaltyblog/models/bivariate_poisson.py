@@ -2,7 +2,6 @@ import ctypes
 import warnings
 
 import numpy as np
-from numba import njit
 from numpy.typing import NDArray
 from scipy.optimize import minimize
 
@@ -219,70 +218,3 @@ class BivariatePoissonGoalModel(BaseGoalsModel):
         # Also show lambda3 explicitly
         result["lambda3"] = np.exp(result["correlation_log"])
         return result
-
-
-@njit
-def numba_poisson_pmf(k: int, lambda_: float, max_goals: int) -> float:
-    if k < 0 or k >= max_goals or lambda_ <= 0:
-        return 0.0
-    return np.exp(k * np.log(lambda_) - lambda_ - np.sum(np.log(np.arange(1, k + 1))))
-
-
-@njit
-def _compute_total_likelihood(
-    goals_home: np.ndarray,
-    goals_away: np.ndarray,
-    lambda1: np.ndarray,
-    lambda2: np.ndarray,
-    lambda3: float,
-    weights: np.ndarray,
-    max_goals: int,
-) -> float:
-    n_matches = len(goals_home)
-    log_likelihoods = np.zeros(n_matches)
-
-    # Precompute PMF lookups
-    lambda3_pmf = np.zeros(max_goals)
-    for k in range(max_goals):
-        lambda3_pmf[k] = numba_poisson_pmf(k, lambda3, max_goals)
-
-    for i in range(n_matches):
-        pmf1 = np.zeros(max_goals)
-        pmf2 = np.zeros(max_goals)
-        for k in range(max_goals):
-            pmf1[k] = numba_poisson_pmf(k, lambda1[i], max_goals)
-            pmf2[k] = numba_poisson_pmf(k, lambda2[i], max_goals)
-
-        like_ij = 0.0
-        kmax = min(goals_home[i], goals_away[i])
-
-        for k in range(kmax + 1):
-            like_ij += (
-                pmf1[goals_home[i] - k] * pmf2[goals_away[i] - k] * lambda3_pmf[k]
-            )
-
-        like_ij = max(like_ij, 1e-10)
-        log_likelihoods[i] = weights[i] * np.log(like_ij)
-
-    return float(-np.sum(log_likelihoods))
-
-
-@njit
-def _compute_score_matrix(
-    lam1: float, lam2: float, lam3: float, max_goals: int
-) -> np.ndarray:
-    score_matrix = np.zeros((max_goals, max_goals))
-
-    # Precompute PMF values for each lambda
-    pmf1 = np.array([numba_poisson_pmf(k, lam1, max_goals) for k in range(max_goals)])
-    pmf2 = np.array([numba_poisson_pmf(k, lam2, max_goals) for k in range(max_goals)])
-    pmf3 = np.array([numba_poisson_pmf(k, lam3, max_goals) for k in range(max_goals)])
-
-    for x in range(max_goals):
-        for y in range(max_goals):
-            p_xy = 0.0
-            for k in range(min(x, y) + 1):
-                p_xy += pmf1[x - k] * pmf2[y - k] * pmf3[k]
-            score_matrix[x, y] = p_xy
-
-    return score_matrix
