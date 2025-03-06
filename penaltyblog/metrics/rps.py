@@ -143,7 +143,6 @@ def rps_average(probs, outcomes):
         ctypes.c_int(nSets),
         ctypes.c_int(nOutcomes),
     )
-    print(type(result))
     return float(result)
 
 
