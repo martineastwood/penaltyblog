@@ -221,8 +221,6 @@ class DixonColesGoalModel(BaseGoalsModel):
             max_goals,
         )
 
-        print(lambda_home, lambda_away)
-
         return FootballProbabilityGrid(score_matrix, lambda_home, lambda_away)
 
     def get_params(self) -> ParamsOutput:
