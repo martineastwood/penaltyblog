@@ -18,6 +18,8 @@ def test_rps():
     rps_score = pb.metrics.rps_array(predictions, observed)
     assert len(rps_score) == 3
 
+    assert all(rps_score > 0)
+
 
 # def test_rps():
 #     predictions = [0.8, 0.1, 0.1]
