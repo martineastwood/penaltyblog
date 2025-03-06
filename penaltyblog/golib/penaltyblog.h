@@ -118,7 +118,6 @@ extern void ComputeRPSArray(double* probs, int* outcomes, int nSets, int nOutcom
 // It uses the same logic as ComputeRPSArray internally.
 //
 extern double ComputeAverageRPS(double* probs, int* outcomes, int nSets, int nOutcomes);
-extern double ReturnConstant();
 
 // Compute the Weibull-Copula Model Log-Likelihood
 //
