@@ -26,6 +26,7 @@ typedef struct { const char *p; ptrdiff_t n; } _GoString_;
 
 
 
+
 /* End of preamble from import "C" comments.  */
 
 
@@ -111,6 +112,13 @@ extern double PoissonLogLikelihood(double* params, int n_teams, int* home_idx, i
 // Compute Poisson probabilities for scores
 //
 extern void ComputePoissonProbabilities(double home_attack, double away_attack, double home_defense, double away_defense, double home_advantage, int max_goals, double* score_matrix, double* lambda_home, double* lambda_away);
+extern void ComputeRPSArray(double* probs, int* outcomes, int nSets, int nOutcomes, double* out);
+
+// ComputeAverageRPS computes the average RPS over all fixtures by averaging the individual RPS scores.
+// It uses the same logic as ComputeRPSArray internally.
+//
+extern double ComputeAverageRPS(double* probs, int* outcomes, int nSets, int nOutcomes);
+extern double ReturnConstant();
 
 // Compute the Weibull-Copula Model Log-Likelihood
 //

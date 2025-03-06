@@ -1,7 +1,5 @@
 import ctypes
 
-import numpy as np
-
 from . import go_lib
 
 # Poisson Loss Function

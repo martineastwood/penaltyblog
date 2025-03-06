@@ -1,10 +1,8 @@
 import ctypes
-import math
 import warnings
 from typing import Any, Optional
 
 import numpy as np
-from numba import njit
 from numpy.typing import NDArray
 from scipy.optimize import minimize
 
@@ -128,22 +126,6 @@ class WeibullCopulaGoalsModel(BaseGoalsModel):
 
         return "\n".join(lines)
 
-    def _get_alpha_table_for_shape(self, shape) -> Optional[NDArray]:
-        """
-        Return the precomputed alpha table for given shape,
-        caching if repeated calls with same shape.
-        """
-        # You might do exact matches or something more sophisticated if shape changes.
-        # We'll do an exact match for clarity:
-        if self._alpha_cache_shape == shape:
-            return self._alpha_cache_A
-
-        # else recompute
-        A = precompute_alpha_table(shape, max_goals=self.max_goals, jmax=self.jmax)
-        self._alpha_cache_shape = shape
-        self._alpha_cache_A = A
-        return A
-
     def _neg_log_likelihood(self, params: NDArray) -> float:
         params = np.ascontiguousarray(params, dtype=np.float64)
         params_ctypes = params.ctypes.data_as(ctypes.POINTER(ctypes.c_double))
@@ -218,6 +200,11 @@ class WeibullCopulaGoalsModel(BaseGoalsModel):
         FootballProbabilityGrid
             A FootballProbabilityGrid object containing the probability of each scoreline
         """
+        if not self.fitted:
+            raise ValueError(
+                "Model's parameters have not been fit yet. Please call `fit()` first."
+            )
+
         if home_team not in self.teams or away_team not in self.teams:
             raise ValueError("Both teams must have been in the training data.")
 

@@ -14,3 +14,7 @@ else:
 # Construct the full path to the shared library
 lib_path = os.path.join(os.path.dirname(__file__), lib_name)
 go_lib = ctypes.CDLL(lib_path)
+
+from .loss import *  # noqa
+from .probabilities import *  # noqa
+from .rps import *  # noqa

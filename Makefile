@@ -5,7 +5,7 @@ test:
 	coverage report -m
 
 test_subset:
-	pytest -v test/test_model_numba_helpers.py
+	pytest -v test/test_metrics_rps.py
 
 coverage:
 	coverage run -m pytest
@@ -22,4 +22,4 @@ jupyter:
 	jupyter lab --no-browser --port=8080 --ip="*"
 
 golib:
-	cd penaltyblog/gosrc && go build -o ../golib/penaltyblog.so -buildmode=c-shared .
+	cd penaltyblog/gosrc && go build -o ../golib/penaltyblog.dylib -buildmode=c-shared .
