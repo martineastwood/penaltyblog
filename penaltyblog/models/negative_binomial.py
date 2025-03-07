@@ -1,13 +1,8 @@
-import ctypes
 import warnings
 
 import numpy as np
 from scipy.optimize import minimize
 
-from penaltyblog.golib.loss import negative_binomial_loss_function
-from penaltyblog.golib.probabilities import (
-    compute_negative_binomial_probabilities,
-)
 from penaltyblog.models.base_model import BaseGoalsModel
 from penaltyblog.models.custom_types import (
     GoalInput,
@@ -18,6 +13,9 @@ from penaltyblog.models.custom_types import (
 from penaltyblog.models.football_probability_grid import (
     FootballProbabilityGrid,
 )
+
+from .loss import compute_negative_binomial_loss
+from .probabilities import compute_negative_binomial_probabilities
 
 
 class NegativeBinomialGoalModel(BaseGoalsModel):
@@ -123,25 +121,30 @@ class NegativeBinomialGoalModel(BaseGoalsModel):
         float
             The negative log-likelihood of the Negative Binomial model
         """
-        params = np.ascontiguousarray(params, dtype=np.float64)
-        params_ctypes = params.ctypes.data_as(ctypes.POINTER(ctypes.c_double))
+        attack = np.asarray(params[: self.n_teams], dtype=np.double, order="C")
+        defence = np.asarray(
+            params[self.n_teams : 2 * self.n_teams], dtype=np.double, order="C"
+        )
+        hfa = params[-2]
+        dispersion = params[-1]
 
-        return negative_binomial_loss_function(
-            params_ctypes,
-            self.n_teams,
-            self.home_idx_ctypes,
-            self.away_idx_ctypes,
-            self.goals_home_ctypes,
-            self.goals_away_ctypes,
-            self.weights_ctypes,
-            len(self.goals_home),
+        return compute_negative_binomial_loss(
+            self.goals_home,
+            self.goals_away,
+            self.weights,
+            self.home_idx,
+            self.away_idx,
+            attack,
+            defence,
+            hfa,
+            dispersion,
         )
 
     def fit(self):
         """
         Fits the Negative Binomial model to the data.
         """
-        options = {"maxiter": 2500, "disp": False}
+        options = {"maxiter": 1000, "disp": False}
         bounds = [(-2, 2)] * self.n_teams * 2 + [(-4, 4), (1e-5, 1000)]
         constraints = [
             {"type": "eq", "fun": lambda x: sum(x[: self.n_teams]) - self.n_teams}
@@ -189,28 +192,37 @@ class NegativeBinomialGoalModel(BaseGoalsModel):
         if not self.fitted:
             raise ValueError("Model has not been fitted yet.")
 
-        home_idx = np.where(self.teams == home_team)[0][0]
-        away_idx = np.where(self.teams == away_team)[0][0]
+        home_idx = self.team_to_idx[home_team]
+        away_idx = self.team_to_idx[away_team]
 
         home_attack = self._params[home_idx]
         away_attack = self._params[away_idx]
-        home_defence = self._params[home_idx + self.n_teams]
-        away_defence = self._params[away_idx + self.n_teams]
-        home_adv = self._params[-2]
+        home_defense = self._params[home_idx + self.n_teams]
+        away_defense = self._params[away_idx + self.n_teams]
+        home_advantage = self._params[-2]
         dispersion = self._params[-1]
 
-        # Compute probabilities using Go
-        score_matrix, lambda_home, lambda_away = (
-            compute_negative_binomial_probabilities(
-                home_attack,
-                away_attack,
-                home_defence,
-                away_defence,
-                home_adv,
-                dispersion,
-                max_goals,
-            )
+        # Preallocate the score matrix as a flattened array.
+        score_matrix = np.empty(max_goals * max_goals, dtype=np.float64)
+
+        # Allocate one-element arrays for lambda values.
+        lambda_home = np.empty(1, dtype=np.float64)
+        lambda_away = np.empty(1, dtype=np.float64)
+
+        compute_negative_binomial_probabilities(
+            float(home_attack),
+            float(away_attack),
+            float(home_defense),
+            float(away_defense),
+            float(home_advantage),
+            float(dispersion),
+            int(max_goals),
+            score_matrix,
+            lambda_home,
+            lambda_away,
         )
+
+        score_matrix.shape = (max_goals, max_goals)
 
         return FootballProbabilityGrid(score_matrix, lambda_home, lambda_away)
 

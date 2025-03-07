@@ -23,3 +23,6 @@ jupyter:
 
 golib:
 	cd penaltyblog/gosrc && go build -o ../golib/penaltyblog.dylib -buildmode=c-shared .
+
+cython:
+	python setup.py build_ext --inplace

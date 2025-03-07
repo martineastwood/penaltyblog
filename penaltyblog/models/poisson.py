@@ -1,12 +1,10 @@
-import ctypes
 import warnings
 
 import numpy as np
+import pandas as pd
 from numpy.typing import NDArray
 from scipy.optimize import minimize
 
-from penaltyblog.golib.loss import poisson_loss_function
-from penaltyblog.golib.probabilities import compute_poisson_probabilities
 from penaltyblog.models.base_model import BaseGoalsModel
 from penaltyblog.models.custom_types import (
     GoalInput,
@@ -18,24 +16,11 @@ from penaltyblog.models.football_probability_grid import (
     FootballProbabilityGrid,
 )
 
+from .loss import poisson_loss_function
+from .probabilities import compute_poisson_probabilities
+
 
 class PoissonGoalsModel(BaseGoalsModel):
-    """
-    Poisson model for predicting outcomes of football (soccer) matches
-
-    Methods
-    -------
-    fit()
-        fits a Poisson model to the data to calculate the team strengths.
-        Must be called before the model can be used to predict game outcomes
-
-    predict(home_team, away_team, max_goals=15)
-        predicts the probability of each scoreline for a given home and away team
-
-    get_params()
-        provides access to the model's fitted parameters
-    """
-
     def __init__(
         self,
         goals_home: GoalInput,
@@ -45,7 +30,8 @@ class PoissonGoalsModel(BaseGoalsModel):
         weights: WeightInput = None,
     ):
         """
-        Poisson model for predicting outcomes of football (soccer) matches
+        Dixon and Coles adjusted Poisson model for predicting outcomes of football
+        (soccer) matches
 
         Parameters
         ----------
@@ -64,99 +50,57 @@ class PoissonGoalsModel(BaseGoalsModel):
 
         self._params = np.concatenate(
             (
-                np.ones(self.n_teams),  # Attack params
-                -np.ones(self.n_teams),  # Defense params
-                [0.5],  # Home advantage
+                [1] * self.n_teams,
+                [-1] * self.n_teams,
+                [0.5],  # home advantage
             )
         )
 
-    def __repr__(self) -> str:
-        lines = ["Module: Penaltyblog", "", "Model: Poisson", ""]
-
-        if not self.fitted:
-            lines.append("Status: Model not fitted")
-            return "\n".join(lines)
-
-        assert self.aic is not None
-        assert self.loglikelihood is not None
-        assert self.n_params is not None
-
-        lines.extend(
-            [
-                f"Number of parameters: {self.n_params}",
-                f"Log Likelihood: {round(self.loglikelihood, 3)}",
-                f"AIC: {round(self.aic, 3)}",
-                "",
-                "{0: <20} {1:<20} {2:<20}".format("Team", "Attack", "Defence"),
-                "-" * 60,
-            ]
+    def _fit(self, params):
+        """
+        Internal method using Cython for speed.
+        """
+        # Get params
+        attack = np.asarray(params[: self.n_teams], dtype=np.double, order="C")
+        defence = np.asarray(
+            params[self.n_teams : 2 * self.n_teams], dtype=np.double, order="C"
         )
+        hfa = params[-1]
 
-        for idx, team in enumerate(self.teams):
-            lines.append(
-                "{0: <20} {1:<20} {2:<20}".format(
-                    team,
-                    round(self._params[idx], 3),
-                    round(self._params[idx + self.n_teams], 3),
-                )
-            )
-
-        lines.extend(
-            [
-                "-" * 60,
-                f"Home Advantage: {round(self._params[-1], 3)}",
-            ]
+        # Call the Cython function for likelihood computation
+        total_llk = poisson_loss_function(
+            self.goals_home,
+            self.goals_away,
+            self.weights,
+            self.home_idx,
+            self.away_idx,
+            attack,
+            defence,
+            hfa,
         )
-
-        return "\n".join(lines)
-
-    def _loss_function(self, params: NDArray) -> float:
-        """Negative Log-Likelihood optimized with Numba"""
-        params = np.ascontiguousarray(params, dtype=np.float64)
-        params_ctypes = params.ctypes.data_as(ctypes.POINTER(ctypes.c_double))
-
-        llk = poisson_loss_function(
-            params_ctypes,
-            self.n_teams,
-            self.home_idx_ctypes,
-            self.away_idx_ctypes,
-            self.goals_home_ctypes,
-            self.goals_away_ctypes,
-            self.weights_ctypes,
-            len(self.goals_home),
-        )
-        return llk
+        return -total_llk
 
     def fit(self):
-        """
-        Fits the Poisson model to the data using maximum likelihood estimation
-        """
         options = {"maxiter": 1000, "disp": False}
         constraints = [
             {"type": "eq", "fun": lambda x: sum(x[: self.n_teams]) - self.n_teams}
         ]
-        bounds = [(-3, 3)] * self.n_teams * 2 + [(0, 3)]
-
-        # llk = self._loss_function(self._params)
-        # print(f"Initial LLK: {llk}")
+        bounds = [(-3, 3)] * self.n_teams + [(-3, 3)] * self.n_teams + [(0, 3)]
 
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             self._res = minimize(
-                self._loss_function,
+                self._fit,
                 self._params,
                 constraints=constraints,
                 bounds=bounds,
                 options=options,
             )
 
-        if not self._res.success:
-            raise ValueError(f"Optimization failed with message: {self._res.message}")
-
-        self._params = self._res.x
+        self._params = self._res["x"]
         self.n_params = len(self._params)
-        self.loglikelihood = -self._res.fun
-        self.aic = -2 * self.loglikelihood + 2 * self.n_params
+        self.loglikelihood = self._res["fun"] * -1
+        self.aic = -2 * (self.loglikelihood) + 2 * self.n_params
         self.fitted = True
 
     def predict(
@@ -196,14 +140,26 @@ class PoissonGoalsModel(BaseGoalsModel):
         away_defense = self._params[away_idx + self.n_teams]
         home_advantage = self._params[-1]
 
-        score_matrix, lambda_home, lambda_away = compute_poisson_probabilities(
-            home_attack,
-            away_attack,
-            home_defense,
-            away_defense,
-            home_advantage,
-            max_goals,
+        # Preallocate the score matrix as a flattened array.
+        score_matrix = np.empty(max_goals * max_goals, dtype=np.float64)
+
+        # Allocate one-element arrays for lambda values.
+        lambda_home = np.empty(1, dtype=np.float64)
+        lambda_away = np.empty(1, dtype=np.float64)
+
+        compute_poisson_probabilities(
+            float(home_attack),
+            float(away_attack),
+            float(home_defense),
+            float(away_defense),
+            float(home_advantage),
+            int(max_goals),
+            score_matrix,
+            lambda_home,
+            lambda_away,
         )
+
+        score_matrix.shape = (max_goals, max_goals)
 
         return FootballProbabilityGrid(score_matrix, lambda_home, lambda_away)
 

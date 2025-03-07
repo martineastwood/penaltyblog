@@ -4,14 +4,11 @@ Zero-Inflated Poisson Model for Football Goal Scoring
 This module implements the Zero-Inflated Poisson model for predicting football match outcomes.
 """
 
-import ctypes
 import warnings
 
 import numpy as np
 from scipy.optimize import minimize
 
-from penaltyblog.golib.loss import zero_inflated_poisson_loss_function
-from penaltyblog.golib.probabilities import compute_zip_poisson_probabilities
 from penaltyblog.models.base_model import BaseGoalsModel
 from penaltyblog.models.custom_types import (
     GoalInput,
@@ -22,6 +19,9 @@ from penaltyblog.models.custom_types import (
 from penaltyblog.models.football_probability_grid import (
     FootballProbabilityGrid,
 )
+
+from .loss import compute_zero_inflated_poisson_loss
+from .probabilities import compute_zero_inflated_poisson_probabilities
 
 
 class ZeroInflatedPoissonGoalsModel(BaseGoalsModel):
@@ -102,19 +102,24 @@ class ZeroInflatedPoissonGoalsModel(BaseGoalsModel):
         return "\n".join(lines)
 
     def _loss_function(self, params: np.ndarray) -> float:
-        """Negative Log-Likelihood optimized with Go"""
-        params = np.ascontiguousarray(params, dtype=np.float64)
-        params_ctypes = params.ctypes.data_as(ctypes.POINTER(ctypes.c_double))
+        # Get params
+        attack = np.asarray(params[: self.n_teams], dtype=np.double, order="C")
+        defence = np.asarray(
+            params[self.n_teams : 2 * self.n_teams], dtype=np.double, order="C"
+        )
+        hfa = params[-2]
+        zero_inflation = params[-1]
 
-        return zero_inflated_poisson_loss_function(
-            params_ctypes,
-            self.n_teams,
-            self.home_idx_ctypes,
-            self.away_idx_ctypes,
-            self.goals_home_ctypes,
-            self.goals_away_ctypes,
-            self.weights_ctypes,
-            len(self.goals_home),
+        return compute_zero_inflated_poisson_loss(
+            self.goals_home,
+            self.goals_away,
+            self.weights,
+            self.home_idx,
+            self.away_idx,
+            attack,
+            defence,
+            hfa,
+            zero_inflation,
         )
 
     def fit(self):
@@ -179,21 +184,73 @@ class ZeroInflatedPoissonGoalsModel(BaseGoalsModel):
         home_defense = self._params[home_idx + self.n_teams]
         away_defense = self._params[away_idx + self.n_teams]
         home_advantage = self._params[-2]
-        zero_inflation = self._params[-1]
+        rho = self._params[-1]
 
-        # Compute expected goals
-        lambda_home = np.exp(home_advantage + home_attack + away_defense)
-        lambda_away = np.exp(away_attack + home_defense)
+        # Preallocate the score matrix as a flattened array.
+        score_matrix = np.empty(max_goals * max_goals, dtype=np.float64)
 
-        # Compute ZIP Poisson PMF for home and away teams
-        score_matrix, lambda_home, lambda_away = compute_zip_poisson_probabilities(
-            home_attack,
-            away_attack,
-            home_defense,
-            away_defense,
-            home_advantage,
-            zero_inflation,
-            max_goals,
+        # Allocate one-element arrays for lambda values.
+        lambda_home = np.empty(1, dtype=np.float64)
+        lambda_away = np.empty(1, dtype=np.float64)
+
+        compute_zero_inflated_poisson_probabilities(
+            float(home_attack),
+            float(away_attack),
+            float(home_defense),
+            float(away_defense),
+            float(home_advantage),
+            float(rho),
+            int(max_goals),
+            score_matrix,
+            lambda_home,
+            lambda_away,
         )
 
+        score_matrix.shape = (max_goals, max_goals)
+
         return FootballProbabilityGrid(score_matrix, lambda_home, lambda_away)
+
+    def get_params(self) -> ParamsOutput:
+        """
+        Returns the model's fitted parameters as a dictionary
+
+        Returns
+        -------
+        dict
+            A dict containing the model's parameters
+        """
+        if not self.fitted:
+            raise ValueError(
+                "Model's parameters have not been fit yet, please call the `fit()` function first"
+            )
+
+        assert self.n_params is not None
+        assert self._res is not None
+
+        params = dict(
+            zip(
+                ["attack_" + team for team in self.teams]
+                + ["defence_" + team for team in self.teams]
+                + ["home_advantage", "zero_inflation"],
+                self._res["x"],
+            )
+        )
+        return params
+
+    @property
+    def params(self) -> dict:
+        """
+        Property to retrieve the fitted model parameters.
+        Same as `get_params()`, but allows attribute-like access.
+
+        Returns
+        -------
+        dict
+            A dictionary containing attack, defense, home advantage, and correlation parameters.
+
+        Raises
+        ------
+        ValueError
+            If the model has not been fitted yet.
+        """
+        return self.get_params()

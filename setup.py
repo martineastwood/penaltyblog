@@ -1,57 +1,65 @@
+# setup.py
+import glob
 import os
-import platform
-import subprocess
 
+import numpy as np
+from Cython.Build import cythonize
 from setuptools import Extension, find_packages, setup
-from setuptools.command.build_ext import build_ext
-from setuptools.command.install import install
 
 
-class BuildGoExtension(build_ext):
-    """Custom build command to compile Go shared library before packaging."""
-
-    def run(self):
-        root = os.path.dirname(os.path.abspath(__file__))
-        gosrc = os.path.join(root, "penaltyblog", "gosrc")
-        output_dir = os.path.join(root, "penaltyblog", "golib")
-
-        # Ensure golib directory exists
-        os.makedirs(output_dir, exist_ok=True)
-
-        # Detect OS and build the correct shared library format
-        if platform.system() == "Windows":
-            output_file = os.path.join(output_dir, "penaltyblog.dll")
-            build_cmd = ["go", "build", "-o", output_file, "-buildmode=c-shared", "."]
-        elif platform.system() == "Darwin":
-            output_file = os.path.join(output_dir, "penaltyblog.dylib")
-            build_cmd = ["go", "build", "-o", output_file, "-buildmode=c-shared", "."]
-        else:
-            output_file = os.path.join(output_dir, "penaltyblog.so")
-            build_cmd = ["go", "build", "-o", output_file, "-buildmode=c-shared", "."]
-
-        print(f"🚀 Building Go shared library: {output_file}")
-        subprocess.run(build_cmd, cwd=gosrc, check=True)
-
-        super().run()
+def find_pyx_files(package, subdir):
+    """Return a list of .pyx files in a given subdirectory of a package."""
+    pattern = os.path.join(package, subdir, "*.pyx")
+    return glob.glob(pattern)
 
 
-class CustomInstall(install):
-    """Custom install command that forces build_ext to run first."""
+extensions = []
 
-    def run(self):
-        self.run_command("build_ext")
-        super().run()
+# Process .pyx files in penaltyblog/models
+models_pyx = find_pyx_files("penaltyblog", "models")
+for pyx_path in models_pyx:
+    # Convert file path to module name by replacing OS separators with dots and removing .pyx extension
+    module_name = os.path.splitext(pyx_path.replace(os.sep, "."))[0]
+    extensions.append(
+        Extension(
+            module_name,
+            [pyx_path],
+            include_dirs=[np.get_include()],
+            extra_compile_args=["-O3"],
+        )
+    )
 
+# Process .pyx files in penaltyblog/rps
+rps_pyx = find_pyx_files("penaltyblog", "rps")
+for pyx_path in rps_pyx:
+    module_name = os.path.splitext(pyx_path.replace(os.sep, "."))[0]
+    extensions.append(
+        Extension(
+            module_name,
+            [pyx_path],
+            include_dirs=[np.get_include()],
+            extra_compile_args=["-O3"],
+        )
+    )
 
 setup(
     name="penaltyblog",
     version="1.1.0",
-    packages=find_packages(include=["penaltyblog*"]),
-    include_package_data=True,
-    # Adding an empty ext_modules forces build_ext to run
-    ext_modules=[],
-    cmdclass={
-        "build_ext": BuildGoExtension,
-        "install": CustomInstall,
-    },
+    description="Library from http://pena.lt/y/blog for scraping and modelling football (soccer) data",
+    packages=find_packages(),
+    ext_modules=cythonize(extensions, compiler_directives={"language_level": "3"}),
+    install_requires=[
+        "beautifulsoup4",
+        "cssselect",
+        "cython",
+        "lxml",
+        "html5lib",
+        "ipywidgets",
+        "numpy",
+        "pandas",
+        "PuLP",
+        "requests",
+        "scipy",
+        "tqdm",
+    ],
 )

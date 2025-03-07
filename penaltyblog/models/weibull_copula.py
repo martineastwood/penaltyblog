@@ -6,10 +6,6 @@ import numpy as np
 from numpy.typing import NDArray
 from scipy.optimize import minimize
 
-from penaltyblog.golib.loss import weibull_copula_loss_function
-from penaltyblog.golib.probabilities import (
-    compute_weibull_copula_probabilities,
-)
 from penaltyblog.models.base_model import BaseGoalsModel
 from penaltyblog.models.custom_types import (
     GoalInput,
@@ -20,6 +16,9 @@ from penaltyblog.models.custom_types import (
 from penaltyblog.models.football_probability_grid import (
     FootballProbabilityGrid,
 )
+
+from .loss import compute_weibull_copula_loss
+from .probabilities import compute_weibull_copula_probabilities
 
 
 class WeibullCopulaGoalsModel(BaseGoalsModel):
@@ -127,19 +126,27 @@ class WeibullCopulaGoalsModel(BaseGoalsModel):
         return "\n".join(lines)
 
     def _neg_log_likelihood(self, params: NDArray) -> float:
-        params = np.ascontiguousarray(params, dtype=np.float64)
-        params_ctypes = params.ctypes.data_as(ctypes.POINTER(ctypes.c_double))
+        # Get params
+        attack = np.asarray(params[: self.n_teams], dtype=np.double, order="C")
+        defence = np.asarray(
+            params[self.n_teams : 2 * self.n_teams], dtype=np.double, order="C"
+        )
+        hfa = params[-3]
+        shape = params[-2]
+        kappa = params[-1]
 
-        return weibull_copula_loss_function(
-            params_ctypes,
-            self.n_teams,
-            self.home_idx_ctypes,
-            self.away_idx_ctypes,
-            self.goals_home_ctypes,
-            self.goals_away_ctypes,
-            self.weights_ctypes,
-            len(self.goals_home),
-            ctypes.c_int(self.max_goals),
+        return compute_weibull_copula_loss(
+            self.goals_home,
+            self.goals_away,
+            self.weights,
+            self.home_idx,
+            self.away_idx,
+            attack,
+            defence,
+            hfa,
+            shape,
+            kappa,
+            self.max_goals,
         )
 
     def fit(self):
@@ -219,19 +226,30 @@ class WeibullCopulaGoalsModel(BaseGoalsModel):
         shape = self._params[-2]
         kappa = self._params[-1]
 
-        # get the score matrix
-        score_matrix, lamH, lamA = compute_weibull_copula_probabilities(
-            home_attack,
-            away_attack,
-            home_defense,
-            away_defense,
-            home_advantage,
-            shape,
-            kappa,
-            max_goals,
+        # Preallocate the score matrix as a flattened array.
+        score_matrix = np.empty(max_goals * max_goals, dtype=np.float64)
+
+        # Allocate one-element arrays for lambda values.
+        lambda_home = np.empty(1, dtype=np.float64)
+        lambda_away = np.empty(1, dtype=np.float64)
+
+        compute_weibull_copula_probabilities(
+            float(home_attack),
+            float(away_attack),
+            float(home_defense),
+            float(away_defense),
+            float(home_advantage),
+            float(shape),
+            float(kappa),
+            int(max_goals),
+            score_matrix,
+            lambda_home,
+            lambda_away,
         )
 
-        return FootballProbabilityGrid(score_matrix, lamH, lamA)
+        score_matrix.shape = (max_goals, max_goals)
+
+        return FootballProbabilityGrid(score_matrix, lambda_home, lambda_away)
 
     def get_params(self) -> ParamsOutput:
         """

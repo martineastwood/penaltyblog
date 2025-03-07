@@ -5,10 +5,6 @@ import numpy as np
 from numpy.typing import NDArray
 from scipy.optimize import minimize
 
-from penaltyblog.golib.loss import bivariate_poisson_loss_function
-from penaltyblog.golib.probabilities import (
-    compute_bivariate_poisson_probabilities,
-)
 from penaltyblog.models.base_model import BaseGoalsModel
 from penaltyblog.models.custom_types import (
     GoalInput,
@@ -19,6 +15,9 @@ from penaltyblog.models.custom_types import (
 from penaltyblog.models.football_probability_grid import (
     FootballProbabilityGrid,
 )
+
+from .loss import compute_bivariate_poisson_loss
+from .probabilities import compute_bivariate_poisson_probabilities
 
 
 class BivariatePoissonGoalModel(BaseGoalsModel):
@@ -106,18 +105,24 @@ class BivariatePoissonGoalModel(BaseGoalsModel):
         return "\n".join(lines)
 
     def _loss_function(self, params: NDArray) -> float:
-        params = np.ascontiguousarray(params, dtype=np.float64)
-        params_ctypes = params.ctypes.data_as(ctypes.POINTER(ctypes.c_double))
+        # Get params
+        attack = np.asarray(params[: self.n_teams], dtype=np.double, order="C")
+        defence = np.asarray(
+            params[self.n_teams : 2 * self.n_teams], dtype=np.double, order="C"
+        )
+        hfa = params[-2]
+        correlation = params[-1]
 
-        return bivariate_poisson_loss_function(
-            params_ctypes,
-            self.n_teams,
-            self.home_idx_ctypes,
-            self.away_idx_ctypes,
-            self.goals_home_ctypes,
-            self.goals_away_ctypes,
-            self.weights_ctypes,
-            len(self.goals_home),
+        return compute_bivariate_poisson_loss(
+            self.goals_home,
+            self.goals_away,
+            self.weights,
+            self.home_idx,
+            self.away_idx,
+            attack,
+            defence,
+            hfa,
+            correlation,
         )
 
     def fit(self):
@@ -183,19 +188,29 @@ class BivariatePoissonGoalModel(BaseGoalsModel):
         home_defense = self._params[home_idx + self.n_teams]
         away_defense = self._params[away_idx + self.n_teams]
         home_advantage = self._params[-2]
-        correlation_log = self._params[-1]
+        correlation = self._params[-1]
 
-        score_matrix, lambda_home, lambda_away = (
-            compute_bivariate_poisson_probabilities(
-                home_attack,
-                away_attack,
-                home_defense,
-                away_defense,
-                home_advantage,
-                correlation_log,
-                max_goals,
-            )
+        # Preallocate the score matrix as a flattened array.
+        score_matrix = np.empty(max_goals * max_goals, dtype=np.float64)
+
+        # Allocate one-element arrays for lambda values.
+        lambda_home = np.empty(1, dtype=np.float64)
+        lambda_away = np.empty(1, dtype=np.float64)
+
+        compute_bivariate_poisson_probabilities(
+            float(home_attack),
+            float(away_attack),
+            float(home_defense),
+            float(away_defense),
+            float(home_advantage),
+            float(correlation),
+            int(max_goals),
+            score_matrix,
+            lambda_home,
+            lambda_away,
         )
+
+        score_matrix.shape = (max_goals, max_goals)
 
         return FootballProbabilityGrid(score_matrix, lambda_home, lambda_away)
 

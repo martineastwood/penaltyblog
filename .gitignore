@@ -153,3 +153,11 @@ scratch.py
 *.so
 *.dylib
 *.dll
+
+# Cython generated C/C++ files
+*.c
+*.cpp
+
+# Compiled Python extensions
+*.so
+*.pyd
