@@ -56,6 +56,49 @@ class PoissonGoalsModel(BaseGoalsModel):
             )
         )
 
+    def __repr__(self) -> str:
+        lines = ["Module: Penaltyblog", "", "Model: Poisson", ""]
+
+        if not self.fitted:
+            lines.append("Status: Model not fitted")
+            return "\n".join(lines)
+
+        assert self.aic is not None
+        assert self.loglikelihood is not None
+        assert self.n_params is not None
+
+        lines.extend(
+            [
+                f"Number of parameters: {self.n_params}",
+                f"Log Likelihood: {round(self.loglikelihood, 3)}",
+                f"AIC: {round(self.aic, 3)}",
+                "",
+                "{0: <20} {1:<20} {2:<20}".format("Team", "Attack", "Defence"),
+                "-" * 60,
+            ]
+        )
+
+        for idx, team in enumerate(self.teams):
+            lines.append(
+                "{0: <20} {1:<20} {2:<20}".format(
+                    team,
+                    round(self._params[idx], 3),
+                    round(self._params[idx + self.n_teams], 3),
+                )
+            )
+
+        lines.extend(
+            [
+                "-" * 60,
+                f"Home Advantage: {round(self._params[-1], 3)}",
+            ]
+        )
+
+        return "\n".join(lines)
+
+    def __str__(self):
+        return self.__repr__()
+
     def _fit(self, params):
         """
         Internal method using Cython for speed.

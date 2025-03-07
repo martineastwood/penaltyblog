@@ -12,7 +12,6 @@ keywords = [
     "modelling",
     "dixon coles",
     "poisson",
-    "bayesian",
     "scraper",
     "scraping",
     "backtest",
@@ -48,7 +47,7 @@ Homepage = "https://github.com/martineastwood/penaltyblog"
 Repository = "https://github.com/martineastwood/penaltyblog"
 
 [build-system]
-requires = ["setuptools", "wheel"]
+requires = ["setuptools", "wheel", "numpy", "Cython"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools]
@@ -56,7 +55,7 @@ packages = { find = {} }
 include-package-data = true
 
 [tool.setuptools.package-data]
-penaltyblog = ["golib/*.so", "golib/*.dll", "golib/*.dylib"]
+penaltyblog = ["models/*.so", "models/*.dll", "models/*.dylib"]
 
 [project.optional-dependencies]
 dev = [

@@ -29,8 +29,8 @@ for pyx_path in models_pyx:
         )
     )
 
-# Process .pyx files in penaltyblog/rps
-rps_pyx = find_pyx_files("penaltyblog", "rps")
+# Process .pyx files in penaltyblog/metrics
+rps_pyx = find_pyx_files("penaltyblog", "metrics")
 for pyx_path in rps_pyx:
     module_name = os.path.splitext(pyx_path.replace(os.sep, "."))[0]
     extensions.append(

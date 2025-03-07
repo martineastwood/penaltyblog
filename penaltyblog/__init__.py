@@ -1,7 +1,6 @@
 from . import (
     backtest,
     fpl,
-    golib,
     implied,
     kelly,
     metrics,

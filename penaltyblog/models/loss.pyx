@@ -351,10 +351,6 @@ cpdef double compute_bivariate_poisson_loss(np.int64_t[:] goals_home,
     return -logLikelihood
 
 
-
-###############################################
-# Main Loss Function: Weibull Count + Copula Model
-###############################################
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)

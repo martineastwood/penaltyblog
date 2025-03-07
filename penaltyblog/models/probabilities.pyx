@@ -18,6 +18,11 @@ from .utils cimport (
 )
 
 
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
+@cython.nonecheck(False)
+@cython.initializedcheck(False)
 cpdef void compute_poisson_probabilities(double home_attack,
                                            double away_attack,
                                            double home_defense,
@@ -65,6 +70,11 @@ cpdef void compute_poisson_probabilities(double home_attack,
     free(awayGoalsVector)
 
 
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
+@cython.nonecheck(False)
+@cython.initializedcheck(False)
 cpdef void compute_dixon_coles_probabilities(double home_attack,
                                                double away_attack,
                                                double home_defense,
@@ -133,6 +143,11 @@ cpdef void compute_dixon_coles_probabilities(double home_attack,
     free(awayGoalsVector)
 
 
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
+@cython.nonecheck(False)
+@cython.initializedcheck(False)
 cpdef void compute_negative_binomial_probabilities(double home_attack,
                                                      double away_attack,
                                                      double home_defense,
@@ -188,6 +203,11 @@ cpdef void compute_negative_binomial_probabilities(double home_attack,
     free(awayGoalsVector)
 
 
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
+@cython.nonecheck(False)
+@cython.initializedcheck(False)
 cpdef void compute_zero_inflated_poisson_probabilities(double home_attack,
                                                          double away_attack,
                                                          double home_defense,
@@ -243,6 +263,11 @@ cpdef void compute_zero_inflated_poisson_probabilities(double home_attack,
     free(awayGoalsVector)
 
 
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
+@cython.nonecheck(False)
+@cython.initializedcheck(False)
 cpdef void compute_bivariate_poisson_probabilities(double home_attack,
                                                      double away_attack,
                                                      double home_defense,
@@ -296,6 +321,11 @@ cpdef void compute_bivariate_poisson_probabilities(double home_attack,
             score_matrix[idx] = p_xy
 
 
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
+@cython.nonecheck(False)
+@cython.initializedcheck(False)
 cpdef void compute_weibull_copula_probabilities(double home_attack,
                                                   double away_attack,
                                                   double home_defense,
