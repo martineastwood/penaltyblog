@@ -49,6 +49,7 @@ def test_fbref_list_stat_types():
     assert len(stats) > 0
 
 
+@pytest.mark.local
 def test_fbref_get_stats():
     fb = pb.scrapers.FBRef("ENG Premier League", "2021-2022")
     stats = fb.get_stats("standard")
