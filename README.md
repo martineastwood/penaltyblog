@@ -29,7 +29,7 @@
 
 # penaltyblog: Football Data & Modelling Made Easy
 
-**penaltyblog** is a professional-grade Python package designed for football (soccer) analytics, providing powerful tools from [pena.lt/y/blog](https://pena.lt/y/blog) for data analysis, outcome modelling, and betting insights. Recently optimized with Cython, **penaltyblog** delivers high-performance modelling to power faster, efficient predictions.
+**penaltyblog** is a production-ready Python package designed for football (soccer) analytics, providing powerful tools from [pena.lt/y/blog](https://pena.lt/y/blog) for data analysis, outcome modelling, and betting insights. Otimized with Cython, **penaltyblog** delivers high-performance modelling to power faster, efficient predictions.
 
 ## Features
 - ⚽ **Scrape Data** – Collect match statistics from sources like FBRef, Understat, Club Elo, and Fantasy Premier League.
