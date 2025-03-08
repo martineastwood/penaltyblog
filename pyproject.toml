@@ -55,7 +55,14 @@ packages = { find = {} }
 include-package-data = true
 
 [tool.setuptools.package-data]
-penaltyblog = ["models/*.so", "models/*.dll", "models/*.dylib"]
+penaltyblog = [
+    "models/*.so",
+    "models/*.dll",
+    "models/*.dylib",
+    "metrics/*.so",
+    "metrics/*.dll",
+    "metrics/*.dylib",
+]
 
 [project.optional-dependencies]
 dev = [
