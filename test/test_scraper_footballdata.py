@@ -4,28 +4,33 @@ import pytest
 import penaltyblog as pb
 
 
+@pytest.mark.local
 def test_footballdata_wrong_league():
     with pytest.raises(ValueError):
         _ = pb.scrapers.FootballData("FRA Premier League", "2020-2021")
 
 
+@pytest.mark.local
 def test_footballdata_get_fixtures():
     fb = pb.scrapers.FootballData("ENG Premier League", "2020-2021")
     df = fb.get_fixtures()
     assert type(df) == pd.DataFrame
 
 
+@pytest.mark.local
 def test_footballdata_id():
     fb = pb.scrapers.FootballData("ENG Premier League", "2021-2022")
     df = fb.get_fixtures()
     assert "1628812800---brentford---arsenal" in df.index
 
 
+@pytest.mark.local
 def test_footballdata_list_competitions():
     df = pb.scrapers.FootballData.list_competitions()
     assert type(df) == list
 
 
+@pytest.mark.local
 def test_footballdata_team_mappings():
     team_mappings = pb.scrapers.get_example_team_name_mappings()
     fb = pb.scrapers.FootballData("ENG Premier League", "2021-2022", team_mappings)
@@ -33,6 +38,7 @@ def test_footballdata_team_mappings():
     assert "Wolverhampton Wanderers" in df["team_home"].unique()
 
 
+@pytest.mark.local
 def test_footballdata_nat_error():
     """
     pandas was reading an extra blank row at end of csv that

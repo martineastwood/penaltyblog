@@ -4,11 +4,13 @@ import pytest
 import penaltyblog as pb
 
 
+@pytest.mark.local
 def test_understat_wrong_league():
     with pytest.raises(ValueError):
         pb.scrapers.Understat("FRA Premier League", "2020-2021")
 
 
+@pytest.mark.local
 def test_understat_get_fixtures():
     under = pb.scrapers.Understat("ENG Premier League", "2020-2021")
     df = under.get_fixtures()
@@ -16,17 +18,20 @@ def test_understat_get_fixtures():
     assert df.shape[0] > 0
 
 
+@pytest.mark.local
 def test_understat_id():
     under = pb.scrapers.Understat("ENG Premier League", "2021-2022")
     df = under.get_fixtures()
     assert "1628812800---brentford---arsenal" in df.index
 
 
+@pytest.mark.local
 def test_understat_list_competitions():
     df = pb.scrapers.Understat.list_competitions()
     assert type(df) == list
 
 
+@pytest.mark.local
 def test_understat_team_mappings():
     team_mappings = pb.scrapers.get_example_team_name_mappings()
     fb = pb.scrapers.FootballData("ENG Premier League", "2021-2022", team_mappings)
@@ -34,6 +39,7 @@ def test_understat_team_mappings():
     assert "Leeds United" in df["team_home"].unique()
 
 
+@pytest.mark.local
 def test_understat_shots():
     under = pb.scrapers.Understat("ENG Premier League", "2020-2021")
     df = under.get_shots("14090")
