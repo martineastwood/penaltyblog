@@ -1,4 +1,3 @@
-import ctypes
 import warnings
 
 import numpy as np

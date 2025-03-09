@@ -16,6 +16,7 @@ from penaltyblog.models.football_probability_grid import (
     FootballProbabilityGrid,
 )
 
+from .gradients import dixon_coles_gradient
 from .loss import dixon_coles_loss_function
 from .probabilities import compute_dixon_coles_probabilities
 
@@ -118,6 +119,26 @@ class DixonColesGoalModel(BaseGoalsModel):
     def __str__(self):
         return self.__repr__()
 
+    def _gradient(self, params):
+        attack = np.asarray(params[: self.n_teams], dtype=np.double, order="C")
+        defence = np.asarray(
+            params[self.n_teams : 2 * self.n_teams], dtype=np.double, order="C"
+        )
+        hfa = params[-2]  # Home field advantage
+        rho = params[-1]  # Dixon-Coles rho adjustment
+
+        return dixon_coles_gradient(
+            attack,
+            defence,
+            hfa,
+            rho,
+            self.home_idx,
+            self.away_idx,
+            self.goals_home,
+            self.goals_away,
+            self.weights,
+        )
+
     def _loss_function(self, params: NDArray) -> float:
         """
         Internal method, not to called directly by the user
@@ -169,6 +190,7 @@ class DixonColesGoalModel(BaseGoalsModel):
                 constraints=constraints,
                 bounds=bounds,
                 options=options,
+                jac=self._gradient,
             )
 
         if not self._res.success:

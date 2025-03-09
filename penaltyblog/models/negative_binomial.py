@@ -14,6 +14,7 @@ from penaltyblog.models.football_probability_grid import (
     FootballProbabilityGrid,
 )
 
+from .gradients import negative_binomial_gradient
 from .loss import compute_negative_binomial_loss
 from .probabilities import compute_negative_binomial_probabilities
 
@@ -103,6 +104,28 @@ class NegativeBinomialGoalModel(BaseGoalsModel):
 
         return "\n".join(lines)
 
+    def _gradient(self, params):
+        attack = np.asarray(params[: self.n_teams], dtype=np.double, order="C")
+        defence = np.asarray(
+            params[self.n_teams : 2 * self.n_teams], dtype=np.double, order="C"
+        )
+        hfa = params[-2]  # Home field advantage
+        dispersion = params[-1]  # Dispersion parameter
+
+        grad = negative_binomial_gradient(
+            attack,
+            defence,
+            hfa,
+            dispersion,
+            self.home_idx,
+            self.away_idx,
+            self.goals_home,
+            self.goals_away,
+            self.weights,
+        )
+
+        return np.clip(grad, 1e-5, 100)
+
     def _loss_function(self, params: np.ndarray) -> float:
         """
         Calculates the negative log-likelihood of the Negative Binomial model.
@@ -158,6 +181,7 @@ class NegativeBinomialGoalModel(BaseGoalsModel):
                 bounds=bounds,
                 constraints=constraints,
                 options=options,
+                # jac=self._gradient,
             )
 
         if not self._res.success:

@@ -20,7 +20,7 @@ sys.path.insert(0, os.path.abspath("../"))
 # -- Project information -----------------------------------------------------
 
 project = "penaltyblog"
-copyright = "2021, Martin Eastwood"
+copyright = "2025, Martin Eastwood"
 author = "Martin Eastwood"
 
 # source_suffix = ".rst"
@@ -62,8 +62,8 @@ html_sidebars = {
 }
 
 html_theme_options = {
-    "pygment_light_style": "tango",
-    "pygment_dark_style": "monokai",
+    "pygments_light_style": "tango",
+    "pygments_dark_style": "monokai",
     "icon_links": [
         {
             "name": "GitHub",
@@ -82,3 +82,12 @@ html_permalinks_icon = "<span>#</span>"
 html_theme = "pydata_sphinx_theme"
 
 pygments_style = "sphinx"
+
+autodoc_typehints = "signature"
+autosummary_generate = True
+autodoc_default_options = {
+    "members": True,
+    "undoc-members": True,
+    "show-inheritance": True,
+    "inherited-members": True,  # Ensures base class functions appear
+}

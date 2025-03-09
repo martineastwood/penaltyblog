@@ -1,9 +1,15 @@
-import ctypes
 import pickle
 from abc import ABC, abstractmethod
 from typing import Any, Dict, Optional
 
 import numpy as np
+
+from penaltyblog.models.custom_types import (
+    GoalInput,
+    ParamsOutput,
+    TeamInput,
+    WeightInput,
+)
 
 
 class BaseGoalsModel(ABC):
@@ -19,11 +25,11 @@ class BaseGoalsModel(ABC):
 
     def __init__(
         self,
-        goals_home,
-        goals_away,
-        teams_home,
-        teams_away,
-        weights: Optional[Any] = None,
+        goals_home: GoalInput,
+        goals_away: GoalInput,
+        teams_home: TeamInput,
+        teams_away: TeamInput,
+        weights: WeightInput = None,
     ):
         # Convert inputs to numpy arrays
         self.goals_home = np.asarray(goals_home, dtype=np.int64, order="C")

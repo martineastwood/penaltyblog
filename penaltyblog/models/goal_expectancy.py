@@ -7,8 +7,8 @@ def goal_expectancy(
     home: float, draw: float, away: float, dc_adj: bool = True, rho: float = 0.001
 ) -> dict:
     """
-    Estimates the home and away team's goal expectancy based on the
-    home, draw, away probabilities
+    Estimates the bookmaker's goal expectencies for the home team and away team based on the
+    home, draw, and away probabilities.
 
     Parameters
     -----------
@@ -21,7 +21,7 @@ def goal_expectancy(
     dc_adj : bool
         Whether to apply the Dixon and Coles adjustment
     rho : float
-        The value for rho within the Dixon and Coles adjustment
+        The value for rho within the Dixon and Coles adjustment if dc_adj is True
 
     Returns
     ----------

@@ -26,7 +26,7 @@ def rps_average(probs: ArrayLike, outcomes: Union[ArrayLike, int]) -> float:
                 If a single integer is provided, it will be wrapped into a 1-element array.
 
     Returns:
-      float: The average RPS computed by the Go shared library.
+      float: The average RPS across all fixtures.
     """
     # Convert probs to a numpy array of type float64
     if not isinstance(probs, np.ndarray):

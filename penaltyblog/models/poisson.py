@@ -1,8 +1,6 @@
 import warnings
 
 import numpy as np
-import pandas as pd
-from numpy.typing import NDArray
 from scipy.optimize import minimize
 
 from penaltyblog.models.base_model import BaseGoalsModel
@@ -16,11 +14,28 @@ from penaltyblog.models.football_probability_grid import (
     FootballProbabilityGrid,
 )
 
+from .gradients import poisson_gradient
 from .loss import poisson_loss_function
 from .probabilities import compute_poisson_probabilities
 
 
 class PoissonGoalsModel(BaseGoalsModel):
+    """
+    Poisson model for predicting outcomes of football (soccer) matches
+
+    Methods
+    -------
+    fit()
+        fits a Poisson model to the data to calculate the team strengths.
+        Must be called before the model can be used to predict game outcomes
+
+    predict(home_team, away_team, max_goals=15)
+        predict the outcome of a football (soccer) game between the home_team and away_team
+
+    get_params()
+        Returns the fitted parameters from the model
+    """
+
     def __init__(
         self,
         goals_home: GoalInput,
@@ -99,6 +114,23 @@ class PoissonGoalsModel(BaseGoalsModel):
     def __str__(self):
         return self.__repr__()
 
+    def _gradient(self, params):
+        attack = np.asarray(params[: self.n_teams], dtype=np.double, order="C")
+        defence = np.asarray(
+            params[self.n_teams : 2 * self.n_teams], dtype=np.double, order="C"
+        )
+        hfa = params[-1]
+
+        return poisson_gradient(
+            attack,
+            defence,
+            hfa,
+            self.home_idx,
+            self.away_idx,
+            self.goals_home,
+            self.goals_away,
+        )
+
     def _fit(self, params):
         """
         Internal method using Cython for speed.
@@ -138,6 +170,7 @@ class PoissonGoalsModel(BaseGoalsModel):
                 constraints=constraints,
                 bounds=bounds,
                 options=options,
+                jac=self._gradient,
             )
 
         self._params = self._res["x"]
