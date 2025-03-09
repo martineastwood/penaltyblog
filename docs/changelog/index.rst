@@ -10,28 +10,35 @@ see `semver.org <http://semver.org/>`_
 v1.1.0 (xxxxx)
 ^^^^^^^^^^^^^^^^^^^^
 
-### Performance Enhancements
-- Rewrote Dixon-Coles model using Cython, achieving approximately 220x speed improvement.
-- Rewrote Poisson model using Cython, achieving approximately 220x speed improvement.
-- Implemented Negative Binomial Goals Model in Cython for increased performance.
-- Added high-performance Cython implementation of the Bivariate Poisson Goals Model based on Karlis & Ntzoufras.
-- Introduced Cython implementation of the Bivariate Weibull Count Copula Goals Model ([Boshnakov et al. paper](https://blogs.salford.ac.uk/business-school/wp-content/uploads/sites/7/2016/09/paper.pdf)).
-- Developed Pi Ratings System ([Constantinou paper](http://www.constantinou.info/downloads/papers/pi-ratings.pdf)).
-- Migrated ranked probability score functions to Cython for enhanced speed.
+Performance Enhancements
+------------------------
 
-### Package Updates
+- Rewrote Dixon-Coles model using Cython, achieving approximately 200x speed improvement.
+- Rewrote Poisson model using Cython, achieving approximately 200x speed improvement.
+- Implemented Negative Binomial Goals Model in Cython for enhanced performance.
+- Added high-performance Cython implementation of the Bivariate Poisson Goals Model based on Karlis & Ntzoufras.
+- Introduced Cython implementation of the Bivariate Weibull Count Copula Goals Model (`Boshnakov et al. paper <https://blogs.salford.ac.uk/business-school/wp-content/uploads/sites/7/2016/09/paper.pdf>`_).
+- Developed Pi Ratings System (`Constantinou paper <http://www.constantinou.info/downloads/papers/pi-ratings.pdf>`_).
+- Migrated ranked probability score functions to Cython for improved speed.
+
+Package Updates
+---------------
+
 - Temporarily removed Stan-based models due to dependency management challenges. Investigating improved packaging strategies for future reintegration.
 - Temporarily removed Rue and Salvesen model pending revision to accurately reflect its intended methodology (previously implemented as a hybrid Dixon-Coles variant).
 
-### Documentation Improvements
+Documentation Improvements
+--------------------------
+
 - Updated and expanded model examples in the documentation.
 - Enhanced type hints throughout the package for improved compatibility with `mypy`.
 
-### CI/CD and Testing
-- Extended GitHub Actions workflows to perform unit tests across all supported Python versions.
+CI/CD and Testing
+-----------------
+
+- Expanded GitHub Actions workflows to perform unit tests across all supported Python versions.
 - Extended GitHub Actions workflows to perform unit tests on Windows, macOS, and Linux.
 - Configured GitHub Actions to automatically build wheels for all supported Python versions across Windows, macOS, and Linux.
-
 
 v1.0.4 (2025-01-10)
 ^^^^^^^^^^^^^^^^^^^^
