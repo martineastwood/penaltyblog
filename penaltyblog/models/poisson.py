@@ -170,7 +170,7 @@ class PoissonGoalsModel(BaseGoalsModel):
                 constraints=constraints,
                 bounds=bounds,
                 options=options,
-                jac=self._gradient,
+                # jac=self._gradient,
             )
 
         self._params = self._res["x"]

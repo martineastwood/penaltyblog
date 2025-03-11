@@ -190,7 +190,7 @@ class DixonColesGoalModel(BaseGoalsModel):
                 constraints=constraints,
                 bounds=bounds,
                 options=options,
-                jac=self._gradient,
+                # jac=self._gradient,
             )
 
         if not self._res.success:
