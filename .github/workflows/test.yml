@@ -1,6 +1,7 @@
 name: Test on Multiple OS
 
 on:
+  push:
   workflow_dispatch:
 
 jobs:
