@@ -17,6 +17,7 @@ For users interested in understanding the underlying theory of these models, lin
    dixon_coles
    negative_binomial
    weibull_copula
+   time_weighting
    goal_expectancy
 
 
