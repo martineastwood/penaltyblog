@@ -51,7 +51,6 @@ requires = ["setuptools", "wheel", "numpy", "Cython"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools]
-packages = { find = {} }
 include-package-data = true
 
 [tool.cibuildwheel]
