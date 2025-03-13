@@ -95,25 +95,19 @@ jobs:
           twine check dist/*
           check-wheel-contents dist/*.whl
 
-      - name: Test package installation and imports
+      - name: Install package
         run: |
-          # Create test environments for each wheel
-          python -m pip install virtualenv
+          pip install dist/*.whl
 
-          # Find all wheels
-          for wheel in dist/*.whl; do
-            echo "Testing $wheel"
-            # Create a new environment for each wheel
-            python -m virtualenv test-env
-            source test-env/bin/activate
+      - name: Run dynamic test script
+        run: |
+          echo "import penaltyblog as pb" > test_script.py
+          echo "try:" >> test_script.py
+          echo "    predictions = [0.8, 0.1, 0.1]" >> test_script.py
+          echo "    observed = 0" >> test_script.py
+          echo "    rps_score = pb.metrics.rps_average(predictions, [observed])" >> test_script.py
+          echo "except Exception as e:" >> test_script.py
+          echo "    print(f'Test failed with error: {e}')" >> test_script.py
+          echo "    exit(1)" >> test_script.py
 
-            # Install the wheel
-            pip install $wheel
-
-            # Try importing your package - replace 'your_package_name' with your actual package name
-            python -c "import your_package_name; print(your_package_name.__version__)"
-
-            # Deactivate and remove the environment
-            deactivate
-            rm -rf test-env
-          done
+          python test_script.py
