@@ -55,3 +55,54 @@ jobs:
         with:
           name: sdist
           path: dist/*.tar.gz
+
+
+  verify_wheels:
+    needs: [build_wheels, build_sdist]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v3
+        with:
+          path: dist-artifacts
+
+      - name: Prepare distribution files
+        run: |
+          mkdir -p dist
+          find dist-artifacts -name "*.whl" -exec cp {} dist/ \;
+          find dist-artifacts -name "*.tar.gz" -exec cp {} dist/ \;
+          ls -la dist/
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.10"
+
+      - name: Verify wheel structure
+        run: |
+          pip install twine check-wheel-contents
+          twine check dist/*
+          check-wheel-contents dist/*.whl
+
+      - name: Test package installation and imports
+        run: |
+          # Create test environments for each wheel
+          python -m pip install virtualenv
+
+          # Find all wheels
+          for wheel in dist/*.whl; do
+            echo "Testing $wheel"
+            # Create a new environment for each wheel
+            python -m virtualenv test-env
+            source test-env/bin/activate
+
+            # Install the wheel
+            pip install $wheel
+
+            # Try importing your package - replace 'your_package_name' with your actual package name
+            python -c "import your_package_name; print(your_package_name.__version__)"
+
+            # Deactivate and remove the environment
+            deactivate
+            rm -rf test-env
+          done
