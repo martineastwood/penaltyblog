@@ -1,9 +1,9 @@
-name: Build and Publish Package
+name: Test Build and Publish
 
 on:
-  release:
-    types: [published]
   workflow_dispatch:
+  pull_request:
+    branches: [main, master]
 
 jobs:
   build_wheels:
@@ -59,15 +59,9 @@ jobs:
           name: sdist
           path: dist/*.tar.gz
 
-  deploy:
+  verify_wheels:
     needs: [build_wheels, build_sdist]
     runs-on: ubuntu-latest
-    environment:
-      name: pypi
-      url: https://pypi.org/p/penaltyblog
-    permissions:
-      id-token: write
-
     steps:
       - name: Download all artifacts
         uses: actions/download-artifact@v3
@@ -81,7 +75,22 @@ jobs:
           find dist-artifacts -name "*.tar.gz" -exec cp {} dist/ \;
           ls -la dist/
 
-      - name: Publish package
-        uses: pypa/gh-action-pypi-publish@release/v1
+      - name: Set up Python
+        uses: actions/setup-python@v4
         with:
-          packages-dir: dist/
+          python-version: "3.x"
+
+      - name: Verify wheel structure
+        run: |
+          pip install twine check-wheel-contents
+          twine check dist/*
+          check-wheel-contents dist/*.whl
+
+      # Optional: Publish to TestPyPI
+      # - name: Publish to TestPyPI
+      #   uses: pypa/gh-action-pypi-publish@release/v1
+      #   with:
+      #     repository-url: https://test.pypi.org/legacy/
+      #     packages-dir: dist/
+      #     skip-existing: true
+      #     password: ${{ secrets.TEST_PYPI_API_TOKEN }}
