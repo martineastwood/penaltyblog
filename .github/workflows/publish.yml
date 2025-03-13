@@ -2,8 +2,8 @@ name: Test Build and Publish
 
 on:
   workflow_dispatch:
-  pull_request:
-    branches: [main, master]
+  # pull_request:
+  #   branches: [main, master]
 
 jobs:
   build_wheels:
