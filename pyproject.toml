@@ -1,6 +1,6 @@
 [project]
 name = "penaltyblog"
-version = "1.0.4"
+version = "1.1.0"
 description = "Library from http://pena.lt/y/blog for scraping and modelling football (soccer) data"
 authors = [{ name = "Martin Eastwood", email = "martin.eastwood@gmx.com" }]
 readme = "README.md"
@@ -12,7 +12,6 @@ keywords = [
     "modelling",
     "dixon coles",
     "poisson",
-    "bayesian",
     "scraper",
     "scraping",
     "backtest",
@@ -21,18 +20,18 @@ keywords = [
 requires-python = ">=3.10"
 
 dependencies = [
-    "beautifulsoup4==4.12.3,<5.0.0",
-    "cmdstanpy==1.2.4,<2.0.0",
-    "cssselect==1.2.0,<2.0.0",
-    "lxml==5.3.0,<6.0.0",
-    "html5lib==1.1,<2.0.0",
-    "ipywidgets==8.1.5,<9.0.0",
-    "numpy==2.1.3,<3.0.0",
-    "pandas==2.2.3,<3.0.0",
-    "PuLP==2.9.0,<3.0.0",
-    "requests==2.32.3,<3.0.0",
-    "scipy==1.14.1,<2.0.0",
-    "tqdm==4.67.1,<5.0.0",
+    "beautifulsoup4",
+    "cssselect",
+    "cython",
+    "lxml",
+    "html5lib",
+    "ipywidgets",
+    "numpy",
+    "pandas",
+    "PuLP",
+    "requests",
+    "scipy",
+    "tqdm",
 ]
 
 classifiers = [
@@ -48,14 +47,22 @@ Homepage = "https://github.com/martineastwood/penaltyblog"
 Repository = "https://github.com/martineastwood/penaltyblog"
 
 [build-system]
-requires = ["setuptools>=45", "wheel"]
+requires = ["setuptools", "wheel", "numpy", "Cython"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools]
+packages = { find = {} }
 include-package-data = true
 
 [tool.setuptools.package-data]
-"penaltyblog.models" = ["stan_files/*.stan"]
+penaltyblog = [
+    "models/*.so",
+    "models/*.dll",
+    "models/*.dylib",
+    "metrics/*.so",
+    "metrics/*.dll",
+    "metrics/*.dylib",
+]
 
 [project.optional-dependencies]
 dev = [
@@ -74,6 +81,7 @@ dev = [
     "jupyterlab>=3.4.4",
     "jupyterlab-code-formatter>=1.5.2",
     "setuptools>=75.6.0",
+    "types-requests>=2.28.11",
 ]
 
 [tool.coverage.paths]
@@ -92,3 +100,6 @@ profile = "black"
 src_paths = ["penaltyblog", "tests"]
 include_trailing_comma = true
 line_length = 79
+
+[tool.mypy]
+ignore_missing_imports = true

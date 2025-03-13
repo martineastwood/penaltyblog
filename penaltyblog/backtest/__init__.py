@@ -1,1 +1,7 @@
-from .backtest import Backtest  # noqa
+"""
+Backtest module
+
+Used to backtest different betting strategies.
+"""
+
+from .backtest import Account, Backtest, Context  # noqa

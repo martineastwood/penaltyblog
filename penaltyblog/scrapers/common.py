@@ -1,9 +1,10 @@
 import calendar
 import re
+from typing import Any, Dict
 
 import pandas as pd
 
-COMPETITION_MAPPINGS = {
+COMPETITION_MAPPINGS: Dict[str, Dict[str, Any]] = {
     "BEL First Division A": {
         "fbref": {
             "slug": "37",

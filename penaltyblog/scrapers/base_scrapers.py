@@ -19,6 +19,8 @@ class BaseScraper:
         }`
     """
 
+    src: str = ""
+
     def __init__(self, team_mappings=None):
         if team_mappings is not None:
             self.team_mappings = dict()
@@ -37,6 +39,8 @@ class BaseScraper:
 
     @classmethod
     def list_competitions(cls) -> list:
+        if not hasattr(cls, "source"):
+            raise AttributeError(f"{cls.__name__} has no attribute 'source'")
         competitions = list()
         for k, v in COMPETITION_MAPPINGS.items():
             if cls.source in v.keys():

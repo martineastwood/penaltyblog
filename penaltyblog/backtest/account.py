@@ -1,3 +1,12 @@
+"""
+Account module
+
+Used to make and track bets made during the backtest
+"""
+
+from typing import Any, Dict, List
+
+
 class Account:
     """Used to make and track bets made during the backtest
 
@@ -18,8 +27,8 @@ class Account:
         self.bankroll = self.current_bankroll = bankroll
         self.current_date = None
 
-        self.history = list()
-        self.tracker = list()
+        self.history: List[Dict[str, Any]] = []
+        self.tracker: List[float] = []
 
     def place_bet(self, odds: float, stake: float, outcome: int):
         """
@@ -34,19 +43,20 @@ class Account:
         outcome : int
             The outcome of the bet, 1 for successful and 0 for failed
         """
+        profit = (stake * odds * outcome) - stake
 
         bet = {
             "odds": odds,
             "stake": stake,
             "outcome": outcome,
             "date": self.current_date,
-            "profit": (stake * odds * outcome) - stake,
+            "profit": profit,
         }
         self.history.append(bet)
 
         if self.tracker:
-            self.current_bankroll = self.tracker[-1] + bet["profit"]
+            self.current_bankroll = self.tracker[-1] + profit
         else:
-            self.current_bankroll = self.bankroll + bet["profit"]
+            self.current_bankroll = self.bankroll + profit
 
         self.tracker.append(self.current_bankroll)

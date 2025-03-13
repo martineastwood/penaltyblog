@@ -1,3 +1,9 @@
+"""
+Fantasy Premier League module
+
+Used to scrape and process data from the Fantasy Premier League API.
+"""
+
 from typing import Optional, Tuple
 
 import pandas as pd
@@ -20,7 +26,7 @@ def get_current_gameweek() -> int:
     """
     # get the data
     url = "https://fantasy.premierleague.com/api/bootstrap-static/"
-    r = requests.get(url)
+    r = requests.get(url, timeout=60)
     data = r.json()
     df = pd.DataFrame(data["events"])
     current_gameweek = df.query("finished == False")["id"].min()
@@ -42,7 +48,7 @@ def get_gameweek_info() -> pd.DataFrame:
     """
     # get the data
     url = "https://fantasy.premierleague.com/api/bootstrap-static/"
-    r = requests.get(url)
+    r = requests.get(url, timeout=60)
     data = r.json()
     df = pd.DataFrame(data["events"])
 
@@ -66,7 +72,7 @@ def get_player_id_mappings() -> pd.DataFrame:
     >>> pb.fpl.get_player_id_mappings()
     """
     url = "https://fantasy.premierleague.com/api/bootstrap-static/"
-    r = requests.get(url)
+    r = requests.get(url, timeout=60)
     data = r.json()
     df = pd.DataFrame(data["elements"])
     return df[["first_name", "second_name", "web_name", "id"]]
@@ -86,7 +92,7 @@ def get_player_data() -> pd.DataFrame:
     >>> pb.fpl.get_player_data()
     """
     url = "https://fantasy.premierleague.com/api/bootstrap-static/"
-    r = requests.get(url)
+    r = requests.get(url, timeout=60)
     data = r.json()
     df = pd.DataFrame(data["elements"])
 
@@ -157,10 +163,8 @@ def get_player_history(player_id) -> pd.DataFrame:
     >>> import penaltyblog as pb
     >>> pb.fpl.get_player_history(277)
     """
-    url = "https://fantasy.premierleague.com/api/element-summary/{id}/".format(
-        id=str(player_id)
-    )
-    r = requests.get(url)
+    url = f"https://fantasy.premierleague.com/api/element-summary/{str(player_id)}/"
+    r = requests.get(url, timeout=60)
     data = r.json()
 
     df = pd.DataFrame(data["history"])
@@ -201,7 +205,7 @@ def get_rankings(page=1) -> pd.DataFrame:
         "?page_new_entries=1&page_standings={page}&phase=1"
     )
     url = url.format(page=page)
-    r = requests.get(url)
+    r = requests.get(url, timeout=60)
     data = r.json()
     df = pd.DataFrame(data["standings"]["results"])
     return df
@@ -229,17 +233,15 @@ def get_entry_picks_by_gameweek(entry_id, gameweek=1) -> pd.Series:
     >>> pb.fpl.get_entry_picks_by_gameweek(page=1)
     """
     # get the data
-    url = "https://fantasy.premierleague.com/api/entry/{entry_id}/event/{gameweek}/picks/".format(
-        entry_id=str(entry_id), gameweek=str(gameweek)
-    )
-    r = requests.get(url)
+    url = f"https://fantasy.premierleague.com/api/entry/{str(entry_id)}/event/{str(gameweek)}/picks/"
+    r = requests.get(url, timeout=60)
     data = r.json()
 
     if data.get("detail") == "Not found.":
         raise ValueError("entry_id not recognized")
 
     # parse the data
-    tmp = dict()
+    tmp = {}
     tmp["team_id"] = entry_id
     tmp["active_chip"] = data.get("active_chip")
     tmp["event"] = data["entry_history"]["event"]
@@ -261,11 +263,11 @@ def get_entry_picks_by_gameweek(entry_id, gameweek=1) -> pd.Series:
     tmp["auto_sub_3"] = None
     tmp["auto_sub_4"] = None
     for i, x in enumerate(data.get("automatic_subs", [])):
-        tmp["auto_sub_{i}".format(i=i)] = x
+        tmp[f"auto_sub_{i}"] = x
 
     # add in player picks
     for i, x in enumerate(data["picks"]):
-        tmp["player_pick_{i}".format(i=i)] = int(x["element"])
+        tmp[f"player_pick_{i}"] = int(x["element"])
 
     # add in captain
     for i, x in enumerate(data["picks"]):
@@ -302,7 +304,7 @@ def get_entry_transfers(entry_id) -> Optional[pd.DataFrame]:
     url = "https://fantasy.premierleague.com/api/entry/{entry_id}/transfers/".format(
         entry_id=str(entry_id)
     )
-    r = requests.get(url)
+    r = requests.get(url, timeout=60)
 
     if r.json():
         df = pd.DataFrame(r.json())
@@ -318,8 +320,8 @@ def get_entry_transfers(entry_id) -> Optional[pd.DataFrame]:
             }
         )
         return df
-    else:
-        return None
+
+    return None
 
 
 def optimise_team(formation="2-5-5-3", budget=100) -> Tuple[dict, pd.DataFrame]:
@@ -344,7 +346,7 @@ def optimise_team(formation="2-5-5-3", budget=100) -> Tuple[dict, pd.DataFrame]:
         )
 
     # set up constraints
-    constraints = dict()
+    constraints = {}
     constraints["max_budget"] = budget
     constraints["position_gkp"] = int(formation.split("-")[0])
     constraints["position_def"] = int(formation.split("-")[1])
@@ -434,7 +436,7 @@ def optimise_team(formation="2-5-5-3", budget=100) -> Tuple[dict, pd.DataFrame]:
         .loc[:, ["id", "full_name", "team", "position", "price", "total_points"]]
     )
 
-    output = dict()
+    output = {}
     output["status"] = pulp.LpStatus[problem.status]
     output["total_points"] = pulp.value(problem.objective)
     output["total_price"] = round(selected_players["price"].sum(), 2)

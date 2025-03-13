@@ -1,8 +1,16 @@
+"""
+Implied Probabilities
+
+Calculates the implied probabilities for a given set of odds.
+"""
+
+from typing import Any, Dict, List
+
 import numpy as np
 from scipy import optimize
 
 
-def multiplicative(odds) -> dict:
+def multiplicative(odds: List[float]) -> Dict[str, Any]:
     """
     The multiplicative method computes the implied probabilities by
     dividing the inverted odds by their sum to normalize them
@@ -35,7 +43,7 @@ def multiplicative(odds) -> dict:
     return result
 
 
-def additive(odds) -> dict:
+def additive(odds: List[float]) -> Dict[str, Any]:
     """
     The additive method removes an equal proportion from each
     odd to get the implied probabilities
@@ -68,7 +76,7 @@ def additive(odds) -> dict:
     return result
 
 
-def power(odds) -> dict:
+def power(odds: List[float]) -> Dict[str, Any]:
     """
     The power method computes the implied probabilities by solving for the
     power coefficient that normalizes the inverse of the odds to sum to 1.0
@@ -112,7 +120,7 @@ def power(odds) -> dict:
     return result
 
 
-def shin(odds) -> dict:
+def shin(odds: List[float]) -> Dict[str, Any]:
     """
     Computes the implied probabilities via the Shin (1992, 1993) method
 
@@ -157,7 +165,7 @@ def shin(odds) -> dict:
     return result
 
 
-def differential_margin_weighting(odds) -> dict:
+def differential_margin_weighting(odds: List[float]) -> Dict[str, Any]:
     """
     Based on Jospeh Buchdahl's wisdom of the crowds -
     https://www.football-data.co.uk/The_Wisdom_of_the_Crowd.pdf
@@ -191,7 +199,7 @@ def differential_margin_weighting(odds) -> dict:
     return result
 
 
-def odds_ratio(odds) -> dict:
+def odds_ratio(odds: List[float]) -> Dict[str, Any]:
     """
     Keith Cheung's odds ratio method, as discussed in
     Jospeh Buchdahl's wisdom of the crowds

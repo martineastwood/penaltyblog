@@ -1,3 +1,9 @@
+"""
+Elo Rating System
+
+Calculates the Elo ratings for a group of teams.
+"""
+
 from typing import Dict, Tuple
 
 

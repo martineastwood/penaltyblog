@@ -1,56 +1,67 @@
-import collections
 import warnings
 
 import numpy as np
-import pandas as pd
 from scipy.optimize import minimize
-from scipy.stats import poisson
 
-from .football_probability_grid import FootballProbabilityGrid
+from penaltyblog.models.base_model import BaseGoalsModel
+from penaltyblog.models.custom_types import (
+    GoalInput,
+    ParamsOutput,
+    TeamInput,
+    WeightInput,
+)
+from penaltyblog.models.football_probability_grid import (
+    FootballProbabilityGrid,
+)
+
+from .gradients import poisson_gradient
+from .loss import poisson_loss_function
+from .probabilities import compute_poisson_probabilities
 
 
-class PoissonGoalsModel:
-    """Poisson model for predicting outcomes of football (soccer) matches
+class PoissonGoalsModel(BaseGoalsModel):
+    """
+    Poisson model for predicting outcomes of football (soccer) matches
 
-     Methods
-     -------
-     fit()
-         fits a Poisson model to the data to calculate the team strengths.
-         Must be called before the
-         model can be used to predict game outcomes
+    Methods
+    -------
+    fit()
+        fits a Poisson model to the data to calculate the team strengths.
+        Must be called before the model can be used to predict game outcomes
 
     predict(home_team, away_team, max_goals=15)
-         predict the outcome of a football (soccer) game between the home_team and away_team
+        predict the outcome of a football (soccer) game between the home_team and away_team
 
-     get_params()
-         Returns the fitted parameters from the model
+    get_params()
+        Returns the fitted parameters from the model
     """
 
-    def __init__(self, goals_home, goals_away, teams_home, teams_away, weights=1):
+    def __init__(
+        self,
+        goals_home: GoalInput,
+        goals_away: GoalInput,
+        teams_home: TeamInput,
+        teams_away: TeamInput,
+        weights: WeightInput = None,
+    ):
         """
+        Dixon and Coles adjusted Poisson model for predicting outcomes of football
+        (soccer) matches
+
         Parameters
         ----------
-        goals_home : list
-            A list or pd.Series of goals scored by the home_team
-        goals_away : list
-            A list or pd.Series of goals scored by the away_team
-        teams_home : list
-            A list or pd.Series of team_names for the home_team
-        teams_away : list
-            A list or pd.Series of team_names for the away_team
-        weights : list
-            A list or pd.Series of weights for the data, the lower
-            the weight the less the match has on the output
+        goals_home : array_like
+            The number of goals scored by the home team in each match
+        goals_away : array_like
+            The number of goals scored by the away team in each match
+        teams_home : array_like
+            The name of the home team in each match
+        teams_away : array_like
+            The name of the away team in each match
+        weights : array_like, optional
+            The weight of each match, by default None
         """
-
-        self.fixtures = pd.DataFrame([goals_home, goals_away, teams_home, teams_away]).T
-        self.fixtures.columns = ["goals_home", "goals_away", "team_home", "team_away"]
-        self.fixtures["goals_home"] = self.fixtures["goals_home"].astype(int)
-        self.fixtures["goals_away"] = self.fixtures["goals_away"].astype(int)
-        self.fixtures["weights"] = weights
-
-        self.teams = np.sort(np.unique(np.concatenate([teams_home, teams_away])))
-        self.n_teams = len(self.teams)
+        super().__init__(goals_home, goals_away, teams_home, teams_away, weights)
 
         self._params = np.concatenate(
             (
@@ -60,115 +71,106 @@ class PoissonGoalsModel:
             )
         )
 
-        self._res = None
-        self.loglikelihood = None
-        self.aic = None
-        self.n_params = None
-        self.fitted = False
-
-    def __repr__(self):
-        repr_str = ""
-        repr_str += "Module: Penaltyblog"
-        repr_str += "\n"
-        repr_str += "\n"
-
-        repr_str += "Model: Poisson"
-        repr_str += "\n"
-        repr_str += "\n"
+    def __repr__(self) -> str:
+        lines = ["Module: Penaltyblog", "", "Model: Poisson", ""]
 
         if not self.fitted:
-            repr_str += "Status: Model not fitted"
-            return repr_str
+            lines.append("Status: Model not fitted")
+            return "\n".join(lines)
 
-        repr_str += "Number of parameters: {0}".format(self.n_params)
-        repr_str += "\n"
-        repr_str += "Log Likelihood: {0}".format(round(self.loglikelihood, 3))
-        repr_str += "\n"
-        repr_str += "AIC: {0}".format(round(self.aic, 3))
-        repr_str += "\n"
-        repr_str += "\n"
+        assert self.aic is not None
+        assert self.loglikelihood is not None
+        assert self.n_params is not None
 
-        repr_str += "{0: <20} {1:<20} {2:<20}".format("Team", "Attack", "Defence")
-        repr_str += "\n"
-        repr_str += "-" * 60
-        repr_str += "\n"
+        lines.extend(
+            [
+                f"Number of parameters: {self.n_params}",
+                f"Log Likelihood: {round(self.loglikelihood, 3)}",
+                f"AIC: {round(self.aic, 3)}",
+                "",
+                "{0: <20} {1:<20} {2:<20}".format("Team", "Attack", "Defence"),
+                "-" * 60,
+            ]
+        )
 
         for idx, team in enumerate(self.teams):
-            repr_str += "{0: <20} {1:<20} {2:<20}".format(
-                self.teams[idx],
-                round(self._params[idx], 3),
-                round(self._params[idx + self.n_teams], 3),
+            lines.append(
+                "{0: <20} {1:<20} {2:<20}".format(
+                    team,
+                    round(self._params[idx], 3),
+                    round(self._params[idx + self.n_teams], 3),
+                )
             )
-            repr_str += "\n"
 
-        repr_str += "-" * 60
-        repr_str += "\n"
+        lines.extend(
+            [
+                "-" * 60,
+                f"Home Advantage: {round(self._params[-1], 3)}",
+            ]
+        )
 
-        repr_str += "Home Advantage: {0}".format(round(self._params[-1], 3))
-        repr_str += "\n"
-
-        return repr_str
+        return "\n".join(lines)
 
     def __str__(self):
         return self.__repr__()
 
-    @staticmethod
-    def _fit(params, fixtures, teams):
-        """
-        Internal method, not to called directly by the user
-        """
-        n_teams = len(teams)
+    def _gradient(self, params):
+        attack = np.asarray(params[: self.n_teams], dtype=np.double, order="C")
+        defence = np.asarray(
+            params[self.n_teams : 2 * self.n_teams], dtype=np.double, order="C"
+        )
+        hfa = params[-1]
 
-        params_df = (
-            pd.DataFrame(params[:n_teams], columns=["attack"])
-            .assign(defence=params[n_teams : n_teams * 2])
-            .assign(team=teams)
+        return poisson_gradient(
+            attack,
+            defence,
+            hfa,
+            self.home_idx,
+            self.away_idx,
+            self.goals_home,
+            self.goals_away,
         )
 
-        df2 = (
-            fixtures.merge(params_df, left_on="team_home", right_on="team")
-            .rename(columns={"attack": "home_attack", "defence": "home_defence"})
-            .drop("team", axis=1)
-            .merge(params_df, left_on="team_away", right_on="team")
-            .rename(columns={"attack": "away_attack", "defence": "away_defence"})
-            .assign(hfa=params[-1])
+    def _fit(self, params):
+        """
+        Internal method using Cython for speed.
+        """
+        # Get params
+        attack = np.asarray(params[: self.n_teams], dtype=np.double, order="C")
+        defence = np.asarray(
+            params[self.n_teams : 2 * self.n_teams], dtype=np.double, order="C"
         )
+        hfa = params[-1]
 
-        df2["home_exp"] = np.exp(df2["hfa"] + df2["home_attack"] + df2["away_defence"])
-        df2["away_exp"] = np.exp(df2["away_attack"] + df2["home_defence"])
-        df2["home_llk"] = poisson.logpmf(df2["goals_home"], df2["home_exp"])
-        df2["away_llk"] = poisson.logpmf(df2["goals_away"], df2["away_exp"])
-        df2["llk"] = (df2["home_llk"] + df2["away_llk"]) * df2["weights"]
-        return -df2["llk"].sum()
+        # Call the Cython function for likelihood computation
+        total_llk = poisson_loss_function(
+            self.goals_home,
+            self.goals_away,
+            self.weights,
+            self.home_idx,
+            self.away_idx,
+            attack,
+            defence,
+            hfa,
+        )
+        return -total_llk
 
     def fit(self):
-        """
-        Fits the model to the data and calculates the team strengths,
-        home advantage and intercept.
-        Should be called before `predict` can be used
-        """
-        options = {
-            "maxiter": 100,
-            "disp": False,
-        }
-
+        options = {"maxiter": 1000, "disp": False}
         constraints = [
             {"type": "eq", "fun": lambda x: sum(x[: self.n_teams]) - self.n_teams}
         ]
-
-        bounds = [(-3, 3)] * self.n_teams
-        bounds += [(-3, 3)] * self.n_teams
-        bounds += [(0, 3)]
+        bounds = [(-3, 3)] * self.n_teams + [(-3, 3)] * self.n_teams + [(0, 3)]
 
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             self._res = minimize(
                 self._fit,
                 self._params,
-                args=(self.fixtures, self.teams),
                 constraints=constraints,
                 bounds=bounds,
                 options=options,
+                # jac=self._gradient,
             )
 
         self._params = self._res["x"]
@@ -177,95 +179,80 @@ class PoissonGoalsModel:
         self.aic = -2 * (self.loglikelihood) + 2 * self.n_params
         self.fitted = True
 
-    def predict(self, home_team, away_team, max_goals=15):
+    def predict(
+        self, home_team: str, away_team: str, max_goals: int = 15
+    ) -> FootballProbabilityGrid:
         """
-        Predicts the probabilities of the different possible match outcomes
+        Predicts the probability of each scoreline for a given home and away team
 
         Parameters
         ----------
         home_team : str
-            The name of the home_team, must have been in the data the model was fitted on
-
+            The name of the home team
         away_team : str
-            The name of the away_team, must have been in the data the model was fitted on
-
-        max_goals : int
-            The maximum number of goals to calculate the probabilities over.
-            Reducing this will improve performance slightly at the expensive of acuuracy
+            The name of the away team
+        max_goals : int, optional
+            The maximum number of goals to consider, by default 15
 
         Returns
         -------
         FootballProbabilityGrid
-            A class providing access to a range of probabilites, such as 1x2,
-            asian handicaps, over unders etc
+            A FootballProbabilityGrid object containing the probabilities of each scoreline
         """
         if not self.fitted:
             raise ValueError(
-                (
-                    "Model's parameters have not been fit yet, please call the `fit()` "
-                    "function before making any predictions"
-                )
+                "Model's parameters have not been fit yet. Please call `fit()` first."
             )
 
-        # check we have parameters for teams
-        if home_team not in self.teams:
-            raise ValueError(
-                "No parameters for home team - please ensure the team was "
-                "included in the training data"
-            )
+        if home_team not in self.teams or away_team not in self.teams:
+            raise ValueError("Both teams must have been in the training data.")
 
-        if away_team not in self.teams:
-            raise ValueError(
-                "No parameters for away team - please ensure the team "
-                "was included in the training data"
-            )
-
-        home_idx = np.where(self.teams == home_team)[0][0]
-        away_idx = np.where(self.teams == away_team)[0][0]
+        home_idx = self.team_to_idx[home_team]
+        away_idx = self.team_to_idx[away_team]
 
         home_attack = self._params[home_idx]
         away_attack = self._params[away_idx]
-
-        home_defence = self._params[home_idx + self.n_teams]
-        away_defence = self._params[away_idx + self.n_teams]
-
+        home_defense = self._params[home_idx + self.n_teams]
+        away_defense = self._params[away_idx + self.n_teams]
         home_advantage = self._params[-1]
 
-        # calculate the goal expectation
-        home_goals = np.exp(home_advantage + home_attack + away_defence)
-        away_goals = np.exp(away_attack + home_defence)
-        home_goals_vector = poisson(home_goals).pmf(np.arange(0, max_goals))
-        away_goals_vector = poisson(away_goals).pmf(np.arange(0, max_goals))
+        # Preallocate the score matrix as a flattened array.
+        score_matrix = np.empty(max_goals * max_goals, dtype=np.float64)
 
-        # get the probabilities for each possible score
-        m = np.outer(home_goals_vector, away_goals_vector)
+        # Allocate one-element arrays for lambda values.
+        lambda_home = np.empty(1, dtype=np.float64)
+        lambda_away = np.empty(1, dtype=np.float64)
 
-        # and return the FootballProbabilityGrid
-        probability_grid = FootballProbabilityGrid(m, home_goals, away_goals)
+        compute_poisson_probabilities(
+            float(home_attack),
+            float(away_attack),
+            float(home_defense),
+            float(away_defense),
+            float(home_advantage),
+            int(max_goals),
+            score_matrix,
+            lambda_home,
+            lambda_away,
+        )
 
-        return probability_grid
+        score_matrix.shape = (max_goals, max_goals)
 
-    def get_params(self):
-        """
-        Provides access to the model's fitted parameters
+        return FootballProbabilityGrid(score_matrix, lambda_home, lambda_away)
 
-        Returns
-        -------
-        dict
-            A dict containing the model's parameters
-        """
+    def get_params(self) -> ParamsOutput:
         if not self.fitted:
             raise ValueError(
-                "Model's parameters have not been fit yet, "
-                "please call the `fit()` function first"
+                "Model's parameters have not been fit yet. Call `fit()` first."
             )
+
+        assert self.n_params is not None
 
         params = dict(
             zip(
                 ["attack_" + team for team in self.teams]
-                + ["defence_" + team for team in self.teams]
+                + ["defense_" + team for team in self.teams]
                 + ["home_advantage"],
-                self._res["x"],
+                self._params,
             )
         )
         return params

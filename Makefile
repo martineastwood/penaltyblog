@@ -5,7 +5,7 @@ test:
 	coverage report -m
 
 test_subset:
-	pytest -v test/test_model_bayesian_bivariate.py test/test_model_bayesian_skellam.py test/test_model_bayesian_random_intercept.py test/test_model_bayesian_hierarchical.py
+	pytest -v test/test_metrics_rps.py
 
 coverage:
 	coverage run -m pytest
@@ -20,3 +20,6 @@ docs:
 
 jupyter:
 	jupyter lab --no-browser --port=8080 --ip="*"
+
+cython:
+	python setup.py build_ext --inplace

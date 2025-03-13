@@ -149,4 +149,15 @@ dmypy.json
 # Cython debug symbols
 cython_debug/
 scratch.py
+
+*.so
+*.dylib
+*.dll
+
+# Cython generated C/C++ files
 *.c
+*.cpp
+
+# Compiled Python extensions
+*.so
+*.pyd
