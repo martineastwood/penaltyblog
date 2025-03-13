@@ -46,7 +46,7 @@ setup(
     name="penaltyblog",
     version="1.1.0",
     description="Library from http://pena.lt/y/blog for scraping and modelling football (soccer) data",
-    packages=find_packages(),
+    packages=find_packages(include=["penaltyblog", "penaltyblog.*"]),
     ext_modules=cythonize(extensions, compiler_directives={"language_level": "3"}),
     install_requires=[
         "beautifulsoup4",
