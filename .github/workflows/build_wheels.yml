@@ -26,16 +26,10 @@ jobs:
 
       - name: Install dependencies with pre-built wheels
         run: |
-          pip install numpy pandas
+          pip install --only-binary=:all: numpy pandas
 
       - name: Build wheels
         run: cibuildwheel --output-dir wheelhouse .
-
-      - name: Upload wheels artifact
-        uses: actions/upload-artifact@v3
-        with:
-          name: wheels
-          path: wheelhouse/*.whl
 
   build_sdist:
     runs-on: ubuntu-latest
@@ -57,7 +51,7 @@ jobs:
         run: python -m build --sdist
 
       - name: Upload sdist artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: sdist
           path: dist/*.tar.gz
