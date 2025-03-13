@@ -161,3 +161,5 @@ scratch.py
 # Compiled Python extensions
 *.so
 *.pyd
+
+/wheelhouse

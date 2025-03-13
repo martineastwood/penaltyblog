@@ -31,6 +31,12 @@ jobs:
       - name: Build wheels
         run: cibuildwheel --output-dir wheelhouse .
 
+      - name: Upload wheels artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: wheels
+          path: wheelhouse/*.whl
+
   build_sdist:
     runs-on: ubuntu-latest
     steps:

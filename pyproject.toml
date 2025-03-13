@@ -54,6 +54,9 @@ build-backend = "setuptools.build_meta"
 packages = { find = {} }
 include-package-data = true
 
+[tool.cibuildwheel]
+skip = "pp*"
+
 [tool.setuptools.package-data]
 penaltyblog = [
     "models/*.so",
