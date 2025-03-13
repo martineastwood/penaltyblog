@@ -8,7 +8,6 @@ jobs:
     strategy:
       matrix:
         os: [windows-latest]
-        # os: [ubuntu-latest, windows-latest, macos-latest, macos-14-arm64]
     runs-on: ${{ matrix.os }}
     steps:
       - name: Checkout repository
@@ -31,6 +30,12 @@ jobs:
       - name: Build wheels
         run: cibuildwheel --output-dir wheelhouse .
 
+      - name: Upload built wheels
+        uses: actions/upload-artifact@v4  # Use v4
+        with:
+          name: wheels
+          path: wheelhouse/*.whl
+
   build_sdist:
     runs-on: ubuntu-latest
     steps:
@@ -51,20 +56,26 @@ jobs:
         run: python -m build --sdist
 
       - name: Upload sdist artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v4  # Use v4
         with:
           name: sdist
           path: dist/*.tar.gz
-
 
   verify_wheels:
     needs: [build_wheels, build_sdist]
     runs-on: ubuntu-latest
     steps:
-      - name: Download all artifacts
-        uses: actions/download-artifact@v3
+      - name: Download wheel artifacts
+        uses: actions/download-artifact@v4  # Use v4
         with:
-          path: dist-artifacts
+          name: wheels
+          path: dist-artifacts/wheels
+
+      - name: Download sdist artifact
+        uses: actions/download-artifact@v4  # Use v4
+        with:
+          name: sdist
+          path: dist-artifacts/sdist
 
       - name: Prepare distribution files
         run: |
