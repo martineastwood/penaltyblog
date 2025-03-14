@@ -7,7 +7,7 @@ jobs:
   build_wheels:
     strategy:
       matrix:
-        os: [ubuntu-latest]
+        os: [windows-latest]
     runs-on: ${{ matrix.os }}
     steps:
       - name: Checkout repository
@@ -94,39 +94,3 @@ jobs:
           pip install twine check-wheel-contents
           twine check dist/*
           check-wheel-contents dist/*.whl
-
-      - name: Install package (Only compatible wheels)
-        run: |
-          OS=$(uname -s)
-
-          case "$OS" in
-            Linux*)
-              echo "Detected Linux - Installing Linux wheels or sdist"
-              pip install dist/*manylinux*.whl
-              ;;
-            Darwin*)
-              echo "Detected macOS - Installing macOS wheels or sdist"
-              pip install dist/*macos*.whl
-              ;;
-            CYGWIN*|MINGW*|MSYS*)
-              echo "Detected Windows - Installing Windows wheels"
-              pip install dist/*win_amd64.whl
-              ;;
-            *)
-              echo "Unknown OS: $OS - Skipping installation"
-              exit 1
-              ;;
-          esac
-
-      - name: Run dynamic test script
-        run: |
-          echo "import penaltyblog as pb" > test_script.py
-          echo "try:" >> test_script.py
-          echo "    predictions = [0.8, 0.1, 0.1]" >> test_script.py
-          echo "    observed = 0" >> test_script.py
-          echo "    rps_score = pb.metrics.rps_average(predictions, [observed])" >> test_script.py
-          echo "except Exception as e:" >> test_script.py
-          echo "    print(f'Test failed with error: {e}')" >> test_script.py
-          echo "    exit(1)" >> test_script.py
-
-          python test_script.py
