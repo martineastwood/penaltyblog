@@ -33,7 +33,7 @@ jobs:
       - name: Upload built wheels
         uses: actions/upload-artifact@v4  # Use v4
         with:
-          name: wheels-${{ runner.os }}
+          name: wheels-${{ matrix.os }}
           path: wheelhouse/*.whl
 
   build_sdist:
