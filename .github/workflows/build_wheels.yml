@@ -31,7 +31,7 @@ jobs:
         run: cibuildwheel --output-dir wheelhouse .
 
       - name: Upload built wheels
-        uses: actions/upload-artifact@v4  # Use v4
+        uses: actions/upload-artifact@v4
         with:
           name: wheels-${{ matrix.os }}
           path: wheelhouse/*.whl
@@ -56,22 +56,51 @@ jobs:
         run: python -m build --sdist
 
       - name: Upload sdist artifact
-        uses: actions/upload-artifact@v4  # Use v4
+        uses: actions/upload-artifact@v4
         with:
           name: sdist
           path: dist/*.tar.gz
 
-  verify_wheels:
-    needs: [build_wheels, build_sdist]
+  test_wheels:
+    needs: [build_wheels]
+    strategy:
+      matrix:
+        os: [ubuntu-latest, ubuntu-24.04-arm, windows-latest, macos-latest, macos-13]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Download the built wheel for this OS
+        uses: actions/download-artifact@v4
+        with:
+          name: wheels-${{ matrix.os }}
+          path: dist
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.x"
+
+      - name: Install the wheel
+        run: |
+          pip install dist/*.whl
+
+      - name: Run a basic import test
+        run: |
+          python -c "import penaltyblog as pb; print('penaltyblog version:', pb.__version__)"
+
+  publish_wheels:
+    needs: [build_wheels, test_wheels, build_sdist]
     runs-on: ubuntu-latest
     steps:
       - name: Download wheel artifacts
-        uses: actions/download-artifact@v4  # Use v4
+        uses: actions/download-artifact@v4
         with:
           path: dist-artifacts/wheels
 
       - name: Download sdist artifact
-        uses: actions/download-artifact@v4  # Use v4
+        uses: actions/download-artifact@v4
         with:
           name: sdist
           path: dist-artifacts/sdist
@@ -98,7 +127,3 @@ jobs:
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
           repository-url: https://test.pypi.org/legacy/  # Target TestPyPI instead of PyPI
-
-
-      # - name: Publish package to PyPI
-      #   uses: pypa/gh-action-pypi-publish@release/v1
