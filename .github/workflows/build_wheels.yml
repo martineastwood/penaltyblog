@@ -82,13 +82,27 @@ jobs:
         with:
           python-version: "3.x"
 
-      - name: Install the wheel
+      - name: Find correct macOS wheel
+        if: runner.os == 'macOS'
+        run: |
+          echo "Checking available wheels..."
+          ls dist/
+          if [[ "${{ matrix.os }}" == "macos-latest" ]]; then
+            export MAC_WHEEL=$(ls dist/*macosx_*.whl | grep -v arm64 | head -n 1)
+          else
+            export MAC_WHEEL=$(ls dist/*macosx_*_arm64.whl | head -n 1)
+          fi
+          echo "Installing wheel: $MAC_WHEEL"
+          pip install "$MAC_WHEEL"
+
+      - name: Install the wheel (non-macOS)
+        if: runner.os != 'macOS'
         run: |
           pip install dist/*.whl
 
       - name: Run a basic import test
         run: |
-          python -c "import penaltyblog as pb; pb.metrics.rps_array([0.1, 0.8, 0.1], [1])"
+          python -c "import penaltyblog as pb; pb.metrics.rps_average([0.8, 0.1, 0.1], [1])"
 
   publish_wheels:
     needs: [build_wheels, test_wheels, build_sdist]
