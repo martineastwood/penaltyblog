@@ -5,3 +5,4 @@ numpydoc==1.4.0
 sphinx-rtd-theme==1.0.0
 pydata-sphinx-theme
 ipython==8.4.0
+penaltyblog
