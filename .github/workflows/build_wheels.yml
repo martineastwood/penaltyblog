@@ -88,7 +88,7 @@ jobs:
 
       - name: Run a basic import test
         run: |
-          python -c "import penaltyblog as pb; print('penaltyblog version:', pb.__version__)"
+          python -c "import penaltyblog as pb; pb.metrics.rps_array([0.1, 0.8, 0.1], [1])"
 
   publish_wheels:
     needs: [build_wheels, test_wheels, build_sdist]
@@ -125,5 +125,5 @@ jobs:
 
       - name: Publish package to TestPyPI
         uses: pypa/gh-action-pypi-publish@release/v1
-        with:
-          repository-url: https://test.pypi.org/legacy/  # Target TestPyPI instead of PyPI
+        # with:
+        #   repository-url: https://test.pypi.org/legacy/  # Target TestPyPI instead of PyPI
