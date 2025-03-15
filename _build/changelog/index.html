@@ -1,0 +1,963 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Changelog &#8212; penaltyblog  documentation</title>
+
+
+
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../_static/styles/theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+<link href="../_static/styles/pydata-sphinx-theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=03e43079" />
+
+  <!-- So that users can add custom icons -->
+  <script src="../_static/scripts/fontawesome.js?digest=8878045cc6db502f8baf"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf" />
+<link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf" />
+
+    <script src="../_static/documentation_options.js?v=5929fcd5"></script>
+    <script src="../_static/doctools.js?v=9bcbadda"></script>
+    <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'changelog/index';</script>
+    <link rel="icon" href="../_static/favicon.ico"/>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="References" href="../references/index.html" />
+    <link rel="prev" title="Understat" href="../scrapers/understat.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="" />
+  </head>
+
+
+  <body data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-offset="180" data-bs-root-margin="0px 0px -60%" data-default-mode="">
+
+
+
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+
+  <div id="pst-scroll-pixel-helper"></div>
+
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+
+
+  <dialog id="pst-search-dialog">
+
+<form class="bd-search d-flex align-items-center"
+      action="../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+
+    <header class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+
+
+  <div class="col-lg-3 navbar-header-items__start">
+
+      <div class="navbar-item">
+
+
+
+
+
+<a class="navbar-brand logo" href="../index.html">
+
+
+
+
+
+
+
+
+
+
+    <img src="../_static/logo.png" class="logo__image only-light" alt="penaltyblog  documentation - Home"/>
+    <img src="../_static/logo.png" class="logo__image only-dark pst-js-only" alt="penaltyblog  documentation - Home"/>
+
+
+</a></div>
+
+  </div>
+
+  <div class="col-lg-9 navbar-header-items">
+
+    <div class="me-auto navbar-header-items__center">
+
+        <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../backtest/index.html">
+    Backtest
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../fpl/index.html">
+    Fantasy Premier League
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../implied/index.html">
+    Implied Odds
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../install/index.html">
+    Installation
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../kelly/index.html">
+    Kelly Criterion
+  </a>
+</li>
+
+            <li class="nav-item dropdown">
+                <button class="btn dropdown-toggle nav-item" type="button"
+                data-bs-toggle="dropdown" aria-expanded="false"
+                aria-controls="pst-nav-more-links">
+                    More
+                </button>
+                <ul id="pst-nav-more-links" class="dropdown-menu">
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../metrics/index.html">
+    Metrics
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../models/index.html">
+    Predictive Models
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../ratings/index.html">
+    Ratings / Rankings
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../scrapers/index.html">
+    Scrapers
+  </a>
+</li>
+
+
+<li class=" current active">
+  <a class="nav-link dropdown-item nav-internal" href="#">
+    Changelog
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../references/index.html">
+    References
+  </a>
+</li>
+
+                </ul>
+            </li>
+
+  </ul>
+</nav></div>
+
+    </div>
+
+
+    <div class="navbar-header-items__end">
+
+        <div class="navbar-item navbar-persistent--container">
+
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+
+
+        <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+
+        <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+
+
+
+
+
+
+
+
+          <a href="https://github.com/martineastwood/penaltyblog" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fab fa-github-square fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">GitHub</span></a>
+        </li>
+</ul></div>
+
+    </div>
+
+  </div>
+
+
+    <div class="navbar-persistent--mobile">
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+
+
+
+    <button class="pst-navbar-icon sidebar-toggle secondary-toggle" aria-label="On this page">
+      <span class="fa-solid fa-outdent"></span>
+    </button>
+
+</div>
+
+    </header>
+
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+
+
+
+      <dialog id="pst-primary-sidebar-modal"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar">
+
+
+
+  <div class="sidebar-header-items sidebar-primary__section">
+
+
+      <div class="sidebar-header-items__center">
+
+
+
+            <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../backtest/index.html">
+    Backtest
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../fpl/index.html">
+    Fantasy Premier League
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../implied/index.html">
+    Implied Odds
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../install/index.html">
+    Installation
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../kelly/index.html">
+    Kelly Criterion
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../metrics/index.html">
+    Metrics
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../models/index.html">
+    Predictive Models
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../ratings/index.html">
+    Ratings / Rankings
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../scrapers/index.html">
+    Scrapers
+  </a>
+</li>
+
+
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="#">
+    Changelog
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../references/index.html">
+    References
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+
+
+      </div>
+
+
+
+      <div class="sidebar-header-items__end">
+
+          <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+
+          <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+
+
+
+
+
+
+
+
+          <a href="https://github.com/martineastwood/penaltyblog" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fab fa-github-square fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">GitHub</span></a>
+        </li>
+</ul></div>
+
+      </div>
+
+  </div>
+
+    <div class="sidebar-primary-items__start sidebar-primary__section">
+        <div class="sidebar-primary-item">
+<h3><a href="../index.html">Table of Contents</a></h3>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Table of Contents</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../backtest/index.html">Backtest</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../fpl/index.html">Fantasy Premier League</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../implied/index.html">Implied Odds</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../install/index.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../kelly/index.html">Kelly Criterion</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../metrics/index.html">Metrics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../models/index.html">Predictive Models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ratings/index.html">Ratings / Rankings</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../scrapers/index.html">Scrapers</a></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Resources &amp; References</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Changelog</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../references/index.html">References</a></li>
+</ul>
+</div>
+    </div>
+
+
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+
+      <main id="main-content" class="bd-main" role="main">
+
+
+          <div class="bd-content">
+            <div class="bd-article-container">
+
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+
+    <div class="header-article-items__start">
+
+        <div class="header-article-item">
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="../index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-home"></i>
+      </a>
+    </li>
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">Changelog</span></li>
+  </ul>
+</nav>
+</div>
+
+    </div>
+
+
+</div>
+</div>
+
+
+
+
+<div id="searchbox"></div>
+                <article class="bd-article">
+
+  <section id="changelog">
+<h1>Changelog<a class="headerlink" href="#changelog" title="Link to this heading"><span>#</span></a></h1>
+<section id="version-numbering">
+<h2>Version Numbering<a class="headerlink" href="#version-numbering" title="Link to this heading"><span>#</span></a></h2>
+<p><cite>penaltyblog</cite> follows the SemVer versioning guidelines. For more information,
+see <a class="reference external" href="http://semver.org/">semver.org</a></p>
+<section id="v1-1-0-2025-03-15">
+<h3>v1.1.0 (2025-03-15)<a class="headerlink" href="#v1-1-0-2025-03-15" title="Link to this heading"><span>#</span></a></h3>
+<section id="performance-enhancements">
+<h4>Performance Enhancements<a class="headerlink" href="#performance-enhancements" title="Link to this heading"><span>#</span></a></h4>
+<ul class="simple">
+<li><p>Rewrote Dixon-Coles model using Cython, achieving approximately 250x speed improvement.</p></li>
+<li><p>Rewrote Poisson model using Cython, achieving approximately 250x speed improvement.</p></li>
+<li><p>Implemented Negative Binomial Goals Model in Cython for enhanced performance.</p></li>
+<li><p>Added high-performance Cython implementation of the Bivariate Poisson Goals Model based on Karlis &amp; Ntzoufras.</p></li>
+<li><p>Introduced Cython implementation of the Bivariate Weibull Count Copula Goals Model (<a class="reference external" href="https://blogs.salford.ac.uk/business-school/wp-content/uploads/sites/7/2016/09/paper.pdf">Boshnakov et al. paper</a>).</p></li>
+<li><p>Developed Pi Ratings System (<a class="reference external" href="http://www.constantinou.info/downloads/papers/pi-ratings.pdf">Constantinou paper</a>).</p></li>
+<li><p>Migrated ranked probability score functions to Cython for improved speed.</p></li>
+</ul>
+</section>
+<section id="package-updates">
+<h4>Package Updates<a class="headerlink" href="#package-updates" title="Link to this heading"><span>#</span></a></h4>
+<ul class="simple">
+<li><p>Temporarily removed Stan-based models due to dependency management challenges. Investigating improved packaging strategies for future reintegration.</p></li>
+<li><p>Temporarily removed Rue and Salvesen model pending revision to accurately reflect its intended methodology (previously implemented as a hybrid Dixon-Coles variant).</p></li>
+</ul>
+</section>
+<section id="documentation-improvements">
+<h4>Documentation Improvements<a class="headerlink" href="#documentation-improvements" title="Link to this heading"><span>#</span></a></h4>
+<ul class="simple">
+<li><p>Updated and expanded model examples in the documentation.</p></li>
+<li><p>Enhanced type hints throughout the package for improved compatibility with <cite>mypy</cite>.</p></li>
+<li><p>Updated documentation to <cite>pydata</cite> Sphinx theme.</p></li>
+</ul>
+</section>
+<section id="ci-cd-and-testing">
+<h4>CI/CD and Testing<a class="headerlink" href="#ci-cd-and-testing" title="Link to this heading"><span>#</span></a></h4>
+<ul class="simple">
+<li><p>Expanded GitHub Actions workflows to perform unit tests across all supported Python versions.</p></li>
+<li><p>Extended GitHub Actions workflows to perform unit tests on Windows, macOS, and Linux.</p></li>
+<li><p>Configured GitHub Actions to automatically build wheels for all supported Python versions across Windows, macOS, and Linux.</p></li>
+</ul>
+<p>—</p>
+</section>
+</section>
+<section id="v1-0-4-2025-01-10">
+<h3>v1.0.4 (2025-01-10)<a class="headerlink" href="#v1-0-4-2025-01-10" title="Link to this heading"><span>#</span></a></h3>
+<section id="id1">
+<h4>Package Updates<a class="headerlink" href="#id1" title="Link to this heading"><span>#</span></a></h4>
+<ul class="simple">
+<li><p>Moved Stan code to separate files to prevent access denied issues on Windows.</p></li>
+</ul>
+<p>—</p>
+</section>
+</section>
+<section id="v1-0-3-2024-12-19">
+<h3>v1.0.3 (2024-12-19)<a class="headerlink" href="#v1-0-3-2024-12-19" title="Link to this heading"><span>#</span></a></h3>
+<section id="bug-fixes">
+<h4>Bug Fixes<a class="headerlink" href="#bug-fixes" title="Link to this heading"><span>#</span></a></h4>
+<ul class="simple">
+<li><p>Fixed bug in how the Bayesian models indexed teams in the <cite>predict</cite> function.</p></li>
+<li><p>Goals models now only predict individual team names rather than iterables of team names, fixing compatibility issues between different sequence objects.</p></li>
+</ul>
+<p>—</p>
+</section>
+</section>
+<section id="v1-0-2-2024-12-18">
+<h3>v1.0.2 (2024-12-18)<a class="headerlink" href="#v1-0-2-2024-12-18" title="Link to this heading"><span>#</span></a></h3>
+<section id="id2">
+<h4>Bug Fixes<a class="headerlink" href="#id2" title="Link to this heading"><span>#</span></a></h4>
+<ul class="simple">
+<li><p>Updated how the Bayesian models handle the Stan files to prevent access denied issues on Windows.</p></li>
+</ul>
+<p>—</p>
+</section>
+</section>
+<section id="v1-0-1-2024-12-13">
+<h3>v1.0.1 (2024-12-13)<a class="headerlink" href="#v1-0-1-2024-12-13" title="Link to this heading"><span>#</span></a></h3>
+<section id="improvements">
+<h4>Improvements<a class="headerlink" href="#improvements" title="Link to this heading"><span>#</span></a></h4>
+<ul class="simple">
+<li><p>Updated <cite>install_stan</cite> to install the C++ toolchain on Windows if required.</p></li>
+</ul>
+<p>—</p>
+</section>
+</section>
+<section id="v1-0-0-2024-12-12">
+<h3>v1.0.0 (2024-12-12)<a class="headerlink" href="#v1-0-0-2024-12-12" title="Link to this heading"><span>#</span></a></h3>
+<section id="id3">
+<h4>Performance Enhancements<a class="headerlink" href="#id3" title="Link to this heading"><span>#</span></a></h4>
+<ul class="simple">
+<li><p>Removed <cite>pymc</cite> as a dependency.</p></li>
+<li><p>Optimized <cite>RPS</cite> calculation.</p></li>
+<li><p>Optimized <cite>ELO</cite> code.</p></li>
+<li><p>Optimized <cite>Kelly Criterion</cite> code.</p></li>
+<li><p>Updated <cite>FootballProbabilityGrid</cite> to store its internal matrix as a NumPy array.</p></li>
+</ul>
+</section>
+<section id="model-updates">
+<h4>Model Updates<a class="headerlink" href="#model-updates" title="Link to this heading"><span>#</span></a></h4>
+<ul class="simple">
+<li><p>Rewrote <cite>BayesianHierarchicalGoalModel</cite> in Stan instead of <cite>pymc</cite>, updating the prediction method to integrate over the posterior rather than sampling the mid-point.</p></li>
+<li><p>Rewrote <cite>BayesianRandomInterceptGoalModel</cite> in Stan, improved the random intercept, and updated the prediction method.</p></li>
+<li><p>Rewrote <cite>BayesianBivariateGoalModel</cite> in Stan for better convergence and updated the prediction method.</p></li>
+<li><p>Added <cite>BayesianSkellamGoalModel</cite> for predicting football match outcomes using the Skellam distribution.</p></li>
+</ul>
+</section>
+<section id="id4">
+<h4>Package Updates<a class="headerlink" href="#id4" title="Link to this heading"><span>#</span></a></h4>
+<ul class="simple">
+<li><p>Added support for Python 3.13.</p></li>
+<li><p>Removed obsolete <strong>SoFifa</strong> and <strong>ESPN</strong> scrapers.</p></li>
+<li><p>Updated all example notebooks.</p></li>
+<li><p>Increased unit test coverage.</p></li>
+<li><p>Added CI/CD workflows.</p></li>
+<li><p>Removed <cite>Poetry</cite> from the build step.</p></li>
+<li><p>Updated documentation.</p></li>
+<li><p>Added type hinting to <cite>Colley</cite> and <cite>Massey</cite> classes.</p></li>
+</ul>
+<p>—</p>
+</section>
+</section>
+<section id="v0-8-1-2023-09-31">
+<h3>v0.8.1 (2023-09-31)<a class="headerlink" href="#v0-8-1-2023-09-31" title="Link to this heading"><span>#</span></a></h3>
+<section id="id5">
+<h4>Bug Fixes<a class="headerlink" href="#id5" title="Link to this heading"><span>#</span></a></h4>
+<ul class="simple">
+<li><p>Changed FBRef <cite>born</cite> column to <cite>Int64</cite> dtype to allow <cite>NULL</cite> values.</p></li>
+</ul>
+<p>—</p>
+</section>
+</section>
+<section id="v0-8-0-2023-08-31">
+<h3>v0.8.0 (2023-08-31)<a class="headerlink" href="#v0-8-0-2023-08-31" title="Link to this heading"><span>#</span></a></h3>
+<section id="new-features">
+<h4>New Features<a class="headerlink" href="#new-features" title="Link to this heading"><span>#</span></a></h4>
+<ul class="simple">
+<li><p>Added initial <strong>Backtest framework</strong> for backtesting betting strategies.</p></li>
+<li><p>Added function to calculate the <strong>Kelly Criterion</strong>.</p></li>
+<li><p>Added class for calculating <strong>Elo ratings</strong>.</p></li>
+</ul>
+</section>
+<section id="id6">
+<h4>Bug Fixes<a class="headerlink" href="#id6" title="Link to this heading"><span>#</span></a></h4>
+<ul class="simple">
+<li><p>Fixed bug in FBRef scraper for player age and year of birth.</p></li>
+<li><p>All goal models can now accept iterables as team inputs.</p></li>
+<li><p>Fixed mapping of Belgium leagues in the <strong>FootballData</strong> scraper.</p></li>
+</ul>
+<p>—</p>
+</section>
+</section>
+<section id="v0-7-0-2023-03-13">
+<h3>v0.7.0 (2023-03-13)<a class="headerlink" href="#v0-7-0-2023-03-13" title="Link to this heading"><span>#</span></a></h3>
+<section id="id7">
+<h4>New Features<a class="headerlink" href="#id7" title="Link to this heading"><span>#</span></a></h4>
+<ul class="simple">
+<li><p>Added <strong>FBRef scraper</strong>.</p></li>
+</ul>
+</section>
+<section id="id8">
+<h4>Package Updates<a class="headerlink" href="#id8" title="Link to this heading"><span>#</span></a></h4>
+<ul class="simple">
+<li><p>Minimum Python version supported is now <strong>Python 3.8</strong>.</p></li>
+</ul>
+<p>—</p>
+</section>
+</section>
+<section id="v0-6-1-2023-01-06">
+<h3>v0.6.1 (2023-01-06)<a class="headerlink" href="#v0-6-1-2023-01-06" title="Link to this heading"><span>#</span></a></h3>
+<section id="id9">
+<h4>Bug Fixes<a class="headerlink" href="#id9" title="Link to this heading"><span>#</span></a></h4>
+<ul class="simple">
+<li><p>Tweaked <strong>Understat scraper</strong> to avoid bot detection.</p></li>
+</ul>
+<p>—</p>
+</section>
+</section>
+<section id="v0-6-0-2022-12-02">
+<h3>v0.6.0 (2022-12-02)<a class="headerlink" href="#v0-6-0-2022-12-02" title="Link to this heading"><span>#</span></a></h3>
+<section id="id10">
+<h4>New Features<a class="headerlink" href="#id10" title="Link to this heading"><span>#</span></a></h4>
+<ul class="simple">
+<li><p>Added <cite>goal_expectancy</cite> function.</p></li>
+<li><p>Added <strong>Bayesian Random Intercept Model</strong>.</p></li>
+</ul>
+</section>
+<section id="id11">
+<h4>Performance Enhancements<a class="headerlink" href="#id11" title="Link to this heading"><span>#</span></a></h4>
+<ul class="simple">
+<li><p>Tweaked <cite>pymc</cite> settings for Bayesian goal models to improve speed.</p></li>
+</ul>
+</section>
+<section id="id12">
+<h4>Bug Fixes<a class="headerlink" href="#id12" title="Link to this heading"><span>#</span></a></h4>
+<ul class="simple">
+<li><p>Fixed bug in <strong>Bayesian Bivariate Goals Model</strong>.</p></li>
+<li><p>Fixed bug in <strong>FootballData scraper</strong> where a null value was breaking the index column.</p></li>
+</ul>
+<p>—</p>
+</section>
+</section>
+<section id="v0-5-1-2022-11-03">
+<h3>v0.5.1 (2022-11-03)<a class="headerlink" href="#v0-5-1-2022-11-03" title="Link to this heading"><span>#</span></a></h3>
+<section id="id13">
+<h4>Bug Fixes<a class="headerlink" href="#id13" title="Link to this heading"><span>#</span></a></h4>
+<ul class="simple">
+<li><p>Fixed bug in goal models when printing an instance before fitting it.</p></li>
+<li><p>Fixed bug in Bayesian goal models’ weighted decay.</p></li>
+<li><p>Fixed default value of <cite>xi</cite> in <cite>dixon_coles_weights</cite> to <cite>0.0018</cite>.</p></li>
+</ul>
+<p>—</p>
+</section>
+</section>
+<section id="v0-5-0-2022-10-11">
+<h3>v0.5.0 (2022-10-11)<a class="headerlink" href="#v0-5-0-2022-10-11" title="Link to this heading"><span>#</span></a></h3>
+<section id="id14">
+<h4>New Features<a class="headerlink" href="#id14" title="Link to this heading"><span>#</span></a></h4>
+<ul class="simple">
+<li><p>Added <cite>get_player_season</cite> and <cite>get_player_shots</cite> to <strong>Understat scraper</strong>.</p></li>
+<li><p>Added <strong>Bayesian Hierarchical Goal Model</strong>.</p></li>
+<li><p>Added <strong>Bayesian Bivariate Poisson Goal Model</strong>.</p></li>
+<li><p>Added <strong>Bayesian Random Intercept Poisson Goal Model</strong>.</p></li>
+</ul>
+</section>
+<section id="id15">
+<h4>Bug Fixes<a class="headerlink" href="#id15" title="Link to this heading"><span>#</span></a></h4>
+<ul class="simple">
+<li><p><cite>get_fixtures</cite> in <strong>Understat scraper</strong> now only returns completed fixtures (consistent with FootballData scraper).</p></li>
+<li><p>Fixed bug in <strong>FootballData scraper</strong> for older seasons missing the <cite>Time</cite> column.</p></li>
+</ul>
+</section>
+<section id="id16">
+<h4>Package Updates<a class="headerlink" href="#id16" title="Link to this heading"><span>#</span></a></h4>
+<ul class="simple">
+<li><p>Added <strong>SoFifa scraper</strong>.</p></li>
+<li><p>Added compatibility for <strong>Python 3.7</strong>.</p></li>
+</ul>
+<p>—</p>
+</section>
+</section>
+<section id="v0-4-0-2022-08-08">
+<h3>v0.4.0 (2022-08-08)<a class="headerlink" href="#v0-4-0-2022-08-08" title="Link to this heading"><span>#</span></a></h3>
+<section id="general-improvements">
+<h4>General Improvements<a class="headerlink" href="#general-improvements" title="Link to this heading"><span>#</span></a></h4>
+<ul class="simple">
+<li><p>General bug fixes.</p></li>
+<li><p>Reorganized internal package structure.</p></li>
+<li><p>Added unit tests.</p></li>
+<li><p>Added documentation and uploaded to <strong>ReadTheDocs</strong>.</p></li>
+</ul>
+</section>
+<section id="id17">
+<h4>New Features<a class="headerlink" href="#id17" title="Link to this heading"><span>#</span></a></h4>
+<ul class="simple">
+<li><p>Added <strong>FPL scraper</strong>.</p></li>
+<li><p>Added <strong>FPL optimizer</strong>.</p></li>
+<li><p>Added <strong>ESPN scraper</strong>.</p></li>
+<li><p>Added <strong>Understat scraper</strong>.</p></li>
+<li><p>Added <strong>pre-commit checks</strong> to repository.</p></li>
+<li><p>Added both-teams-to-score probability to football goals models.</p></li>
+<li><p>Refactored <strong>FootballData scraper</strong> for consistency with other scrapers.</p></li>
+<li><p>Refactored <strong>Club Elo scraper</strong> for consistency with other scrapers.</p></li>
+</ul>
+</section>
+<section id="id18">
+<h4>Performance Enhancements<a class="headerlink" href="#id18" title="Link to this heading"><span>#</span></a></h4>
+<ul class="simple">
+<li><p>Refactored <strong>Colley ratings</strong> and <strong>Massey ratings</strong> for consistency.</p></li>
+<li><p>Updated example notebooks and included them in documentation.</p></li>
+</ul>
+</section>
+</section>
+</section>
+</section>
+
+
+                </article>
+
+
+
+
+
+                <footer class="prev-next-footer d-print-none">
+
+<div class="prev-next-area">
+    <a class="left-prev"
+       href="../scrapers/understat.html"
+       title="previous page">
+      <i class="fa-solid fa-angle-left"></i>
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">previous</p>
+        <p class="prev-next-title">Understat</p>
+      </div>
+    </a>
+    <a class="right-next"
+       href="../references/index.html"
+       title="next page">
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">next</p>
+        <p class="prev-next-title">References</p>
+      </div>
+      <i class="fa-solid fa-angle-right"></i>
+    </a>
+</div>
+                </footer>
+
+            </div>
+
+
+
+                <dialog id="pst-secondary-sidebar-modal"></dialog>
+                <div id="pst-secondary-sidebar" class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
+
+
+  <div class="sidebar-secondary-item">
+<div
+    id="pst-page-navigation-heading-2"
+    class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> On this page
+  </div>
+  <nav class="bd-toc-nav page-toc" aria-labelledby="pst-page-navigation-heading-2">
+    <ul class="visible nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#version-numbering">Version Numbering</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#v1-1-0-2025-03-15">v1.1.0 (2025-03-15)</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#performance-enhancements">Performance Enhancements</a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#package-updates">Package Updates</a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#documentation-improvements">Documentation Improvements</a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#ci-cd-and-testing">CI/CD and Testing</a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#v1-0-4-2025-01-10">v1.0.4 (2025-01-10)</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id1">Package Updates</a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#v1-0-3-2024-12-19">v1.0.3 (2024-12-19)</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#bug-fixes">Bug Fixes</a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#v1-0-2-2024-12-18">v1.0.2 (2024-12-18)</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id2">Bug Fixes</a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#v1-0-1-2024-12-13">v1.0.1 (2024-12-13)</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#improvements">Improvements</a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#v1-0-0-2024-12-12">v1.0.0 (2024-12-12)</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id3">Performance Enhancements</a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#model-updates">Model Updates</a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id4">Package Updates</a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#v0-8-1-2023-09-31">v0.8.1 (2023-09-31)</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id5">Bug Fixes</a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#v0-8-0-2023-08-31">v0.8.0 (2023-08-31)</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#new-features">New Features</a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id6">Bug Fixes</a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#v0-7-0-2023-03-13">v0.7.0 (2023-03-13)</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id7">New Features</a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id8">Package Updates</a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#v0-6-1-2023-01-06">v0.6.1 (2023-01-06)</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id9">Bug Fixes</a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#v0-6-0-2022-12-02">v0.6.0 (2022-12-02)</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id10">New Features</a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id11">Performance Enhancements</a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id12">Bug Fixes</a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#v0-5-1-2022-11-03">v0.5.1 (2022-11-03)</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id13">Bug Fixes</a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#v0-5-0-2022-10-11">v0.5.0 (2022-10-11)</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id14">New Features</a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id15">Bug Fixes</a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id16">Package Updates</a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#v0-4-0-2022-08-08">v0.4.0 (2022-08-08)</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#general-improvements">General Improvements</a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id17">New Features</a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id18">Performance Enhancements</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+  </nav></div>
+
+  <div class="sidebar-secondary-item">
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="../_sources/changelog/index.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div></div>
+
+</div></div>
+
+
+          </div>
+          <footer class="bd-footer-content">
+
+          </footer>
+
+      </main>
+    </div>
+  </div>
+
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf"></script>
+<script defer src="../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+
+    <div class="footer-items__start">
+
+        <div class="footer-item">
+
+  <p class="copyright">
+
+      © Copyright 2025, Martin Eastwood.
+      <br/>
+
+  </p>
+</div>
+
+        <div class="footer-item">
+
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 8.1.3.
+    <br/>
+  </p>
+</div>
+
+    </div>
+
+
+
+    <div class="footer-items__end">
+
+        <div class="footer-item">
+<p class="theme-version">
+  <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.16.1.
+</p></div>
+
+    </div>
+
+</div>
+
+  </footer>
+  </body>
+</html>

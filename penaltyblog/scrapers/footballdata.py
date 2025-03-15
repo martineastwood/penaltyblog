@@ -30,6 +30,7 @@ class FootballData(RequestsScraper):
         `{
             "Manchester United: ["Man Utd", "Man United],
         }`
+
     """
 
     source = "footballdata"

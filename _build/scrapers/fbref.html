@@ -1,0 +1,1526 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>FBRef &#8212; penaltyblog  documentation</title>
+
+
+
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../_static/styles/theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+<link href="../_static/styles/pydata-sphinx-theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=03e43079" />
+    <link rel="stylesheet" type="text/css" href="../_static/nbsphinx-code-cells.css?v=2aa19091" />
+
+  <!-- So that users can add custom icons -->
+  <script src="../_static/scripts/fontawesome.js?digest=8878045cc6db502f8baf"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf" />
+<link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf" />
+
+    <script src="../_static/documentation_options.js?v=5929fcd5"></script>
+    <script src="../_static/doctools.js?v=9bcbadda"></script>
+    <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script>window.MathJax = {"tex": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true}, "options": {"ignoreHtmlClass": "tex2jax_ignore|mathjax_ignore|document", "processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+    <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'scrapers/fbref';</script>
+    <link rel="icon" href="../_static/favicon.ico"/>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Club Elo" href="clubelo.html" />
+    <link rel="prev" title="Scrapers" href="index.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="" />
+  </head>
+
+
+  <body data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-offset="180" data-bs-root-margin="0px 0px -60%" data-default-mode="">
+
+
+
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+
+  <div id="pst-scroll-pixel-helper"></div>
+
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+
+
+  <dialog id="pst-search-dialog">
+
+<form class="bd-search d-flex align-items-center"
+      action="../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+
+    <header class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+
+
+  <div class="col-lg-3 navbar-header-items__start">
+
+      <div class="navbar-item">
+
+
+
+
+
+<a class="navbar-brand logo" href="../index.html">
+
+
+
+
+
+
+
+
+
+
+    <img src="../_static/logo.png" class="logo__image only-light" alt="penaltyblog  documentation - Home"/>
+    <img src="../_static/logo.png" class="logo__image only-dark pst-js-only" alt="penaltyblog  documentation - Home"/>
+
+
+</a></div>
+
+  </div>
+
+  <div class="col-lg-9 navbar-header-items">
+
+    <div class="me-auto navbar-header-items__center">
+
+        <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../backtest/index.html">
+    Backtest
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../fpl/index.html">
+    Fantasy Premier League
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../implied/index.html">
+    Implied Odds
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../install/index.html">
+    Installation
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../kelly/index.html">
+    Kelly Criterion
+  </a>
+</li>
+
+            <li class="nav-item dropdown">
+                <button class="btn dropdown-toggle nav-item" type="button"
+                data-bs-toggle="dropdown" aria-expanded="false"
+                aria-controls="pst-nav-more-links">
+                    More
+                </button>
+                <ul id="pst-nav-more-links" class="dropdown-menu">
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../metrics/index.html">
+    Metrics
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../models/index.html">
+    Predictive Models
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../ratings/index.html">
+    Ratings / Rankings
+  </a>
+</li>
+
+
+<li class=" current active">
+  <a class="nav-link dropdown-item nav-internal" href="index.html">
+    Scrapers
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../changelog/index.html">
+    Changelog
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../references/index.html">
+    References
+  </a>
+</li>
+
+                </ul>
+            </li>
+
+  </ul>
+</nav></div>
+
+    </div>
+
+
+    <div class="navbar-header-items__end">
+
+        <div class="navbar-item navbar-persistent--container">
+
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+
+
+        <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+
+        <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+
+
+
+
+
+
+
+
+          <a href="https://github.com/martineastwood/penaltyblog" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fab fa-github-square fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">GitHub</span></a>
+        </li>
+</ul></div>
+
+    </div>
+
+  </div>
+
+
+    <div class="navbar-persistent--mobile">
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+
+
+
+    <button class="pst-navbar-icon sidebar-toggle secondary-toggle" aria-label="On this page">
+      <span class="fa-solid fa-outdent"></span>
+    </button>
+
+</div>
+
+    </header>
+
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+
+
+
+      <dialog id="pst-primary-sidebar-modal"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar">
+
+
+
+  <div class="sidebar-header-items sidebar-primary__section">
+
+
+      <div class="sidebar-header-items__center">
+
+
+
+            <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../backtest/index.html">
+    Backtest
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../fpl/index.html">
+    Fantasy Premier League
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../implied/index.html">
+    Implied Odds
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../install/index.html">
+    Installation
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../kelly/index.html">
+    Kelly Criterion
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../metrics/index.html">
+    Metrics
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../models/index.html">
+    Predictive Models
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../ratings/index.html">
+    Ratings / Rankings
+  </a>
+</li>
+
+
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="index.html">
+    Scrapers
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../changelog/index.html">
+    Changelog
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../references/index.html">
+    References
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+
+
+      </div>
+
+
+
+      <div class="sidebar-header-items__end">
+
+          <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+
+          <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+
+
+
+
+
+
+
+
+          <a href="https://github.com/martineastwood/penaltyblog" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fab fa-github-square fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">GitHub</span></a>
+        </li>
+</ul></div>
+
+      </div>
+
+  </div>
+
+    <div class="sidebar-primary-items__start sidebar-primary__section">
+        <div class="sidebar-primary-item">
+<h3><a href="../index.html">Table of Contents</a></h3>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Table of Contents</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../backtest/index.html">Backtest</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../fpl/index.html">Fantasy Premier League</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../implied/index.html">Implied Odds</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../install/index.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../kelly/index.html">Kelly Criterion</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../metrics/index.html">Metrics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../models/index.html">Predictive Models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ratings/index.html">Ratings / Rankings</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">Scrapers</a></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Resources &amp; References</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../changelog/index.html">Changelog</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../references/index.html">References</a></li>
+</ul>
+</div>
+    </div>
+
+
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+
+      <main id="main-content" class="bd-main" role="main">
+
+
+          <div class="bd-content">
+            <div class="bd-article-container">
+
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+
+    <div class="header-article-items__start">
+
+        <div class="header-article-item">
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="../index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-home"></i>
+      </a>
+    </li>
+
+    <li class="breadcrumb-item"><a href="index.html" class="nav-link">Scrapers</a></li>
+
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">FBRef</span></li>
+  </ul>
+</nav>
+</div>
+
+    </div>
+
+
+</div>
+</div>
+
+
+
+
+<div id="searchbox"></div>
+                <article class="bd-article">
+
+  <section id="FBRef">
+<h1>FBRef<a class="headerlink" href="#FBRef" title="Link to this heading"><span>#</span></a></h1>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[1]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">sys</span>
+
+<span class="n">sys</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;../../&quot;</span><span class="p">)</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">penaltyblog</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pb</span>
+</pre></div>
+</div>
+</div>
+<section id="List-available-competitions">
+<h2>List available competitions<a class="headerlink" href="#List-available-competitions" title="Link to this heading"><span>#</span></a></h2>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[2]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">pb</span><span class="o">.</span><span class="n">scrapers</span><span class="o">.</span><span class="n">FBRef</span><span class="o">.</span><span class="n">list_competitions</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[2]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+[&#39;BEL First Division A&#39;,
+ &#39;BEL First Division B&#39;,
+ &#39;DEU Bundesliga 1&#39;,
+ &#39;DEU Bundesliga 2&#39;,
+ &#39;ENG Premier League&#39;,
+ &#39;ENG Championship&#39;,
+ &#39;ENG League 1&#39;,
+ &#39;ENG League 2&#39;,
+ &#39;ENG Conference&#39;,
+ &#39;ESP La Liga&#39;,
+ &#39;ESP La Liga Segunda&#39;,
+ &#39;FRA Ligue 1&#39;,
+ &#39;FRA Ligue 2&#39;,
+ &#39;GRC Super League&#39;,
+ &#39;ITA Serie A&#39;,
+ &#39;ITA Serie B&#39;,
+ &#39;NLD Eredivisie&#39;,
+ &#39;PRT Liga 1&#39;,
+ &#39;RUS Premier League&#39;,
+ &#39;SCO Premier League&#39;,
+ &#39;SCO Division 1&#39;,
+ &#39;TUR Super Lig&#39;]
+</pre></div></div>
+</div>
+</section>
+<section id="Get-fixtures">
+<h2>Get fixtures<a class="headerlink" href="#Get-fixtures" title="Link to this heading"><span>#</span></a></h2>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[3]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">fbref</span> <span class="o">=</span> <span class="n">pb</span><span class="o">.</span><span class="n">scrapers</span><span class="o">.</span><span class="n">FBRef</span><span class="p">(</span><span class="s2">&quot;ENG Premier League&quot;</span><span class="p">,</span> <span class="s2">&quot;2022-2023&quot;</span><span class="p">)</span>
+<span class="n">df</span> <span class="o">=</span> <span class="n">fbref</span><span class="o">.</span><span class="n">get_fixtures</span><span class="p">()</span>
+<span class="n">df</span><span class="o">.</span><span class="n">head</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area stderr docutils container">
+<div class="highlight"><pre>
+/Users/martin/repos/penaltyblog/examples/scrapers/../../penaltyblog/scrapers/fbref.py:160: FutureWarning: Passing literal html to &#39;read_html&#39; is deprecated and will be removed in a future version. To read from a literal string, wrap it in a &#39;StringIO&#39; object.
+  pd.read_html(content)[0]
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[3]:
+</pre></div>
+</div>
+<div class="output_area rendered_html docutils container">
+<div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>competition</th>
+      <th>season</th>
+      <th>datetime</th>
+      <th>week</th>
+      <th>day</th>
+      <th>date</th>
+      <th>time</th>
+      <th>team_home</th>
+      <th>xg_home</th>
+      <th>xg_away</th>
+      <th>team_away</th>
+      <th>attendance</th>
+      <th>venue</th>
+      <th>referee</th>
+      <th>goals_home</th>
+      <th>goals_away</th>
+    </tr>
+    <tr>
+      <th>id</th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>1659657600---crystal_palace---arsenal</th>
+      <td>ENG Premier League</td>
+      <td>2022-2023</td>
+      <td>2022-08-05 20:00:00</td>
+      <td>1.0</td>
+      <td>Fri</td>
+      <td>2022-08-05</td>
+      <td>20:00</td>
+      <td>Crystal Palace</td>
+      <td>1.2</td>
+      <td>1.0</td>
+      <td>Arsenal</td>
+      <td>25286.0</td>
+      <td>Selhurst Park</td>
+      <td>Anthony Taylor</td>
+      <td>0.0</td>
+      <td>2.0</td>
+    </tr>
+    <tr>
+      <th>1659744000---bournemouth---aston_villa</th>
+      <td>ENG Premier League</td>
+      <td>2022-2023</td>
+      <td>2022-08-06 15:00:00</td>
+      <td>1.0</td>
+      <td>Sat</td>
+      <td>2022-08-06</td>
+      <td>15:00</td>
+      <td>Bournemouth</td>
+      <td>0.6</td>
+      <td>0.7</td>
+      <td>Aston Villa</td>
+      <td>11013.0</td>
+      <td>Vitality Stadium</td>
+      <td>Peter Bankes</td>
+      <td>2.0</td>
+      <td>0.0</td>
+    </tr>
+    <tr>
+      <th>1659744000---everton---chelsea</th>
+      <td>ENG Premier League</td>
+      <td>2022-2023</td>
+      <td>2022-08-06 17:30:00</td>
+      <td>1.0</td>
+      <td>Sat</td>
+      <td>2022-08-06</td>
+      <td>17:30</td>
+      <td>Everton</td>
+      <td>0.7</td>
+      <td>1.5</td>
+      <td>Chelsea</td>
+      <td>39254.0</td>
+      <td>Goodison Park</td>
+      <td>Craig Pawson</td>
+      <td>0.0</td>
+      <td>1.0</td>
+    </tr>
+    <tr>
+      <th>1659744000---fulham---liverpool</th>
+      <td>ENG Premier League</td>
+      <td>2022-2023</td>
+      <td>2022-08-06 12:30:00</td>
+      <td>1.0</td>
+      <td>Sat</td>
+      <td>2022-08-06</td>
+      <td>12:30</td>
+      <td>Fulham</td>
+      <td>1.2</td>
+      <td>1.2</td>
+      <td>Liverpool</td>
+      <td>22207.0</td>
+      <td>Craven Cottage</td>
+      <td>Andy Madley</td>
+      <td>2.0</td>
+      <td>2.0</td>
+    </tr>
+    <tr>
+      <th>1659744000---leeds_united---wolves</th>
+      <td>ENG Premier League</td>
+      <td>2022-2023</td>
+      <td>2022-08-06 15:00:00</td>
+      <td>1.0</td>
+      <td>Sat</td>
+      <td>2022-08-06</td>
+      <td>15:00</td>
+      <td>Leeds United</td>
+      <td>0.8</td>
+      <td>1.3</td>
+      <td>Wolves</td>
+      <td>36347.0</td>
+      <td>Elland Road</td>
+      <td>Robert Jones</td>
+      <td>2.0</td>
+      <td>1.0</td>
+    </tr>
+  </tbody>
+</table>
+</div></div>
+</div>
+</section>
+<section id="List-stats-available-for-this-competition">
+<h2>List stats available for this competition<a class="headerlink" href="#List-stats-available-for-this-competition" title="Link to this heading"><span>#</span></a></h2>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[4]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">fbref</span><span class="o">.</span><span class="n">list_stat_types</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[4]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+[&#39;standard&#39;,
+ &#39;goalkeeping&#39;,
+ &#39;advanced_goalkeeping&#39;,
+ &#39;shooting&#39;,
+ &#39;passing&#39;,
+ &#39;passing_types&#39;,
+ &#39;goal_shot_creation&#39;,
+ &#39;defensive_actions&#39;,
+ &#39;possession&#39;,
+ &#39;playing_time&#39;,
+ &#39;misc&#39;]
+</pre></div></div>
+</div>
+</section>
+<section id="Get-stats">
+<h2>Get stats<a class="headerlink" href="#Get-stats" title="Link to this heading"><span>#</span></a></h2>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[5]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">stats</span> <span class="o">=</span> <span class="n">fbref</span><span class="o">.</span><span class="n">get_stats</span><span class="p">(</span><span class="s2">&quot;standard&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area stderr docutils container">
+<div class="highlight"><pre>
+/Users/martin/repos/penaltyblog/examples/scrapers/../../penaltyblog/scrapers/fbref.py:233: FutureWarning: Passing literal html to &#39;read_html&#39; is deprecated and will be removed in a future version. To read from a literal string, wrap it in a &#39;StringIO&#39; object.
+  dfs = pd.read_html(content)
+</pre></div></div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[6]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">stats</span><span class="p">[</span><span class="s2">&quot;players&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">head</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[6]:
+</pre></div>
+</div>
+<div class="output_area rendered_html docutils container">
+<div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>nation</th>
+      <th>pos</th>
+      <th>squad</th>
+      <th>born</th>
+      <th>playing_time_mp</th>
+      <th>playing_time_starts</th>
+      <th>playing_time_min</th>
+      <th>playing_time_90s</th>
+      <th>performance_gls</th>
+      <th>performance_ast</th>
+      <th>...</th>
+      <th>per_90_minutes_g-pk</th>
+      <th>per_90_minutes_g+a-pk</th>
+      <th>per_90_minutes_xg</th>
+      <th>per_90_minutes_xag</th>
+      <th>per_90_minutes_xg+xag</th>
+      <th>per_90_minutes_npxg</th>
+      <th>per_90_minutes_npxg+xag</th>
+      <th>season</th>
+      <th>competition</th>
+      <th>age_years</th>
+    </tr>
+    <tr>
+      <th>player</th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>Aaron Cresswell</th>
+      <td>eng ENG</td>
+      <td>DF</td>
+      <td>West Ham</td>
+      <td>1989</td>
+      <td>28.0</td>
+      <td>24.0</td>
+      <td>2235.0</td>
+      <td>24.8</td>
+      <td>0</td>
+      <td>1</td>
+      <td>...</td>
+      <td>0.00</td>
+      <td>0.04</td>
+      <td>0.01</td>
+      <td>0.15</td>
+      <td>0.16</td>
+      <td>0.01</td>
+      <td>0.16</td>
+      <td>2022-2023</td>
+      <td>ENG Premier League</td>
+      <td>32.0</td>
+    </tr>
+    <tr>
+      <th>Aaron Hickey</th>
+      <td>sct SCO</td>
+      <td>DF</td>
+      <td>Brentford</td>
+      <td>2002</td>
+      <td>26.0</td>
+      <td>23.0</td>
+      <td>1916.0</td>
+      <td>21.3</td>
+      <td>0</td>
+      <td>1</td>
+      <td>...</td>
+      <td>0.00</td>
+      <td>0.05</td>
+      <td>0.02</td>
+      <td>0.02</td>
+      <td>0.04</td>
+      <td>0.02</td>
+      <td>0.04</td>
+      <td>2022-2023</td>
+      <td>ENG Premier League</td>
+      <td>20.0</td>
+    </tr>
+    <tr>
+      <th>Aaron Ramsdale</th>
+      <td>eng ENG</td>
+      <td>GK</td>
+      <td>Arsenal</td>
+      <td>1998</td>
+      <td>38.0</td>
+      <td>38.0</td>
+      <td>3420.0</td>
+      <td>38.0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>...</td>
+      <td>0.00</td>
+      <td>0.00</td>
+      <td>0.00</td>
+      <td>0.00</td>
+      <td>0.00</td>
+      <td>0.00</td>
+      <td>0.00</td>
+      <td>2022-2023</td>
+      <td>ENG Premier League</td>
+      <td>24.0</td>
+    </tr>
+    <tr>
+      <th>Aaron Wan-Bissaka</th>
+      <td>eng ENG</td>
+      <td>DF</td>
+      <td>Manchester Utd</td>
+      <td>1997</td>
+      <td>19.0</td>
+      <td>16.0</td>
+      <td>1435.0</td>
+      <td>15.9</td>
+      <td>0</td>
+      <td>0</td>
+      <td>...</td>
+      <td>0.00</td>
+      <td>0.00</td>
+      <td>0.07</td>
+      <td>0.06</td>
+      <td>0.14</td>
+      <td>0.07</td>
+      <td>0.14</td>
+      <td>2022-2023</td>
+      <td>ENG Premier League</td>
+      <td>24.0</td>
+    </tr>
+    <tr>
+      <th>Abdoulaye Doucouré</th>
+      <td>ml MLI</td>
+      <td>MF</td>
+      <td>Everton</td>
+      <td>1993</td>
+      <td>25.0</td>
+      <td>17.0</td>
+      <td>1533.0</td>
+      <td>17.0</td>
+      <td>5</td>
+      <td>2</td>
+      <td>...</td>
+      <td>0.29</td>
+      <td>0.41</td>
+      <td>0.14</td>
+      <td>0.13</td>
+      <td>0.27</td>
+      <td>0.14</td>
+      <td>0.27</td>
+      <td>2022-2023</td>
+      <td>ENG Premier League</td>
+      <td>29.0</td>
+    </tr>
+  </tbody>
+</table>
+<p>5 rows × 36 columns</p>
+</div></div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[7]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">stats</span><span class="p">[</span><span class="s2">&quot;squad_for&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">head</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[7]:
+</pre></div>
+</div>
+<div class="output_area rendered_html docutils container">
+<div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>#_pl</th>
+      <th>age</th>
+      <th>poss</th>
+      <th>playing_time_mp</th>
+      <th>playing_time_starts</th>
+      <th>playing_time_min</th>
+      <th>playing_time_90s</th>
+      <th>performance_gls</th>
+      <th>performance_ast</th>
+      <th>performance_g+a</th>
+      <th>...</th>
+      <th>per_90_minutes_g+a</th>
+      <th>per_90_minutes_g-pk</th>
+      <th>per_90_minutes_g+a-pk</th>
+      <th>per_90_minutes_xg</th>
+      <th>per_90_minutes_xag</th>
+      <th>per_90_minutes_xg+xag</th>
+      <th>per_90_minutes_npxg</th>
+      <th>per_90_minutes_npxg+xag</th>
+      <th>season</th>
+      <th>competition</th>
+    </tr>
+    <tr>
+      <th>squad</th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>Arsenal</th>
+      <td>26</td>
+      <td>24.7</td>
+      <td>59.3</td>
+      <td>38.0</td>
+      <td>418.0</td>
+      <td>3420.0</td>
+      <td>38.0</td>
+      <td>84</td>
+      <td>64</td>
+      <td>148</td>
+      <td>...</td>
+      <td>3.89</td>
+      <td>2.13</td>
+      <td>3.82</td>
+      <td>1.88</td>
+      <td>1.41</td>
+      <td>3.29</td>
+      <td>1.81</td>
+      <td>3.22</td>
+      <td>2022-2023</td>
+      <td>ENG Premier League</td>
+    </tr>
+    <tr>
+      <th>Aston Villa</th>
+      <td>26</td>
+      <td>27.0</td>
+      <td>49.3</td>
+      <td>38.0</td>
+      <td>418.0</td>
+      <td>3420.0</td>
+      <td>38.0</td>
+      <td>49</td>
+      <td>35</td>
+      <td>84</td>
+      <td>...</td>
+      <td>2.21</td>
+      <td>1.21</td>
+      <td>2.13</td>
+      <td>1.32</td>
+      <td>1.02</td>
+      <td>2.34</td>
+      <td>1.24</td>
+      <td>2.26</td>
+      <td>2022-2023</td>
+      <td>ENG Premier League</td>
+    </tr>
+    <tr>
+      <th>Bournemouth</th>
+      <td>31</td>
+      <td>26.3</td>
+      <td>40.4</td>
+      <td>38.0</td>
+      <td>418.0</td>
+      <td>3420.0</td>
+      <td>38.0</td>
+      <td>37</td>
+      <td>24</td>
+      <td>61</td>
+      <td>...</td>
+      <td>1.61</td>
+      <td>0.97</td>
+      <td>1.61</td>
+      <td>1.01</td>
+      <td>0.75</td>
+      <td>1.76</td>
+      <td>1.01</td>
+      <td>1.76</td>
+      <td>2022-2023</td>
+      <td>ENG Premier League</td>
+    </tr>
+    <tr>
+      <th>Brentford</th>
+      <td>25</td>
+      <td>26.2</td>
+      <td>43.8</td>
+      <td>38.0</td>
+      <td>418.0</td>
+      <td>3420.0</td>
+      <td>38.0</td>
+      <td>56</td>
+      <td>36</td>
+      <td>92</td>
+      <td>...</td>
+      <td>2.42</td>
+      <td>1.29</td>
+      <td>2.24</td>
+      <td>1.48</td>
+      <td>1.01</td>
+      <td>2.49</td>
+      <td>1.32</td>
+      <td>2.33</td>
+      <td>2022-2023</td>
+      <td>ENG Premier League</td>
+    </tr>
+    <tr>
+      <th>Brighton</th>
+      <td>29</td>
+      <td>26.3</td>
+      <td>60.2</td>
+      <td>38.0</td>
+      <td>418.0</td>
+      <td>3420.0</td>
+      <td>38.0</td>
+      <td>68</td>
+      <td>46</td>
+      <td>114</td>
+      <td>...</td>
+      <td>3.00</td>
+      <td>1.63</td>
+      <td>2.84</td>
+      <td>1.93</td>
+      <td>1.37</td>
+      <td>3.30</td>
+      <td>1.81</td>
+      <td>3.19</td>
+      <td>2022-2023</td>
+      <td>ENG Premier League</td>
+    </tr>
+  </tbody>
+</table>
+<p>5 rows × 33 columns</p>
+</div></div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[8]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">stats</span><span class="p">[</span><span class="s2">&quot;squad_against&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">head</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[8]:
+</pre></div>
+</div>
+<div class="output_area rendered_html docutils container">
+<div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>#_pl</th>
+      <th>age</th>
+      <th>poss</th>
+      <th>playing_time_mp</th>
+      <th>playing_time_starts</th>
+      <th>playing_time_min</th>
+      <th>playing_time_90s</th>
+      <th>performance_gls</th>
+      <th>performance_ast</th>
+      <th>performance_g+a</th>
+      <th>...</th>
+      <th>per_90_minutes_g+a</th>
+      <th>per_90_minutes_g-pk</th>
+      <th>per_90_minutes_g+a-pk</th>
+      <th>per_90_minutes_xg</th>
+      <th>per_90_minutes_xag</th>
+      <th>per_90_minutes_xg+xag</th>
+      <th>per_90_minutes_npxg</th>
+      <th>per_90_minutes_npxg+xag</th>
+      <th>season</th>
+      <th>competition</th>
+    </tr>
+    <tr>
+      <th>squad</th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>vs Arsenal</th>
+      <td>26</td>
+      <td>26.7</td>
+      <td>40.1</td>
+      <td>38.0</td>
+      <td>418.0</td>
+      <td>3420.0</td>
+      <td>38.0</td>
+      <td>42</td>
+      <td>27</td>
+      <td>69</td>
+      <td>...</td>
+      <td>1.82</td>
+      <td>1.03</td>
+      <td>1.74</td>
+      <td>1.10</td>
+      <td>0.83</td>
+      <td>1.93</td>
+      <td>1.00</td>
+      <td>1.83</td>
+      <td>2022-2023</td>
+      <td>ENG Premier League</td>
+    </tr>
+    <tr>
+      <th>vs Aston Villa</th>
+      <td>26</td>
+      <td>26.5</td>
+      <td>50.6</td>
+      <td>38.0</td>
+      <td>418.0</td>
+      <td>3420.0</td>
+      <td>38.0</td>
+      <td>42</td>
+      <td>25</td>
+      <td>67</td>
+      <td>...</td>
+      <td>1.76</td>
+      <td>0.97</td>
+      <td>1.63</td>
+      <td>1.38</td>
+      <td>0.95</td>
+      <td>2.33</td>
+      <td>1.26</td>
+      <td>2.21</td>
+      <td>2022-2023</td>
+      <td>ENG Premier League</td>
+    </tr>
+    <tr>
+      <th>vs Bournemouth</th>
+      <td>31</td>
+      <td>26.6</td>
+      <td>59.9</td>
+      <td>38.0</td>
+      <td>418.0</td>
+      <td>3420.0</td>
+      <td>38.0</td>
+      <td>68</td>
+      <td>49</td>
+      <td>117</td>
+      <td>...</td>
+      <td>3.08</td>
+      <td>1.63</td>
+      <td>2.92</td>
+      <td>1.68</td>
+      <td>1.19</td>
+      <td>2.87</td>
+      <td>1.54</td>
+      <td>2.73</td>
+      <td>2022-2023</td>
+      <td>ENG Premier League</td>
+    </tr>
+    <tr>
+      <th>vs Brentford</th>
+      <td>25</td>
+      <td>26.6</td>
+      <td>56.6</td>
+      <td>38.0</td>
+      <td>418.0</td>
+      <td>3420.0</td>
+      <td>38.0</td>
+      <td>43</td>
+      <td>30</td>
+      <td>73</td>
+      <td>...</td>
+      <td>1.92</td>
+      <td>1.08</td>
+      <td>1.87</td>
+      <td>1.28</td>
+      <td>0.94</td>
+      <td>2.22</td>
+      <td>1.25</td>
+      <td>2.19</td>
+      <td>2022-2023</td>
+      <td>ENG Premier League</td>
+    </tr>
+    <tr>
+      <th>vs Brighton</th>
+      <td>29</td>
+      <td>26.5</td>
+      <td>39.5</td>
+      <td>38.0</td>
+      <td>418.0</td>
+      <td>3420.0</td>
+      <td>38.0</td>
+      <td>47</td>
+      <td>34</td>
+      <td>81</td>
+      <td>...</td>
+      <td>2.13</td>
+      <td>1.08</td>
+      <td>1.97</td>
+      <td>1.32</td>
+      <td>0.89</td>
+      <td>2.21</td>
+      <td>1.15</td>
+      <td>2.04</td>
+      <td>2022-2023</td>
+      <td>ENG Premier League</td>
+    </tr>
+  </tbody>
+</table>
+<p>5 rows × 33 columns</p>
+</div></div>
+</div>
+</section>
+</section>
+
+
+                </article>
+
+
+
+
+
+                <footer class="prev-next-footer d-print-none">
+
+<div class="prev-next-area">
+    <a class="left-prev"
+       href="index.html"
+       title="previous page">
+      <i class="fa-solid fa-angle-left"></i>
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">previous</p>
+        <p class="prev-next-title">Scrapers</p>
+      </div>
+    </a>
+    <a class="right-next"
+       href="clubelo.html"
+       title="next page">
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">next</p>
+        <p class="prev-next-title">Club Elo</p>
+      </div>
+      <i class="fa-solid fa-angle-right"></i>
+    </a>
+</div>
+                </footer>
+
+            </div>
+
+
+
+                <dialog id="pst-secondary-sidebar-modal"></dialog>
+                <div id="pst-secondary-sidebar" class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
+
+
+  <div class="sidebar-secondary-item">
+<div
+    id="pst-page-navigation-heading-2"
+    class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> On this page
+  </div>
+  <nav class="bd-toc-nav page-toc" aria-labelledby="pst-page-navigation-heading-2">
+    <ul class="visible nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#List-available-competitions">List available competitions</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#Get-fixtures">Get fixtures</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#List-stats-available-for-this-competition">List stats available for this competition</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#Get-stats">Get stats</a></li>
+</ul>
+  </nav></div>
+
+  <div class="sidebar-secondary-item">
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="../_sources/scrapers/fbref.ipynb.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div></div>
+
+</div></div>
+
+
+          </div>
+          <footer class="bd-footer-content">
+
+          </footer>
+
+      </main>
+    </div>
+  </div>
+
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf"></script>
+<script defer src="../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+
+    <div class="footer-items__start">
+
+        <div class="footer-item">
+
+  <p class="copyright">
+
+      © Copyright 2025, Martin Eastwood.
+      <br/>
+
+  </p>
+</div>
+
+        <div class="footer-item">
+
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 8.1.3.
+    <br/>
+  </p>
+</div>
+
+    </div>
+
+
+
+    <div class="footer-items__end">
+
+        <div class="footer-item">
+<p class="theme-version">
+  <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.16.1.
+</p></div>
+
+    </div>
+
+</div>
+
+  </footer>
+  </body>
+</html>

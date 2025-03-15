@@ -1,0 +1,3879 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Scrape FPL Website and Optimise Team &#8212; penaltyblog  documentation</title>
+
+
+
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../_static/styles/theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+<link href="../_static/styles/pydata-sphinx-theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=03e43079" />
+    <link rel="stylesheet" type="text/css" href="../_static/nbsphinx-code-cells.css?v=2aa19091" />
+
+  <!-- So that users can add custom icons -->
+  <script src="../_static/scripts/fontawesome.js?digest=8878045cc6db502f8baf"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf" />
+<link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf" />
+
+    <script src="../_static/documentation_options.js?v=5929fcd5"></script>
+    <script src="../_static/doctools.js?v=9bcbadda"></script>
+    <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script>window.MathJax = {"tex": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true}, "options": {"ignoreHtmlClass": "tex2jax_ignore|mathjax_ignore|document", "processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+    <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'fpl/fpl';</script>
+    <link rel="icon" href="../_static/favicon.ico"/>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Implied Odds" href="../implied/index.html" />
+    <link rel="prev" title="Fantasy Premier League" href="index.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="" />
+  </head>
+
+
+  <body data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-offset="180" data-bs-root-margin="0px 0px -60%" data-default-mode="">
+
+
+
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+
+  <div id="pst-scroll-pixel-helper"></div>
+
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+
+
+  <dialog id="pst-search-dialog">
+
+<form class="bd-search d-flex align-items-center"
+      action="../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+
+    <header class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+
+
+  <div class="col-lg-3 navbar-header-items__start">
+
+      <div class="navbar-item">
+
+
+
+
+
+<a class="navbar-brand logo" href="../index.html">
+
+
+
+
+
+
+
+
+
+
+    <img src="../_static/logo.png" class="logo__image only-light" alt="penaltyblog  documentation - Home"/>
+    <img src="../_static/logo.png" class="logo__image only-dark pst-js-only" alt="penaltyblog  documentation - Home"/>
+
+
+</a></div>
+
+  </div>
+
+  <div class="col-lg-9 navbar-header-items">
+
+    <div class="me-auto navbar-header-items__center">
+
+        <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../backtest/index.html">
+    Backtest
+  </a>
+</li>
+
+
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="index.html">
+    Fantasy Premier League
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../implied/index.html">
+    Implied Odds
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../install/index.html">
+    Installation
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../kelly/index.html">
+    Kelly Criterion
+  </a>
+</li>
+
+            <li class="nav-item dropdown">
+                <button class="btn dropdown-toggle nav-item" type="button"
+                data-bs-toggle="dropdown" aria-expanded="false"
+                aria-controls="pst-nav-more-links">
+                    More
+                </button>
+                <ul id="pst-nav-more-links" class="dropdown-menu">
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../metrics/index.html">
+    Metrics
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../models/index.html">
+    Predictive Models
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../ratings/index.html">
+    Ratings / Rankings
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../scrapers/index.html">
+    Scrapers
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../changelog/index.html">
+    Changelog
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../references/index.html">
+    References
+  </a>
+</li>
+
+                </ul>
+            </li>
+
+  </ul>
+</nav></div>
+
+    </div>
+
+
+    <div class="navbar-header-items__end">
+
+        <div class="navbar-item navbar-persistent--container">
+
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+
+
+        <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+
+        <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+
+
+
+
+
+
+
+
+          <a href="https://github.com/martineastwood/penaltyblog" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fab fa-github-square fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">GitHub</span></a>
+        </li>
+</ul></div>
+
+    </div>
+
+  </div>
+
+
+    <div class="navbar-persistent--mobile">
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+
+
+
+    <button class="pst-navbar-icon sidebar-toggle secondary-toggle" aria-label="On this page">
+      <span class="fa-solid fa-outdent"></span>
+    </button>
+
+</div>
+
+    </header>
+
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+
+
+
+      <dialog id="pst-primary-sidebar-modal"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar">
+
+
+
+  <div class="sidebar-header-items sidebar-primary__section">
+
+
+      <div class="sidebar-header-items__center">
+
+
+
+            <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../backtest/index.html">
+    Backtest
+  </a>
+</li>
+
+
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="index.html">
+    Fantasy Premier League
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../implied/index.html">
+    Implied Odds
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../install/index.html">
+    Installation
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../kelly/index.html">
+    Kelly Criterion
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../metrics/index.html">
+    Metrics
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../models/index.html">
+    Predictive Models
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../ratings/index.html">
+    Ratings / Rankings
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../scrapers/index.html">
+    Scrapers
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../changelog/index.html">
+    Changelog
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../references/index.html">
+    References
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+
+
+      </div>
+
+
+
+      <div class="sidebar-header-items__end">
+
+          <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+
+          <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+
+
+
+
+
+
+
+
+          <a href="https://github.com/martineastwood/penaltyblog" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fab fa-github-square fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">GitHub</span></a>
+        </li>
+</ul></div>
+
+      </div>
+
+  </div>
+
+    <div class="sidebar-primary-items__start sidebar-primary__section">
+        <div class="sidebar-primary-item">
+<h3><a href="../index.html">Table of Contents</a></h3>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Table of Contents</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../backtest/index.html">Backtest</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">Fantasy Premier League</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../implied/index.html">Implied Odds</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../install/index.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../kelly/index.html">Kelly Criterion</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../metrics/index.html">Metrics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../models/index.html">Predictive Models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ratings/index.html">Ratings / Rankings</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../scrapers/index.html">Scrapers</a></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Resources &amp; References</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../changelog/index.html">Changelog</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../references/index.html">References</a></li>
+</ul>
+</div>
+    </div>
+
+
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+
+      <main id="main-content" class="bd-main" role="main">
+
+
+          <div class="bd-content">
+            <div class="bd-article-container">
+
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+
+    <div class="header-article-items__start">
+
+        <div class="header-article-item">
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="../index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-home"></i>
+      </a>
+    </li>
+
+    <li class="breadcrumb-item"><a href="index.html" class="nav-link">Fantasy Premier League</a></li>
+
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">Scrape FPL Website and Optimise Team</span></li>
+  </ul>
+</nav>
+</div>
+
+    </div>
+
+
+</div>
+</div>
+
+
+
+
+<div id="searchbox"></div>
+                <article class="bd-article">
+
+  <section id="Scrape-FPL-Website-and-Optimise-Team">
+<h1>Scrape FPL Website and Optimise Team<a class="headerlink" href="#Scrape-FPL-Website-and-Optimise-Team" title="Link to this heading"><span>#</span></a></h1>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">penaltyblog</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pb</span>
+</pre></div>
+</div>
+</div>
+<section id="Get-the-current-active-gameweek-number">
+<h2>Get the current active gameweek number<a class="headerlink" href="#Get-the-current-active-gameweek-number" title="Link to this heading"><span>#</span></a></h2>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[2]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">current_gameweek</span> <span class="o">=</span> <span class="n">pb</span><span class="o">.</span><span class="n">fpl</span><span class="o">.</span><span class="n">get_current_gameweek</span><span class="p">()</span>
+<span class="n">current_gameweek</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[2]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+16
+</pre></div></div>
+</div>
+</section>
+<section id="Get-the-weekly-events">
+<h2>Get the weekly events<a class="headerlink" href="#Get-the-weekly-events" title="Link to this heading"><span>#</span></a></h2>
+<p>This contains information on who the most captainied player was for each week week, what chips were played, what the highest score was etc</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[3]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">info</span> <span class="o">=</span> <span class="n">pb</span><span class="o">.</span><span class="n">fpl</span><span class="o">.</span><span class="n">get_gameweek_info</span><span class="p">()</span>
+<span class="n">info</span><span class="o">.</span><span class="n">head</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[3]:
+</pre></div>
+</div>
+<div class="output_area rendered_html docutils container">
+<div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>id</th>
+      <th>name</th>
+      <th>deadline_time</th>
+      <th>release_time</th>
+      <th>average_entry_score</th>
+      <th>finished</th>
+      <th>data_checked</th>
+      <th>highest_scoring_entry</th>
+      <th>deadline_time_epoch</th>
+      <th>deadline_time_game_offset</th>
+      <th>...</th>
+      <th>ranked_count</th>
+      <th>overrides</th>
+      <th>chip_plays</th>
+      <th>most_selected</th>
+      <th>most_transferred_in</th>
+      <th>top_element</th>
+      <th>top_element_info</th>
+      <th>transfers_made</th>
+      <th>most_captained</th>
+      <th>most_vice_captained</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>0</th>
+      <td>1</td>
+      <td>Gameweek 1</td>
+      <td>2024-08-16 17:30:00+00:00</td>
+      <td>None</td>
+      <td>57</td>
+      <td>True</td>
+      <td>True</td>
+      <td>3546234.0</td>
+      <td>1723829400</td>
+      <td>0</td>
+      <td>...</td>
+      <td>8597356</td>
+      <td>{'rules': {}, 'scoring': {}, 'element_types': ...</td>
+      <td>[{'chip_name': 'bboost', 'num_played': 144974}...</td>
+      <td>401.0</td>
+      <td>27.0</td>
+      <td>328.0</td>
+      <td>{'id': 328, 'points': 14}</td>
+      <td>0</td>
+      <td>351.0</td>
+      <td>351.0</td>
+    </tr>
+    <tr>
+      <th>1</th>
+      <td>2</td>
+      <td>Gameweek 2</td>
+      <td>2024-08-24 10:00:00+00:00</td>
+      <td>None</td>
+      <td>69</td>
+      <td>True</td>
+      <td>True</td>
+      <td>9442126.0</td>
+      <td>1724493600</td>
+      <td>0</td>
+      <td>...</td>
+      <td>9543353</td>
+      <td>{'rules': {}, 'scoring': {}, 'element_types': ...</td>
+      <td>[{'chip_name': 'bboost', 'num_played': 118782}...</td>
+      <td>401.0</td>
+      <td>594.0</td>
+      <td>177.0</td>
+      <td>{'id': 177, 'points': 20}</td>
+      <td>13364453</td>
+      <td>351.0</td>
+      <td>401.0</td>
+    </tr>
+    <tr>
+      <th>2</th>
+      <td>3</td>
+      <td>Gameweek 3</td>
+      <td>2024-08-31 10:00:00+00:00</td>
+      <td>None</td>
+      <td>64</td>
+      <td>True</td>
+      <td>True</td>
+      <td>430195.0</td>
+      <td>1725098400</td>
+      <td>0</td>
+      <td>...</td>
+      <td>9912161</td>
+      <td>{'rules': {}, 'scoring': {}, 'element_types': ...</td>
+      <td>[{'chip_name': 'bboost', 'num_played': 87334},...</td>
+      <td>351.0</td>
+      <td>177.0</td>
+      <td>328.0</td>
+      <td>{'id': 328, 'points': 17}</td>
+      <td>23723836</td>
+      <td>351.0</td>
+      <td>328.0</td>
+    </tr>
+    <tr>
+      <th>3</th>
+      <td>4</td>
+      <td>Gameweek 4</td>
+      <td>2024-09-14 10:00:00+00:00</td>
+      <td>None</td>
+      <td>51</td>
+      <td>True</td>
+      <td>True</td>
+      <td>3560750.0</td>
+      <td>1726308000</td>
+      <td>0</td>
+      <td>...</td>
+      <td>10178753</td>
+      <td>{'rules': {}, 'scoring': {}, 'element_types': ...</td>
+      <td>[{'chip_name': 'bboost', 'num_played': 83637},...</td>
+      <td>351.0</td>
+      <td>129.0</td>
+      <td>185.0</td>
+      <td>{'id': 185, 'points': 15}</td>
+      <td>25930392</td>
+      <td>351.0</td>
+      <td>328.0</td>
+    </tr>
+    <tr>
+      <th>4</th>
+      <td>5</td>
+      <td>Gameweek 5</td>
+      <td>2024-09-21 10:00:00+00:00</td>
+      <td>None</td>
+      <td>58</td>
+      <td>True</td>
+      <td>True</td>
+      <td>1773336.0</td>
+      <td>1726912800</td>
+      <td>0</td>
+      <td>...</td>
+      <td>10279610</td>
+      <td>{'rules': {}, 'scoring': {}, 'element_types': ...</td>
+      <td>[{'chip_name': 'bboost', 'num_played': 66447},...</td>
+      <td>351.0</td>
+      <td>58.0</td>
+      <td>180.0</td>
+      <td>{'id': 180, 'points': 16}</td>
+      <td>13036058</td>
+      <td>351.0</td>
+      <td>351.0</td>
+    </tr>
+  </tbody>
+</table>
+<p>5 rows × 29 columns</p>
+</div></div>
+</div>
+</section>
+<section id="Get-Player-Name-to-ID-mappings">
+<h2>Get Player Name to ID mappings<a class="headerlink" href="#Get-Player-Name-to-ID-mappings" title="Link to this heading"><span>#</span></a></h2>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[4]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">mappings</span> <span class="o">=</span> <span class="n">pb</span><span class="o">.</span><span class="n">fpl</span><span class="o">.</span><span class="n">get_player_id_mappings</span><span class="p">()</span>
+<span class="n">mappings</span><span class="o">.</span><span class="n">head</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[4]:
+</pre></div>
+</div>
+<div class="output_area rendered_html docutils container">
+<div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>first_name</th>
+      <th>second_name</th>
+      <th>web_name</th>
+      <th>id</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>0</th>
+      <td>Fábio</td>
+      <td>Ferreira Vieira</td>
+      <td>Fábio Vieira</td>
+      <td>1</td>
+    </tr>
+    <tr>
+      <th>1</th>
+      <td>Gabriel</td>
+      <td>Fernando de Jesus</td>
+      <td>G.Jesus</td>
+      <td>2</td>
+    </tr>
+    <tr>
+      <th>2</th>
+      <td>Gabriel</td>
+      <td>dos Santos Magalhães</td>
+      <td>Gabriel</td>
+      <td>3</td>
+    </tr>
+    <tr>
+      <th>3</th>
+      <td>Kai</td>
+      <td>Havertz</td>
+      <td>Havertz</td>
+      <td>4</td>
+    </tr>
+    <tr>
+      <th>4</th>
+      <td>Karl</td>
+      <td>Hein</td>
+      <td>Hein</td>
+      <td>5</td>
+    </tr>
+  </tbody>
+</table>
+</div></div>
+</div>
+</section>
+<section id="Get-the-player-data">
+<h2>Get the player data<a class="headerlink" href="#Get-the-player-data" title="Link to this heading"><span>#</span></a></h2>
+<p>This contains information on each player, e.g. total score, total minutes played, form, current price etc</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[5]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">players</span> <span class="o">=</span> <span class="n">pb</span><span class="o">.</span><span class="n">fpl</span><span class="o">.</span><span class="n">get_player_data</span><span class="p">()</span>
+<span class="n">players</span><span class="o">.</span><span class="n">head</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[5]:
+</pre></div>
+</div>
+<div class="output_area rendered_html docutils container">
+<div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>can_transact</th>
+      <th>can_select</th>
+      <th>chance_of_playing_next_round</th>
+      <th>chance_of_playing_this_round</th>
+      <th>code</th>
+      <th>cost_change_event</th>
+      <th>cost_change_event_fall</th>
+      <th>cost_change_start</th>
+      <th>cost_change_start_fall</th>
+      <th>dreamteam_count</th>
+      <th>...</th>
+      <th>points_per_game_rank_type</th>
+      <th>selected_rank</th>
+      <th>selected_rank_type</th>
+      <th>starts_per_90</th>
+      <th>clean_sheets_per_90</th>
+      <th>position</th>
+      <th>position_short</th>
+      <th>team_id</th>
+      <th>team_name</th>
+      <th>team_name_short</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>0</th>
+      <td>True</td>
+      <td>False</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>438098</td>
+      <td>0</td>
+      <td>0</td>
+      <td>-1</td>
+      <td>1</td>
+      <td>0</td>
+      <td>...</td>
+      <td>310</td>
+      <td>636</td>
+      <td>278</td>
+      <td>0.00</td>
+      <td>0.00</td>
+      <td>Midfielder</td>
+      <td>MID</td>
+      <td>1</td>
+      <td>Arsenal</td>
+      <td>ARS</td>
+    </tr>
+    <tr>
+      <th>1</th>
+      <td>True</td>
+      <td>True</td>
+      <td>100.0</td>
+      <td>100.0</td>
+      <td>205651</td>
+      <td>0</td>
+      <td>0</td>
+      <td>-2</td>
+      <td>2</td>
+      <td>0</td>
+      <td>...</td>
+      <td>49</td>
+      <td>214</td>
+      <td>37</td>
+      <td>0.74</td>
+      <td>0.37</td>
+      <td>Forward</td>
+      <td>FWD</td>
+      <td>1</td>
+      <td>Arsenal</td>
+      <td>ARS</td>
+    </tr>
+    <tr>
+      <th>2</th>
+      <td>True</td>
+      <td>True</td>
+      <td>75.0</td>
+      <td>75.0</td>
+      <td>226597</td>
+      <td>0</td>
+      <td>0</td>
+      <td>2</td>
+      <td>-2</td>
+      <td>2</td>
+      <td>...</td>
+      <td>4</td>
+      <td>13</td>
+      <td>5</td>
+      <td>1.08</td>
+      <td>0.33</td>
+      <td>Defender</td>
+      <td>DEF</td>
+      <td>1</td>
+      <td>Arsenal</td>
+      <td>ARS</td>
+    </tr>
+    <tr>
+      <th>3</th>
+      <td>True</td>
+      <td>True</td>
+      <td>100.0</td>
+      <td>100.0</td>
+      <td>219847</td>
+      <td>0</td>
+      <td>0</td>
+      <td>-1</td>
+      <td>1</td>
+      <td>1</td>
+      <td>...</td>
+      <td>14</td>
+      <td>37</td>
+      <td>10</td>
+      <td>1.01</td>
+      <td>0.29</td>
+      <td>Forward</td>
+      <td>FWD</td>
+      <td>1</td>
+      <td>Arsenal</td>
+      <td>ARS</td>
+    </tr>
+    <tr>
+      <th>4</th>
+      <td>True</td>
+      <td>False</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>463748</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>...</td>
+      <td>58</td>
+      <td>558</td>
+      <td>68</td>
+      <td>0.00</td>
+      <td>0.00</td>
+      <td>Goalkeeper</td>
+      <td>GKP</td>
+      <td>1</td>
+      <td>Arsenal</td>
+      <td>ARS</td>
+    </tr>
+  </tbody>
+</table>
+<p>5 rows × 96 columns</p>
+</div></div>
+</div>
+</section>
+<section id="Let's-extract-the-data-for-Oleksandr-Zinchenko-from-the-data-frame">
+<h2>Let’s extract the data for Oleksandr Zinchenko from the data frame<a class="headerlink" href="#Let's-extract-the-data-for-Oleksandr-Zinchenko-from-the-data-frame" title="Link to this heading"><span>#</span></a></h2>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[6]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">zincs</span> <span class="o">=</span> <span class="n">mappings</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="s2">&quot;web_name == &#39;Zinchenko&#39;&quot;</span><span class="p">)</span>
+<span class="n">zincs_id</span> <span class="o">=</span> <span class="n">zincs</span><span class="p">[</span><span class="s2">&quot;id&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+<span class="n">players</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="s2">&quot;id == @zincs_id&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[6]:
+</pre></div>
+</div>
+<div class="output_area rendered_html docutils container">
+<div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>can_transact</th>
+      <th>can_select</th>
+      <th>chance_of_playing_next_round</th>
+      <th>chance_of_playing_this_round</th>
+      <th>code</th>
+      <th>cost_change_event</th>
+      <th>cost_change_event_fall</th>
+      <th>cost_change_start</th>
+      <th>cost_change_start_fall</th>
+      <th>dreamteam_count</th>
+      <th>...</th>
+      <th>points_per_game_rank_type</th>
+      <th>selected_rank</th>
+      <th>selected_rank_type</th>
+      <th>starts_per_90</th>
+      <th>clean_sheets_per_90</th>
+      <th>position</th>
+      <th>position_short</th>
+      <th>team_id</th>
+      <th>team_name</th>
+      <th>team_name_short</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>20</th>
+      <td>True</td>
+      <td>True</td>
+      <td>75.0</td>
+      <td>100.0</td>
+      <td>206325</td>
+      <td>0</td>
+      <td>0</td>
+      <td>-2</td>
+      <td>2</td>
+      <td>0</td>
+      <td>...</td>
+      <td>50</td>
+      <td>204</td>
+      <td>82</td>
+      <td>0.77</td>
+      <td>0.77</td>
+      <td>Defender</td>
+      <td>DEF</td>
+      <td>1</td>
+      <td>Arsenal</td>
+      <td>ARS</td>
+    </tr>
+  </tbody>
+</table>
+<p>1 rows × 96 columns</p>
+</div></div>
+</div>
+</section>
+<section id="Now-extract-the-data-about-goalkeepers">
+<h2>Now extract the data about goalkeepers<a class="headerlink" href="#Now-extract-the-data-about-goalkeepers" title="Link to this heading"><span>#</span></a></h2>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[7]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">players</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="s2">&quot;position_short == &#39;GKP&#39;&quot;</span><span class="p">)[</span>
+    <span class="p">[</span><span class="s2">&quot;id&quot;</span><span class="p">,</span> <span class="s2">&quot;first_name&quot;</span><span class="p">,</span> <span class="s2">&quot;second_name&quot;</span><span class="p">,</span> <span class="s2">&quot;position&quot;</span><span class="p">,</span> <span class="s2">&quot;total_points&quot;</span><span class="p">,</span> <span class="s2">&quot;minutes&quot;</span><span class="p">]</span>
+<span class="p">]</span><span class="o">.</span><span class="n">sort_values</span><span class="p">(</span><span class="s2">&quot;total_points&quot;</span><span class="p">,</span> <span class="n">ascending</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span><span class="o">.</span><span class="n">head</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[7]:
+</pre></div>
+</div>
+<div class="output_area rendered_html docutils container">
+<div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>id</th>
+      <th>first_name</th>
+      <th>second_name</th>
+      <th>position</th>
+      <th>total_points</th>
+      <th>minutes</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>466</th>
+      <td>383</td>
+      <td>André</td>
+      <td>Onana</td>
+      <td>Goalkeeper</td>
+      <td>65</td>
+      <td>1350</td>
+    </tr>
+    <tr>
+      <th>536</th>
+      <td>443</td>
+      <td>Matz</td>
+      <td>Sels</td>
+      <td>Goalkeeper</td>
+      <td>62</td>
+      <td>1350</td>
+    </tr>
+    <tr>
+      <th>11</th>
+      <td>15</td>
+      <td>David</td>
+      <td>Raya Martin</td>
+      <td>Goalkeeper</td>
+      <td>58</td>
+      <td>1350</td>
+    </tr>
+    <tr>
+      <th>276</th>
+      <td>235</td>
+      <td>Jordan</td>
+      <td>Pickford</td>
+      <td>Goalkeeper</td>
+      <td>58</td>
+      <td>1260</td>
+    </tr>
+    <tr>
+      <th>234</th>
+      <td>201</td>
+      <td>Dean</td>
+      <td>Henderson</td>
+      <td>Goalkeeper</td>
+      <td>53</td>
+      <td>1350</td>
+    </tr>
+  </tbody>
+</table>
+</div></div>
+</div>
+</section>
+<section id="Get-Zinchenko's-history-by-week-for-current-season">
+<h2>Get Zinchenko’s history by week for current season<a class="headerlink" href="#Get-Zinchenko's-history-by-week-for-current-season" title="Link to this heading"><span>#</span></a></h2>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[8]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">history</span> <span class="o">=</span> <span class="n">pb</span><span class="o">.</span><span class="n">fpl</span><span class="o">.</span><span class="n">get_player_history</span><span class="p">(</span><span class="n">zincs_id</span><span class="p">)</span>
+<span class="n">history</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[8]:
+</pre></div>
+</div>
+<div class="output_area rendered_html docutils container">
+<div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>element</th>
+      <th>fixture</th>
+      <th>opponent_team</th>
+      <th>total_points</th>
+      <th>was_home</th>
+      <th>kickoff_time</th>
+      <th>team_h_score</th>
+      <th>team_a_score</th>
+      <th>round</th>
+      <th>modified</th>
+      <th>...</th>
+      <th>starts</th>
+      <th>expected_goals</th>
+      <th>expected_assists</th>
+      <th>expected_goal_involvements</th>
+      <th>expected_goals_conceded</th>
+      <th>value</th>
+      <th>transfers_balance</th>
+      <th>selected</th>
+      <th>transfers_in</th>
+      <th>transfers_out</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>0</th>
+      <td>25</td>
+      <td>2</td>
+      <td>20</td>
+      <td>6</td>
+      <td>True</td>
+      <td>2024-08-17 14:00:00+00:00</td>
+      <td>2</td>
+      <td>0</td>
+      <td>1</td>
+      <td>False</td>
+      <td>...</td>
+      <td>1</td>
+      <td>0.00</td>
+      <td>0.04</td>
+      <td>0.04</td>
+      <td>0.32</td>
+      <td>5.0</td>
+      <td>0</td>
+      <td>230223</td>
+      <td>0</td>
+      <td>0</td>
+    </tr>
+    <tr>
+      <th>1</th>
+      <td>25</td>
+      <td>11</td>
+      <td>2</td>
+      <td>0</td>
+      <td>False</td>
+      <td>2024-08-24 16:30:00+00:00</td>
+      <td>0</td>
+      <td>2</td>
+      <td>2</td>
+      <td>False</td>
+      <td>...</td>
+      <td>0</td>
+      <td>0.00</td>
+      <td>0.00</td>
+      <td>0.00</td>
+      <td>0.00</td>
+      <td>5.0</td>
+      <td>23613</td>
+      <td>312806</td>
+      <td>46003</td>
+      <td>22390</td>
+    </tr>
+    <tr>
+      <th>2</th>
+      <td>25</td>
+      <td>21</td>
+      <td>5</td>
+      <td>1</td>
+      <td>True</td>
+      <td>2024-08-31 11:30:00+00:00</td>
+      <td>1</td>
+      <td>1</td>
+      <td>3</td>
+      <td>False</td>
+      <td>...</td>
+      <td>0</td>
+      <td>0.00</td>
+      <td>0.00</td>
+      <td>0.00</td>
+      <td>0.28</td>
+      <td>5.0</td>
+      <td>-56048</td>
+      <td>264308</td>
+      <td>16584</td>
+      <td>72632</td>
+    </tr>
+    <tr>
+      <th>3</th>
+      <td>25</td>
+      <td>39</td>
+      <td>18</td>
+      <td>0</td>
+      <td>False</td>
+      <td>2024-09-15 13:00:00+00:00</td>
+      <td>0</td>
+      <td>1</td>
+      <td>4</td>
+      <td>False</td>
+      <td>...</td>
+      <td>0</td>
+      <td>0.00</td>
+      <td>0.00</td>
+      <td>0.00</td>
+      <td>0.00</td>
+      <td>4.9</td>
+      <td>-45776</td>
+      <td>227563</td>
+      <td>9852</td>
+      <td>55628</td>
+    </tr>
+    <tr>
+      <th>4</th>
+      <td>25</td>
+      <td>47</td>
+      <td>13</td>
+      <td>0</td>
+      <td>False</td>
+      <td>2024-09-22 15:30:00+00:00</td>
+      <td>2</td>
+      <td>2</td>
+      <td>5</td>
+      <td>False</td>
+      <td>...</td>
+      <td>0</td>
+      <td>0.00</td>
+      <td>0.00</td>
+      <td>0.00</td>
+      <td>0.00</td>
+      <td>4.9</td>
+      <td>-44677</td>
+      <td>184385</td>
+      <td>1173</td>
+      <td>45850</td>
+    </tr>
+    <tr>
+      <th>5</th>
+      <td>25</td>
+      <td>51</td>
+      <td>11</td>
+      <td>0</td>
+      <td>True</td>
+      <td>2024-09-28 14:00:00+00:00</td>
+      <td>4</td>
+      <td>2</td>
+      <td>6</td>
+      <td>False</td>
+      <td>...</td>
+      <td>0</td>
+      <td>0.00</td>
+      <td>0.00</td>
+      <td>0.00</td>
+      <td>0.00</td>
+      <td>4.8</td>
+      <td>-40098</td>
+      <td>144882</td>
+      <td>164</td>
+      <td>40262</td>
+    </tr>
+    <tr>
+      <th>6</th>
+      <td>25</td>
+      <td>61</td>
+      <td>17</td>
+      <td>0</td>
+      <td>True</td>
+      <td>2024-10-05 14:00:00+00:00</td>
+      <td>3</td>
+      <td>1</td>
+      <td>7</td>
+      <td>False</td>
+      <td>...</td>
+      <td>0</td>
+      <td>0.00</td>
+      <td>0.00</td>
+      <td>0.00</td>
+      <td>0.00</td>
+      <td>4.8</td>
+      <td>-23935</td>
+      <td>121540</td>
+      <td>84</td>
+      <td>24019</td>
+    </tr>
+    <tr>
+      <th>7</th>
+      <td>25</td>
+      <td>71</td>
+      <td>3</td>
+      <td>0</td>
+      <td>False</td>
+      <td>2024-10-19 16:30:00+00:00</td>
+      <td>2</td>
+      <td>0</td>
+      <td>8</td>
+      <td>False</td>
+      <td>...</td>
+      <td>0</td>
+      <td>0.00</td>
+      <td>0.00</td>
+      <td>0.00</td>
+      <td>0.00</td>
+      <td>4.8</td>
+      <td>-9937</td>
+      <td>112095</td>
+      <td>103</td>
+      <td>10040</td>
+    </tr>
+    <tr>
+      <th>8</th>
+      <td>25</td>
+      <td>81</td>
+      <td>12</td>
+      <td>0</td>
+      <td>True</td>
+      <td>2024-10-27 16:30:00+00:00</td>
+      <td>2</td>
+      <td>2</td>
+      <td>9</td>
+      <td>False</td>
+      <td>...</td>
+      <td>0</td>
+      <td>0.00</td>
+      <td>0.00</td>
+      <td>0.00</td>
+      <td>0.00</td>
+      <td>4.8</td>
+      <td>-1519</td>
+      <td>111488</td>
+      <td>1054</td>
+      <td>2573</td>
+    </tr>
+    <tr>
+      <th>9</th>
+      <td>25</td>
+      <td>96</td>
+      <td>15</td>
+      <td>1</td>
+      <td>False</td>
+      <td>2024-11-02 12:30:00+00:00</td>
+      <td>1</td>
+      <td>0</td>
+      <td>10</td>
+      <td>False</td>
+      <td>...</td>
+      <td>0</td>
+      <td>0.00</td>
+      <td>0.01</td>
+      <td>0.01</td>
+      <td>0.08</td>
+      <td>4.8</td>
+      <td>-1515</td>
+      <td>110916</td>
+      <td>1859</td>
+      <td>3374</td>
+    </tr>
+    <tr>
+      <th>10</th>
+      <td>25</td>
+      <td>103</td>
+      <td>6</td>
+      <td>0</td>
+      <td>False</td>
+      <td>2024-11-10 16:30:00+00:00</td>
+      <td>1</td>
+      <td>1</td>
+      <td>11</td>
+      <td>False</td>
+      <td>...</td>
+      <td>0</td>
+      <td>0.00</td>
+      <td>0.00</td>
+      <td>0.00</td>
+      <td>0.00</td>
+      <td>4.8</td>
+      <td>-1711</td>
+      <td>109869</td>
+      <td>1132</td>
+      <td>2843</td>
+    </tr>
+    <tr>
+      <th>11</th>
+      <td>25</td>
+      <td>111</td>
+      <td>16</td>
+      <td>1</td>
+      <td>True</td>
+      <td>2024-11-23 15:00:00+00:00</td>
+      <td>3</td>
+      <td>0</td>
+      <td>12</td>
+      <td>False</td>
+      <td>...</td>
+      <td>0</td>
+      <td>0.00</td>
+      <td>0.00</td>
+      <td>0.00</td>
+      <td>0.17</td>
+      <td>4.8</td>
+      <td>-928</td>
+      <td>109888</td>
+      <td>1706</td>
+      <td>2634</td>
+    </tr>
+    <tr>
+      <th>12</th>
+      <td>25</td>
+      <td>129</td>
+      <td>19</td>
+      <td>1</td>
+      <td>False</td>
+      <td>2024-11-30 17:30:00+00:00</td>
+      <td>2</td>
+      <td>5</td>
+      <td>13</td>
+      <td>False</td>
+      <td>...</td>
+      <td>0</td>
+      <td>0.00</td>
+      <td>0.02</td>
+      <td>0.02</td>
+      <td>0.74</td>
+      <td>4.8</td>
+      <td>-807</td>
+      <td>109626</td>
+      <td>1086</td>
+      <td>1893</td>
+    </tr>
+    <tr>
+      <th>13</th>
+      <td>25</td>
+      <td>131</td>
+      <td>14</td>
+      <td>5</td>
+      <td>True</td>
+      <td>2024-12-04 20:15:00+00:00</td>
+      <td>2</td>
+      <td>0</td>
+      <td>14</td>
+      <td>False</td>
+      <td>...</td>
+      <td>1</td>
+      <td>0.06</td>
+      <td>0.01</td>
+      <td>0.07</td>
+      <td>0.14</td>
+      <td>4.8</td>
+      <td>-1118</td>
+      <td>108914</td>
+      <td>960</td>
+      <td>2078</td>
+    </tr>
+    <tr>
+      <th>14</th>
+      <td>25</td>
+      <td>145</td>
+      <td>9</td>
+      <td>0</td>
+      <td>False</td>
+      <td>2024-12-08 14:00:00+00:00</td>
+      <td>1</td>
+      <td>1</td>
+      <td>15</td>
+      <td>False</td>
+      <td>...</td>
+      <td>0</td>
+      <td>0.00</td>
+      <td>0.00</td>
+      <td>0.00</td>
+      <td>0.00</td>
+      <td>4.8</td>
+      <td>2940</td>
+      <td>112774</td>
+      <td>4379</td>
+      <td>1439</td>
+    </tr>
+  </tbody>
+</table>
+<p>15 rows × 37 columns</p>
+</div></div>
+</div>
+</section>
+<section id="Fetch-the-current-top-50-ranked-FPL-teams">
+<h2>Fetch the current top 50 ranked FPL teams<a class="headerlink" href="#Fetch-the-current-top-50-ranked-FPL-teams" title="Link to this heading"><span>#</span></a></h2>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[9]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">pb</span><span class="o">.</span><span class="n">fpl</span><span class="o">.</span><span class="n">get_rankings</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[9]:
+</pre></div>
+</div>
+<div class="output_area rendered_html docutils container">
+<div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>id</th>
+      <th>event_total</th>
+      <th>player_name</th>
+      <th>rank</th>
+      <th>last_rank</th>
+      <th>rank_sort</th>
+      <th>total</th>
+      <th>entry</th>
+      <th>entry_name</th>
+      <th>has_played</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>0</th>
+      <td>56463977</td>
+      <td>61</td>
+      <td>yassine hilmi</td>
+      <td>1</td>
+      <td>1</td>
+      <td>1</td>
+      <td>1114</td>
+      <td>6790112</td>
+      <td>3ALLA ALLAH</td>
+      <td>True</td>
+    </tr>
+    <tr>
+      <th>1</th>
+      <td>50941237</td>
+      <td>69</td>
+      <td>Ayoub NACIR 🇲🇦</td>
+      <td>2</td>
+      <td>5</td>
+      <td>2</td>
+      <td>1101</td>
+      <td>6251129</td>
+      <td>BB GW1</td>
+      <td>True</td>
+    </tr>
+    <tr>
+      <th>2</th>
+      <td>4069405</td>
+      <td>73</td>
+      <td>Niels Pretorius</td>
+      <td>3</td>
+      <td>13</td>
+      <td>3</td>
+      <td>1097</td>
+      <td>649015</td>
+      <td>Holy Boehly</td>
+      <td>True</td>
+    </tr>
+    <tr>
+      <th>3</th>
+      <td>20948541</td>
+      <td>75</td>
+      <td>Dani Lio messi 🇪🇹</td>
+      <td>3</td>
+      <td>16</td>
+      <td>4</td>
+      <td>1097</td>
+      <td>3094856</td>
+      <td>LIV</td>
+      <td>True</td>
+    </tr>
+    <tr>
+      <th>4</th>
+      <td>63597878</td>
+      <td>67</td>
+      <td>Ollie Stannard</td>
+      <td>5</td>
+      <td>7</td>
+      <td>5</td>
+      <td>1095</td>
+      <td>7550131</td>
+      <td>hazardous behaviour</td>
+      <td>True</td>
+    </tr>
+    <tr>
+      <th>5</th>
+      <td>58297199</td>
+      <td>79</td>
+      <td>abdallah ali ali</td>
+      <td>6</td>
+      <td>35</td>
+      <td>6</td>
+      <td>1094</td>
+      <td>6987961</td>
+      <td>abdo abdo</td>
+      <td>True</td>
+    </tr>
+    <tr>
+      <th>6</th>
+      <td>15255905</td>
+      <td>76</td>
+      <td>Johnny Rouge</td>
+      <td>7</td>
+      <td>33</td>
+      <td>7</td>
+      <td>1091</td>
+      <td>2315419</td>
+      <td>Obi Wan - Kenobi Nil</td>
+      <td>True</td>
+    </tr>
+    <tr>
+      <th>7</th>
+      <td>33809310</td>
+      <td>78</td>
+      <td>abdullah alanazi</td>
+      <td>8</td>
+      <td>44</td>
+      <td>8</td>
+      <td>1089</td>
+      <td>4684786</td>
+      <td>ugly squad</td>
+      <td>True</td>
+    </tr>
+    <tr>
+      <th>8</th>
+      <td>33179096</td>
+      <td>67</td>
+      <td>Doug Yellowley</td>
+      <td>9</td>
+      <td>19</td>
+      <td>9</td>
+      <td>1088</td>
+      <td>4605389</td>
+      <td>The Notorious D.U.G</td>
+      <td>True</td>
+    </tr>
+    <tr>
+      <th>9</th>
+      <td>60289692</td>
+      <td>66</td>
+      <td>Abdullah AlGhfeli</td>
+      <td>9</td>
+      <td>17</td>
+      <td>10</td>
+      <td>1088</td>
+      <td>7203284</td>
+      <td>Jürgen Klopp</td>
+      <td>True</td>
+    </tr>
+    <tr>
+      <th>10</th>
+      <td>17356161</td>
+      <td>66</td>
+      <td>Sion Nierada</td>
+      <td>9</td>
+      <td>15</td>
+      <td>11</td>
+      <td>1088</td>
+      <td>2607470</td>
+      <td>Snoop Udogie Dogg</td>
+      <td>True</td>
+    </tr>
+    <tr>
+      <th>11</th>
+      <td>4227781</td>
+      <td>54</td>
+      <td>Mustafa YNWA</td>
+      <td>12</td>
+      <td>4</td>
+      <td>12</td>
+      <td>1087</td>
+      <td>673745</td>
+      <td>مصطفى فؤاد</td>
+      <td>True</td>
+    </tr>
+    <tr>
+      <th>12</th>
+      <td>13655665</td>
+      <td>54</td>
+      <td>Pipat Boss</td>
+      <td>12</td>
+      <td>3</td>
+      <td>13</td>
+      <td>1087</td>
+      <td>2085641</td>
+      <td>Pipat FC</td>
+      <td>True</td>
+    </tr>
+    <tr>
+      <th>13</th>
+      <td>40588476</td>
+      <td>60</td>
+      <td>Dara Bbat</td>
+      <td>12</td>
+      <td>8</td>
+      <td>14</td>
+      <td>1087</td>
+      <td>5478789</td>
+      <td>BurnDemAll</td>
+      <td>True</td>
+    </tr>
+    <tr>
+      <th>14</th>
+      <td>5472397</td>
+      <td>58</td>
+      <td>abdul hendricks</td>
+      <td>15</td>
+      <td>6</td>
+      <td>15</td>
+      <td>1086</td>
+      <td>865299</td>
+      <td>Pep a pig</td>
+      <td>True</td>
+    </tr>
+    <tr>
+      <th>15</th>
+      <td>1997903</td>
+      <td>59</td>
+      <td>Auwal SG</td>
+      <td>16</td>
+      <td>11</td>
+      <td>16</td>
+      <td>1086</td>
+      <td>322707</td>
+      <td>ASG</td>
+      <td>True</td>
+    </tr>
+    <tr>
+      <th>16</th>
+      <td>6385437</td>
+      <td>50</td>
+      <td>Harry Jones</td>
+      <td>17</td>
+      <td>2</td>
+      <td>17</td>
+      <td>1086</td>
+      <td>1001923</td>
+      <td>Kobs on the Job</td>
+      <td>True</td>
+    </tr>
+    <tr>
+      <th>17</th>
+      <td>10732157</td>
+      <td>75</td>
+      <td>Kostadin Chinov</td>
+      <td>18</td>
+      <td>50</td>
+      <td>18</td>
+      <td>1085</td>
+      <td>1661563</td>
+      <td>Debel lebeD</td>
+      <td>True</td>
+    </tr>
+    <tr>
+      <th>18</th>
+      <td>102501</td>
+      <td>92</td>
+      <td>Erin Robinson</td>
+      <td>19</td>
+      <td>264</td>
+      <td>19</td>
+      <td>1084</td>
+      <td>18949</td>
+      <td>Erin’s XI</td>
+      <td>True</td>
+    </tr>
+    <tr>
+      <th>19</th>
+      <td>33875587</td>
+      <td>89</td>
+      <td>Elijah Lamb</td>
+      <td>20</td>
+      <td>199</td>
+      <td>20</td>
+      <td>1084</td>
+      <td>4693003</td>
+      <td>Neville Wears Prada</td>
+      <td>True</td>
+    </tr>
+    <tr>
+      <th>20</th>
+      <td>5029234</td>
+      <td>57</td>
+      <td>Brendan Sylvester</td>
+      <td>21</td>
+      <td>9</td>
+      <td>21</td>
+      <td>1084</td>
+      <td>797171</td>
+      <td>Bukayo's Sadza</td>
+      <td>True</td>
+    </tr>
+    <tr>
+      <th>21</th>
+      <td>63480780</td>
+      <td>82</td>
+      <td>Medo Styen</td>
+      <td>22</td>
+      <td>105</td>
+      <td>22</td>
+      <td>1083</td>
+      <td>7537842</td>
+      <td>الاسطي</td>
+      <td>True</td>
+    </tr>
+    <tr>
+      <th>22</th>
+      <td>1049473</td>
+      <td>58</td>
+      <td>Harrison Lenihan</td>
+      <td>23</td>
+      <td>12</td>
+      <td>23</td>
+      <td>1083</td>
+      <td>172621</td>
+      <td>Max O’Deary</td>
+      <td>True</td>
+    </tr>
+    <tr>
+      <th>23</th>
+      <td>72432638</td>
+      <td>60</td>
+      <td>Alex Hirkjolen</td>
+      <td>24</td>
+      <td>9</td>
+      <td>24</td>
+      <td>1083</td>
+      <td>8448461</td>
+      <td>Blueberries</td>
+      <td>True</td>
+    </tr>
+    <tr>
+      <th>24</th>
+      <td>6949071</td>
+      <td>61</td>
+      <td>vjeran horvat</td>
+      <td>25</td>
+      <td>21</td>
+      <td>25</td>
+      <td>1081</td>
+      <td>1091388</td>
+      <td>Studentgrađanin</td>
+      <td>True</td>
+    </tr>
+    <tr>
+      <th>25</th>
+      <td>48990325</td>
+      <td>67</td>
+      <td>Derek SHANKS</td>
+      <td>26</td>
+      <td>39</td>
+      <td>26</td>
+      <td>1080</td>
+      <td>6085606</td>
+      <td>Que Salah Salah</td>
+      <td>True</td>
+    </tr>
+    <tr>
+      <th>26</th>
+      <td>22682175</td>
+      <td>64</td>
+      <td>Thanan Nuannukun</td>
+      <td>27</td>
+      <td>31</td>
+      <td>27</td>
+      <td>1079</td>
+      <td>3328748</td>
+      <td>ยอดทีมUnited</td>
+      <td>True</td>
+    </tr>
+    <tr>
+      <th>27</th>
+      <td>12385549</td>
+      <td>76</td>
+      <td>JAMIE WALKER</td>
+      <td>28</td>
+      <td>85</td>
+      <td>28</td>
+      <td>1079</td>
+      <td>1901957</td>
+      <td>KobbieManU</td>
+      <td>True</td>
+    </tr>
+    <tr>
+      <th>28</th>
+      <td>5079758</td>
+      <td>77</td>
+      <td>Ignaz Vrobel</td>
+      <td>29</td>
+      <td>104</td>
+      <td>29</td>
+      <td>1079</td>
+      <td>805343</td>
+      <td>OlympiqueCliftonHill</td>
+      <td>True</td>
+    </tr>
+    <tr>
+      <th>29</th>
+      <td>41548504</td>
+      <td>76</td>
+      <td>Innocent Kalukuta</td>
+      <td>29</td>
+      <td>89</td>
+      <td>30</td>
+      <td>1079</td>
+      <td>5554108</td>
+      <td>Kaluno City</td>
+      <td>True</td>
+    </tr>
+    <tr>
+      <th>30</th>
+      <td>12660145</td>
+      <td>74</td>
+      <td>Radhi Alqaisi</td>
+      <td>31</td>
+      <td>79</td>
+      <td>31</td>
+      <td>1078</td>
+      <td>1941895</td>
+      <td>The Seniors</td>
+      <td>True</td>
+    </tr>
+    <tr>
+      <th>31</th>
+      <td>5679387</td>
+      <td>59</td>
+      <td>Kristijan Anicic</td>
+      <td>31</td>
+      <td>22</td>
+      <td>32</td>
+      <td>1078</td>
+      <td>897442</td>
+      <td>Stella Rosa</td>
+      <td>True</td>
+    </tr>
+    <tr>
+      <th>32</th>
+      <td>6597581</td>
+      <td>55</td>
+      <td>Adrian Wagstyl</td>
+      <td>33</td>
+      <td>14</td>
+      <td>33</td>
+      <td>1078</td>
+      <td>1035135</td>
+      <td>AW</td>
+      <td>True</td>
+    </tr>
+    <tr>
+      <th>33</th>
+      <td>3940951</td>
+      <td>67</td>
+      <td>Fahad Al kharafi🇰🇼🇰🇼🇰🇼🇰🇼🇰🇼</td>
+      <td>34</td>
+      <td>47</td>
+      <td>34</td>
+      <td>1078</td>
+      <td>628608</td>
+      <td>I AM PANDA</td>
+      <td>True</td>
+    </tr>
+    <tr>
+      <th>34</th>
+      <td>47259967</td>
+      <td>69</td>
+      <td>Mahmoud Ibrahim</td>
+      <td>35</td>
+      <td>63</td>
+      <td>35</td>
+      <td>1077</td>
+      <td>5975003</td>
+      <td>7OoOda</td>
+      <td>True</td>
+    </tr>
+    <tr>
+      <th>35</th>
+      <td>1270775</td>
+      <td>65</td>
+      <td>marwen fathallah</td>
+      <td>36</td>
+      <td>42</td>
+      <td>36</td>
+      <td>1077</td>
+      <td>206983</td>
+      <td>back of the Neto</td>
+      <td>True</td>
+    </tr>
+    <tr>
+      <th>36</th>
+      <td>1316826</td>
+      <td>93</td>
+      <td>You guy My guy.</td>
+      <td>37</td>
+      <td>606</td>
+      <td>37</td>
+      <td>1076</td>
+      <td>214203</td>
+      <td>Gus@lito.</td>
+      <td>True</td>
+    </tr>
+    <tr>
+      <th>37</th>
+      <td>70637</td>
+      <td>57</td>
+      <td>Charlie Shepherd</td>
+      <td>38</td>
+      <td>24</td>
+      <td>38</td>
+      <td>1075</td>
+      <td>13609</td>
+      <td>Charlie’s team</td>
+      <td>True</td>
+    </tr>
+    <tr>
+      <th>38</th>
+      <td>67468283</td>
+      <td>55</td>
+      <td>Andrew Warriner</td>
+      <td>38</td>
+      <td>20</td>
+      <td>39</td>
+      <td>1075</td>
+      <td>7948422</td>
+      <td>NYC Whites</td>
+      <td>True</td>
+    </tr>
+    <tr>
+      <th>39</th>
+      <td>114933</td>
+      <td>61</td>
+      <td>Mohamed elkabiri</td>
+      <td>38</td>
+      <td>37</td>
+      <td>40</td>
+      <td>1075</td>
+      <td>20899</td>
+      <td>Elkabiri mohamed</td>
+      <td>True</td>
+    </tr>
+    <tr>
+      <th>40</th>
+      <td>15670809</td>
+      <td>64</td>
+      <td>the Big studio Ug</td>
+      <td>41</td>
+      <td>45</td>
+      <td>41</td>
+      <td>1075</td>
+      <td>2370962</td>
+      <td>Big Football</td>
+      <td>True</td>
+    </tr>
+    <tr>
+      <th>41</th>
+      <td>13400633</td>
+      <td>69</td>
+      <td>hossam Mohamed</td>
+      <td>41</td>
+      <td>74</td>
+      <td>42</td>
+      <td>1075</td>
+      <td>2048395</td>
+      <td>H&amp;M</td>
+      <td>True</td>
+    </tr>
+    <tr>
+      <th>42</th>
+      <td>15704915</td>
+      <td>74</td>
+      <td>Remon Radany</td>
+      <td>41</td>
+      <td>109</td>
+      <td>43</td>
+      <td>1075</td>
+      <td>2375847</td>
+      <td>Remon FC</td>
+      <td>True</td>
+    </tr>
+    <tr>
+      <th>43</th>
+      <td>4564586</td>
+      <td>88</td>
+      <td>Yaser Hameed</td>
+      <td>41</td>
+      <td>440</td>
+      <td>44</td>
+      <td>1075</td>
+      <td>726395</td>
+      <td>The Leader Yaser</td>
+      <td>True</td>
+    </tr>
+    <tr>
+      <th>44</th>
+      <td>2363269</td>
+      <td>53</td>
+      <td>Tom Warlow</td>
+      <td>45</td>
+      <td>17</td>
+      <td>45</td>
+      <td>1075</td>
+      <td>378441</td>
+      <td>TAAnnihilation</td>
+      <td>True</td>
+    </tr>
+    <tr>
+      <th>45</th>
+      <td>73241993</td>
+      <td>59</td>
+      <td>Agustio Faizy</td>
+      <td>46</td>
+      <td>30</td>
+      <td>46</td>
+      <td>1075</td>
+      <td>8531841</td>
+      <td>Muthe #1 SSK</td>
+      <td>True</td>
+    </tr>
+    <tr>
+      <th>46</th>
+      <td>2926297</td>
+      <td>65</td>
+      <td>James White</td>
+      <td>47</td>
+      <td>53</td>
+      <td>47</td>
+      <td>1075</td>
+      <td>468901</td>
+      <td>Joelinton Enjoyer</td>
+      <td>True</td>
+    </tr>
+    <tr>
+      <th>47</th>
+      <td>39761288</td>
+      <td>62</td>
+      <td>Andrew Monaghan</td>
+      <td>48</td>
+      <td>40</td>
+      <td>48</td>
+      <td>1074</td>
+      <td>5400771</td>
+      <td>The Vampires</td>
+      <td>True</td>
+    </tr>
+    <tr>
+      <th>48</th>
+      <td>34694562</td>
+      <td>85</td>
+      <td>Sarah Henshaw</td>
+      <td>49</td>
+      <td>351</td>
+      <td>49</td>
+      <td>1074</td>
+      <td>4793916</td>
+      <td>Fly me to the Muniz</td>
+      <td>True</td>
+    </tr>
+    <tr>
+      <th>49</th>
+      <td>3983208</td>
+      <td>59</td>
+      <td>Oluchukwu Obiyo</td>
+      <td>49</td>
+      <td>31</td>
+      <td>50</td>
+      <td>1074</td>
+      <td>634991</td>
+      <td>Vee Fc</td>
+      <td>True</td>
+    </tr>
+  </tbody>
+</table>
+</div></div>
+</div>
+</section>
+<section id="Fetch-the-FPL-teams-ranked-51-100">
+<h2>Fetch the FPL teams ranked 51-100<a class="headerlink" href="#Fetch-the-FPL-teams-ranked-51-100" title="Link to this heading"><span>#</span></a></h2>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[10]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">pb</span><span class="o">.</span><span class="n">fpl</span><span class="o">.</span><span class="n">get_rankings</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[10]:
+</pre></div>
+</div>
+<div class="output_area rendered_html docutils container">
+<div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>id</th>
+      <th>event_total</th>
+      <th>player_name</th>
+      <th>rank</th>
+      <th>last_rank</th>
+      <th>rank_sort</th>
+      <th>total</th>
+      <th>entry</th>
+      <th>entry_name</th>
+      <th>has_played</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>0</th>
+      <td>32633580</td>
+      <td>55</td>
+      <td>Max Littleproud</td>
+      <td>51</td>
+      <td>23</td>
+      <td>51</td>
+      <td>1074</td>
+      <td>4538028</td>
+      <td>Levenshulme Utd</td>
+      <td>True</td>
+    </tr>
+    <tr>
+      <th>1</th>
+      <td>20253729</td>
+      <td>83</td>
+      <td>Harrison Smith</td>
+      <td>52</td>
+      <td>314</td>
+      <td>52</td>
+      <td>1073</td>
+      <td>3002723</td>
+      <td>chicken tika masala</td>
+      <td>True</td>
+    </tr>
+    <tr>
+      <th>2</th>
+      <td>8565725</td>
+      <td>66</td>
+      <td>Bu Hussain</td>
+      <td>53</td>
+      <td>68</td>
+      <td>53</td>
+      <td>1073</td>
+      <td>1338837</td>
+      <td>Bu Hussain (BH)</td>
+      <td>True</td>
+    </tr>
+    <tr>
+      <th>3</th>
+      <td>20749224</td>
+      <td>64</td>
+      <td>Abd Alwahhab Mohammad</td>
+      <td>54</td>
+      <td>60</td>
+      <td>54</td>
+      <td>1072</td>
+      <td>3068916</td>
+      <td>ربك كريم</td>
+      <td>True</td>
+    </tr>
+    <tr>
+      <th>4</th>
+      <td>35683261</td>
+      <td>71</td>
+      <td>Come On You Surds</td>
+      <td>55</td>
+      <td>113</td>
+      <td>55</td>
+      <td>1072</td>
+      <td>4906982</td>
+      <td>Van de Ven Diagrams</td>
+      <td>True</td>
+    </tr>
+    <tr>
+      <th>5</th>
+      <td>24058206</td>
+      <td>71</td>
+      <td>Chris Tabor</td>
+      <td>55</td>
+      <td>113</td>
+      <td>56</td>
+      <td>1072</td>
+      <td>3506521</td>
+      <td>Marginal Baines</td>
+      <td>True</td>
+    </tr>
+    <tr>
+      <th>6</th>
+      <td>48394075</td>
+      <td>69</td>
+      <td>Einar Birkir Einarsson</td>
+      <td>55</td>
+      <td>83</td>
+      <td>57</td>
+      <td>1072</td>
+      <td>6045876</td>
+      <td>Saga Club</td>
+      <td>True</td>
+    </tr>
+    <tr>
+      <th>7</th>
+      <td>6193323</td>
+      <td>70</td>
+      <td>bakri ahmed</td>
+      <td>58</td>
+      <td>99</td>
+      <td>58</td>
+      <td>1072</td>
+      <td>972797</td>
+      <td>najm</td>
+      <td>True</td>
+    </tr>
+    <tr>
+      <th>8</th>
+      <td>6825449</td>
+      <td>61</td>
+      <td>Peter Amante-Roberts</td>
+      <td>59</td>
+      <td>48</td>
+      <td>59</td>
+      <td>1071</td>
+      <td>1071595</td>
+      <td>ZlatansZanyZerglings</td>
+      <td>True</td>
+    </tr>
+    <tr>
+      <th>9</th>
+      <td>2830836</td>
+      <td>82</td>
+      <td>Reidar Buskenes</td>
+      <td>60</td>
+      <td>359</td>
+      <td>60</td>
+      <td>1071</td>
+      <td>453429</td>
+      <td>Veiholmen</td>
+      <td>True</td>
+    </tr>
+    <tr>
+      <th>10</th>
+      <td>34212118</td>
+      <td>55</td>
+      <td>Ray Andre</td>
+      <td>61</td>
+      <td>28</td>
+      <td>61</td>
+      <td>1071</td>
+      <td>4735236</td>
+      <td>Turkish De Ligt</td>
+      <td>True</td>
+    </tr>
+    <tr>
+      <th>11</th>
+      <td>1453653</td>
+      <td>74</td>
+      <td>Mohamed Hosny</td>
+      <td>61</td>
+      <td>163</td>
+      <td>62</td>
+      <td>1071</td>
+      <td>235899</td>
+      <td>الكابتن مدحت فقوسة</td>
+      <td>True</td>
+    </tr>
+    <tr>
+      <th>12</th>
+      <td>4954088</td>
+      <td>69</td>
+      <td>Patrick O'Loghlen</td>
+      <td>63</td>
+      <td>106</td>
+      <td>63</td>
+      <td>1070</td>
+      <td>785876</td>
+      <td>Xhakaboom</td>
+      <td>True</td>
+    </tr>
+    <tr>
+      <th>13</th>
+      <td>3995317</td>
+      <td>61</td>
+      <td>Simon Baker</td>
+      <td>64</td>
+      <td>57</td>
+      <td>64</td>
+      <td>1070</td>
+      <td>636988</td>
+      <td>Marescapetovictory</td>
+      <td>True</td>
+    </tr>
+    <tr>
+      <th>14</th>
+      <td>29477281</td>
+      <td>73</td>
+      <td>james delaney</td>
+      <td>64</td>
+      <td>163</td>
+      <td>65</td>
+      <td>1070</td>
+      <td>4134522</td>
+      <td>Holy Boehly</td>
+      <td>True</td>
+    </tr>
+    <tr>
+      <th>15</th>
+      <td>34073001</td>
+      <td>90</td>
+      <td>Edward Campbell</td>
+      <td>66</td>
+      <td>801</td>
+      <td>66</td>
+      <td>1070</td>
+      <td>4717706</td>
+      <td>Saka Potatoes</td>
+      <td>True</td>
+    </tr>
+    <tr>
+      <th>16</th>
+      <td>10448238</td>
+      <td>52</td>
+      <td>Jack Brennan</td>
+      <td>67</td>
+      <td>27</td>
+      <td>67</td>
+      <td>1070</td>
+      <td>1620838</td>
+      <td>Hakuna Mateta</td>
+      <td>True</td>
+    </tr>
+    <tr>
+      <th>17</th>
+      <td>913873</td>
+      <td>61</td>
+      <td>Stephen Blakemore</td>
+      <td>67</td>
+      <td>58</td>
+      <td>68</td>
+      <td>1070</td>
+      <td>150191</td>
+      <td>Womp, womp.</td>
+      <td>True</td>
+    </tr>
+    <tr>
+      <th>18</th>
+      <td>7427609</td>
+      <td>55</td>
+      <td>Karim Radi</td>
+      <td>69</td>
+      <td>36</td>
+      <td>69</td>
+      <td>1070</td>
+      <td>1166488</td>
+      <td>Flying Dutchman ��☠</td>
+      <td>True</td>
+    </tr>
+    <tr>
+      <th>19</th>
+      <td>8893532</td>
+      <td>73</td>
+      <td>Joe O’Callaghan</td>
+      <td>70</td>
+      <td>176</td>
+      <td>70</td>
+      <td>1069</td>
+      <td>1389327</td>
+      <td>Mo Problem</td>
+      <td>True</td>
+    </tr>
+    <tr>
+      <th>20</th>
+      <td>31821094</td>
+      <td>66</td>
+      <td>Matt Stephenson</td>
+      <td>71</td>
+      <td>85</td>
+      <td>71</td>
+      <td>1069</td>
+      <td>4435464</td>
+      <td>B’croft Big Bears FC</td>
+      <td>True</td>
+    </tr>
+    <tr>
+      <th>21</th>
+      <td>7163746</td>
+      <td>57</td>
+      <td>Eric Scott</td>
+      <td>72</td>
+      <td>40</td>
+      <td>72</td>
+      <td>1069</td>
+      <td>1125100</td>
+      <td>The Difference</td>
+      <td>True</td>
+    </tr>
+    <tr>
+      <th>22</th>
+      <td>1614372</td>
+      <td>53</td>
+      <td>youssif mohamed</td>
+      <td>73</td>
+      <td>29</td>
+      <td>73</td>
+      <td>1069</td>
+      <td>261538</td>
+      <td>VENOOM</td>
+      <td>True</td>
+    </tr>
+    <tr>
+      <th>23</th>
+      <td>1184864</td>
+      <td>74</td>
+      <td>Matt Biemans</td>
+      <td>73</td>
+      <td>211</td>
+      <td>74</td>
+      <td>1069</td>
+      <td>194081</td>
+      <td>Team Biemans</td>
+      <td>True</td>
+    </tr>
+    <tr>
+      <th>24</th>
+      <td>726502</td>
+      <td>84</td>
+      <td>Allan Omanovic</td>
+      <td>73</td>
+      <td>507</td>
+      <td>75</td>
+      <td>1069</td>
+      <td>120291</td>
+      <td>Bullyboy</td>
+      <td>True</td>
+    </tr>
+    <tr>
+      <th>25</th>
+      <td>10489134</td>
+      <td>61</td>
+      <td>Harry Nielsen</td>
+      <td>76</td>
+      <td>65</td>
+      <td>76</td>
+      <td>1068</td>
+      <td>1627092</td>
+      <td>Harryberry</td>
+      <td>True</td>
+    </tr>
+    <tr>
+      <th>26</th>
+      <td>2486451</td>
+      <td>66</td>
+      <td>Jake Poplawski</td>
+      <td>77</td>
+      <td>94</td>
+      <td>77</td>
+      <td>1068</td>
+      <td>398230</td>
+      <td>Feel Wood Inc</td>
+      <td>True</td>
+    </tr>
+    <tr>
+      <th>27</th>
+      <td>6219817</td>
+      <td>67</td>
+      <td>Chris Moss</td>
+      <td>77</td>
+      <td>113</td>
+      <td>78</td>
+      <td>1068</td>
+      <td>976142</td>
+      <td>Eze Does It</td>
+      <td>True</td>
+    </tr>
+    <tr>
+      <th>28</th>
+      <td>6682894</td>
+      <td>64</td>
+      <td>David Marco</td>
+      <td>77</td>
+      <td>79</td>
+      <td>79</td>
+      <td>1068</td>
+      <td>1048988</td>
+      <td>freepogba</td>
+      <td>True</td>
+    </tr>
+    <tr>
+      <th>29</th>
+      <td>24324008</td>
+      <td>50</td>
+      <td>Paras Poudel</td>
+      <td>80</td>
+      <td>26</td>
+      <td>80</td>
+      <td>1068</td>
+      <td>3541677</td>
+      <td>Ne Funk</td>
+      <td>True</td>
+    </tr>
+    <tr>
+      <th>30</th>
+      <td>34270552</td>
+      <td>70</td>
+      <td>Anna Bowman</td>
+      <td>80</td>
+      <td>151</td>
+      <td>81</td>
+      <td>1068</td>
+      <td>4742695</td>
+      <td>Yoro wizard Harry</td>
+      <td>True</td>
+    </tr>
+    <tr>
+      <th>31</th>
+      <td>3633448</td>
+      <td>91</td>
+      <td>David Cooney</td>
+      <td>82</td>
+      <td>988</td>
+      <td>82</td>
+      <td>1068</td>
+      <td>580349</td>
+      <td>The40YearOldVirgil</td>
+      <td>True</td>
+    </tr>
+    <tr>
+      <th>32</th>
+      <td>1794467</td>
+      <td>107</td>
+      <td>Dale Williams</td>
+      <td>82</td>
+      <td>3213</td>
+      <td>83</td>
+      <td>1068</td>
+      <td>290231</td>
+      <td>Harlows Dreamers</td>
+      <td>True</td>
+    </tr>
+    <tr>
+      <th>33</th>
+      <td>36011005</td>
+      <td>85</td>
+      <td>Haksbk 3lafekra</td>
+      <td>84</td>
+      <td>643</td>
+      <td>84</td>
+      <td>1067</td>
+      <td>4946679</td>
+      <td>�</td>
+      <td>True</td>
+    </tr>
+    <tr>
+      <th>34</th>
+      <td>9120547</td>
+      <td>72</td>
+      <td>Alex Lindholm</td>
+      <td>85</td>
+      <td>196</td>
+      <td>85</td>
+      <td>1067</td>
+      <td>1424600</td>
+      <td>Alex</td>
+      <td>True</td>
+    </tr>
+    <tr>
+      <th>35</th>
+      <td>5717441</td>
+      <td>75</td>
+      <td>المهلهل ….</td>
+      <td>86</td>
+      <td>266</td>
+      <td>86</td>
+      <td>1067</td>
+      <td>903279</td>
+      <td>الكشاف</td>
+      <td>True</td>
+    </tr>
+    <tr>
+      <th>36</th>
+      <td>1886999</td>
+      <td>71</td>
+      <td>Ciarán Rowland</td>
+      <td>86</td>
+      <td>180</td>
+      <td>87</td>
+      <td>1067</td>
+      <td>305054</td>
+      <td>Rainy Night in Szobo</td>
+      <td>True</td>
+    </tr>
+    <tr>
+      <th>37</th>
+      <td>3728651</td>
+      <td>58</td>
+      <td>Robb Lacey</td>
+      <td>86</td>
+      <td>55</td>
+      <td>88</td>
+      <td>1067</td>
+      <td>595633</td>
+      <td>Trust the Process ;)</td>
+      <td>True</td>
+    </tr>
+    <tr>
+      <th>38</th>
+      <td>29920</td>
+      <td>84</td>
+      <td>Mikołaj Ćwirko</td>
+      <td>89</td>
+      <td>618</td>
+      <td>89</td>
+      <td>1067</td>
+      <td>5924</td>
+      <td>Świry</td>
+      <td>True</td>
+    </tr>
+    <tr>
+      <th>39</th>
+      <td>5242282</td>
+      <td>74</td>
+      <td>salim Arbi</td>
+      <td>90</td>
+      <td>260</td>
+      <td>90</td>
+      <td>1067</td>
+      <td>830613</td>
+      <td>Salim Madrid</td>
+      <td>True</td>
+    </tr>
+    <tr>
+      <th>40</th>
+      <td>4603571</td>
+      <td>60</td>
+      <td>Max Matthews</td>
+      <td>91</td>
+      <td>73</td>
+      <td>91</td>
+      <td>1066</td>
+      <td>732660</td>
+      <td>Mount Kilman-jaro</td>
+      <td>True</td>
+    </tr>
+    <tr>
+      <th>41</th>
+      <td>60650153</td>
+      <td>65</td>
+      <td>Mohammed Hassan</td>
+      <td>92</td>
+      <td>107</td>
+      <td>92</td>
+      <td>1066</td>
+      <td>7241449</td>
+      <td>محمد حسن</td>
+      <td>True</td>
+    </tr>
+    <tr>
+      <th>42</th>
+      <td>61131071</td>
+      <td>64</td>
+      <td>souhaib Algérie</td>
+      <td>93</td>
+      <td>90</td>
+      <td>93</td>
+      <td>1066</td>
+      <td>7291676</td>
+      <td>Khenchela team �</td>
+      <td>True</td>
+    </tr>
+    <tr>
+      <th>43</th>
+      <td>2545591</td>
+      <td>71</td>
+      <td>Emil Appleson</td>
+      <td>93</td>
+      <td>199</td>
+      <td>94</td>
+      <td>1066</td>
+      <td>407494</td>
+      <td>Endo’s Men</td>
+      <td>True</td>
+    </tr>
+    <tr>
+      <th>44</th>
+      <td>5023130</td>
+      <td>75</td>
+      <td>klimis xanthopoulos</td>
+      <td>95</td>
+      <td>286</td>
+      <td>95</td>
+      <td>1066</td>
+      <td>796202</td>
+      <td>Makis</td>
+      <td>True</td>
+    </tr>
+    <tr>
+      <th>45</th>
+      <td>213151</td>
+      <td>74</td>
+      <td>Mohammed Haji</td>
+      <td>95</td>
+      <td>264</td>
+      <td>96</td>
+      <td>1066</td>
+      <td>36655</td>
+      <td>ســـرێـــشــمــەیــی</td>
+      <td>True</td>
+    </tr>
+    <tr>
+      <th>46</th>
+      <td>62302397</td>
+      <td>73</td>
+      <td>David Ionescu</td>
+      <td>97</td>
+      <td>247</td>
+      <td>97</td>
+      <td>1066</td>
+      <td>7415805</td>
+      <td>SlotMeOut</td>
+      <td>True</td>
+    </tr>
+    <tr>
+      <th>47</th>
+      <td>5086911</td>
+      <td>81</td>
+      <td>Rafael Mathisen</td>
+      <td>97</td>
+      <td>494</td>
+      <td>98</td>
+      <td>1066</td>
+      <td>806467</td>
+      <td>FK Matfisen</td>
+      <td>True</td>
+    </tr>
+    <tr>
+      <th>48</th>
+      <td>7864092</td>
+      <td>68</td>
+      <td>Craig Davis</td>
+      <td>97</td>
+      <td>151</td>
+      <td>99</td>
+      <td>1066</td>
+      <td>1233020</td>
+      <td>Memyselfandi</td>
+      <td>True</td>
+    </tr>
+    <tr>
+      <th>49</th>
+      <td>2472461</td>
+      <td>55</td>
+      <td>Thomas Lawlor</td>
+      <td>100</td>
+      <td>46</td>
+      <td>100</td>
+      <td>1066</td>
+      <td>395942</td>
+      <td>T90 LWR</td>
+      <td>True</td>
+    </tr>
+  </tbody>
+</table>
+</div></div>
+</div>
+</section>
+<section id="Fetch-a-team's-player-picks-by-gameweek">
+<h2>Fetch a team’s player picks by gameweek<a class="headerlink" href="#Fetch-a-team's-player-picks-by-gameweek" title="Link to this heading"><span>#</span></a></h2>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[11]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">team_id</span> <span class="o">=</span> <span class="mi">4975559</span>
+<span class="n">pb</span><span class="o">.</span><span class="n">fpl</span><span class="o">.</span><span class="n">get_entry_picks_by_gameweek</span><span class="p">(</span><span class="n">team_id</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[11]:
+</pre></div>
+</div>
+<div class="output_area rendered_html docutils container">
+<div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>team_id</th>
+      <th>active_chip</th>
+      <th>event</th>
+      <th>points</th>
+      <th>total_points</th>
+      <th>rank</th>
+      <th>rank_sort</th>
+      <th>overall_rank</th>
+      <th>value</th>
+      <th>bank</th>
+      <th>...</th>
+      <th>player_pick_7</th>
+      <th>player_pick_8</th>
+      <th>player_pick_9</th>
+      <th>player_pick_10</th>
+      <th>player_pick_11</th>
+      <th>player_pick_12</th>
+      <th>player_pick_13</th>
+      <th>player_pick_14</th>
+      <th>captain_id</th>
+      <th>is_vice_captain</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>0</th>
+      <td>4975559</td>
+      <td>None</td>
+      <td>1</td>
+      <td>55</td>
+      <td>55</td>
+      <td>4895408</td>
+      <td>5033649</td>
+      <td>4895408</td>
+      <td>100.0</td>
+      <td>7.5</td>
+      <td>...</td>
+      <td>16</td>
+      <td>401</td>
+      <td>58</td>
+      <td>82</td>
+      <td>47</td>
+      <td>520</td>
+      <td>44</td>
+      <td>216</td>
+      <td>401</td>
+      <td>372</td>
+    </tr>
+  </tbody>
+</table>
+<p>1 rows × 34 columns</p>
+</div></div>
+</div>
+<section id="Get-entry's-transfer-history-for-this-season">
+<h3>Get entry’s transfer history for this season<a class="headerlink" href="#Get-entry's-transfer-history-for-this-season" title="Link to this heading"><span>#</span></a></h3>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[12]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">pb</span><span class="o">.</span><span class="n">fpl</span><span class="o">.</span><span class="n">get_entry_transfers</span><span class="p">(</span><span class="n">team_id</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[12]:
+</pre></div>
+</div>
+<div class="output_area rendered_html docutils container">
+<div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>player_id_in</th>
+      <th>player_in_cost</th>
+      <th>player_id_out</th>
+      <th>player_out_cost</th>
+      <th>entry</th>
+      <th>event</th>
+      <th>time</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>0</th>
+      <td>82</td>
+      <td>7.7</td>
+      <td>180</td>
+      <td>7.9</td>
+      <td>4975559</td>
+      <td>11</td>
+      <td>2024-11-08 21:58:38.532929+00:00</td>
+    </tr>
+    <tr>
+      <th>1</th>
+      <td>252</td>
+      <td>5.7</td>
+      <td>220</td>
+      <td>6.0</td>
+      <td>4975559</td>
+      <td>9</td>
+      <td>2024-10-24 19:07:47.537012+00:00</td>
+    </tr>
+    <tr>
+      <th>2</th>
+      <td>180</td>
+      <td>7.9</td>
+      <td>4</td>
+      <td>8.2</td>
+      <td>4975559</td>
+      <td>9</td>
+      <td>2024-10-24 19:07:47.536831+00:00</td>
+    </tr>
+    <tr>
+      <th>3</th>
+      <td>78</td>
+      <td>5.6</td>
+      <td>514</td>
+      <td>7.4</td>
+      <td>4975559</td>
+      <td>9</td>
+      <td>2024-10-24 19:07:47.536620+00:00</td>
+    </tr>
+    <tr>
+      <th>4</th>
+      <td>491</td>
+      <td>6.7</td>
+      <td>398</td>
+      <td>7.3</td>
+      <td>4975559</td>
+      <td>9</td>
+      <td>2024-10-24 19:07:47.536384+00:00</td>
+    </tr>
+    <tr>
+      <th>5</th>
+      <td>99</td>
+      <td>7.6</td>
+      <td>317</td>
+      <td>7.4</td>
+      <td>4975559</td>
+      <td>9</td>
+      <td>2024-10-24 19:07:47.536209+00:00</td>
+    </tr>
+    <tr>
+      <th>6</th>
+      <td>182</td>
+      <td>10.9</td>
+      <td>19</td>
+      <td>5.6</td>
+      <td>4975559</td>
+      <td>9</td>
+      <td>2024-10-24 19:07:47.536018+00:00</td>
+    </tr>
+    <tr>
+      <th>7</th>
+      <td>88</td>
+      <td>4.5</td>
+      <td>422</td>
+      <td>4.5</td>
+      <td>4975559</td>
+      <td>9</td>
+      <td>2024-10-24 19:07:47.535831+00:00</td>
+    </tr>
+    <tr>
+      <th>8</th>
+      <td>162</td>
+      <td>4.6</td>
+      <td>369</td>
+      <td>5.0</td>
+      <td>4975559</td>
+      <td>9</td>
+      <td>2024-10-24 19:07:47.535638+00:00</td>
+    </tr>
+    <tr>
+      <th>9</th>
+      <td>573</td>
+      <td>4.5</td>
+      <td>44</td>
+      <td>4.5</td>
+      <td>4975559</td>
+      <td>9</td>
+      <td>2024-10-24 19:07:47.535371+00:00</td>
+    </tr>
+    <tr>
+      <th>10</th>
+      <td>145</td>
+      <td>4.5</td>
+      <td>18</td>
+      <td>6.0</td>
+      <td>4975559</td>
+      <td>9</td>
+      <td>2024-10-24 19:07:47.535179+00:00</td>
+    </tr>
+    <tr>
+      <th>11</th>
+      <td>152</td>
+      <td>4.5</td>
+      <td>413</td>
+      <td>5.0</td>
+      <td>4975559</td>
+      <td>9</td>
+      <td>2024-10-24 19:07:47.534961+00:00</td>
+    </tr>
+    <tr>
+      <th>12</th>
+      <td>235</td>
+      <td>4.8</td>
+      <td>47</td>
+      <td>5.0</td>
+      <td>4975559</td>
+      <td>9</td>
+      <td>2024-10-24 19:07:47.534506+00:00</td>
+    </tr>
+    <tr>
+      <th>13</th>
+      <td>422</td>
+      <td>4.5</td>
+      <td>520</td>
+      <td>4.4</td>
+      <td>4975559</td>
+      <td>8</td>
+      <td>2024-10-18 07:13:38.487428+00:00</td>
+    </tr>
+    <tr>
+      <th>14</th>
+      <td>4</td>
+      <td>8.2</td>
+      <td>82</td>
+      <td>7.5</td>
+      <td>4975559</td>
+      <td>7</td>
+      <td>2024-10-04 18:12:04.665563+00:00</td>
+    </tr>
+    <tr>
+      <th>15</th>
+      <td>82</td>
+      <td>7.5</td>
+      <td>401</td>
+      <td>8.3</td>
+      <td>4975559</td>
+      <td>6</td>
+      <td>2024-09-28 06:41:03.727840+00:00</td>
+    </tr>
+    <tr>
+      <th>16</th>
+      <td>220</td>
+      <td>6.0</td>
+      <td>129</td>
+      <td>5.6</td>
+      <td>4975559</td>
+      <td>6</td>
+      <td>2024-09-28 06:41:03.721162+00:00</td>
+    </tr>
+    <tr>
+      <th>17</th>
+      <td>514</td>
+      <td>7.5</td>
+      <td>342</td>
+      <td>6.6</td>
+      <td>4975559</td>
+      <td>5</td>
+      <td>2024-09-20 17:50:08.943188+00:00</td>
+    </tr>
+    <tr>
+      <th>18</th>
+      <td>327</td>
+      <td>7.7</td>
+      <td>136</td>
+      <td>6.6</td>
+      <td>4975559</td>
+      <td>4</td>
+      <td>2024-09-14 09:54:52.300593+00:00</td>
+    </tr>
+    <tr>
+      <th>19</th>
+      <td>129</td>
+      <td>5.7</td>
+      <td>82</td>
+      <td>7.5</td>
+      <td>4975559</td>
+      <td>4</td>
+      <td>2024-09-13 16:21:03.307871+00:00</td>
+    </tr>
+    <tr>
+      <th>20</th>
+      <td>136</td>
+      <td>6.6</td>
+      <td>16</td>
+      <td>6.4</td>
+      <td>4975559</td>
+      <td>4</td>
+      <td>2024-09-13 16:21:03.299689+00:00</td>
+    </tr>
+    <tr>
+      <th>21</th>
+      <td>19</td>
+      <td>5.6</td>
+      <td>216</td>
+      <td>5.0</td>
+      <td>4975559</td>
+      <td>3</td>
+      <td>2024-08-31 08:32:51.029245+00:00</td>
+    </tr>
+    <tr>
+      <th>22</th>
+      <td>351</td>
+      <td>15.0</td>
+      <td>58</td>
+      <td>9.0</td>
+      <td>4975559</td>
+      <td>2</td>
+      <td>2024-08-24 08:46:07.977426+00:00</td>
+    </tr>
+    <tr>
+      <th>23</th>
+      <td>342</td>
+      <td>6.6</td>
+      <td>372</td>
+      <td>6.5</td>
+      <td>4975559</td>
+      <td>2</td>
+      <td>2024-08-24 08:46:07.973476+00:00</td>
+    </tr>
+  </tbody>
+</table>
+</div></div>
+</div>
+</section>
+<section id="Get-optimal-fantasy-football-squad-for-a-budget-of-£100m">
+<h3>Get optimal fantasy football squad for a budget of £100m<a class="headerlink" href="#Get-optimal-fantasy-football-squad-for-a-budget-of-£100m" title="Link to this heading"><span>#</span></a></h3>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[13]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">optimiser_results</span><span class="p">,</span> <span class="n">team</span> <span class="o">=</span> <span class="n">pb</span><span class="o">.</span><span class="n">fpl</span><span class="o">.</span><span class="n">optimise_team</span><span class="p">(</span><span class="n">budget</span><span class="o">=</span><span class="mi">100</span><span class="p">)</span>
+
+<span class="n">optimiser_results</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[13]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+{&#39;status&#39;: &#39;Optimal&#39;, &#39;total_points&#39;: 1170.0, &#39;total_price&#39;: np.float64(99.6)}
+</pre></div></div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[14]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">team</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[14]:
+</pre></div>
+</div>
+<div class="output_area rendered_html docutils container">
+<div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>id</th>
+      <th>full_name</th>
+      <th>team</th>
+      <th>position</th>
+      <th>price</th>
+      <th>total_points</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>0</th>
+      <td>383</td>
+      <td>André Onana</td>
+      <td>MUN</td>
+      <td>GKP</td>
+      <td>5.2</td>
+      <td>65</td>
+    </tr>
+    <tr>
+      <th>1</th>
+      <td>443</td>
+      <td>Matz Sels</td>
+      <td>NFO</td>
+      <td>GKP</td>
+      <td>4.7</td>
+      <td>62</td>
+    </tr>
+    <tr>
+      <th>2</th>
+      <td>339</td>
+      <td>Virgil van Dijk</td>
+      <td>LIV</td>
+      <td>DEF</td>
+      <td>6.4</td>
+      <td>64</td>
+    </tr>
+    <tr>
+      <th>3</th>
+      <td>3</td>
+      <td>Gabriel dos Santos Magalhães</td>
+      <td>ARS</td>
+      <td>DEF</td>
+      <td>6.2</td>
+      <td>60</td>
+    </tr>
+    <tr>
+      <th>4</th>
+      <td>422</td>
+      <td>Ola Aina</td>
+      <td>NFO</td>
+      <td>DEF</td>
+      <td>4.9</td>
+      <td>58</td>
+    </tr>
+    <tr>
+      <th>5</th>
+      <td>238</td>
+      <td>Ashley Young</td>
+      <td>EVE</td>
+      <td>DEF</td>
+      <td>4.6</td>
+      <td>57</td>
+    </tr>
+    <tr>
+      <th>6</th>
+      <td>211</td>
+      <td>Daniel Muñoz</td>
+      <td>CRY</td>
+      <td>DEF</td>
+      <td>4.7</td>
+      <td>50</td>
+    </tr>
+    <tr>
+      <th>7</th>
+      <td>328</td>
+      <td>Mohamed Salah</td>
+      <td>LIV</td>
+      <td>MID</td>
+      <td>13.3</td>
+      <td>151</td>
+    </tr>
+    <tr>
+      <th>8</th>
+      <td>182</td>
+      <td>Cole Palmer</td>
+      <td>CHE</td>
+      <td>MID</td>
+      <td>11.1</td>
+      <td>125</td>
+    </tr>
+    <tr>
+      <th>9</th>
+      <td>99</td>
+      <td>Bryan Mbeumo</td>
+      <td>BRE</td>
+      <td>MID</td>
+      <td>7.6</td>
+      <td>96</td>
+    </tr>
+    <tr>
+      <th>10</th>
+      <td>247</td>
+      <td>Alex Iwobi</td>
+      <td>FUL</td>
+      <td>MID</td>
+      <td>5.7</td>
+      <td>76</td>
+    </tr>
+    <tr>
+      <th>11</th>
+      <td>230</td>
+      <td>Dwight McNeil</td>
+      <td>EVE</td>
+      <td>MID</td>
+      <td>5.4</td>
+      <td>65</td>
+    </tr>
+    <tr>
+      <th>12</th>
+      <td>447</td>
+      <td>Chris Wood</td>
+      <td>NFO</td>
+      <td>FWD</td>
+      <td>6.5</td>
+      <td>88</td>
+    </tr>
+    <tr>
+      <th>13</th>
+      <td>541</td>
+      <td>Matheus Santos Carneiro Da Cunha</td>
+      <td>WOL</td>
+      <td>FWD</td>
+      <td>7.1</td>
+      <td>80</td>
+    </tr>
+    <tr>
+      <th>14</th>
+      <td>110</td>
+      <td>Yoane Wissa</td>
+      <td>BRE</td>
+      <td>FWD</td>
+      <td>6.2</td>
+      <td>73</td>
+    </tr>
+  </tbody>
+</table>
+</div></div>
+</div>
+</section>
+<section id="Get-optimal-fantasy-football-first-eleven-if-playing-3-5-2-if-spending-£85m">
+<h3>Get optimal fantasy football first eleven if playing 3-5-2 if spending £85m<a class="headerlink" href="#Get-optimal-fantasy-football-first-eleven-if-playing-3-5-2-if-spending-£85m" title="Link to this heading"><span>#</span></a></h3>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[15]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">optimiser_results</span><span class="p">,</span> <span class="n">team</span> <span class="o">=</span> <span class="n">pb</span><span class="o">.</span><span class="n">fpl</span><span class="o">.</span><span class="n">optimise_team</span><span class="p">(</span><span class="n">formation</span><span class="o">=</span><span class="s2">&quot;1-3-5-2&quot;</span><span class="p">,</span> <span class="n">budget</span><span class="o">=</span><span class="mi">85</span><span class="p">)</span>
+
+<span class="n">optimiser_results</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[15]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+{&#39;status&#39;: &#39;Optimal&#39;, &#39;total_points&#39;: 966.0, &#39;total_price&#39;: np.float64(84.5)}
+</pre></div></div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[16]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">team</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[16]:
+</pre></div>
+</div>
+<div class="output_area rendered_html docutils container">
+<div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>id</th>
+      <th>full_name</th>
+      <th>team</th>
+      <th>position</th>
+      <th>price</th>
+      <th>total_points</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>0</th>
+      <td>383</td>
+      <td>André Onana</td>
+      <td>MUN</td>
+      <td>GKP</td>
+      <td>5.2</td>
+      <td>65</td>
+    </tr>
+    <tr>
+      <th>1</th>
+      <td>339</td>
+      <td>Virgil van Dijk</td>
+      <td>LIV</td>
+      <td>DEF</td>
+      <td>6.4</td>
+      <td>64</td>
+    </tr>
+    <tr>
+      <th>2</th>
+      <td>3</td>
+      <td>Gabriel dos Santos Magalhães</td>
+      <td>ARS</td>
+      <td>DEF</td>
+      <td>6.2</td>
+      <td>60</td>
+    </tr>
+    <tr>
+      <th>3</th>
+      <td>422</td>
+      <td>Ola Aina</td>
+      <td>NFO</td>
+      <td>DEF</td>
+      <td>4.9</td>
+      <td>58</td>
+    </tr>
+    <tr>
+      <th>4</th>
+      <td>328</td>
+      <td>Mohamed Salah</td>
+      <td>LIV</td>
+      <td>MID</td>
+      <td>13.3</td>
+      <td>151</td>
+    </tr>
+    <tr>
+      <th>5</th>
+      <td>182</td>
+      <td>Cole Palmer</td>
+      <td>CHE</td>
+      <td>MID</td>
+      <td>11.1</td>
+      <td>125</td>
+    </tr>
+    <tr>
+      <th>6</th>
+      <td>17</td>
+      <td>Bukayo Saka</td>
+      <td>ARS</td>
+      <td>MID</td>
+      <td>10.5</td>
+      <td>103</td>
+    </tr>
+    <tr>
+      <th>7</th>
+      <td>99</td>
+      <td>Bryan Mbeumo</td>
+      <td>BRE</td>
+      <td>MID</td>
+      <td>7.6</td>
+      <td>96</td>
+    </tr>
+    <tr>
+      <th>8</th>
+      <td>247</td>
+      <td>Alex Iwobi</td>
+      <td>FUL</td>
+      <td>MID</td>
+      <td>5.7</td>
+      <td>76</td>
+    </tr>
+    <tr>
+      <th>9</th>
+      <td>447</td>
+      <td>Chris Wood</td>
+      <td>NFO</td>
+      <td>FWD</td>
+      <td>6.5</td>
+      <td>88</td>
+    </tr>
+    <tr>
+      <th>10</th>
+      <td>541</td>
+      <td>Matheus Santos Carneiro Da Cunha</td>
+      <td>WOL</td>
+      <td>FWD</td>
+      <td>7.1</td>
+      <td>80</td>
+    </tr>
+  </tbody>
+</table>
+</div></div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>
+</pre></div>
+</div>
+</div>
+</section>
+</section>
+</section>
+
+
+                </article>
+
+
+
+
+
+                <footer class="prev-next-footer d-print-none">
+
+<div class="prev-next-area">
+    <a class="left-prev"
+       href="index.html"
+       title="previous page">
+      <i class="fa-solid fa-angle-left"></i>
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">previous</p>
+        <p class="prev-next-title">Fantasy Premier League</p>
+      </div>
+    </a>
+    <a class="right-next"
+       href="../implied/index.html"
+       title="next page">
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">next</p>
+        <p class="prev-next-title">Implied Odds</p>
+      </div>
+      <i class="fa-solid fa-angle-right"></i>
+    </a>
+</div>
+                </footer>
+
+            </div>
+
+
+
+                <dialog id="pst-secondary-sidebar-modal"></dialog>
+                <div id="pst-secondary-sidebar" class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
+
+
+  <div class="sidebar-secondary-item">
+<div
+    id="pst-page-navigation-heading-2"
+    class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> On this page
+  </div>
+  <nav class="bd-toc-nav page-toc" aria-labelledby="pst-page-navigation-heading-2">
+    <ul class="visible nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#Get-the-current-active-gameweek-number">Get the current active gameweek number</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#Get-the-weekly-events">Get the weekly events</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#Get-Player-Name-to-ID-mappings">Get Player Name to ID mappings</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#Get-the-player-data">Get the player data</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#Let's-extract-the-data-for-Oleksandr-Zinchenko-from-the-data-frame">Let’s extract the data for Oleksandr Zinchenko from the data frame</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#Now-extract-the-data-about-goalkeepers">Now extract the data about goalkeepers</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#Get-Zinchenko's-history-by-week-for-current-season">Get Zinchenko’s history by week for current season</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#Fetch-the-current-top-50-ranked-FPL-teams">Fetch the current top 50 ranked FPL teams</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#Fetch-the-FPL-teams-ranked-51-100">Fetch the FPL teams ranked 51-100</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#Fetch-a-team's-player-picks-by-gameweek">Fetch a team’s player picks by gameweek</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#Get-entry's-transfer-history-for-this-season">Get entry’s transfer history for this season</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#Get-optimal-fantasy-football-squad-for-a-budget-of-£100m">Get optimal fantasy football squad for a budget of £100m</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#Get-optimal-fantasy-football-first-eleven-if-playing-3-5-2-if-spending-£85m">Get optimal fantasy football first eleven if playing 3-5-2 if spending £85m</a></li>
+</ul>
+</li>
+</ul>
+  </nav></div>
+
+  <div class="sidebar-secondary-item">
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="../_sources/fpl/fpl.ipynb.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div></div>
+
+</div></div>
+
+
+          </div>
+          <footer class="bd-footer-content">
+
+          </footer>
+
+      </main>
+    </div>
+  </div>
+
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf"></script>
+<script defer src="../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+
+    <div class="footer-items__start">
+
+        <div class="footer-item">
+
+  <p class="copyright">
+
+      © Copyright 2025, Martin Eastwood.
+      <br/>
+
+  </p>
+</div>
+
+        <div class="footer-item">
+
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 8.1.3.
+    <br/>
+  </p>
+</div>
+
+    </div>
+
+
+
+    <div class="footer-items__end">
+
+        <div class="footer-item">
+<p class="theme-version">
+  <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.16.1.
+</p></div>
+
+    </div>
+
+</div>
+
+  </footer>
+  </body>
+</html>
