@@ -13,8 +13,8 @@ v1.1.0 (2025-03-15)
 Performance Enhancements
 ------------------------
 
-- Rewrote Dixon-Coles model using Cython, achieving approximately 450x speed improvement.
-- Rewrote Poisson model using Cython, achieving approximately 450x speed improvement.
+- Rewrote Dixon-Coles model using Cython, achieving approximately 250x speed improvement.
+- Rewrote Poisson model using Cython, achieving approximately 250x speed improvement.
 - Implemented Negative Binomial Goals Model in Cython for enhanced performance.
 - Added high-performance Cython implementation of the Bivariate Poisson Goals Model based on Karlis & Ntzoufras.
 - Introduced Cython implementation of the Bivariate Weibull Count Copula Goals Model (`Boshnakov et al. paper <https://blogs.salford.ac.uk/business-school/wp-content/uploads/sites/7/2016/09/paper.pdf>`_).
