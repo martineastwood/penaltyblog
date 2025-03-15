@@ -93,3 +93,12 @@ jobs:
           pip install twine check-wheel-contents
           twine check dist/*
           check-wheel-contents dist/*.whl
+
+      - name: Publish package to TestPyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          repository-url: https://test.pypi.org/legacy/  # Target TestPyPI instead of PyPI
+
+
+      # - name: Publish package to PyPI
+      #   uses: pypa/gh-action-pypi-publish@release/v1
