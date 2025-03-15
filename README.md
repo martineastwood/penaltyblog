@@ -49,12 +49,12 @@ pip install penaltyblog
 
 ## Documentation
 
-Learn more about how to utilize `penaltyblog` by exploring the [official documentation](https://penaltyblog.readthedocs.io/en/stable/) and detailed examples:
+Learn more about how to utilize `penaltyblog` by exploring the [official documentation](https://penaltyblog.readthedocs.io/en/master/index.html) and detailed examples:
 
-- [Scraping football data](https://penaltyblog.readthedocs.io/en/stable/scrapers/index.html)
-- [Predicting football matches and betting markets](https://penaltyblog.readthedocs.io/en/stable/models/index.html)
-- [Estimating implied odds from bookmaker prices](https://penaltyblog.readthedocs.io/en/stable/implied/index.html)
-- [Calculating Massey, Colley, and Elo ratings](https://penaltyblog.readthedocs.io/en/stable/ratings/index.html)
+- [Scraping football data](https://penaltyblog.readthedocs.io/en/master/scrapers/index.html)
+- [Predicting football matches and betting markets](https://penaltyblog.readthedocs.io/en/master/models/index.html)
+- [Estimating implied odds from bookmaker prices](https://penaltyblog.readthedocs.io/en/master/implied/index.html)
+- [Calculating Massey, Colley, and Elo ratings](https://penaltyblog.readthedocs.io/en/master/ratings/index.html)
 
 ## References
 
