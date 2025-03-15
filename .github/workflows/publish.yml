@@ -1,16 +1,13 @@
-name: Test Build and Publish
+name: Build Wheels
 
 on:
   workflow_dispatch:
-  # pull_request:
-  #   branches: [main, master]
 
 jobs:
   build_wheels:
     strategy:
       matrix:
-        os: [ubuntu-latest]
-        # os: [ubuntu-latest, windows-latest, macos-latest, macos-14-arm64]
+        os: [ubuntu-latest, ubuntu-24.04-arm, windows-latest, macos-latest, macos-13]
     runs-on: ${{ matrix.os }}
     steps:
       - name: Checkout repository
@@ -19,7 +16,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: "3.10"
+          python-version: "3.x"
 
       - name: Upgrade pip and install cibuildwheel
         run: |
@@ -28,17 +25,16 @@ jobs:
 
       - name: Install dependencies with pre-built wheels
         run: |
-          pip install numpy pandas
-          pip install -r requirements.txt
+          pip install --only-binary=:all: numpy pandas
 
       - name: Build wheels
         run: cibuildwheel --output-dir wheelhouse .
 
-      - name: Upload wheels as artifacts
-        uses: actions/upload-artifact@v3
+      - name: Upload built wheels
+        uses: actions/upload-artifact@v4
         with:
           name: wheels-${{ matrix.os }}
-          path: ./wheelhouse/*.whl
+          path: wheelhouse/*.whl
 
   build_sdist:
     runs-on: ubuntu-latest
@@ -49,7 +45,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: "3.10"
+          python-version: "3.x"
 
       - name: Install build
         run: |
@@ -60,19 +56,27 @@ jobs:
         run: python -m build --sdist
 
       - name: Upload sdist artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: sdist
           path: dist/*.tar.gz
 
-  verify_wheels:
+  publish_wheels:
     needs: [build_wheels, build_sdist]
     runs-on: ubuntu-latest
+    permissions:
+      id-token: write
     steps:
-      - name: Download all artifacts
-        uses: actions/download-artifact@v3
+      - name: Download wheel artifacts
+        uses: actions/download-artifact@v4
         with:
-          path: dist-artifacts
+          path: dist-artifacts/wheels
+
+      - name: Download sdist artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: sdist
+          path: dist-artifacts/sdist
 
       - name: Prepare distribution files
         run: |
@@ -92,37 +96,7 @@ jobs:
           twine check dist/*
           check-wheel-contents dist/*.whl
 
-      - name: Test package installation and imports
-        run: |
-          # Create test environments for each wheel
-          python -m pip install virtualenv
-
-          # Find all wheels
-          for wheel in dist/*.whl; do
-            echo "Testing $wheel"
-            # Create a new environment for each wheel
-            python -m virtualenv test-env
-            source test-env/bin/activate
-
-            # Install the wheel
-            pip install $wheel
-
-            # Try importing your package - replace 'your_package_name' with your actual package name
-            python -c "import your_package_name; print(your_package_name.__version__)"
-
-            # Deactivate and remove the environment
-            deactivate
-            rm -rf test-env
-          done
-
-      # Optional: Publish to TestPyPI
-      # - name: Publish to TestPyPI
-      #   uses: pypa/gh-action-pypi-publish@release/v1
-      #   with:
-      #     repository-url: https://test.pypi.org/legacy/
-      #     packages-dir: dist/
-      #     skip-existing: true
-      #     # Use trusted publisher instead of password if possible
-      #     permissions:
-      #       id-token: write
-      #
+      - name: Publish package to Pypi
+        uses: pypa/gh-action-pypi-publish@release/v1
+        # with:
+        #   repository-url: https://test.pypi.org/legacy/  # Target TestPyPI instead of PyPI

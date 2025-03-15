@@ -64,6 +64,8 @@ jobs:
   publish_wheels:
     needs: [build_wheels, build_sdist]
     runs-on: ubuntu-latest
+    permissions:
+      id-token: write
     steps:
       - name: Download wheel artifacts
         uses: actions/download-artifact@v4
@@ -94,7 +96,7 @@ jobs:
           twine check dist/*
           check-wheel-contents dist/*.whl
 
-      - name: Publish package to TestPyPI
+      - name: Publish package to Pypi
         uses: pypa/gh-action-pypi-publish@release/v1
         # with:
         #   repository-url: https://test.pypi.org/legacy/  # Target TestPyPI instead of PyPI
