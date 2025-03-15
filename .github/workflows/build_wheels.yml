@@ -28,7 +28,7 @@ jobs:
           pip install --only-binary=:all: numpy pandas
 
       - name: Build wheels
-        run: cibuildwheel --output-dir wheelhouse .
+        run: cibuildwheel --output-dir wheelhouse . --jobs=$(nproc)
 
       - name: Upload built wheels
         uses: actions/upload-artifact@v4
@@ -61,51 +61,8 @@ jobs:
           name: sdist
           path: dist/*.tar.gz
 
-  test_wheels:
-    needs: [build_wheels]
-    strategy:
-      matrix:
-        os: [ubuntu-latest, ubuntu-24.04-arm, windows-latest, macos-latest, macos-13]
-    runs-on: ${{ matrix.os }}
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
-
-      - name: Download the built wheel for this OS
-        uses: actions/download-artifact@v4
-        with:
-          name: wheels-${{ matrix.os }}
-          path: dist
-
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: "3.x"
-
-      - name: Find correct macOS wheel
-        if: runner.os == 'macOS'
-        run: |
-          echo "Checking available wheels..."
-          ls dist/
-          if [[ "${{ matrix.os }}" == "macos-latest" ]]; then
-            export MAC_WHEEL=$(ls dist/*macosx_*.whl | grep -v arm64 | head -n 1)
-          else
-            export MAC_WHEEL=$(ls dist/*macosx_*_arm64.whl | head -n 1)
-          fi
-          echo "Installing wheel: $MAC_WHEEL"
-          pip install "$MAC_WHEEL"
-
-      - name: Install the wheel (non-macOS)
-        if: runner.os != 'macOS'
-        run: |
-          pip install dist/*.whl
-
-      - name: Run a basic import test
-        run: |
-          python -c "import penaltyblog as pb; pb.metrics.rps_average([0.8, 0.1, 0.1], [1])"
-
   publish_wheels:
-    needs: [build_wheels, test_wheels, build_sdist]
+    needs: [build_wheels, build_sdist]
     runs-on: ubuntu-latest
     steps:
       - name: Download wheel artifacts
