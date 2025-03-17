@@ -17,6 +17,7 @@ sys.path.insert(0, os.path.abspath(".."))
 sys.path.insert(0, os.path.abspath("../penaltyblog"))
 # sys.setrecursionlimit(1500)
 
+html_baseurl = "/y"
 
 # -- Project information -----------------------------------------------------
 
