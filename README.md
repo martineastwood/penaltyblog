@@ -56,16 +56,23 @@ Learn more about how to utilize `penaltyblog` by exploring the [official documen
 - [Estimating implied odds from bookmaker prices](http://docs.pena.lt/y/implied/index.html)
 - [Calculating Massey, Colley, and Elo ratings](http://docs.pena.lt/y/ratings/index.html)
 
-## References
 
-- Baio, Gianluca, and Marta A. Blangiardo (2010). *Bayesian Hierarchical Model for the Prediction of Football Results*.
-- *A bivariate Weibull count model for forecasting association football scores*
-- Boshnakov, Georgi, Tarak Kharrat, and Ian G. McHale (2017). A bivariate Weibull count model for forecasting association football scores.
-- Buchdahl, Joseph (2015). *The Wisdom of the Crowd*.
-- Constantinou, Anthony C., and Norman E. Fenton (2012). *Solving the problem of inadequate scoring rules for assessing probabilistic football forecast models*.
-- Constantinou, Anthony C., and Norman E. Fenton (2013). *Determining the level of ability of football teams by dynamic ratings based on the relative discrepancies in scores between adversaries*.
-- Dixon, Mark J., and Stuart G. Coles (1997). *Modelling Association Football Scores and Inefficiencies in the Football Betting Market*.
-- Karlis, Dimitris, and Ioannis Ntzoufras (2003). *Analysis of Sports Data by Using Bivariate Poisson Models*.
-- Rue, Håvard, and Øyvind Salvesen (1999). *Prediction and Retrospective Analysis of Soccer Matches in a League*.
-- Shin, Hyun Song (1992). *Prices of State Contingent Claims with Insider Traders, and the Favourite-Longshot Bias*.
-- Shin, Hyun Song (1993). *Measuring the Incidence of Insider Trading in a Market for State-Contingent Claims*.
+## Why Penaltyblog?
+
+Unlike many football analytics resources that are academic, one-off, or hard to scale, `penaltyblog` is designed from the ground up to be **production-ready**, **performance-optimized**, and **practically useful**.
+
+It combines advanced statistical models, efficient implementations (via **Cython**), and real-world workflows — from scraping public data to modelling outcomes and optimising fantasy teams.
+
+Built by [Martin Eastwood](https://pena.lt/y/about), who has worked with football clubs, governing bodies, and player agencies worldwide, `penaltyblog` is more than a toolkit — it’s a foundation for real decision-making in football analytics.
+
+Whether you're a club analyst, independent researcher, or just data-curious, `penaltyblog` gives you the tools to go from data to insight — fast, flexibly, and with confidence.
+
+## Support & Collaboration
+
+If you're working at a football club, agency, or organisation and want help applying these tools to your own data or workflows, I'm open to:
+
+- 📂 Integration support
+- 🔧 Custom model development
+- 🧠 Technical collaboration on football analytics projects
+
+➡️ Get in touch [here](https://pena.lt/y/contact)
