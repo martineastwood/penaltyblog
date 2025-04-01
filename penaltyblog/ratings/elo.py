@@ -6,6 +6,8 @@ Calculates the Elo ratings for a group of teams.
 
 from typing import Dict, Tuple
 
+import numpy as np
+
 
 class Elo:
     """Used to calculate ELO ratings for a group of players"""
@@ -32,6 +34,18 @@ class Elo:
         r_b = self.ratings[p_b]
         e_a = 1 / (1 + 10 ** ((r_b - r_a) / 400))
         return e_a, 1 - e_a
+
+    def expected_results_with_draw(
+        self, p_a: str, p_b: str, draw_base: float = 0.3, draw_width: float = 200
+    ) -> Tuple[float, float, float]:
+        """Calculate expected win probabilities for both players, including draw"""
+        r_a = self.ratings[p_a]
+        r_b = self.ratings[p_b]
+        elo_diff = r_a - r_b
+        P_draw = draw_base * np.exp(-(elo_diff**2) / (2 * draw_width**2))
+        P_home_win = 1 - P_draw
+        P_away_win = 1 - P_draw
+        return P_home_win, P_away_win, P_draw
 
     def update_ratings(self, p_a: str, p_b: str, outcome: int) -> None:
         """Update ratings based on game outcome (0: p_a wins, 1: p_b wins)"""
