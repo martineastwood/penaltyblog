@@ -106,6 +106,7 @@ class PiRatingSystem:
             return (
                 self.team_ratings[team]["home"] + self.team_ratings[team]["away"]
             ) / 2
+        self.initialize_team(team)
         return 0.0
 
     def calculate_match_probabilities(self, home_team: str, away_team: str) -> dict:
