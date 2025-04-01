@@ -46,8 +46,8 @@ class PiRatingSystem:
 
     def expected_goal_difference(self, home_team: str, away_team: str) -> float:
         """Calculate the expected goal difference based on current ratings."""
-        home_rating = self.team_ratings[home_team]["home"]
-        away_rating = self.team_ratings[away_team]["away"]
+        home_rating = self.get_team_rating(home_team, "home")
+        away_rating = self.get_team_rating(away_team, "away")
         return home_rating - away_rating
 
     def diminishing_error(self, error: float) -> float:

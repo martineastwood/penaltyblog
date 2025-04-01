@@ -10,7 +10,9 @@ import numpy as np
 
 
 class Elo:
-    """Used to calculate ELO ratings for a group of players"""
+    """
+    Used to calculate ELO ratings for a group of players
+    """
 
     def __init__(self, k: int = 32):
         self.k = k
