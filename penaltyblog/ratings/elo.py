@@ -1,3 +1,5 @@
+"""Football Elo Ratings System"""
+
 from typing import Dict, Tuple
 
 import numpy as np
@@ -5,7 +7,8 @@ import numpy as np
 
 class Elo:
     """
-    Elo rating system implementation.
+    Elo rating system implementation updated for football matches by including
+    home field advantage and draw probability.
     """
 
     def __init__(self, k: float = 20.0, home_field_advantage: float = 100.0):
@@ -20,7 +23,7 @@ class Elo:
         self.hfa = home_field_advantage
         self.ratings: Dict[str, float] = {}
 
-    def get_rating(self, team: str) -> float:
+    def get_player_rating(self, team: str) -> float:
         """
         Get the Elo rating for a team.
         Args:
@@ -32,7 +35,7 @@ class Elo:
             self.ratings[team] = 1500.0
         return self.ratings[team]
 
-    def expected_score(self, home: str, away: str) -> float:
+    def home_win_probability(self, home: str, away: str) -> float:
         """
         Calculate the expected score for a match between two teams.
         Args:
@@ -45,7 +48,7 @@ class Elo:
         r_away = self.get_rating(away)
         return 1 / (1 + 10 ** ((r_away - r_home) / 400))
 
-    def predict_match_outcome_probs(
+    def calculate_match_probabilities(
         self,
         home: str,
         away: str,
