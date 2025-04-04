@@ -114,7 +114,7 @@ class PiRatingSystem:
         if date is not None:
             self.rating_history.append(
                 {
-                    "week": date,
+                    "date": date,
                     "team": home_team,
                     "home_rating": self.team_ratings[home_team]["home"],
                     "away_rating": self.team_ratings[home_team]["away"],
@@ -122,7 +122,7 @@ class PiRatingSystem:
             )
             self.rating_history.append(
                 {
-                    "week": date,
+                    "date": date,
                     "team": away_team,
                     "home_rating": self.team_ratings[away_team]["home"],
                     "away_rating": self.team_ratings[away_team]["away"],
