@@ -75,7 +75,7 @@ class Elo:
 
         # Normalize to sum to 1
         z = p_home + p_away + p_draw
-        return p_home / z, p_draw / z, p_away / z
+        return {"home_win": p_home / z, "draw": p_draw / z, "away_win": p_away / z}
 
     def update_ratings(self, home: str, away: str, result: int) -> None:
         """
