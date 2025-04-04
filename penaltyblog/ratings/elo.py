@@ -87,7 +87,7 @@ class Elo:
         Args:
             home (str): Home team name.
             away (str): Away team name.
-            result (int): Match result (2 for home win, 1 for draw, 0 for away win).
+            result (int): Match result (0 for away win, 1 for draw, 2 for home win).
         """
         r_home = self.get_rating(home)
         r_away = self.get_rating(away)
@@ -95,11 +95,11 @@ class Elo:
         expected_home = self.expected_score(home, away)
         expected_away = 1 - expected_home
 
-        if result == 2:  # home win
+        if result == 0:  # home win
             actual_home, actual_away = 1.0, 0.0
         elif result == 1:  # draw
             actual_home, actual_away = 0.5, 0.5
-        elif result == 0:  # away win
+        elif result == 2:  # away win
             actual_home, actual_away = 0.0, 1.0
         else:
             raise ValueError("Invalid result: must be 0, 1, or 2")
