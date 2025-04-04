@@ -1,9 +1,3 @@
-"""
-Elo Rating System
-
-Calculates the Elo ratings for a group of teams.
-"""
-
 from typing import Dict, Tuple
 
 import numpy as np
@@ -11,93 +5,104 @@ import numpy as np
 
 class Elo:
     """
-    Used to calculate ELO ratings for a group of players
+    Elo rating system implementation.
     """
 
-    def __init__(self, k: int = 32):
+    def __init__(self, k: float = 20.0, home_field_advantage: float = 100.0):
+        """
+        Initialize the Elo rating system with default parameters.
+
+        Args:
+            k (float): K-factor for rating updates.
+            home_field_advantage (float): Home field advantage in Elo points.
+        """
         self.k = k
+        self.hfa = home_field_advantage
         self.ratings: Dict[str, float] = {}
 
-    def add_player(self, name: str, rating: float = 1500) -> None:
-        """Add a new player with initial rating"""
-        if name in self.ratings:
-            raise ValueError("Player already exists")
-        self.ratings[name] = rating
-
-    def get_rating(self, name: str) -> float:
+    def get_rating(self, team: str) -> float:
         """
-        Get a player's current rating
-
+        Get the Elo rating for a team.
         Args:
-            name (str): Name of the player
-
+            team (str): Team name.
         Returns:
-            float: Current rating of the player
-
-        Raises:
-            ValueError: If the player is not found
+            float: Elo rating for the team.
         """
-        if name not in self.ratings:
-            raise ValueError("Player not found")
-        return self.ratings[name]
+        if team not in self.ratings:
+            self.ratings[team] = 1500.0
+        return self.ratings[team]
 
-    def expected_results(self, p_a: str, p_b: str) -> Tuple[float, float]:
+    def expected_score(self, home: str, away: str) -> float:
         """
-        Calculate expected win probabilities for both players
-
+        Calculate the expected score for a match between two teams.
         Args:
-            p_a (str): Name of player A
-            p_b (str): Name of player B
-
+            home (str): Home team name.
+            away (str): Away team name.
         Returns:
-            Tuple[float, float]: Probability of player A winning, probability of player B winning
+            float: Expected score for the home team.
         """
-        r_a = self.ratings[p_a]
-        r_b = self.ratings[p_b]
-        e_a = 1 / (1 + 10 ** ((r_b - r_a) / 400))
-        return e_a, 1 - e_a
+        r_home = self.get_rating(home) + self.hfa
+        r_away = self.get_rating(away)
+        return 1 / (1 + 10 ** ((r_away - r_home) / 400))
 
-    def expected_results_with_draw(
-        self, p_a: str, p_b: str, draw_base: float = 0.3, draw_width: float = 200
+    def predict_match_outcome_probs(
+        self,
+        home: str,
+        away: str,
+        draw_base: float = 0.3,
+        draw_width: float = 200.0,
     ) -> Tuple[float, float, float]:
         """
-        Calculate expected win probabilities for both players, including draw
+        Predicts probabilities for home win, draw, away win.
+        Draw probability is modeled as a Gaussian-shaped function around Elo difference.
 
         Args:
-            p_a (str): Name of player A
-            p_b (str): Name of player B
-            draw_base (float, optional): Base probability of draw. Defaults to 0.3.
-            draw_width (float, optional): Width of draw probability curve. Defaults to 200.
+            home (str): Home team name.
+            away (str): Away team name.
+            draw_base (float): Base probability for draw.
+            draw_width (float): Width of Gaussian for draw probability.
 
         Returns:
-            Tuple[float, float, float]: Probability of player A winning, probability of player B winning, probability of draw
+            Tuple[float, float, float]: Probabilities for home win, draw, away win.
         """
-        r_a = self.ratings[p_a]
-        r_b = self.ratings[p_b]
-        elo_diff = r_a - r_b
-        P_draw = draw_base * np.exp(-(elo_diff**2) / (2 * draw_width**2))
-        P_home_win = 1 - P_draw
-        P_away_win = 1 - P_draw
-        return P_home_win, P_away_win, P_draw
+        r_home = self.get_rating(home) + self.hfa
+        r_away = self.get_rating(away)
+        elo_diff = r_home - r_away
 
-    def update_ratings(self, p_a: str, p_b: str, outcome: int) -> None:
+        p_draw = draw_base * np.exp(-(elo_diff**2) / (2 * draw_width**2))
+        p_home = 1 / (1 + 10 ** ((r_away - r_home) / 400))
+        p_away = 1 - p_home
+
+        # Normalize to sum to 1
+        z = p_home + p_away + p_draw
+        return p_home / z, p_draw / z, p_away / z
+
+    def update_ratings(self, home: str, away: str, result: int) -> None:
         """
-        Update ratings based on game outcome (0: p_a wins, 1: p_b wins)
+        Updates Elo ratings based on match result.
+        result = 2 → home win
+        result = 1 → draw
+        result = 0 → away win
 
         Args:
-            p_a (str): Name of player A
-            p_b (str): Name of player B
-            outcome (int): Outcome of the game (0: p_a wins, 1: p_b wins)
-
-        Raises:
-            ValueError: If the outcome is not 0 or 1
+            home (str): Home team name.
+            away (str): Away team name.
+            result (int): Match result (2 for home win, 1 for draw, 0 for away win).
         """
-        if outcome not in (0, 1):
-            raise ValueError("Outcome must be 0 or 1")
+        r_home = self.get_rating(home)
+        r_away = self.get_rating(away)
 
-        e_a, e_b = self.expected_results(p_a, p_b)
-        actual_a = 1 - outcome
-        actual_b = outcome
+        expected_home = self.expected_score(home, away)
+        expected_away = 1 - expected_home
 
-        self.ratings[p_a] += self.k * (actual_a - e_a)
-        self.ratings[p_b] += self.k * (actual_b - e_b)
+        if result == 2:  # home win
+            actual_home, actual_away = 1.0, 0.0
+        elif result == 1:  # draw
+            actual_home, actual_away = 0.5, 0.5
+        elif result == 0:  # away win
+            actual_home, actual_away = 0.0, 1.0
+        else:
+            raise ValueError("Invalid result: must be 0, 1, or 2")
+
+        self.ratings[home] = r_home + self.k * (actual_home - expected_home)
+        self.ratings[away] = r_away + self.k * (actual_away - expected_away)
