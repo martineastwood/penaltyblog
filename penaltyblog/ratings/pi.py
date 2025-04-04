@@ -60,8 +60,15 @@ class PiRatingSystem:
         Returns:
             float: Expected goal difference.
         """
-        home_rating = self.get_team_rating(home_team, "home")
-        away_rating = self.get_team_rating(away_team, "away")
+        if home_team not in self.team_ratings:
+            self.initialize_team(home_team)
+
+        if away_team not in self.team_ratings:
+            self.initialize_team(away_team)
+
+        home_rating = self.team_ratings[home_team]["home"]
+        away_rating = self.team_ratings[away_team]["away"]
+
         return home_rating - away_rating
 
     def diminishing_error(self, error: float) -> float:
