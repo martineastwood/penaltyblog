@@ -23,7 +23,7 @@ class Elo:
         self.hfa = home_field_advantage
         self.ratings: Dict[str, float] = {}
 
-    def get_player_rating(self, team: str) -> float:
+    def get_team_rating(self, team: str) -> float:
         """
         Get the Elo rating for a team.
         Args:
@@ -44,8 +44,8 @@ class Elo:
         Returns:
             float: Expected score for the home team.
         """
-        r_home = self.get_rating(home) + self.hfa
-        r_away = self.get_rating(away)
+        r_home = self.get_team_rating(home) + self.hfa
+        r_away = self.get_team_rating(away)
         return 1 / (1 + 10 ** ((r_away - r_home) / 400))
 
     def calculate_match_probabilities(
@@ -54,7 +54,7 @@ class Elo:
         away: str,
         draw_base: float = 0.3,
         draw_width: float = 200.0,
-    ) -> Tuple[float, float, float]:
+    ) -> Dict[str, float]:
         """
         Predicts probabilities for home win, draw, away win.
         Draw probability is modeled as a Gaussian-shaped function around Elo difference.
@@ -68,8 +68,8 @@ class Elo:
         Returns:
             Tuple[float, float, float]: Probabilities for home win, draw, away win.
         """
-        r_home = self.get_rating(home) + self.hfa
-        r_away = self.get_rating(away)
+        r_home = self.get_team_rating(home) + self.hfa
+        r_away = self.get_team_rating(away)
         elo_diff = r_home - r_away
 
         p_draw = draw_base * np.exp(-(elo_diff**2) / (2 * draw_width**2))
@@ -83,26 +83,26 @@ class Elo:
     def update_ratings(self, home: str, away: str, result: int) -> None:
         """
         Updates Elo ratings based on match result.
-        result = 2 → home win
+        result = 0 → home win
         result = 1 → draw
-        result = 0 → away win
+        result = 2 → away win
 
         Args:
             home (str): Home team name.
             away (str): Away team name.
-            result (int): Match result (0 for away win, 1 for draw, 2 for home win).
+            result (int): Match result (0 for home win, 1 for draw, 2 for away win).
         """
-        r_home = self.get_rating(home)
-        r_away = self.get_rating(away)
+        r_home = self.get_team_rating(home)
+        r_away = self.get_team_rating(away)
 
-        expected_home = self.expected_score(home, away)
+        expected_home = self.home_win_probability(home, away)
         expected_away = 1 - expected_home
 
-        if result == 0:  # home win
+        if result == 0:
             actual_home, actual_away = 1.0, 0.0
-        elif result == 1:  # draw
+        elif result == 1:
             actual_home, actual_away = 0.5, 0.5
-        elif result == 2:  # away win
+        elif result == 2:
             actual_home, actual_away = 0.0, 1.0
         else:
             raise ValueError("Invalid result: must be 0, 1, or 2")

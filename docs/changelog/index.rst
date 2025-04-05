@@ -7,6 +7,18 @@ Version Numbering
 `penaltyblog` follows the SemVer versioning guidelines. For more information,
 see `semver.org <http://semver.org/>`_
 
+v1.2.0 (2025-04-xx)
+^^^^^^^^^^^^^^^^^^^^
+
+Package Updates
+---------------
+
+- Updated Elo Ratings model to be more football-specific so that it now includes home field advantage and can predict draw probabilities
+- Added new Cythonised Ignorance Score metric
+- RPS functions now raise a ValueError exception if outcome is out of bounds
+
+---
+
 v1.1.0 (2025-03-15)
 ^^^^^^^^^^^^^^^^^^^^
 
@@ -18,7 +30,7 @@ Performance Enhancements
 - Implemented Negative Binomial Goals Model in Cython for enhanced performance.
 - Added high-performance Cython implementation of the Bivariate Poisson Goals Model based on Karlis & Ntzoufras.
 - Introduced Cython implementation of the Bivariate Weibull Count Copula Goals Model (`Boshnakov et al. paper <https://blogs.salford.ac.uk/business-school/wp-content/uploads/sites/7/2016/09/paper.pdf>`_).
-- Developed Pi Ratings System (`Constantinou paper <http://www.constantinou.info/downloads/papers/pi-ratings.pdf>`_).
+- Added Pi Ratings System (`Constantinou paper <http://www.constantinou.info/downloads/papers/pi-ratings.pdf>`_).
 - Migrated ranked probability score functions to Cython for improved speed.
 
 Package Updates

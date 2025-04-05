@@ -4,7 +4,6 @@ Ranked Probability Score
 Calculates the Ranked Probability Score (RPS) for a given set of probabilities and outcomes.
 """
 
-import ctypes
 from typing import Union
 
 import numpy as np

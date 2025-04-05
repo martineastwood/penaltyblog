@@ -1,8 +1,40 @@
-# penaltyblog/models/rps.pyx
-import numpy as np
-
+# penaltyblog/models/metrics.pyx
 cimport cython
+import numpy as np
 cimport numpy as np
+from libc.math cimport log2
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
+@cython.nonecheck(False)
+@cython.initializedcheck(False)
+def compute_ignorance_score(np.ndarray[np.int32_t, ndim=1] y_true,
+                    np.ndarray[np.float64_t, ndim=2] y_prob) -> float:
+    """
+    Compute the mean Ignorance Score for a set of probabilistic predictions.
+
+    Parameters:
+        y_true (1D np.ndarray[int]): Actual match results (0 = Home, 1 = Draw, 2 = Away).
+        y_prob (2D np.ndarray[float64]): Predicted probability distributions,
+                                         shape (n_samples, 3).
+
+    Returns:
+        float: Mean ignorance score.
+    """
+    cdef Py_ssize_t i, n = y_true.shape[0]
+    cdef double prob, total = 0.0
+    cdef double epsilon = 1e-15
+
+    for i in range(n):
+        prob = y_prob[i, y_true[i]]
+        if prob < epsilon:
+            prob = epsilon
+        total += log2(prob)
+
+    return -total / n
+
 
 
 @cython.boundscheck(False)
@@ -36,8 +68,7 @@ cpdef void compute_rps_array(np.float64_t[:,:] probs,
     for i in range(nSets):
         outcome = outcomes[i]
         if outcome < 0 or outcome >= nOutcomes:
-            out[i] = 1e6
-            continue
+            raise ValueError("Invalid outcome index")
 
         # Compute cumulative probabilities for row i.
         cumProbs = [0.0] * nOutcomes
@@ -97,8 +128,7 @@ cpdef double compute_average_rps(np.float64_t[:,:] probs,
     for i in range(nSets):
         outcome = outcomes[i]
         if outcome < 0 or outcome >= nOutcomes:
-            sumRPS += 1e6
-            continue
+            raise ValueError("Invalid outcome index")
 
         # Compute cumulative probabilities for row i.
         cumProbs = [0.0] * nOutcomes

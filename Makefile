@@ -5,7 +5,7 @@ test:
 	coverage report -m
 
 test_subset:
-	pytest -v test/test_metrics_rps.py
+	pytest -v test/test_ignorance.py
 
 coverage:
 	coverage run -m pytest
