@@ -1,6 +1,6 @@
 """Football Elo Ratings System"""
 
-from typing import Dict, Tuple
+from typing import Dict
 
 import numpy as np
 

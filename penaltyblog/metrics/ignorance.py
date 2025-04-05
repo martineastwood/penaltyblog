@@ -4,16 +4,16 @@ from numpy.typing import ArrayLike
 from .metrics import compute_ignorance_score
 
 
-def ignorance_score(y_true: ArrayLike, y_prob: ArrayLike) -> float:
+def ignorance_score(y_prob: ArrayLike, y_true: ArrayLike) -> float:
     """
     Calculates ignorance score.
 
     Accepts Python lists or arrays and ensures correct shapes/dtypes.
 
     Args:
-        y_true: 1D array of match results (0 = Home, 1 = Draw, 2 = Away).
         y_prob: 2D array of predicted probability distributions,
                 where each row corresponds to [P(Home), P(Draw), P(Away)].
+        y_true: 1D array of match results (0 = Home, 1 = Draw, 2 = Away).
 
     Returns:
         Ignorance score.

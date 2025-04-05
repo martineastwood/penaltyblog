@@ -14,3 +14,4 @@ By quantifying team performance accurately, these rating systems can significant
    colley_ratings
    elo_ratings
    massey_ratings
+   pi_ratings
