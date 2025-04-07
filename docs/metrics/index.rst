@@ -9,4 +9,5 @@ measuring the performance of football model predictions.
    :caption: Examples:
 
    ignorance_score
+   multiclass_briar
    rps

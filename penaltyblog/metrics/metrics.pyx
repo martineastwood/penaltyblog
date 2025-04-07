@@ -10,6 +10,39 @@ from libc.math cimport log2
 @cython.cdivision(True)
 @cython.nonecheck(False)
 @cython.initializedcheck(False)
+def compute_multiclass_brier_score(np.ndarray[np.int32_t, ndim=1] y_true,
+                                    np.ndarray[np.float64_t, ndim=2] y_prob) -> float:
+    """
+    Compute the multiclass Brier score.
+
+    Parameters:
+        y_true: (n_samples,) array of true class indices
+        y_prob: (n_samples, n_classes) array of predicted probabilities
+
+    Returns:
+        float: mean Brier score
+    """
+    cdef Py_ssize_t i, k
+    cdef Py_ssize_t n_samples = y_true.shape[0]
+    cdef Py_ssize_t n_classes = y_prob.shape[1]
+
+    cdef double score = 0.0
+    cdef double diff
+
+    for i in range(n_samples):
+        for k in range(n_classes):
+            diff = y_prob[i, k] - (1.0 if y_true[i] == k else 0.0)
+            score += diff * diff
+
+    return score / n_samples
+
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
+@cython.nonecheck(False)
+@cython.initializedcheck(False)
 def compute_ignorance_score(np.ndarray[np.int32_t, ndim=1] y_true,
                     np.ndarray[np.float64_t, ndim=2] y_prob) -> float:
     """

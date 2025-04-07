@@ -7,15 +7,26 @@ Version Numbering
 `penaltyblog` follows the SemVer versioning guidelines. For more information,
 see `semver.org <http://semver.org/>`_
 
-v1.2.0 (2025-04-xx)
+
+v1.2.0 (2025-04-06)
 ^^^^^^^^^^^^^^^^^^^^
 
 Package Updates
----------------
+-----------------
 
 - Updated Elo Ratings model to be more football-specific so that it now includes home field advantage and can predict draw probabilities
 - Added new Cythonised Ignorance Score metric
+- Added new Cythonised Multiclass Briar Score metric
 - RPS functions now raise a ValueError exception if outcome is out of bounds
+
+Documentation Improvements
+----------------------------
+
+- Updated Elo documentation
+- Added Pi Ratings documentation
+- Added examples for ignorance score
+- Added examples for multiclass briar score
+- Updated examples for RPS
 
 ---
 
