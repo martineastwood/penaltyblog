@@ -54,7 +54,8 @@ Learn more about how to utilize `penaltyblog` by exploring the [official documen
 - [Scraping football data](https://docs.pena.lt/y/scrapers/index.html)
 - [Predicting football matches and betting markets](https://docs.pena.lt/y/models/index.html)
 - [Estimating implied odds from bookmaker prices](https://docs.pena.lt/y/implied/index.html)
-- [Calculating Massey, Colley, and Elo ratings](https://docs.pena.lt/y/ratings/index.html)
+- [Calculating Massey, Colley, Pi, and Elo ratings](https://docs.pena.lt/y/ratings/index.html)
+- [Calculating metrics such as Ranked Probability Scores](https://docs.pena.lt/y/metrics/index.html)
 
 
 ## Why Penaltyblog?
