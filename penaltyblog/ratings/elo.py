@@ -7,7 +7,7 @@ import numpy as np
 
 class Elo:
     """
-    Elo rating system implementation updated for football matches by including
+    Elo rating system implementation designed for football matches by including
     home field advantage and draw probability.
     """
 
