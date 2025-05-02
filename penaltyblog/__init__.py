@@ -7,5 +7,6 @@ from . import (
     models,
     ratings,
     scrapers,
+    viz,
 )
 from .version import __version__

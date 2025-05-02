@@ -8,7 +8,7 @@ Version Numbering
 see `semver.org <http://semver.org/>`_
 
 
-v1.2.0 (2025-04-06)
+v1.2.0 (2025-04-10)
 ^^^^^^^^^^^^^^^^^^^^
 
 Package Updates

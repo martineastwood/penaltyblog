@@ -1,6 +1,6 @@
 [project]
 name = "penaltyblog"
-version = "1.2.0"
+version = "1.3.0"
 description = "Library from http://pena.lt/y/blog for scraping and modelling football (soccer) data"
 authors = [{ name = "Martin Eastwood", email = "martin.eastwood@gmx.com" }]
 readme = "README.md"
@@ -28,6 +28,7 @@ dependencies = [
     "ipywidgets",
     "numpy",
     "pandas",
+    "plotly",
     "PuLP",
     "requests",
     "scipy",
