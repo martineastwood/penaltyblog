@@ -89,22 +89,6 @@ class Pitch:
         else:
             t_margin = 0
 
-        title = (
-            {
-                "text": self.title,
-                "font": dict(
-                    family=self.theme.font_family,
-                    color=self.theme.line_color,
-                ),
-                "x": 0.5,
-                "y": 0.98,
-                "xanchor": "center",
-                "yanchor": "top",
-            }
-            if self.title
-            else None
-        )
-
         self.fig.update_layout(
             shapes=shapes,
             width=self.width,
@@ -116,7 +100,28 @@ class Pitch:
                 family=self.theme.font_family,
                 color=self.theme.line_color,
             ),
-            title=title,
+            title=(
+                {
+                    "text": self.title,
+                    "font": dict(
+                        family=self.theme.font_family,
+                        color=self.theme.line_color,
+                    ),
+                    "x": 0.5,
+                    "y": 0.98,
+                    "xanchor": "center",
+                    "yanchor": "top",
+                }
+                if self.title
+                else None
+            ),
+            hoverlabel=dict(
+                bgcolor=self.theme.hover_bgcolor,
+                font_family=self.theme.hover_font_family,
+                font_size=self.theme.hover_font_size,
+                font_color=self.theme.hover_font_color,
+                bordercolor=self.theme.hover_border_color,
+            ),
             paper_bgcolor=self.theme.pitch_color,
         )
 
@@ -125,18 +130,17 @@ class Pitch:
                 dict(
                     text=self.subtitle,
                     x=0.5,
-                    y=1.0,  # paper coords: top center
+                    y=1.0,
                     xref="paper",
                     yref="paper",
-                    xanchor="center",  # center horizontally
-                    yanchor="top",  # grow downward
+                    xanchor="center",
+                    yanchor="top",
                     showarrow=False,
                     font=dict(
                         family=self.theme.font_family,
                         color=self.theme.line_color,
-                        size=14,  # a little smaller
+                        size=14,
                     ),
-                    # nudge it down just enough under the main title:
                     yshift=20,
                 )
             )

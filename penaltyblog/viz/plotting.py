@@ -71,6 +71,11 @@ def plot_heatmap(
     opacity: float = 0.6,
     **kwargs,
 ):
+    dx = length / bins[0]
+    dy = width / bins[1]
+
+    hover_template = f"x: %{{x:.1f}}<br>" f"y: %{{y:.1f}}<br>" "z: %{z}<extra></extra>"
+
     fig.add_trace(
         go.Histogram2d(
             x=df[x],
@@ -81,6 +86,7 @@ def plot_heatmap(
             colorbar=dict(title="Density"),
             showscale=show_colorbar,
             opacity=opacity,
+            hovertemplate=hover_template,
             **kwargs,
         )
     )
