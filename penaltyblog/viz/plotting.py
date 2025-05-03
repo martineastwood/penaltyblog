@@ -1,19 +1,58 @@
+from typing import Any, Optional, Sequence, Tuple, Union
+
 import numpy as np
+import pandas as pd
 import plotly.graph_objects as go
 
 
 def plot_scatter(
-    fig, df, x="x", y="y", hover=None, text=None, color="blue", size=10, **kwargs
-):
+    fig: go.Figure,
+    df: pd.DataFrame,
+    x: str = "x",
+    y: str = "y",
+    *,
+    color: str = "blue",
+    size: int = 10,
+    text: Optional[str] = None,
+    hover: Optional[str] = None,
+    showlegend: bool = False,
+    **kwargs: Any,
+) -> None:
+    """
+    Add a scatter trace of points (and optional labels) to `fig`.
+
+    Parameters
+    ----------
+    fig
+      Plotly Figure to add to.
+    df
+      DataFrame containing at least columns `x`, `y`.
+    x, y
+      Column names for coordinates.
+    color
+      Marker color.
+    size
+      Marker size.
+    text
+      Column name whose values are rendered as inside‐marker labels.
+    hover
+      Column name whose values populate the hover‐tooltip.
+    showlegend
+      Whether to include this trace in the legend.
+    **kwargs
+      Passed on to go.Scatter.
+    """
+    mode = "markers+text" if text else "markers"
     fig.add_trace(
         go.Scatter(
             x=df[x],
             y=df[y],
-            mode="markers+text" if text else "markers",
+            mode=mode,
+            marker=dict(size=size, color=color),
             text=df[text] if text else None,
             hovertext=df[hover] if hover else None,
-            hoverinfo="text",
-            marker=dict(size=size, color=color),
+            hoverinfo="text" if hover or text else "skip",
+            showlegend=showlegend,
             **kwargs,
         )
     )
@@ -26,8 +65,10 @@ def plot_heatmap(
     y="y",
     length=120,
     width=80,
-    bins=(30, 20),
+    bins=(10, 8),
     colorscale="Viridis",
+    show_colorbar: bool = False,
+    opacity: float = 0.6,
     **kwargs,
 ):
     fig.add_trace(
@@ -38,32 +79,51 @@ def plot_heatmap(
             ybins=dict(start=0, end=width, size=width / bins[1]),
             colorscale=colorscale,
             colorbar=dict(title="Density"),
+            showscale=show_colorbar,
+            opacity=opacity,
             **kwargs,
         )
     )
 
 
 def plot_arrows(
-    fig,
-    df,
-    x,
-    y,
-    x_end,
-    y_end,
-    color="black",
-    width=2,
-    arrowhead=2,
-    arrowsize=1,
+    fig: go.Figure,
+    df: pd.DataFrame,
+    x: str,
+    y: str,
+    x_end: str,
+    y_end: str,
+    *,
+    color: str = "black",
+    width: float = 2,
+    arrowhead: int = 2,
+    arrowsize: float = 1.0,
+    hover: Optional[str] = None,
     **kwargs,
-):
+) -> None:
     """
-    Plot clean directional arrows using Plotly shapes (non-interactive).
+    Draw directional arrows (annotations) from (x,y) to (x_end,y_end).
 
-    Parameters:
-    - fig: Plotly figure to draw on
-    - df: DataFrame with x, y, x2, y2 columns
-    - arrowhead: Plotly arrowhead style (0–7)
-    - arrowsize: Scale of arrowhead
+    Parameters
+    ----------
+    fig
+        Plotly Figure to add arrows to.
+    df
+        DataFrame with start/end coordinate columns.
+    x, y, x_end, y_end
+        Column names for arrow tail and head positions.
+    color
+        Arrow color.
+    width
+        Arrow line width.
+    arrowhead
+        Arrowhead style (0–7).
+    arrowsize
+        Arrowhead size multiplier.
+    hover
+        Optional column name whose value appears on hover at the arrow head.
+    **kwargs
+        Passed through to fig.add_annotation.
     """
     for _, row in df.iterrows():
         fig.add_annotation(
@@ -76,14 +136,13 @@ def plot_arrows(
             axref="x",
             ayref="y",
             showarrow=True,
-            arrowhead=2,
-            arrowsize=1.2,
+            arrowhead=arrowhead,
+            arrowsize=arrowsize,
             arrowwidth=width,
             arrowcolor=color,
-            opacity=1,
-            standoff=0,
-            hovertext="",
-            text="",  # No label
+            opacity=1.0,
+            hovertext=str(row[hover]) if hover else None,
+            **kwargs,
         )
 
 
@@ -94,7 +153,7 @@ def plot_comets(
     y="y",
     x_end="x2",
     y_end="y2",
-    color="blue",
+    color="blue",  # default can be overridden by caller
     width=3,
     segments=12,
     fade=True,
@@ -102,18 +161,22 @@ def plot_comets(
 ):
     """
     Plots comet-style directional lines using fading segments.
-
-    Parameters:
-    - fig: Plotly figure to draw on
-    - df: DataFrame with start and end positions
-    - x, y: start position columns
-    - x_end, y_end: end position columns
-    - color: base RGB color (e.g. 'blue', or 'rgb(0,0,255)')
-    - width: max line width
-    - segments: number of segments to split line into
-    - fade: if True, opacity increases toward destination
-    - hover: column name to show in tooltip (shown on final segment only)
     """
+
+    # Precompute an (r,g,b) tuple from whatever color the user passed
+    def make_rgb_tuple(c):
+        c = c.strip()
+        if c.startswith(("rgba(", "rgb(")):
+            # strip off rgba/(), split, take first 3 ints
+            vals = c[c.find("(") + 1 : c.find(")")].split(",")
+            r, g, b = map(int, vals[:3])
+        else:
+            # named color → convert via matplotlib
+            r, g, b = [int(255 * x) for x in mcolors.to_rgb(c)]
+        return r, g, b
+
+    base_r, base_g, base_b = make_rgb_tuple(color)
+
     for _, row in df.iterrows():
         x0, y0 = row[x], row[y]
         x1, y1 = row[x_end], row[y_end]
@@ -123,26 +186,20 @@ def plot_comets(
             t0 = i / segments
             t1 = (i + 1) / segments
 
-            x_start = x0 + (x1 - x0) * t0
-            y_start = y0 + (y1 - y0) * t0
-            x_stop = x0 + (x1 - x0) * t1
-            y_stop = y0 + (y1 - y0) * t1
+            xs = [x0 + (x1 - x0) * t0, x0 + (x1 - x0) * t1]
+            ys = [y0 + (y1 - y0) * t0, y0 + (y1 - y0) * t1]
 
             alpha = t1 if fade else 1.0
-            rgba = (
-                f"rgba(0, 0, 255, {alpha:.2f})"
-                if "rgb" not in color and "rgba" not in color
-                else color
-            )
+            rgba = f"rgba({base_r},{base_g},{base_b},{alpha:.2f})"
 
             fig.add_trace(
                 go.Scatter(
-                    x=[x_start, x_stop],
-                    y=[y_start, y_stop],
+                    x=xs,
+                    y=ys,
                     mode="lines",
                     line=dict(color=rgba, width=width),
-                    hoverinfo="text" if hover and i == segments - 1 else "skip",
-                    hovertext=hover_text if i == segments - 1 else None,
+                    hovertext=hover_text if (hover and i == segments - 1) else None,
+                    hoverinfo="text" if (hover and i == segments - 1) else "skip",
                     showlegend=False,
                 )
             )
