@@ -39,10 +39,10 @@ class Theme:
         },
         "minimal": {
             "pitch_color": "#ffffff",  # white
-            "line_color": "#333333",  # dark grey
-            "marker_color": "#757575",  # medium grey
-            "heatmap_colorscale": "Greys",
-            "heatmap_opacity": 0.4,
+            "line_color": "#444444",  # dark grey
+            "marker_color": "#e07a5f",  # medium grey
+            "heatmap_colorscale": "Inferno",
+            "heatmap_opacity": 0.8,
             "font_family": "Helvetica Neue, Arial, sans-serif",
             "line_width": 1.0,
             "marker_size": 8,

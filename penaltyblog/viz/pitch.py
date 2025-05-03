@@ -26,6 +26,7 @@ class Pitch:
         theme: str = "minimal",
         orientation: str = "horizontal",
         title: Optional[str] = None,
+        subtitle: Optional[str] = None,
         show_axis: bool = False,
         show_legend: bool = False,
         show_spots: bool = True,
@@ -38,6 +39,7 @@ class Pitch:
         self.show_spots = show_spots
         self.orientation = orientation
         self.title = title
+        self.subtitle = subtitle
 
         # theme + dimensions
         self.theme = Theme(theme)
@@ -54,6 +56,7 @@ class Pitch:
         self.fig = go.Figure()
         self._draw_base_pitch()
 
+    # ─── draw the base pitch ───────────────────────────────────────────────
     def _draw_base_pitch(self) -> None:
         """Draw pitch boundary, boxes, center circle, arcs, optional spots."""
         lc = self.theme.line_color
@@ -79,24 +82,65 @@ class Pitch:
             shapes.append(self._circle(c["x"], c["y"], c["r"], lc))
 
         # apply shapes + axis config
+        if self.title and self.subtitle:
+            t_margin = 80
+        elif self.title:
+            t_margin = 50
+        else:
+            t_margin = 0
+
+        title = (
+            {
+                "text": self.title,
+                "font": dict(
+                    family=self.theme.font_family,
+                    color=self.theme.line_color,
+                ),
+                "x": 0.5,
+                "y": 0.98,
+                "xanchor": "center",
+                "yanchor": "top",
+            }
+            if self.title
+            else None
+        )
+
         self.fig.update_layout(
             shapes=shapes,
             width=self.width,
             height=self.height,
-            margin=dict(l=0, r=0, t=0, b=0),
+            margin=dict(l=0, r=0, t=t_margin, b=0),
             plot_bgcolor=self.theme.pitch_color,
-            title=self.title,
             showlegend=self.show_legend,
             font=dict(
                 family=self.theme.font_family,
                 color=self.theme.line_color,
             ),
-            title_font=dict(
-                family=self.theme.font_family,
-                color=self.theme.line_color,
-            ),
+            title=title,
             paper_bgcolor=self.theme.pitch_color,
         )
+
+        if self.subtitle:
+            self.fig.add_annotation(
+                dict(
+                    text=self.subtitle,
+                    x=0.5,
+                    y=1.0,  # paper coords: top center
+                    xref="paper",
+                    yref="paper",
+                    xanchor="center",  # center horizontally
+                    yanchor="top",  # grow downward
+                    showarrow=False,
+                    font=dict(
+                        family=self.theme.font_family,
+                        color=self.theme.line_color,
+                        size=14,  # a little smaller
+                    ),
+                    # nudge it down just enough under the main title:
+                    yshift=20,
+                )
+            )
+
         self.fig.update_xaxes(
             range=[-5, 110],
             scaleanchor="y",
@@ -193,6 +237,7 @@ class Pitch:
                     )
                 )
 
+    # ─── prepare hover text ──────────────────────────────────────────────────
     def _prepare_hover(
         self, df, x: str, y: str, hover: Optional[str], tooltip_orig: bool
     ) -> Tuple[Any, Optional[str]]:
@@ -215,15 +260,31 @@ class Pitch:
         else:
             return df2, None
 
+    # ─── plots ──────────────────────────────────────────────
     def plot_scatter(
         self,
-        df,
+        df: pd.DataFrame,
         x: str = "x",
         y: str = "y",
         hover: Optional[str] = None,
         tooltip_original: bool = True,
         **kwargs,
     ) -> None:
+        """
+        Plot a scatter plot on the pitch.
+
+        Args:
+        df
+          DataFrame containing at least columns `x`, `y`.
+        x, y
+          Column names for coordinates.
+        hover
+          Column name whose values populate the hover-tooltip.
+        tooltip_original
+          Whether to show the original coordinates in the tooltip.
+        **kwargs
+          Passed on to go.Scatter.
+        """
         df2, hover_col = self._prepare_hover(df, x, y, hover, tooltip_original)
         plot_scatter(
             self.fig,
@@ -237,7 +298,7 @@ class Pitch:
 
     def plot_arrows(
         self,
-        df,
+        df: pd.DataFrame,
         x: str = "x",
         y: str = "y",
         x_end: str = "x2",
@@ -265,7 +326,7 @@ class Pitch:
 
     def plot_comets(
         self,
-        df,
+        df: pd.DataFrame,
         x: str = "x",
         y: str = "y",
         x_end: str = "x2",
@@ -280,6 +341,28 @@ class Pitch:
     ):
         """
         Plot comet-style trails: fading line segments from (x,y) to (x_end,y_end).
+
+        Args:
+        df
+          DataFrame containing at least columns `x`, `y`, `x2`, `y2`.
+        x, y
+          Column names for start coordinates.
+        x_end, y_end
+          Column names for end coordinates.
+        color
+          Color of the comets.
+        width
+          Width of the comets.
+        segments
+          Number of segments to use for each comet.
+        fade
+          Whether to fade the comets.
+        hover
+          Column name whose values populate the hover-tooltip.
+        tooltip_original
+          Whether to show the original coordinates in the tooltip.
+        **kwargs
+          Passed on to go.Scatter.
         """
         # 1) scale both start and end coordinates
         # copy so we don’t clobber the user’s DF
@@ -369,7 +452,23 @@ class Pitch:
     ) -> None:
         """
         Draw a 2D density (heatmap) inside the 105×68 pitch,
-        using theme defaults for colourscale & opacity.
+            using theme defaults for colourscale & opacity.
+
+            Args:
+            df
+              DataFrame containing at least columns `x`, `y`.
+            x, y
+              Column names for coordinates.
+            bins
+              Number of bins per axis.
+            show_colorbar
+              Whether to show the colorbar.
+            colorscale
+              Name of the colorscale to use.
+            opacity
+              Opacity of the heatmap.
+            **kwargs
+              Passed on to go.Heatmap.
         """
         # 1) Scale raw coords into DRAW_LENGTH×DRAW_WIDTH
         df_scaled = self.dim.apply_coordinate_scaling(df, x=x, y=y)
@@ -393,5 +492,9 @@ class Pitch:
             **kwargs,
         )
 
+    # ─── show the plot ───────────────────────────────────────────────────────
     def show(self) -> None:
+        """
+        Draw the pitch
+        """
         pio.show(self.fig, config=dict(displaylogo=False))
