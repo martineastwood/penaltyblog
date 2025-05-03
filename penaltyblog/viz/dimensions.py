@@ -1,26 +1,15 @@
-# penaltyblog/viz/dimensions.py
-
-
 class PitchDimensions:
     def __init__(
         self,
         length,
         width,
-        penalty_area_length=18,
-        penalty_area_width=44,
-        six_yard_box_length=6,
-        six_yard_box_width=20,
-        penalty_spot_distance=12,
-        center_circle_radius=10,
+        shapes=None,
+        scale_coordinates=None,
     ):
         self.length = length
         self.width = width
-        self.penalty_area_length = penalty_area_length
-        self.penalty_area_width = penalty_area_width
-        self.six_yard_box_length = six_yard_box_length
-        self.six_yard_box_width = six_yard_box_width
-        self.penalty_spot_distance = penalty_spot_distance
-        self.center_circle_radius = center_circle_radius
+        self.shapes = shapes or {}
+        self._scale_coordinates_fn = scale_coordinates
 
     @classmethod
     def from_provider(cls, provider: str):
@@ -30,60 +19,102 @@ class PitchDimensions:
             return cls(
                 length=120,
                 width=80,
-                penalty_area_length=18,
-                penalty_area_width=44,
-                six_yard_box_length=6,
-                six_yard_box_width=20,
-                penalty_spot_distance=12,
-                center_circle_radius=10,
+                shapes={
+                    "penalty_area_left": {"x0": 0, "y0": 18, "x1": 18, "y1": 62},
+                    "penalty_area_right": {"x0": 102, "y0": 18, "x1": 120, "y1": 62},
+                    "six_yard_left": {"x0": 0, "y0": 30, "x1": 6, "y1": 50},
+                    "six_yard_right": {"x0": 114, "y0": 30, "x1": 120, "y1": 50},
+                    "penalty_spot_left": {"x": 12, "y": 40},
+                    "penalty_spot_right": {"x": 108, "y": 40},
+                    "center_circle": {"x": 60, "y": 40, "r": 10},
+                    "halfway_line": {"x0": 60, "y0": 0, "x1": 60, "y1": 80},
+                },
+                scale_coordinates=cls._scale_coordinates_statsbomb,
             )
 
-        elif provider in ["opta", "wyscout"]:
+        elif provider == "wyscout":
             return cls(
-                length=105,
-                width=68,
-                penalty_area_length=16.5,
-                penalty_area_width=40.3,
-                six_yard_box_length=5.5,
-                six_yard_box_width=18.32,
-                penalty_spot_distance=11,
-                center_circle_radius=9.15,
-            )
-
-        elif provider in ["tracab", "skillcorner", "secondspectrum"]:
-            return cls(
-                length=105,
-                width=68,
-                penalty_area_length=16.5,
-                penalty_area_width=40.3,
-                six_yard_box_length=5.5,
-                six_yard_box_width=18.32,
-                penalty_spot_distance=11,
-                center_circle_radius=9.15,
+                length=100,
+                width=100,
+                shapes={
+                    "penalty_area_left": {"x0": 0, "y0": 81, "x1": 16, "y1": 19},
+                    "penalty_area_right": {"x0": 84, "y0": 19, "x1": 100, "y1": 81},
+                    "six_yard_left": {"x0": 0, "y0": 63, "x1": 6, "y1": 37},
+                    "six_yard_right": {"x0": 94, "y0": 37, "x1": 100, "y1": 63},
+                    "penalty_spot_left": {"x": 10, "y": 50},
+                    "penalty_spot_right": {"x": 90, "y": 50},
+                    "center_circle": {"x": 50, "y": 50, "r": 10},
+                    "halfway_line": {"x0": 50, "y0": 0, "x1": 50, "y1": 100},
+                },
+                scale_coordinates=cls._scale_coordinates_wyscout,
             )
 
         elif provider == "metrica":
-            # normalized 0–1 pitch, common in computer vision
             return cls(
-                length=1,
-                width=1,
-                penalty_area_length=0.157,
-                penalty_area_width=0.375,
-                six_yard_box_length=0.05,
-                six_yard_box_width=0.25,
-                penalty_spot_distance=0.092,
-                center_circle_radius=0.087,
+                length=1, width=1, scale_coordinates=cls._scale_coordinates_default
             )
 
         else:
             raise ValueError(f"Unsupported provider: {provider}")
 
-    @classmethod
-    def custom(cls, **kwargs):
-        return cls(**kwargs)
+    @staticmethod
+    def _scale_coordinates_default(self, df, x="x", y="y"):
+        df = df.copy()
+        df[x] = df[x] * (105 / self.length)
+        df[y] = df[y] * (68 / self.width)
+        return df
 
-    def to_dict(self):
-        return vars(self)
+    @staticmethod
+    def _scale_coordinates_wyscout(self, df, x="x", y="y"):
+        df = df.copy()
+        df[x] = df[x] * (105 / self.length)
+        df[y] = (self.width - df[y]) * (68 / self.width)
+        return df
+
+    @staticmethod
+    def _scale_coordinates_statsbomb(self, df, x="x", y="y"):
+        df = df.copy()
+        df[x] = df[x] * (105 / self.length)
+        df[y] = (self.width - df[y]) * (68 / self.width)
+        return df
+
+    def apply_coordinate_scaling(self, df, x="x", y="y"):
+        if self._scale_coordinates_fn is None:
+            return df
+        return self._scale_coordinates_fn(self, df, x, y)
+
+    def scaled_shapes(self, target_length=105, target_width=68):
+        def scale_x(x):
+            return x * (target_length / self.length)
+
+        def scale_y(y):
+            if self._scale_coordinates_fn == self._scale_coordinates_wyscout:
+                y = self.width - y
+            return y * (target_width / self.width)
+
+        def scale_r(r):
+            return r * (target_width / self.width)
+
+        scaled = {}
+        for key, shape in self.shapes.items():
+            if isinstance(shape, dict):
+                scaled_shape = {}
+                for k, v in shape.items():
+                    if k == "r":
+                        scaled_shape[k] = scale_r(v)
+                    elif "x" in k:
+                        scaled_shape[k] = scale_x(v)
+                    elif "y" in k:
+                        scaled_shape[k] = scale_y(v)
+                    else:
+                        scaled_shape[k] = v
+                scaled[key] = scaled_shape
+            elif isinstance(shape, tuple):
+                x, y = shape
+                scaled[key] = (scale_x(x), scale_y(y))
+            else:
+                raise ValueError(f"Unsupported shape format: {shape}")
+        return scaled
 
     def __repr__(self):
         return f"<PitchDimensions length={self.length} width={self.width}>"

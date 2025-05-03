@@ -12,6 +12,7 @@ def plot_scatter(
             mode="markers+text" if text else "markers",
             text=df[text] if text else None,
             hovertext=df[hover] if hover else None,
+            hoverinfo="text",
             marker=dict(size=size, color=color),
             **kwargs,
         )
@@ -97,6 +98,7 @@ def plot_comets(
     width=3,
     segments=12,
     fade=True,
+    hover=None,
 ):
     """
     Plots comet-style directional lines using fading segments.
@@ -110,10 +112,12 @@ def plot_comets(
     - width: max line width
     - segments: number of segments to split line into
     - fade: if True, opacity increases toward destination
+    - hover: column name to show in tooltip (shown on final segment only)
     """
     for _, row in df.iterrows():
         x0, y0 = row[x], row[y]
         x1, y1 = row[x_end], row[y_end]
+        hover_text = str(row[hover]) if hover else None
 
         for i in range(segments):
             t0 = i / segments
@@ -137,7 +141,8 @@ def plot_comets(
                     y=[y_start, y_stop],
                     mode="lines",
                     line=dict(color=rgba, width=width),
-                    hoverinfo="skip",
+                    hoverinfo="text" if hover and i == segments - 1 else "skip",
+                    hovertext=hover_text if i == segments - 1 else None,
                     showlegend=False,
                 )
             )
