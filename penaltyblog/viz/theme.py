@@ -28,7 +28,7 @@ class Theme:
             "font_family": "Helvetica Neue, Arial, sans-serif",
             "line_width": 1.8,
             "marker_size": 12,
-            "spot_size": 9,
+            "spot_size": 8,
             "hover_bgcolor": "rgba(255,255,255,0.15)",  # subtle white
             "hover_font_color": "white",
             "hover_border_color": "rgba(144,202,249,0.6)",
@@ -44,7 +44,7 @@ class Theme:
             "font_family": "Helvetica Neue, Arial, sans-serif",
             "line_width": 1.2,
             "marker_size": 9,
-            "spot_size": 7,
+            "spot_size": 8,
             "hover_bgcolor": "rgba(109,76,65,0.85)",  # matches brown
             "hover_font_color": "white",
             "hover_border_color": "rgba(255,255,255,0.2)",
@@ -70,13 +70,13 @@ class Theme:
         "turf": {
             "pitch_color": "#7a9c72",  # rich turf green
             "line_color": "#ffffff",  # crisp white lines
-            "marker_color": "#1f77b4",  # standard blue
+            "marker_color": "#ffca28",
             "heatmap_colorscale": "Greens",  # consistent with the green theme
             "heatmap_opacity": 0.6,
             "font_family": "Helvetica Neue, Arial, sans-serif",
             "line_width": 1.4,
             "marker_size": 10,
-            "spot_size": 7,
+            "spot_size": 8,
             "hover_bgcolor": "rgba(40,60,40,0.9)",
             "hover_font_color": "white",
             "hover_border_color": "rgba(255,255,255,0.2)",

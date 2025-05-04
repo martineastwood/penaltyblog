@@ -10,7 +10,7 @@ from matplotlib import colors as _mcolors
 from .dimensions import PitchDimensions
 from .plotting import plot_arrows as plot_arrows
 from .plotting import plot_comets as plot_comets
-from .plotting import plot_heatmap
+from .plotting import plot_heatmap, plot_kde
 from .plotting import plot_scatter as plot_scatter
 from .theme import Theme
 
@@ -235,7 +235,7 @@ class Pitch:
                         x=[p["x"]],
                         y=[p["y"]],
                         mode="markers",
-                        marker=dict(size=6, color=lc),
+                        marker=dict(size=self.theme.spot_size, color=lc),
                         hoverinfo="skip",
                         showlegend=False,
                     )
@@ -336,7 +336,7 @@ class Pitch:
         x_end: str = "x2",
         y_end="y2",
         color=None,
-        width: int = 3,
+        width: int = 6,
         segments: int = 12,
         fade: bool = True,
         hover=None,
@@ -441,8 +441,6 @@ class Pitch:
                     )
                 )
 
-    # inside penaltyblog/viz/pitch.py
-
     def plot_heatmap(
         self,
         df: pd.DataFrame,
@@ -490,6 +488,36 @@ class Pitch:
             length=self.dim.get_draw_length(),
             width=self.dim.get_draw_width(),
             bins=bins,
+            colorscale=cs,
+            opacity=op,
+            show_colorbar=show_colorbar,
+            **kwargs,
+        )
+
+    def plot_kde(
+        self,
+        df: pd.DataFrame,
+        x="x",
+        y="y",
+        grid_size: int = 100,
+        show_colorbar: bool = False,
+        colorscale: str | None = None,
+        opacity: float | None = None,
+        **kwargs,
+    ) -> None:
+        # scale coordinates
+        df2 = self.dim.apply_coordinate_scaling(df, x=x, y=y)
+        cs = colorscale or self.theme.heatmap_colorscale
+        op = opacity if opacity is not None else self.theme.heatmap_opacity
+
+        plot_kde(
+            self.fig,
+            df2,
+            x=x,
+            y=y,
+            length=self.L,
+            width=self.W,
+            grid_size=grid_size,
             colorscale=cs,
             opacity=op,
             show_colorbar=show_colorbar,

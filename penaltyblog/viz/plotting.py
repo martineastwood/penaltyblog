@@ -1,8 +1,9 @@
-from typing import Any, Optional, Sequence, Tuple, Union
+from typing import Any, Optional
 
 import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
+from scipy.stats import gaussian_kde
 
 
 def plot_scatter(
@@ -71,8 +72,6 @@ def plot_heatmap(
     opacity: float = 0.6,
     **kwargs,
 ):
-    dx = length / bins[0]
-    dy = width / bins[1]
 
     hover_template = f"x: %{{x:.1f}}<br>" f"y: %{{y:.1f}}<br>" "z: %{z}<extra></extra>"
 
@@ -209,3 +208,71 @@ def plot_comets(
                     showlegend=False,
                 )
             )
+
+
+def plot_kde(
+    fig,
+    df,
+    x: str = "x",
+    y: str = "y",
+    length: float = 105,
+    width: float = 68,
+    grid_size: int = 100,
+    bandwidth: float | None = None,
+    colorscale: str = "Viridis",
+    opacity: float = 0.6,
+    show_colorbar: bool = False,
+    **kwargs,
+):
+    """
+    Plot a smooth 2D kernel‐density estimate over the pitch.
+
+    Parameters
+    ----------
+    fig
+        A plotly.graph_objects.Figure
+    df
+        DataFrame containing at least columns `x`, `y` (already in plot units).
+    x, y
+        Column names for coordinates.
+    length, width
+        Plot extents (usually 105×68).
+    grid_size
+        Number of grid points per axis (higher = smoother, slower).
+    bandwidth
+        'bw_method' passed to scipy.stats.gaussian_kde; if None, defaults to Silverman’s rule.
+    colorscale
+        Plotly colorscale name.
+    opacity
+        Heatmap opacity.
+    show_colorbar
+        Whether to show the colorbar.
+    **kwargs
+        Additional args passed to go.Heatmap.
+    """
+    # 1. Build evaluation grid
+    xs = np.linspace(0, length, grid_size)
+    ys = np.linspace(0, width, grid_size)
+    xx, yy = np.meshgrid(xs, ys)
+    grid_coords = np.vstack([xx.ravel(), yy.ravel()])
+
+    # 2. Fit KDE on the raw points
+    values = np.vstack([df[x], df[y]])
+    kde = gaussian_kde(values, bw_method=bandwidth)
+
+    # 3. Evaluate density on grid, then reshape
+    zz = kde(grid_coords)
+    zz = zz.reshape(grid_size, grid_size)
+
+    # 4. Draw as a smooth heatmap
+    fig.add_trace(
+        go.Heatmap(
+            x=xs,
+            y=ys,
+            z=zz,
+            colorscale=colorscale,
+            opacity=opacity,
+            showscale=show_colorbar,
+            **kwargs,
+        )
+    )
