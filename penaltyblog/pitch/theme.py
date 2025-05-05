@@ -18,6 +18,9 @@ class Theme:
             "hover_border_color": "rgba(0,0,0,0.2)",
             "hover_font_family": "Helvetica Neue, Arial, sans-serif",
             "hover_font_size": 16,
+            "title_margin": 50,
+            "subtitle_margin": 30,
+            "subnote_margin": 50,
         },
         "night": {
             "pitch_color": "#0f1e2e",  # deep navy
@@ -34,6 +37,9 @@ class Theme:
             "hover_border_color": "rgba(144,202,249,0.6)",
             "hover_font_family": "Helvetica Neue, Arial, sans-serif",
             "hover_font_size": 16,
+            "title_margin": 50,
+            "subtitle_margin": 30,
+            "subnote_margin": 50,
         },
         "retro": {
             "pitch_color": "#f4ecd8",  # cream
@@ -50,6 +56,9 @@ class Theme:
             "hover_border_color": "rgba(255,255,255,0.2)",
             "hover_font_family": "Helvetica Neue, Arial, sans-serif",
             "hover_font_size": 16,
+            "title_margin": 50,
+            "subtitle_margin": 30,
+            "subnote_margin": 50,
         },
         "minimal": {
             "pitch_color": "#ffffff",  # white
@@ -66,6 +75,9 @@ class Theme:
             "hover_border_color": "rgba(255,255,255,0.2)",
             "hover_font_family": "Helvetica Neue, Arial, sans-serif",
             "hover_font_size": 16,
+            "title_margin": 50,
+            "subtitle_margin": 30,
+            "subnote_margin": 50,
         },
         "turf": {
             "pitch_color": "#7a9c72",  # rich turf green
@@ -82,6 +94,9 @@ class Theme:
             "hover_border_color": "rgba(255,255,255,0.2)",
             "hover_font_family": "Helvetica Neue, Arial, sans-serif",
             "hover_font_size": 15,
+            "title_margin": 50,
+            "subtitle_margin": 30,
+            "subnote_margin": 50,
         },
     }
 
@@ -146,6 +161,18 @@ class Theme:
     @property
     def hover_font_size(self):
         return self.styles.get("hover_font_size", 11)
+
+    @property
+    def title_margin(self):
+        return self.styles.get("title_margin", 50)
+
+    @property
+    def subtitle_margin(self):
+        return self.styles.get("subtitle_margin", 30)
+
+    @property
+    def subnote_margin(self):
+        return self.styles.get("subnote_margin", 50)
 
     @property
     def hover_bgcolor(self):

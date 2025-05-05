@@ -3,10 +3,11 @@ from . import (
     fpl,
     implied,
     kelly,
+    matchflow,
     metrics,
     models,
+    pitch,
     ratings,
     scrapers,
-    viz,
 )
 from .version import __version__

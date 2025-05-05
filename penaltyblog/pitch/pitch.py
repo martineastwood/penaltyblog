@@ -27,6 +27,7 @@ class Pitch:
         orientation: str = "horizontal",
         title: Optional[str] = None,
         subtitle: Optional[str] = None,
+        subnote: Optional[str] = None,
         show_axis: bool = False,
         show_legend: bool = False,
         show_spots: bool = True,
@@ -40,6 +41,7 @@ class Pitch:
         self.orientation = orientation
         self.title = title
         self.subtitle = subtitle
+        self.subnote = subnote
 
         # theme + dimensions
         self.theme = Theme(theme)
@@ -83,17 +85,22 @@ class Pitch:
 
         # apply shapes + axis config
         if self.title and self.subtitle:
-            t_margin = 80
+            t_margin = self.theme.title_margin + self.theme.subtitle_margin
         elif self.title:
-            t_margin = 50
+            t_margin = self.theme.title_margin
         else:
             t_margin = 0
+
+        if self.subnote:
+            b_margin = self.theme.subnote_margin
+        else:
+            b_margin = 0
 
         self.fig.update_layout(
             shapes=shapes,
             width=self.width,
             height=self.height,
-            margin=dict(l=0, r=0, t=t_margin, b=0),
+            margin=dict(l=0, r=0, t=t_margin, b=b_margin),
             plot_bgcolor=self.theme.pitch_color,
             showlegend=self.show_legend,
             font=dict(
@@ -169,6 +176,21 @@ class Pitch:
         self._draw_penalty_arcs()
         if self.show_spots:
             self._draw_spots()
+
+        if self.subnote:
+            self.fig.add_annotation(
+                text=self.subnote,
+                x=0.5,
+                y=-0.02,
+                xref="paper",
+                yref="paper",
+                showarrow=False,
+                font=dict(
+                    size=12, family=self.theme.font_family, color=self.theme.line_color
+                ),
+                xanchor="center",
+                yanchor="top",
+            )
 
     def _rect(
         self, x0: float, y0: float, x1: float, y1: float, color: str
