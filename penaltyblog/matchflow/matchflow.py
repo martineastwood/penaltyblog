@@ -2,7 +2,7 @@ import glob
 import json
 import os
 from collections import defaultdict
-from itertools import chain
+from itertools import chain, tee
 
 import numpy as np
 import pandas as pd
@@ -31,6 +31,17 @@ class Flow:
     def __init__(self, records):
         # records: iterable of dicts
         self._records = records
+
+    def __len__(self):
+        # Count without consuming: tee the iterator
+        it1, it2 = tee(self._records, 2)
+        self._records = it2
+        return sum(1 for _ in it1)
+
+    def __repr__(self):
+        # Show class name + up to 3 sample records
+        sample = self.head(3)  # head() returns a list, and doesn't mutate self._records
+        return f"<Penaltyblog Flow | n={len(self)} | sample={sample}>"
 
     @classmethod
     def from_generator(cls, generator):
@@ -301,21 +312,25 @@ class Flow:
 
     def is_empty(self):
         """
-        Return True if the flow has no records.
+        Return True if the flow has no records, without consuming the stream.
         """
+        # Split the iterator into two
+        it1, it2 = tee(self._records, 2)
+        self._records = it2
         try:
-            next(iter(self._records))
+            next(it1)
             return False
         except StopIteration:
             return True
 
     def keys(self):
         """
-        Return a set of all keys across all records.
-        Useful for schema inspection.
+        Return the union of all keys across records, without consuming the stream.
         """
+        it1, it2 = tee(self._records, 2)
+        self._records = it2
         keyset = set()
-        for r in self._records:
+        for r in it1:
             keyset.update(r.keys())
         return keyset
 
@@ -498,6 +513,35 @@ class Group:
         # groups: dict mapping key tuples to list of records
         self.group_keys = keys
         self.groups = groups
+
+    def __iter__(self):
+        """
+        Iterate over (group_key_tuple, records_list) pairs.
+        """
+        return iter(self.groups.items())
+
+    def __len__(self):
+        """
+        Number of groups.
+        """
+        return len(self.groups)
+
+    def __repr__(self):
+        """
+        Show a brief summary: number of groups and a sample of the first few keys.
+        """
+        n = len(self)
+        sample_keys = list(self.groups.keys())[:3]
+        return f"<Penaltyblog Flow Group | n_groups={n} | sample_keys={sample_keys}>"
+
+    def keys(self):
+        """
+        Return a list of the current group key tuples.
+        Example:
+            >>> grp.keys()
+            [(‘Messi’,), (‘Ronaldo’,), (‘Neymar’,)]
+        """
+        return list(self.groups.keys())
 
     def ungroup(self):
         """
