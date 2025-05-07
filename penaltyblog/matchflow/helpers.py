@@ -1,4 +1,7 @@
-def get_field(path, default=None):
+from typing import Any, Callable
+
+
+def get_field(path: str, default: Any | None = None) -> Callable:
     """
     Safely accesses a nested field using dot notation.
 
@@ -17,7 +20,7 @@ def get_field(path, default=None):
     return accessor
 
 
-def get_array(key, index, default=None):
+def get_array(key: str, index: int, default: Any | None = None) -> Callable:
     """
     Safely accesses an index in an array stored at `key`.
 
@@ -34,25 +37,11 @@ def get_array(key, index, default=None):
     return accessor
 
 
-def get_x(key="location", default=None):
+def get_statsbomb_x(key: str = "location", default: Any | None = None) -> Callable:
     """Shortcut for get_array(key, 0)"""
     return get_array(key, 0, default)
 
 
-def get_y(key="location", default=None):
+def get_statsbomb_y(key: str = "location", default: Any | None = None) -> Callable:
     """Shortcut for get_array(key, 1)"""
     return get_array(key, 1, default)
-
-
-def count(records):
-    """
-    Aggregation helper: return the number of records in the flow or group.
-
-    Example:
-        flow.summarize(total_shots=count)
-    """
-    return len(records)
-
-
-def sanitize_filename(value):
-    return str(value).replace(" ", "_").replace("/", "-")
