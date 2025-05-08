@@ -19,20 +19,20 @@ def test_init(sample_records):
     assert Flow(sample_records).collect() == sample_records
     assert Flow.from_records(sample_records).collect() == sample_records
     assert Flow(sample_records[0]).collect() == [sample_records[0]]
-    # assert Flow.from_records([sample_records[0]]).collect() == [sample_records[0]]
+    assert Flow.from_records([sample_records[0]]).collect() == [sample_records[0]]
 
-    # def gen():
-    #     yield {"id": 1}
-    #     yield {"id": 2}
+    def gen():
+        yield {"id": 1}
+        yield {"id": 2}
 
-    # assert Flow(gen()).collect() == [{"id": 1}, {"id": 2}]
-    # assert Flow.from_generator(gen()).collect() == [{"id": 1}, {"id": 2}]
+    assert Flow(gen()).collect() == [{"id": 1}, {"id": 2}]
+    assert Flow.from_generator(gen()).collect() == [{"id": 1}, {"id": 2}]
 
-    # with pytest.raises(
-    #     TypeError,
-    #     match="Expected a list of dicts, a single dict, or iterable of dicts",
-    # ):
-    #     Flow.from_records(123)
+    with pytest.raises(TypeError):
+        Flow.from_records(123)
+
+    with pytest.raises(TypeError):
+        Flow.from_records("123")
 
 
 def test_len(sample_records):

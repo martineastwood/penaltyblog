@@ -973,8 +973,9 @@ class Flow:
             iterable = [dict(data)]
         elif isinstance(data, list):
             iterable = [dict(r) for r in data]
+        elif isinstance(data, str):
+            raise TypeError("Expected dict, list[dict], or iterable of dicts")
         elif hasattr(data, "__iter__"):
-            # anything else iterable
             iterable = (dict(r) for r in data)
         else:
             raise TypeError("Expected dict, list[dict], or iterable of dicts")
