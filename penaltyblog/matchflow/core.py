@@ -1,3 +1,4 @@
+from collections import Counter
 from typing import Any, Callable
 
 import numpy as np
@@ -16,6 +17,9 @@ _AGGS: dict[str, Callable] = {
     "last": lambda vals: vals[-1] if vals else None,
     "any": lambda vals: any(vals),
     "all": lambda vals: all(vals),
+    "mode": lambda vals: Counter(vals).most_common(1)[0][0] if vals else None,
+    "range": lambda vals: (max(vals) - min(vals)) if vals else None,
+    "prod": np.prod,
 }
 
 

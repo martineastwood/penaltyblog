@@ -202,7 +202,16 @@ class FlowGroup:
         new_groups = {k: v[:n] for k, v in self.groups.items()}
         return FlowGroup(self.group_keys, new_groups)
 
-    def summary(self, **aggregates) -> "Flow":
+    def summary(self, **aggregates: str | tuple[str, str] | Callable) -> "Flow":
+        """
+        Compute aggregates for each group and return a new Flow with the results.
+
+        Args:
+            **aggregates: The aggregates to compute.
+
+        Returns:
+            Flow: New Flow with summary rows
+        """
         from .flow import Flow
 
         summary_rows = []
