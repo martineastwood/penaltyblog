@@ -21,16 +21,24 @@ class Flow:
     A class representing a flexible, lazy-evaluated data processing pipeline for working with record streams.
     """
 
-    def __init__(
-        self,
-        records: dict[str, Any] | list[dict[str, Any]] | Iterable[dict[str, Any]],
-    ) -> None:
+    def __init__(self, records: Iterable[dict]):
+        """
+        Args:
+            records (Iterable[dict]): An iterable of dictionaries representing the records to be processed.
+        """
         """
         Args:
             records: Either a single dict, or any iterable of dicts.
         """
-        flow: Flow = Flow.from_records(records)
-        self._records: Iterable[dict[str, Any]] = flow._records
+        # normalize to an iterable of dicts
+        if isinstance(records, dict):
+            iterable = [records]
+        else:
+            # if it isn’t a dict, we assume it’s already iterable of dicts
+            iterable = records
+
+        # shallow‐copy each dict exactly once
+        self._records = (dict(r) for r in iterable)
 
     def __len__(self) -> int:
         if isinstance(self._records, list):
