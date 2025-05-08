@@ -1,23 +1,15 @@
 import glob
 import json
 import random
-from collections import defaultdict, deque
+from collections import defaultdict
 from itertools import chain, islice, tee, zip_longest
 from pathlib import Path
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    Callable,
-    Iterable,
-    Iterator,
-    Mapping,
-    Union,
-)
+from typing import TYPE_CHECKING, Any, Callable, Iterable, Iterator, Union
 
 import pandas as pd
 import requests
 
-from .core import _AGGS, _resolve_agg, sanitize_filename
+from .core import _resolve_agg, sanitize_filename
 
 if TYPE_CHECKING:
     # only for type‐checking; no runtime import
@@ -29,21 +21,16 @@ class Flow:
     A class representing a flexible, lazy-evaluated data processing pipeline for working with record streams.
     """
 
-    def __init__(self, records: Iterable[dict]):
+    def __init__(
+        self,
+        records: dict[str, Any] | list[dict[str, Any]] | Iterable[dict[str, Any]],
+    ) -> None:
         """
         Args:
-            records (Iterable[dict]): An iterable of dictionaries representing the records to be processed.
+            records: Either a single dict, or any iterable of dicts.
         """
-        # unify single‐dict, list‐of‐dicts, or arbitrary iterable
-        if isinstance(records, dict):
-            iterable = [records]
-        elif isinstance(records, list):
-            iterable = records
-        else:
-            iterable = records  # assume iterable of dicts
-
-        # always shallow‐copy incoming dicts
-        self._records = (dict(r) for r in iterable)
+        flow: Flow = Flow.from_records(records)
+        self._records: Iterable[dict[str, Any]] = flow._records
 
     def __len__(self) -> int:
         if isinstance(self._records, list):
@@ -73,12 +60,20 @@ class Flow:
         """
         Compare a Flow to another Flow or to a list of records by materializing both.
         """
-        # comparing two Flows
         if isinstance(other, Flow):
-            return self.collect() == other.collect()
-        # comparing Flow to a plain list of dicts
+            # clone both sides
+            it1a, it1b = tee(self._records, 2)
+            it2a, it2b = tee(other._records, 2)
+            # replace their streams with the second clones
+            self._records = it1b
+            other._records = it2b
+            return list(it1a) == list(it2a)
+
         if isinstance(other, list):
-            return self.collect() == other
+            it, it_copy = tee(self._records, 2)
+            self._records = it_copy
+            return list(it) == other
+
         return NotImplemented
 
     def cache(self) -> "Flow":
@@ -101,7 +96,8 @@ class Flow:
         Filter the records using the given function.
 
         Args:
-            fn (Callable): A function that takes a record and returns a boolean.
+            fn (Callable): A function that takes a record and
+            returns a boolean.
         """
         return Flow(r for r in self._records if fn(r))
 
@@ -110,7 +106,9 @@ class Flow:
         Assign new fields to each record using the given functions.
 
         Args:
-            **kwargs: Keyword arguments where the key is the name of the new field and the value is a function that takes a record and returns the value for the new field.
+            **kwargs: Keyword arguments where the key is the name of the new
+            field and the value is a function that takes a record and returns
+            the value for the new field.
         """
 
         def mutate_record(record: dict) -> dict:
@@ -400,32 +398,15 @@ class Flow:
 
     def join(
         self,
-        other: "Flow | list[dict]",
+        other: "Flow|list[dict]",
         left_on: str,
         right_on: str | None = None,
         fields: list[str] | None = None,
         how: str = "left",
     ) -> "Flow":
-        """
-        Join this Flow with another (lookup) Flow or list of dicts.
-
-        Args:
-            other (Flow or list): right-hand records to join from
-            left_on (str): field in this Flow to match on
-            right_on (str, optional): field in other to match against (default = left_on)
-            fields (list[str], optional): fields to include from right side (default = all)
-            how (str): "left" (default) or "inner"
-
-        Returns:
-            Flow: A new Flow with joined records.
-
-        Raises:
-            ValueError: if `how` is not "left" or "inner".
-            TypeError: if `other` is neither a Flow nor a list of dicts.
-        """
         right_on = right_on or left_on
 
-        # materialize the RHS into a lookup dict
+        # pull the RHS into memory once
         if isinstance(other, Flow):
             right_data = list(other._records)
         elif isinstance(other, list):
@@ -434,36 +415,35 @@ class Flow:
             raise TypeError("Join target must be a Flow or list of dicts.")
 
         if how not in ("left", "inner"):
-            raise ValueError(f"Unknown join type: {how!r}. Expected 'left' or 'inner'.")
+            raise ValueError(f"Unknown join type {how!r}; expected 'left' or 'inner'.")
 
-        lookup: dict[Any, Mapping[str, Any]] = {
-            r[right_on]: r for r in right_data if right_on in r
-        }
+        # build lookup: key → row
+        lookup: dict[Any, dict] = {r[right_on]: r for r in right_data if right_on in r}
 
-        def generator() -> Iterator[dict[str, Any]]:
+        def gen():
             for left_rec in self._records:
-                key = left_rec.get(left_on)
+                key = left_rec.get(left_on, None)
                 right_rec = lookup.get(key)
 
-                if right_rec is not None:
-                    # matched row: merge
-                    out = dict(left_rec)
-                    if fields:
-                        for f in fields:
-                            out[f] = right_rec.get(f)
-                    else:
-                        for k, v in right_rec.items():
-                            if k != right_on:
-                                out[k] = v
-                    yield out
+                # no match
+                if right_rec is None:
+                    if how == "left":
+                        yield dict(left_rec)  # keep the LHS
+                    # if how == "inner": drop it
+                    continue
 
-                elif how == "left":
-                    # keep unmatched in a left join
-                    yield dict(left_rec)
+                # match! merge
+                out = dict(left_rec)  # shallow copy of the LHS
+                if fields:
+                    for f in fields:
+                        out[f] = right_rec.get(f)
+                else:
+                    for k, v in right_rec.items():
+                        if k != right_on:
+                            out[k] = v
+                yield out
 
-                # else: unmatched + how=="inner" → skip
-
-        return Flow.from_generator(generator())
+        return Flow.from_generator(gen())
 
     def collect(self) -> list[dict]:
         """
@@ -485,7 +465,7 @@ class Flow:
         """
         return self.limit(n)
 
-    def pipe(self, func: Callable, *args, **kwargs) -> "Flow":
+    def pipe(self, func: Callable, *args, **kwargs) -> Union["Flow", Any]:
         """
         Pipe the flow into a function.
 
@@ -611,12 +591,18 @@ class Flow:
             for record in self._records:
                 values = record.get(key)
                 if isinstance(values, list):
-                    for item in values:
-                        new_rec = dict(record)
-                        new_rec[key] = item
-                        yield new_rec
+                    if values:
+                        # one row per element
+                        for item in values:
+                            new_rec = dict(record)
+                            new_rec[key] = item
+                            yield new_rec
+                    else:
+                        # empty list → keep the record unchanged
+                        yield record
                 else:
-                    yield record  # keep as-is if not a list
+                    # non-list or missing → keep as is
+                    yield record
 
         return Flow.from_generator(generator())
 
@@ -632,17 +618,32 @@ class Flow:
             Flow: A new Flow of the exploded records.
         """
 
-        def gen() -> Iterator[dict[str, Any]]:
-            for rec in self._records:
-                arrays = [rec.get(k, []) for k in keys]
-                for items in zip_longest(*arrays, fillvalue=fillvalue):
-                    new = dict(rec)
-                    for k, val in zip(keys, items):
-                        new[k] = val
-                    yield new
-
+    def explode_multi(self, keys: list[str], fillvalue=None) -> "Flow":
         if not keys:
             raise ValueError("keys must not be empty")
+
+        def gen() -> Iterator[dict[str, Any]]:
+            for rec in self._records:
+                # pull out each field as a list (or empty list if missing / not a list)
+                arrays = []
+                for k in keys:
+                    v = rec.get(k)
+                    if isinstance(v, list):
+                        arrays.append(v)
+                    else:
+                        arrays.append([])
+
+                # if every list is empty, just yield the record as-is
+                if all(len(arr) == 0 for arr in arrays):
+                    yield rec
+                    continue
+
+                # otherwise explode
+                for items in zip_longest(*arrays, fillvalue=fillvalue):
+                    out = dict(rec)
+                    for key, val in zip(keys, items):
+                        out[key] = val
+                    yield out
 
         return Flow.from_generator(gen())
 
@@ -960,22 +961,21 @@ class Flow:
 
         Args:
             data (dict | list[dict] | Iterable[dict]): The data to create the flow from.
+
+        Returns:
+            Flow: The created flow.
         """
         if isinstance(data, dict):
-            # Single record
-            return cls([dict(data)])
-
+            wrapped = [data]
         elif isinstance(data, list):
-            if all(isinstance(item, dict) for item in data):
-                return cls(dict(r) for r in data)
-
+            wrapped = data
         elif hasattr(data, "__iter__"):
-            # Iterable of dicts
-            return cls(dict(r) for r in data)
+            wrapped = data
+        else:
+            raise TypeError("Expected dict, list[dict], or iterable of dicts")
 
-        raise TypeError(
-            "Expected a list of dicts, a single dict, or iterable of dicts."
-        )
+        # ensure each record is shallow-copied exactly once:
+        return cls((dict(r) for r in wrapped))
 
     class statsbomb:
         @staticmethod

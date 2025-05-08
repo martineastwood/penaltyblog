@@ -18,20 +18,21 @@ def test_group_by_and_ungroup(sample_records):
     fg: FlowGroup = Flow(sample_records).group_by("grp")
     groups = fg.groups
     assert set(groups.keys()) == {("A",), ("B",)}
-    # flatten back
+
     flat = fg.ungroup().collect()
     assert sorted([r["id"] for r in flat]) == [1, 2, 3]
+
+    assert Flow(sample_records).group_by("grp").ungroup() == Flow(sample_records)
+    assert isinstance(Flow(sample_records).group_by("grp").ungroup(), Flow)
 
 
 def test_summary_row_number(sample_records):
     fg = Flow(sample_records).group_by("grp")
-    # count per group
     summary = fg.summary(count=("id", "count")).collect()
-    # should be flow of single-row dicts
     assert any(r["count"] == 2 for r in summary)
-    # row number
+
     rn = fg.row_number("v").groups[("A",)][0]
-    assert rn["row_number"] == 1  # smallest v
+    assert rn["row_number"] == 1
 
 
 def test_first_last_is_empty(sample_records):

@@ -3,7 +3,7 @@ from typing import TYPE_CHECKING, Any, Callable, Iterator
 
 import pandas as pd
 
-from .core import _AGGS, _resolve_agg
+from .core import _resolve_agg
 
 if TYPE_CHECKING:
     # only for type‐checking; no runtime import
@@ -64,9 +64,16 @@ class FlowGroup:
         """
         from .flow import Flow
 
-        # chain all the lists of records together
-        flat_iter = chain.from_iterable(self.groups.values())
-        return Flow.from_generator(flat_iter)
+        def gen():
+            for key_tuple, recs in self.groups.items():
+                # build a dict of the grouping columns, e.g. {"team": "A", "period": 1}
+                prefix = dict(zip(self.group_keys, key_tuple))
+                for rec in recs:
+                    # shallow‐merge so we don't mutate the originals
+                    out = {**prefix, **rec}
+                    yield out
+
+        return Flow.from_generator(gen())
 
     def drop_duplicates(self, *fields, keep: str = "first") -> "FlowGroup":
         """
@@ -301,11 +308,4 @@ class FlowGroup:
         if agg_funcs:
             return self.summary(**agg_funcs).to_pandas()
         else:
-            # Flatten groups into DataFrame
-            rows = []
-            for key, recs in self.groups.items():
-                for rec in recs:
-                    row = dict(zip(self.group_keys, key))
-                    row.update(rec)
-                    rows.append(row)
-            return pd.DataFrame(rows)
+            return self.ungroup().to_pandas()
