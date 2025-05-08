@@ -30,15 +30,8 @@ class Flow:
         Args:
             records: Either a single dict, or any iterable of dicts.
         """
-        # normalize to an iterable of dicts
-        if isinstance(records, dict):
-            iterable = [records]
-        else:
-            # if it isn’t a dict, we assume it’s already iterable of dicts
-            iterable = records
-
-        # shallow‐copy each dict exactly once
-        self._records = (dict(r) for r in iterable)
+        flow: Flow = Flow.from_records(records)
+        self._records: Iterator[dict[str, Any]] = flow._records
 
     def __len__(self) -> int:
         if isinstance(self._records, list):
@@ -973,17 +966,21 @@ class Flow:
         Returns:
             Flow: The created flow.
         """
+        inst = object.__new__(cls)
+
+        # normalize into a generator of shallow‐copied dicts
         if isinstance(data, dict):
-            wrapped = [data]
+            iterable = [dict(data)]
         elif isinstance(data, list):
-            wrapped = data
+            iterable = [dict(r) for r in data]
         elif hasattr(data, "__iter__"):
-            wrapped = data
+            # anything else iterable
+            iterable = (dict(r) for r in data)
         else:
             raise TypeError("Expected dict, list[dict], or iterable of dicts")
 
-        # ensure each record is shallow-copied exactly once:
-        return cls((dict(r) for r in wrapped))
+        inst._records = iter(iterable)
+        return inst
 
     class statsbomb:
         @staticmethod
