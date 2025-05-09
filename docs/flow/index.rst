@@ -1,4 +1,4 @@
-Matchflow
+Flow
 =================================
 
 **Flow** is a lightweight toolkit for working with football data stored as JSON.

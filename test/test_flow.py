@@ -73,6 +73,7 @@ def test_selecting():
             "nested": {"x": 1, "y": {"z": 2}},
             "extra.field": "foo",
             "another.extra.field": {"that.is.nested": "foo"},
+            "player.info": {"name.full": "Jane Doe"},
         }
     ]
 
@@ -81,6 +82,17 @@ def test_selecting():
     assert Flow(data).select("extra.field").collect() == [{"extra.field": "foo"}]
     assert Flow(data).select("does_not_exist").collect() == [{"does_not_exist": None}]
     assert Flow(data).select("nested.y.z").collect() == [{"z": 2}]
+
+    recs = Flow(data).flatten().select("another.extra.field.that.is.nested").collect()
+    assert recs == [{"another.extra.field.that.is.nested": "foo"}]
+
+    recs = (
+        Flow(data)
+        .rename(**{"player.info": "player_info"})
+        .assign(name_full=lambda r: r["player_info"].get("name.full"))
+        .select("name_full")
+    )
+    assert recs == [{"name_full": "Jane Doe"}]
 
 
 def test_filter(sample_records):

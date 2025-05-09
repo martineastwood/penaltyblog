@@ -1,3 +1,4 @@
+import collections
 import glob
 import json
 import random
@@ -18,17 +19,13 @@ if TYPE_CHECKING:
 
 class Flow:
     """
-    A class representing a flexible, lazy-evaluated data processing pipeline for working with record streams.
+    A class representing a flexible, lazy-evaluated data processing pipeline for working with streams of records.
     """
 
-    def __init__(self, records: Iterable[dict]):
+    def __init__(self, records: Iterable[dict[Any, Any]]):
         """
         Args:
             records (Iterable[dict]): An iterable of dictionaries representing the records to be processed.
-        """
-        """
-        Args:
-            records: Either a single dict, or any iterable of dicts.
         """
         flow: Flow = Flow.from_records(records)
         self._records: Iterator[dict[str, Any]] = flow._records
@@ -42,7 +39,9 @@ class Flow:
         return sum(1 for _ in it1)
 
     def __iter__(self) -> Iterator[dict]:
-        return iter(self._records)
+        it1, it2 = tee(self._records, 2)
+        self._records = it2
+        return it1
 
     def __repr__(self) -> str:
         it1, it2 = tee(self._records, 2)
@@ -79,18 +78,12 @@ class Flow:
 
     def cache(self) -> "Flow":
         """
-        Materialize all records seen so far into memory, and return a new Flow
-        backed by that list. Subsequent operations are non-destructive and
-        can be re-run arbitrarily.
+        Eagerly read the entire stream into memory and return a new Flow
+        backed by that in-memory list.  Subsequent operations on the
+        cached Flow are always replayable at zero extra cost.
         """
-        # pull everything out of the current (possibly streaming) flow
-        data = list(self._records)
-        # build a new Flow that holds the data in a plain list
-        new = object.__new__(Flow)
-        # shallow‐copy each dict so that further transformations don't
-        # mutate the user's original records
-        new._records = [dict(r) for r in data]
-        return new
+        data = self.collect()
+        return Flow.from_records(data)
 
     def filter(self, fn: Callable) -> "Flow":
         """
@@ -130,7 +123,7 @@ class Flow:
             *fields (str): The names of the fields to select.
         """
 
-        def select_fields(record: dict) -> dict:
+        def select_fields(record: dict[Any, Any]) -> dict[Any, Any]:
             out = {}
             for field in fields:
                 if field in record:
@@ -139,7 +132,7 @@ class Flow:
                 elif "." in field:
                     # try nested = record[a][b][c]...
                     parts = field.split(".")
-                    val = record
+                    val: Any = record
                     for p in parts:
                         if isinstance(val, dict):
                             val = val.get(p)
@@ -185,11 +178,19 @@ class Flow:
             by (str): The name of the field to sort by.
             reverse (bool, optional): Whether to sort in descending order. Defaults to False.
         """
-        recs = list(self._records)
-        non_null = [r for r in recs if r.get(by) is not None]
-        nulls = [r for r in recs if r.get(by) is None]
-        sorted_non_null = sorted(non_null, key=lambda r: r[by], reverse=reverse)
-        return Flow.from_generator(iter(sorted_non_null + nulls))
+
+        def _lazy_sort():
+            recs = list(self._records)
+            non_null = [r for r in recs if r.get(by) is not None]
+            nulls = [r for r in recs if r.get(by) is None]
+            for r in sorted(non_null, key=lambda r: r[by], reverse=reverse):
+                yield r
+            yield from nulls
+
+        # tee to protect the original
+        _, it2 = tee(self._records, 2)
+        self._records = it2
+        return Flow.from_generator(_lazy_sort())
 
     def limit(self, n: int) -> "Flow":
         """
@@ -201,14 +202,9 @@ class Flow:
         Returns:
             Flow: New Flow with at most n records.
         """
-
-        # tee the underlying iterator so we can consume one clone
-        # but leave the other clone intact on `self`
-        first_clone, second_clone = tee(self._records, 2)
-        # replace our own _records with the second clone (so `self` is untouched)
-        self._records = second_clone
-        # return a brand‐new Flow over just the first n items
-        return Flow.from_generator(islice(first_clone, n))
+        it1, it2 = tee(self._records, 2)
+        self._records = it2
+        return Flow.from_generator(islice(it1, n))
 
     def split_array(self, key: str, into: list[str]) -> "Flow":
         """
@@ -258,9 +254,13 @@ class Flow:
             **aggregates (str | tuple[str, str] | callable): The aggregates to compute. Note that
             this causes the stream of data to be materialized.
         """
-        data = list(self._records)
-        row = {col: _resolve_agg(data, spec) for col, spec in aggregates.items()}
-        return Flow([row])
+
+        def gen():
+            data = list(self._records)  # only executed at iteration time
+            row = {col: _resolve_agg(data, spec) for col, spec in aggregates.items()}
+            yield row
+
+        return Flow.from_generator(gen())
 
     def concat(self, *others: "Flow") -> "Flow":
         """
@@ -284,17 +284,19 @@ class Flow:
             new_field (str, optional): The name of the new field to add. Defaults to "row_number".
             reverse (bool, optional): Whether to sort in descending order. Defaults to False.
         """
-        records = list(self._records)
-        non_null = [r for r in records if r.get(by) is not None]
-        nulls = [r for r in records if r.get(by) is None]
-        sorted_non_null = sorted(non_null, key=lambda r: r[by], reverse=reverse)
-        # assign ranks to the non‐nulls
-        for idx, rec in enumerate(sorted_non_null, start=1):
-            rec[new_field] = idx
-        # keep the null‐valued ones at the end with rank=None
-        for rec in nulls:
-            rec[new_field] = None
-        return Flow.from_generator(iter(sorted_non_null + nulls))
+
+        def gen():
+            recs = list(self._records)  # only runs when someone iterates
+            non_null = [r for r in recs if r.get(by) is not None]
+            nulls = [r for r in recs if r.get(by) is None]
+            sorted_non_null = sorted(non_null, key=lambda r: r[by], reverse=reverse)
+            for idx, rec in enumerate(sorted_non_null, start=1):
+                rec[new_field] = idx
+            for rec in nulls:
+                rec[new_field] = None
+            yield from (sorted_non_null + nulls)
+
+        return Flow.from_generator(gen())
 
     def drop_duplicates(self, *fields: str, keep: str = "first") -> "Flow":
         """
@@ -304,26 +306,21 @@ class Flow:
         keep: 'first', 'last', or False (drop all duplicates).
         """
 
-        def gen() -> Iterator[dict[str, Any]]:
-            seen: dict[Any, dict[str, Any]] = {}
+        def gen():
+            seen: dict[Any, dict] = {}
             for record in self._records:
                 if fields:
                     key = tuple(record.get(f) for f in fields)
                 else:
-                    # use the entire record (sorted items) as key
                     key = tuple(sorted(record.items()))
                 if key in seen:
                     if keep == "last":
-                        # replace previous with this one
                         seen[key] = record
                     elif keep is False:
-                        # mark for removal
                         seen[key] = None
-                    # else keep == "first": do nothing
+                    # else keep == "first": ignore
                 else:
                     seen[key] = record
-
-            # yield in original insertion order, skipping any None
             for rec in seen.values():
                 if rec is not None:
                     yield rec
@@ -340,14 +337,17 @@ class Flow:
         Args:
             n (int): The number of records to take.
         """
-        if n < 0:
-            raise ValueError("n must be >= 0")
 
-        if n == 0:
-            return Flow.from_generator(iter([]))
+        def gen():
+            if n < 0:
+                raise ValueError("n must be >= 0")
+            records = list(self._records)
+            if n == 0:
+                return  # yields nothing
+            for rec in records[-n:]:
+                yield rec
 
-        all_recs = list(self._records)
-        return Flow.from_generator(iter(all_recs[-n:]))
+        return Flow.from_generator(gen())
 
     def unique(self, *fields: str) -> "Flow":
         """
@@ -358,9 +358,9 @@ class Flow:
         Args:
             *fields (str): The fields to return unique values for.
         """
-        seen = set()
 
-        def gen() -> Iterator[dict[str, Any]]:
+        def gen():
+            seen = set()
             for record in self._records:
                 if fields:
                     key = tuple(record.get(f) for f in fields)
@@ -371,7 +371,6 @@ class Flow:
                         else:
                             yield dict(zip(fields, key))
                 else:
-                    # no fields => drop duplicate records
                     key = tuple(sorted(record.items()))
                     if key not in seen:
                         seen.add(key)
@@ -448,14 +447,12 @@ class Flow:
 
     def collect(self) -> list[dict]:
         """
-        Materialize the flow into a list of dicts.
-
-        Note: This consumes the stream and returns a list of all records.
-
-        Returns:
-            list[dict]: The records in the flow.
+        Materialize the flow into a list of dicts, non-destructively.
+        You can call collect() again and again and always get the same result.
         """
-        return list(self._records)
+        it1, it2 = tee(self._records, 2)
+        self._records = it2
+        return list(it1)
 
     def head(self, n: int = 5) -> "Flow":
         """
@@ -618,8 +615,6 @@ class Flow:
         Returns:
             Flow: A new Flow of the exploded records.
         """
-
-    def explode_multi(self, keys: list[str], fillvalue=None) -> "Flow":
         if not keys:
             raise ValueError("keys must not be empty")
 
@@ -835,7 +830,7 @@ class Flow:
         return self
 
     @classmethod
-    def from_generator(cls, generator_instance: Iterator[dict]) -> "Flow":
+    def from_generator(cls, generator_instance: Iterator[dict[Any, Any]]) -> "Flow":
         """
         Create a Flow from a generator function.
         """
@@ -884,12 +879,13 @@ class Flow:
             raise FileNotFoundError(f"File not found: {p}")
 
         text = p.read_text(encoding=encoding)
+        data: dict[Any, Any] | list[dict[Any, Any]]
         data = json.loads(text)
 
         if isinstance(data, list):
-            return cls.from_generator(record for record in data)
+            return cls.from_generator(iter(data))
         else:
-            return cls.from_generator([data])
+            return cls.from_generator(iter([data]))
 
     @classmethod
     def from_folder(cls, folder: str | Path, encoding: str = "utf-8") -> "Flow":
@@ -952,7 +948,9 @@ class Flow:
         return cls.from_generator(gen())
 
     @classmethod
-    def from_records(cls, data: dict | list[dict] | Iterable[dict]) -> "Flow":
+    def from_records(
+        cls, data: dict[Any, Any] | list[dict[Any, Any]] | Iterable[dict[Any, Any]]
+    ) -> "Flow":
         """
         Create a Flow from one or more dict-like records.
         Accepts:
@@ -968,24 +966,27 @@ class Flow:
         """
         inst = object.__new__(cls)
 
-        # normalize into a generator of shallow‐copied dicts
+        # narrow down to something that really is an Iterable[dict]
         if isinstance(data, dict):
             iterable = [dict(data)]
         elif isinstance(data, list):
             iterable = [dict(r) for r in data]
-        elif isinstance(data, str):
-            raise TypeError("Expected dict, list[dict], or iterable of dicts")
-        elif hasattr(data, "__iter__"):
+        # explicitly rule out strings/bytes before treating as a generic iterable
+        elif isinstance(data, (str, bytes)):
+            raise TypeError(
+                "Cannot build Flow from text; expected dict or iterable of dicts"
+            )
+        elif isinstance(data, collections.abc.Iterable):
             iterable = (dict(r) for r in data)
         else:
-            raise TypeError("Expected dict, list[dict], or iterable of dicts")
+            raise TypeError("Expected dict, list of dicts, or iterable of dicts")
 
         inst._records = iter(iterable)
         return inst
 
     class statsbomb:
         @staticmethod
-        def from_github_file(match_id: int, type: str = "events"):
+        def from_github_file(match_id: int, type: str = "events") -> "Flow":
             """
             Load a StatsBomb event data file from GitHub.
 
@@ -1000,4 +1001,4 @@ class Flow:
             if isinstance(data, list):
                 return Flow.from_generator(r for r in data)
             else:
-                return Flow.from_generator([data])
+                return Flow.from_generator(iter([data]))
