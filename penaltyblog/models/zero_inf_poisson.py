@@ -149,18 +149,28 @@ class ZeroInflatedPoissonGoalsModel(BaseGoalsModel):
         self.fitted = True
 
     def get_params(self) -> ParamsOutput:
+        """
+        Returns the model's fitted parameters as a dictionary
+
+        Returns
+        -------
+        dict
+            A dict containing the model's parameters
+        """
         if not self.fitted:
             raise ValueError(
-                "Model's parameters have not been fit yet. Call `fit()` first."
+                "Model's parameters have not been fit yet, please call the `fit()` function first"
             )
+
+        assert self.n_params is not None
+        assert self._res is not None
 
         params = dict(
             zip(
                 ["attack_" + team for team in self.teams]
-                + ["defense_" + team for team in self.teams]
-                + ["home_advantage"]
-                + ["zero_inflation"],
-                self._params,
+                + ["defence_" + team for team in self.teams]
+                + ["home_advantage", "zero_inflation"],
+                self._res["x"],
             )
         )
         return params
@@ -208,7 +218,9 @@ class ZeroInflatedPoissonGoalsModel(BaseGoalsModel):
 
         score_matrix.shape = (max_goals, max_goals)
 
-        return FootballProbabilityGrid(score_matrix, lambda_home, lambda_away)
+        return FootballProbabilityGrid(
+            score_matrix, float(lambda_home[0]), float(lambda_away[0])
+        )
 
     def get_params(self) -> ParamsOutput:
         """
