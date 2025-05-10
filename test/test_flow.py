@@ -51,6 +51,7 @@ def test_iter(sample_records):
     for _ in flow:
         n += 1
     assert n == len(sample_records)
+    assert list(flow) == sample_records
 
 
 def test_eq(sample_records):
@@ -62,6 +63,13 @@ def test_eq(sample_records):
 
 def test_collect(sample_records):
     assert Flow(sample_records).collect() == sample_records
+    assert Flow(sample_records[0]).collect() == [sample_records[0]]
+
+    def gen():
+        yield {"id": 1}
+        yield {"id": 2}
+
+    assert Flow(gen()).collect() == [{"id": 1}, {"id": 2}]
 
 
 def test_selecting():

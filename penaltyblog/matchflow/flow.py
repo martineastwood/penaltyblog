@@ -19,11 +19,16 @@ if TYPE_CHECKING:
 
 class Flow:
     """
-    A class representing a flexible, lazy-evaluated data processing pipeline for working with streams of records.
+    A class representing a flow of data records.
+
+    Args:
+        records (Iterable[dict]): An iterable of dictionaries representing the records to be processed.
     """
 
     def __init__(self, records: Iterable[dict[Any, Any]]):
         """
+        Initialize a Flow instance from an iterable of records.
+
         Args:
             records (Iterable[dict]): An iterable of dictionaries representing the records to be processed.
         """
@@ -31,6 +36,12 @@ class Flow:
         self._records: Iterator[dict[str, Any]] = flow._records
 
     def __len__(self) -> int:
+        """
+        Return the number of records in the flow.
+
+        If the flow is backed by a list, uses the list's length. Otherwise,
+        materializes the flow and counts the records.
+        """
         if isinstance(self._records, list):
             return len(self._records)
 
@@ -81,6 +92,9 @@ class Flow:
         Eagerly read the entire stream into memory and return a new Flow
         backed by that in-memory list.  Subsequent operations on the
         cached Flow are always replayable at zero extra cost.
+
+        Returns:
+            Flow: A new Flow backed by the cached records.
         """
         data = self.collect()
         return Flow.from_records(data)
@@ -92,6 +106,9 @@ class Flow:
         Args:
             fn (Callable): A function that takes a record and
             returns a boolean.
+
+        Returns:
+            Flow: A new Flow with only the records where fn(record) is True.
         """
         return Flow(r for r in self._records if fn(r))
 
@@ -103,6 +120,9 @@ class Flow:
             **kwargs: Keyword arguments where the key is the name of the new
             field and the value is a function that takes a record and returns
             the value for the new field.
+
+        Returns:
+            Flow: A new Flow with the new fields added.
         """
 
         def mutate_record(record: dict) -> dict:
@@ -121,6 +141,9 @@ class Flow:
 
         Args:
             *fields (str): The names of the fields to select.
+
+        Returns:
+            Flow: A new Flow with only the selected fields.
         """
 
         def select_fields(record: dict[Any, Any]) -> dict[Any, Any]:
@@ -153,6 +176,9 @@ class Flow:
 
         Args:
             *fields (str): The names of the fields to drop.
+
+        Returns:
+            Flow: A new Flow with the given fields removed.
         """
 
         def remover(record: dict) -> dict:
@@ -177,6 +203,9 @@ class Flow:
         Args:
             by (str): The name of the field to sort by.
             reverse (bool, optional): Whether to sort in descending order. Defaults to False.
+
+        Returns:
+            Flow: A new Flow with the records sorted by the given field.
         """
 
         def _lazy_sort():
@@ -213,6 +242,9 @@ class Flow:
         Args:
             key (str): The name of the array field to split.
             into (list[str]): The names of the fields to split into.
+
+        Returns:
+            Flow: A new Flow with the array field split into multiple fields.
         """
 
         def splitter(record: dict) -> dict:
@@ -235,6 +267,9 @@ class Flow:
 
         Args:
             *keys (str): The names of the fields to group by.
+
+        Returns:
+            FlowGroup: A FlowGroup object
         """
         from .flowgroup import FlowGroup
 
@@ -253,6 +288,9 @@ class Flow:
         Args:
             **aggregates (str | tuple[str, str] | callable): The aggregates to compute. Note that
             this causes the stream of data to be materialized.
+
+        Returns:
+            Flow: A new Flow with the summary rows.
         """
 
         def gen():
@@ -268,6 +306,9 @@ class Flow:
 
         Args:
             *others (Flow): The Flows to concatenate.
+
+        Returns:
+            Flow: A new Flow with the concatenated records.
         """
         return Flow.from_generator(chain(self._records, *(o._records for o in others)))
 
@@ -301,9 +342,20 @@ class Flow:
     def drop_duplicates(self, *fields: str, keep: str = "first") -> "Flow":
         """
         Drop duplicate records.
-        If no fields given, consider the whole record.
-        Otherwise consider only the given fields.
-        keep: 'first', 'last', or False (drop all duplicates).
+
+        If no fields are specified, it considers the entire record for duplication.
+        If fields are provided, only those fields are used to identify duplicates.
+
+        Args:
+            *fields (str): The fields to use for deduplication.
+            keep (str, optional): How to handle duplicates. Defaults to "first".
+
+                - "first": Keep the first occurrence of a duplicate set.
+                - "last": Keep the last occurrence.
+                - False: Drop all records that are part of any duplicate set.
+
+        Returns:
+            Flow: A new Flow with the duplicate records dropped.
         """
 
         def gen():
@@ -336,6 +388,9 @@ class Flow:
 
         Args:
             n (int): The number of records to take.
+
+        Returns:
+            Flow: A new Flow with the last `n` records.
         """
 
         def gen():
@@ -357,6 +412,9 @@ class Flow:
 
         Args:
             *fields (str): The fields to return unique values for.
+
+        Returns:
+            Flow: A new Flow with unique values of one or more fields.
         """
 
         def gen():
@@ -384,6 +442,9 @@ class Flow:
 
         Args:
             **mapping (str): The keys to rename.
+
+        Returns:
+            Flow: A new Flow with renamed keys.
         """
 
         def gen() -> Iterator[dict[str, Any]]:
@@ -404,6 +465,20 @@ class Flow:
         fields: list[str] | None = None,
         how: str = "left",
     ) -> "Flow":
+        """
+        Join a Flow with another Flow or a list of dicts. Note that the right side
+        of the join will be fully materialized into memory.
+
+        Args:
+            other: The Flow or list of dicts to join with.
+            left_on: The field name in this Flow to join on.
+            right_on: The field name in the other Flow/list to join on. If None, defaults to left_on.
+            fields: An optional list of field names to include from the other Flow/list. If None, all fields are included.
+            how: The type of join to perform. If "left", all records from this Flow are kept, with matching records from the other Flow/list added. If "inner", only records with a match in the other Flow/list are kept.
+
+        Returns:
+            Flow: A new Flow with the joined records.
+        """
         right_on = right_on or left_on
 
         # pull the RHS into memory once
@@ -449,6 +524,9 @@ class Flow:
         """
         Materialize the flow into a list of dicts, non-destructively.
         You can call collect() again and again and always get the same result.
+
+        Returns:
+            list[dict]: The records in the flow.
         """
         it1, it2 = tee(self._records, 2)
         self._records = it2
@@ -460,6 +538,9 @@ class Flow:
 
         Args:
             n (int): The number of records to return.
+
+        Returns:
+            Flow: A new Flow with the first n records.
         """
         return self.limit(n)
 
@@ -560,6 +641,9 @@ class Flow:
                 - If an integer n, only the first n records are checked.
 
         Does not consume the underlying stream.
+
+        Returns:
+            set[str]: The union of keys across up to `limit` records.
         """
         # duplicate the iterator
         it1, it2 = tee(self._records, 2)
@@ -833,6 +917,12 @@ class Flow:
     def from_generator(cls, generator_instance: Iterator[dict[Any, Any]]) -> "Flow":
         """
         Create a Flow from a generator function.
+
+        Args:
+            generator_instance (Iterator[dict[Any, Any]]): A generator function.
+
+        Returns:
+            Flow: A Flow object.
         """
         return cls(generator_instance)
 
@@ -848,6 +938,9 @@ class Flow:
         Args:
             path (str or Path): Input file path.
             encoding (str, optional): File encoding. Defaults to "utf-8".
+
+        Returns:
+            Flow: A Flow object.
         """
         p = Path(path)
         if not p.exists():
@@ -873,6 +966,9 @@ class Flow:
         Args:
             path (str or Path): Input file path.
             encoding (str, optional): File encoding. Defaults to "utf-8".
+
+        Returns:
+            Flow: A Flow object.
         """
         p = Path(path)
         if not p.exists():
@@ -900,6 +996,9 @@ class Flow:
         Args:
             folder (str or Path): The path to the folder.
             encoding (str, optional): File encoding. Defaults to "utf-8".
+
+        Returns:
+            Flow: A Flow object.
         """
         folder_p = Path(folder)
         if not folder_p.is_dir():
@@ -930,6 +1029,9 @@ class Flow:
 
         Args:
             pattern (str or Path): The glob pattern.
+
+        Returns:
+            Flow: A Flow object.
         """
 
         def gen():
@@ -993,6 +1095,9 @@ class Flow:
             Args:
                 match_id (int): The StatsBomb match ID.
                 type (str, optional): The type of data to load. Defaults to "events".
+
+            Returns:
+                Flow: A Flow object.
             """
             url = f"https://raw.githubusercontent.com/statsbomb/open-data/master/data/{type}/{match_id}.json"
             response = requests.get(url)

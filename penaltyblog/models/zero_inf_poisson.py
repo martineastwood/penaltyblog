@@ -148,33 +148,6 @@ class ZeroInflatedPoissonGoalsModel(BaseGoalsModel):
         self.aic = -2 * self.loglikelihood + 2 * self.n_params
         self.fitted = True
 
-    def get_params(self) -> ParamsOutput:
-        """
-        Returns the model's fitted parameters as a dictionary
-
-        Returns
-        -------
-        dict
-            A dict containing the model's parameters
-        """
-        if not self.fitted:
-            raise ValueError(
-                "Model's parameters have not been fit yet, please call the `fit()` function first"
-            )
-
-        assert self.n_params is not None
-        assert self._res is not None
-
-        params = dict(
-            zip(
-                ["attack_" + team for team in self.teams]
-                + ["defence_" + team for team in self.teams]
-                + ["home_advantage", "zero_inflation"],
-                self._res["x"],
-            )
-        )
-        return params
-
     def predict(
         self, home_team: str, away_team: str, max_goals: int = 15
     ) -> FootballProbabilityGrid:
