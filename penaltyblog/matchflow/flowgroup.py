@@ -31,7 +31,11 @@ class FlowGroup:
         """
         Iterate over (group_key_tuple, records_list) pairs.
 
-        # write docstring AI!
+        Iterate over (group_key_tuple, records_list) pairs.
+
+        Yields:
+            Iterator[tuple[tuple[str], list]]: An iterator over tuples where each tuple
+            contains a group key and the corresponding list of records.
         """
         return iter(self.groups.items())
 
