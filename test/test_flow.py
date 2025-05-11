@@ -17,18 +17,12 @@ def sample_records():
 
 def test_init(sample_records):
     # 1. Flow.collect returns all records as-is
-    # 1. Collect returns all records
-    # 1. Collect returns all records
     assert Flow(sample_records).collect() == sample_records
     # 2. Flow.from_records returns all records as-is
-    # 2. Collect from records returns all records
     assert Flow.from_records(sample_records).collect() == sample_records
     # 3. Single record input returns single record
-    # 3. Collect single record
-    # 2. Collect single record
     assert Flow(sample_records[0]).collect() == [sample_records[0]]
     # 4. Single record with from_records
-    # 4. Collect single record with from_records
     assert Flow.from_records([sample_records[0]]).collect() == [sample_records[0]]
 
     # 5. Flow from generator yields correct records
@@ -37,11 +31,8 @@ def test_init(sample_records):
         yield {"id": 2}
 
     # 6. Flow from generator yields correct records
-    # 5. Collect from generator
-    # 3. Collect from generator
     assert Flow(gen()).collect() == [{"id": 1}, {"id": 2}]
     # 7. Flow.from_generator yields correct records
-    # 6. Collect from generator with from_generator
     assert Flow.from_generator(gen()).collect() == [{"id": 1}, {"id": 2}]
 
     # 8. TypeError if not iterable (int)
@@ -80,7 +71,6 @@ def test_init(sample_records):
 
 def test_len(sample_records):
     # 1. Length of Flow is length of records
-    # 1. Length of Flow is length of records
     assert len(Flow(sample_records)) == len(sample_records)
 
     # 2. Length after collect is unchanged
@@ -88,10 +78,8 @@ def test_len(sample_records):
     len(flow)
     results = flow.collect()
     # 3. Length of collected results
-    # 2. Length of collected results
     assert len(results) == len(sample_records)
     # 4. Collected results match input
-    # 3. Collected results match input
     assert results == sample_records
 
     # 5. Length of Flow is length of records again
@@ -114,10 +102,8 @@ def test_iter(sample_records):
     for _ in flow:
         n += 1
     # 2. Iterating counts all records
-    # 1. Iterating counts all records
     assert n == len(sample_records)
     # 3. Iterating again yields original records
-    # 2. Iterating again yields original records
     assert list(flow) == sample_records
 
     # 4. Iterating counts all records again
@@ -133,15 +119,11 @@ def test_iter(sample_records):
 
 def test_eq(sample_records):
     # 1. Flow equals itself
-    # 1. Flow equals itself
     assert Flow(sample_records) == Flow(sample_records)
-    # 2. Flow equals list of same records
     # 2. Flow equals list of same records
     assert Flow(sample_records) == sample_records
     # 3. Flow not equal to different Flow
-    # 3. Flow not equal to different Flow
     assert Flow(sample_records) != Flow(sample_records[1:])
-    # 4. Flow not equal to different list
     # 4. Flow not equal to different list
     assert Flow(sample_records) != sample_records[1:]
 
@@ -179,6 +161,7 @@ def test_collect(sample_records):
         yield {"id": 1}
         yield {"id": 2}
 
+    # 8. Collect from generator again
     assert Flow(gen()).collect() == [{"id": 1}, {"id": 2}]
 
 
@@ -195,18 +178,13 @@ def test_selecting():
         }
     ]
     # 1. Select single and multiple fields
-    # 1. Select single and multiple fields
     assert Flow(data).select("id", "value").collect() == [{"id": 1, "value": 10}]
-    # 2. Select nested field
     # 2. Select nested field
     assert Flow(data).select("nested.x").collect() == [{"x": 1}]
     # 3. Select dotted field
-    # 3. Select dotted field
     assert Flow(data).select("extra.field").collect() == [{"extra.field": "foo"}]
     # 4. Select missing field
-    # 4. Select missing field
     assert Flow(data).select("does_not_exist").collect() == [{"does_not_exist": None}]
-    # 5. Select deep nested
     # 5. Select deep nested
     assert Flow(data).select("nested.y.z").collect() == [{"z": 2}]
     # 6. Flatten and select
@@ -219,6 +197,7 @@ def test_selecting():
         .assign(name_full=lambda r: r["player_info"].get("name.full"))
         .select("name_full")
     )
+    # 8. Rename and assign
     assert recs == [{"name_full": "Jane Doe"}]
 
     data = [
@@ -233,12 +212,18 @@ def test_selecting():
         }
     ]
 
+    # 9. Select single and multiple fields again
     assert Flow(data).select("id", "value").collect() == [{"id": 1, "value": 10}]
+    # 10. Select nested field again
     assert Flow(data).select("nested.x").collect() == [{"x": 1}]
+    # 11. Select dotted field again
     assert Flow(data).select("extra.field").collect() == [{"extra.field": "foo"}]
+    # 12. Select missing field again
     assert Flow(data).select("does_not_exist").collect() == [{"does_not_exist": None}]
+    # 13. Select deep nested again
     assert Flow(data).select("nested.y.z").collect() == [{"z": 2}]
 
+    # 14. Flatten and select
     recs = Flow(data).flatten().select("another.extra.field.that.is.nested").collect()
     assert recs == [{"another.extra.field.that.is.nested": "foo"}]
 
@@ -248,36 +233,45 @@ def test_selecting():
         .assign(name_full=lambda r: r["player_info"].get("name.full"))
         .select("name_full")
     )
+    # 15. Rename and assign
     assert recs == [{"name_full": "Jane Doe"}]
 
 
 def test_filter(sample_records):
     # 1. Filter by value
     out = Flow(sample_records).filter(lambda r: r["value"] == 10).collect()
-    # 1. Filter by value
     assert out == [sample_records[0], sample_records[2]]
     # 2. Filter with no matches
     out = Flow(sample_records).filter(lambda r: r["value"] > 1000).collect()
-    # 2. Filter with no matches
-    # 3. Filter with get and missing field
     assert out == []
-    # 3. Raise KeyError if field missing
-    with pytest.raises(KeyError):
-        Flow(sample_records).filter(lambda r: r["does_not_exist"] > 1000).collect()
-    # 4. Filter with get and missing field
+    # 3. Filter with get and missing field
     out = (
         Flow(sample_records)
         .filter(lambda r: r.get("does_not_exist", -1) > 1000)
         .collect()
     )
+    assert out == []
+    # 4. Raise KeyError if field missing
+    with pytest.raises(KeyError):
+        Flow(sample_records).filter(lambda r: r["does_not_exist"] > 1000).collect()
+    # 5. Filter with get and missing field
+    out = (
+        Flow(sample_records)
+        .filter(lambda r: r.get("does_not_exist", -1) > 1000)
+        .collect()
+    )
+    # 6. Filter with get and missing field
     assert out == []
 
     out = Flow(sample_records).filter(lambda r: r["value"] == 10).collect()
+    # 7. Filter by value again
     assert out == [sample_records[0], sample_records[2]]
 
     out = Flow(sample_records).filter(lambda r: r["value"] > 1000).collect()
+    # 8. Filter with no matches again
     assert out == []
 
+    # 9. Raise KeyError if field missing again
     with pytest.raises(KeyError):
         Flow(sample_records).filter(lambda r: r["does_not_exist"] > 1000).collect()
 
@@ -286,6 +280,7 @@ def test_filter(sample_records):
         .filter(lambda r: r.get("does_not_exist", -1) > 1000)
         .collect()
     )
+    # 10. Filter with get and missing field again
     assert out == []
 
 
@@ -298,8 +293,6 @@ def test_assign(sample_records):
         .collect()
     )
     # 1. Assign new field
-    # 2. Assign multiple fields
-    # 3. Assign overwrites field
     assert out == [
         {"id": 1, "double": 20},
         {"id": 2, "double": 40},
@@ -356,6 +349,7 @@ def test_assign(sample_records):
         .select("id", "double")
         .collect()
     )
+    # 1. Assign new field
     assert out == [
         {"id": 1, "double": 20},
         {"id": 2, "double": 40},
@@ -368,25 +362,29 @@ def test_assign(sample_records):
         .select("double_id", "double")
         .collect()
     )
+    # 2. Assign multiple fields
     assert out == [
         {"double_id": 2, "double": 20},
         {"double_id": 4, "double": 40},
         {"double_id": 6, "double": 20},
     ]
 
+    # 3. Assign overwrites field
     out = Flow(sample_records).assign(id=lambda r: r["id"] * 2).select("id").collect()
     assert out == [
         {"id": 2},
         {"id": 4},
         {"id": 6},
     ]
-
+    # 4. Assign overwrites field
     assert Flow([]).assign(new_field=lambda r: 1).collect() == []
 
     recs = Flow(sample_records).assign(b=lambda r: r["id"]).collect()
+    # 5. Assign overwrites field
     assert recs[0]["b"] == 1
 
     recs = Flow([{"a": 1, "b": 2}]).assign(c=lambda r: r["a"] + r["b"]).collect()
+    # 6. Assign sum of fields
     assert recs == [{"a": 1, "b": 2, "c": 3}]
 
     recs = (
@@ -394,9 +392,11 @@ def test_assign(sample_records):
         .assign(a=lambda r: r["b"], b=lambda r: r["a"])
         .collect()
     )
+    # 7. Assign order matters
     assert recs == [{"a": 2, "b": 2}]
 
     recs = Flow([{"a": 1, "b": 2}]).assign(c=lambda r: 1).collect()
+    # 8. Assign constant value
     assert recs[0]["c"] == 1
 
     with pytest.raises(TypeError):
@@ -406,7 +406,6 @@ def test_assign(sample_records):
 def test_drop(sample_records):
     # 1. Drop a single field
     recs = Flow(sample_records).drop("id").collect()
-    # 1. Drop a single field
     # 2. Drop multiple fields
     assert recs == [
         {"value": 10, "tags": ["a", "b"], "nested": {"x": 1, "y": {"z": 2}}},
@@ -424,12 +423,11 @@ def test_drop(sample_records):
     assert Flow([]).drop("id").collect() == []
     # 4. Drop missing field does nothing
     recs = Flow(sample_records).drop("does_not_exist").collect()
-    # 4. Drop missing field does nothing
-    # 12. Split array with empty 'into'
-    # 2. Explode non-existent field
+    # 5. Drop missing field does nothing
     assert recs == sample_records
 
     recs = Flow(sample_records).drop("id").collect()
+    # 6. Drop a single field again
     assert recs == [
         {"value": 10, "tags": ["a", "b"], "nested": {"x": 1, "y": {"z": 2}}},
         {"value": 20, "tags": ["b"], "nested": {"x": 3, "y": {"z": 4}}},
@@ -446,6 +444,7 @@ def test_drop(sample_records):
     assert Flow([]).drop("id").collect() == []
 
     recs = Flow(sample_records).drop("does_not_exist").collect()
+    # 7. Drop missing field does nothing again
     assert recs == sample_records
 
 
@@ -486,7 +485,6 @@ def test_sort_limit_head(sample_records):
     ]
     sorted_recs = Flow(records).sort("value").collect()
     # 4. Sorting by a field where all values are None
-    # 5. Sorting by a non-existent field (all missing)
     assert [r["id"] for r in sorted_recs] == [1, 2]
 
     # 5. Sorting by a non-existent field (all missing)
@@ -534,7 +532,6 @@ def test_sort_limit_head(sample_records):
 
     top2 = Flow(sample_records).sort("value", reverse=True).limit(2).collect()
     # 10. Limit after sorting in descending order
-    # 12. Head after sorting in descending order
     assert [r["id"] for r in top2] == [2, 1]
 
     top2 = Flow(sample_records).sort("value", reverse=False).limit(2).collect()
@@ -542,10 +539,11 @@ def test_sort_limit_head(sample_records):
     assert [r["id"] for r in top2] == [1, 3]
 
     top2 = Flow(sample_records).sort("value", reverse=True).head(2).collect()
+    # 12. Head after sorting in descending order
     assert [r["id"] for r in top2] == [2, 1]
 
     assert Flow(sample_records).head(1) == [sample_records[0]]
-    # 14. Sort on empty Flow
+    # 13. Sort on empty Flow
     assert Flow([]).sort("id") == []
 
     with pytest.raises(ValueError):
@@ -567,41 +565,39 @@ def test_split_array(sample_records):
 
     # 3. array field is None
     recs = Flow([{"tags": None}]).split_array("tags", into=["t0", "t1"]).collect()
-    # 3. Array field is None
     # 4. Array field is an empty list
     assert recs[0]["t0"] is None and recs[0]["t1"] is None
 
-    # 4. array field is an empty list
+    # 5. array field is an empty list
     recs = Flow([{"tags": []}]).split_array("tags", into=["t0", "t1"]).collect()
     assert recs[0]["t0"] is None and recs[0]["t1"] is None
 
-    # 5. original record has extra fields
+    # 6. original record has extra fields
     recs = (
         Flow([{"tags": ["a", "b"], "extra": 123}])
         .split_array("tags", into=["t0", "t1"])
         .collect()
     )
-    # 5. Original record has extra fields
+    # 6. Original record has extra fields
     assert recs[0]["extra"] == 123
 
-    # 6. 'into' has duplicate names
+    # 7. 'into' has duplicate names
     recs = Flow([{"tags": ["a", "b"]}]).split_array("tags", into=["x", "x"]).collect()
     # The last one should overwrite
-    # 6. 'Into' has duplicate names
+    # 7. 'Into' has duplicate names
     assert recs[0]["x"] == "b"
 
-    # 7. array field with mixed types
+    # 8. array field with mixed types
     recs = (
         Flow([{"tags": [1, "b", None]}])
         .split_array("tags", into=["t0", "t1", "t2"])
         .collect()
     )
-    # 7. Array field with mixed types
+    # 8. Array field with mixed types
     assert recs[0]["t0"] == 1 and recs[0]["t1"] == "b" and recs[0]["t2"] is None
 
     recs = Flow(sample_records).split_array("tags", into=["t0", "t1"]).collect()
-    # 8. Split array into fields
-    # 11. Split array with more elements than 'into'
+    # 9. Split array into fields
     assert recs[0]["t0"] == "a" and recs[0]["t1"] == "b"
 
     with pytest.raises(TypeError):
@@ -625,10 +621,12 @@ def test_split_array(sample_records):
         .split_array("tags", into=["t0", "t1"])
         .collect()
     )
+    # 11. Split array with more elements than 'into'
     assert recs[0]["t0"] == "a" and recs[0]["t1"] == "b"
     assert "t2" not in recs[0]
 
     recs = Flow(sample_records).split_array("tags", into=[]).collect()
+    # 12. Split array with empty 'into'
     assert recs == sample_records
     assert Flow([]).split_array("tags", into=["t0"]).collect() == []
 
@@ -662,6 +660,7 @@ def test_group_by_summary_ungroup(sample_records):
     assert {row["value"]: row["count"] for row in recs} == {10: 2, 20: 1}
 
     recs = Flow(sample_records).group_by("value").summary(count="count").collect()
+    # 3. Group by value and summarize count with shorthand
     assert {row["value"]: row["count"] for row in recs} == {10: 2, 20: 1}
 
     recs = (
@@ -670,7 +669,7 @@ def test_group_by_summary_ungroup(sample_records):
         .summary(count="count", max_value=("value", "max"))
         .collect()
     )
-    # 3. Group by id and summarize count and max value
+    # 4. Group by id and summarize count and max value
     assert [x["max_value"] for x in recs] == [10, 20, 10]
 
     with pytest.raises(AttributeError):
@@ -678,7 +677,6 @@ def test_group_by_summary_ungroup(sample_records):
 
     recs = Flow(sample_records).group_by("value").ungroup().collect()
     # 5. Ungroup after grouping by value
-    # 6. Group by id, summarize, and select id
     assert len(recs) == len(sample_records)
 
     recs = (
@@ -690,9 +688,9 @@ def test_group_by_summary_ungroup(sample_records):
     )
 
     assert len(recs) == len(sample_records)
-    # 7. Check all ids are present after select
+    # 6. Check all ids are present after select
     assert all(r["id"] is not None for r in recs)
-    # 8. Check max_value is not present after select
+    # 7. Check max_value is not present after select
     assert all(r.get("max_value") is None for r in recs)
 
 
@@ -744,10 +742,8 @@ def test_join_and_errors(sample_records):
         .collect()
     )
     # 3. Left join with matching keys
-    # 5. Default join (left) with matching keys
     assert any(r.get("foo") == "bar" for r in joined)
     # 4. Check length of joined records
-    # 6. Check length of joined records
     assert len(joined) == 3
 
     joined = (
@@ -768,9 +764,7 @@ def test_join_and_errors(sample_records):
         .join(right, left_on="value", right_on="key", fields=["foo"], how="inner")
         .collect()
     )
-    # 7. Inner join with no matching keys
-    # 8. Inner join with non-existent keys
-    # 9. Inner join with non-existent keys on both sides
+    # 5. Inner join with no matching keys
     assert len(joined) == 0
 
     right = [{"does_not_exist": 100, "foo": "bar"}]
@@ -785,6 +779,7 @@ def test_join_and_errors(sample_records):
         )
         .collect()
     )
+    # 6. Inner join with non-existent keys
     assert len(joined) == 0
 
     right = [{"key": 10, "foo": "bar"}]
@@ -799,6 +794,7 @@ def test_join_and_errors(sample_records):
         )
         .collect()
     )
+    # 7. Inner join with non-existent keys on both sides
     assert len(joined) == 0
 
 

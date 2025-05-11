@@ -34,16 +34,12 @@ class FlowGroup:
         Yields:
             Iterator[tuple[tuple[str], list]]: An iterator over tuples where each tuple
             contains a group key and the corresponding list of records.
-
-        Yields:
-            Iterator[tuple[tuple[str], list]]: An iterator over tuples where each tuple
-            contains a group key and the corresponding list of records.
         """
         return iter(self.groups.items())
 
     def __len__(self) -> int:
         """
-        Number of groups.
+        Return the number of groups.
 
         Returns:
             int: The number of groups.
@@ -52,7 +48,7 @@ class FlowGroup:
 
     def __repr__(self) -> str:
         """
-        Show a brief summary: number of groups and a sample of the first few keys.
+        Return a brief summary: number of groups and a sample of the first few keys.
         """
         n = len(self)
         sample_keys = list(self.groups.keys())[:3]
@@ -61,6 +57,9 @@ class FlowGroup:
     def keys(self) -> list[tuple[str]]:
         """
         Return a list of the current group key tuples.
+
+        Returns:
+            list[tuple[str]]: A list of the current group key tuples.
         """
         return list(self.groups.keys())
 
@@ -116,6 +115,9 @@ class FlowGroup:
 
         Args:
             n (int): The number of records to keep.
+
+        Returns:
+            FlowGroup: A new FlowGroup with the last `n` records in each group.
         """
         new_groups = {
             key: recs[-n:] if len(recs) > n else recs[:]
@@ -131,6 +133,8 @@ class FlowGroup:
         Args:
             fields (tuple[str]): The fields to use for deduplication.
 
+        Returns:
+            FlowGroup: A new FlowGroup with unique records in each group.
         """
         new_groups = {}
         for key, recs in self.groups.items():
@@ -153,6 +157,9 @@ class FlowGroup:
 
         Args:
             mapping (dict[str, str]): The mapping of old keys to new keys.
+
+        Returns:
+            FlowGroup: A new FlowGroup with renamed keys.
         """
         new_groups = {}
         for key, recs in self.groups.items():
@@ -174,7 +181,7 @@ class FlowGroup:
             fn (Callable[[list[dict]], bool]): The function to use for filtering.
 
         Returns:
-            self: New FlowGroup with filtered records
+            FlowGroup: A new FlowGroup with filtered records
         """
         new_groups = {k: v for k, v in self.groups.items() if fn(v)}
         return FlowGroup(self.group_keys, new_groups)
@@ -189,7 +196,7 @@ class FlowGroup:
             reverse (bool, optional): Whether to reverse the sort order. Defaults to False.
 
         Returns:
-            FlowGroup: New FlowGroup with sorted records
+            FlowGroup: A new FlowGroup with sorted records
         """
         new_groups = {}
         for k, records in self.groups.items():
@@ -241,7 +248,7 @@ class FlowGroup:
             reverse (bool, optional): Whether to reverse the sort order. Defaults to False.
 
         Returns:
-            self: New FlowGroup with row numbers
+            FlowGroup: A new FlowGroup with row numbers
         """
         new_groups = {}
         for key, recs in self.groups.items():
@@ -262,7 +269,7 @@ class FlowGroup:
             reverse (bool, optional): Whether to reverse the sort order. Defaults to False.
 
         Returns:
-            self: New FlowGroup with row numbers
+            FlowGroup: A new FlowGroup with row numbers
         """
         for key in self.groups:
             return FlowGroup(self.group_keys, {key: self.groups[key]})
@@ -278,7 +285,7 @@ class FlowGroup:
             reverse (bool, optional): Whether to reverse the sort order. Defaults to False.
 
         Returns:
-            self: New FlowGroup with row numbers
+            FlowGroup: A new FlowGroup with row numbers
         """
         if not self.groups:
             return FlowGroup(self.group_keys, {})
@@ -297,6 +304,14 @@ class FlowGroup:
     def pipe(self, func: Callable, *args: Any, **kwargs: Any) -> "FlowGroup":
         """
         Apply a function to the group.
+
+        Args:
+            func (Callable): The function to apply.
+            *args: Additional arguments to pass to the function.
+            **kwargs: Additional keyword arguments to pass to the function.
+
+        Returns:
+            FlowGroup: A new FlowGroup with the function applied.
         """
         return func(self, *args, **kwargs)
 

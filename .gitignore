@@ -166,3 +166,4 @@ scratch.py
 /_build
 codecov
 docs/y
+.aider*
