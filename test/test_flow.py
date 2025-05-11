@@ -562,6 +562,7 @@ def test_split_array(sample_records):
 
     # 2. input list is shorter than 'into'
     recs = Flow([{"tags": ["a"]}]).split_array("tags", into=["t0", "t1"]).collect()
+    # 2. Input list is shorter than 'into'
     assert recs[0]["t0"] == "a" and recs[0]["t1"] is None
 
     # 3. array field is None
