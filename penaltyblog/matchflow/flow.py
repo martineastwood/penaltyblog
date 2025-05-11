@@ -282,7 +282,7 @@ class Flow:
         groups = defaultdict(list)
         for record in self._records:
             group_key = tuple(record.get(k) for k in keys)
-            groups[group_key].append(record)
+            groups[group_key].append(dict(record))
         return FlowGroup(keys, groups)
 
     def summary(self, **aggregates: str | tuple[str, str] | Callable) -> "Flow":
