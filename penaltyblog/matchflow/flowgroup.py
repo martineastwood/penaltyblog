@@ -30,6 +30,8 @@ class FlowGroup:
     def __iter__(self) -> Iterator[tuple[tuple[str], list]]:
         """
         Iterate over (group_key_tuple, records_list) pairs.
+
+        # write docstring AI!
         """
         return iter(self.groups.items())
 
