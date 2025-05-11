@@ -231,6 +231,9 @@ class Flow:
         Returns:
             Flow: New Flow with at most n records.
         """
+        if n < 0:
+            raise ValueError("n must be non-negative")
+
         it1, it2 = tee(self._records, 2)
         self._records = it2
         return Flow.from_generator(islice(it1, n))
@@ -258,6 +261,9 @@ class Flow:
             for i, name in enumerate(into):
                 record[name] = values[i] if i < len(values) else None
             return record
+
+        if not isinstance(into, list):
+            raise ValueError("`into` arguemnt must be a list")
 
         return Flow(splitter(r) for r in self._records)
 
@@ -702,6 +708,9 @@ class Flow:
         if not keys:
             raise ValueError("keys must not be empty")
 
+        if not isinstance(keys, list):
+            raise TypeError("keys must be a list")
+
         def gen() -> Iterator[dict[str, Any]]:
             for rec in self._records:
                 # pull out each field as a list (or empty list if missing / not a list)
@@ -765,6 +774,7 @@ class Flow:
         Returns:
             Flow: A new Flow of the sampled records.
         """
+        # check frac is between 0 and 1
         rnd = random.Random(seed)
         return Flow.from_generator(r for r in self._records if rnd.random() < frac)
 
