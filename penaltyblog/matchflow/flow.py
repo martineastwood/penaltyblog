@@ -190,10 +190,12 @@ class Flow:
 
         return Flow(remover(r) for r in self._records)
 
-    def sort(self, by: str, reverse: bool = False) -> "Flow":
+    def sort(
+        self, by: "str | list[str] | tuple[str, ...]", reverse: bool = False
+    ) -> "Flow":
         """
-        Sort the records by the given field, always sending any records
-        where the field is None to the very end.
+        Sort the records by one or more fields, always sending any records
+        where any of the sort fields are None to the very end.
 
         Note:
             This method exhausts the underlying stream by materializing
@@ -201,18 +203,30 @@ class Flow:
             this, the original Flow cannot be iterated again.
 
         Args:
-            by (str): The name of the field to sort by.
+            by (str or list/tuple of str): The field name, or list/tuple of field names, to sort by.
             reverse (bool, optional): Whether to sort in descending order. Defaults to False.
 
         Returns:
-            Flow: A new Flow with the records sorted by the given field.
+            Flow: A new Flow with the records sorted by the given field(s).
         """
+
+        def _get_key_func(fields):
+            if isinstance(fields, str):
+                return lambda r: r.get(fields)
+            return lambda r: tuple(r.get(f) for f in fields)
+
+        def _is_null_record(record, fields):
+            if isinstance(fields, str):
+                return record.get(fields) is None
+            return any(record.get(f) is None for f in fields)
 
         def _lazy_sort():
             recs = list(self._records)
-            non_null = [r for r in recs if r.get(by) is not None]
-            nulls = [r for r in recs if r.get(by) is None]
-            for r in sorted(non_null, key=lambda r: r[by], reverse=reverse):
+            fields = by
+            key_func = _get_key_func(fields)
+            non_null = [r for r in recs if not _is_null_record(r, fields)]
+            nulls = [r for r in recs if _is_null_record(r, fields)]
+            for r in sorted(non_null, key=key_func, reverse=reverse):
                 yield r
             yield from nulls
 

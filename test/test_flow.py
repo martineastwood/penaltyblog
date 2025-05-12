@@ -553,6 +553,55 @@ def test_sort_limit_head(sample_records):
         Flow(sample_records).limit(-1)
 
 
+def test_sort_multiple_fields():
+    records = [
+        {"id": 1, "a": 2, "b": 3},
+        {"id": 2, "a": 1, "b": 2},
+        {"id": 3, "a": 2, "b": 2},
+        {"id": 4, "a": 1, "b": 3},
+        {"id": 5, "a": None, "b": 1},
+        {"id": 6, "a": 2, "b": None},
+        {"id": 7, "a": None, "b": None},
+    ]
+    # Sort by a, then b
+    sorted_recs = Flow(records).sort(["a", "b"]).collect()
+    # ids: 2 (a=1,b=2), 4 (a=1,b=3), 3 (a=2,b=2), 1 (a=2,b=3), 5 (a=None,b=1), 6 (a=2,b=None), 7 (a=None,b=None)
+    assert [r["id"] for r in sorted_recs] == [2, 4, 3, 1, 5, 6, 7]
+
+    # Sort by b, then a
+    sorted_recs = Flow(records).sort(["b", "a"]).collect()
+    # ids: 2 (b=2,a=1), 3 (b=2,a=2), 4 (b=3,a=1), 1 (b=3,a=2), 5 (b=1,a=None), 6 (b=None,a=2), 7 (b=None,a=None)
+    assert [r["id"] for r in sorted_recs] == [2, 3, 4, 1, 5, 6, 7]
+
+    # Sort by a, then b, reverse
+    sorted_recs = Flow(records).sort(["a", "b"], reverse=True).collect()
+    # ids: 1 (a=2,b=3), 3 (a=2,b=2), 4 (a=1,b=3), 2 (a=1,b=2), 5 (a=None,b=1), 6 (a=2,b=None), 7 (a=None,b=None)
+    assert [r["id"] for r in sorted_recs] == [1, 3, 4, 2, 5, 6, 7]
+
+    # Sort by a single field (should match previous tests)
+    sorted_recs = Flow(records).sort("a").collect()
+    # ids: 2, 4, 1, 3, 6, 5, 7 (by a, then original order for ties)
+    assert [r["id"] for r in sorted_recs if r["a"] is not None] == [2, 4, 1, 3, 6]
+    assert [r["id"] for r in sorted_recs if r["a"] is None] == [5, 7]
+
+    # Stability: records with same a and b keep original order
+    records_dup = [
+        {"id": 1, "a": 1, "b": 2},
+        {"id": 2, "a": 1, "b": 2},
+        {"id": 3, "a": 1, "b": 2},
+    ]
+    sorted_recs = Flow(records_dup).sort(["a", "b"]).collect()
+    assert [r["id"] for r in sorted_recs] == [1, 2, 3]
+
+    # All None in one field
+    records_none = [
+        {"id": 1, "a": None, "b": 2},
+        {"id": 2, "a": None, "b": 1},
+    ]
+    sorted_recs = Flow(records_none).sort(["a", "b"]).collect()
+    assert [r["id"] for r in sorted_recs] == [1, 2]
+
+
 def test_split_array(sample_records):
     # 1. 'into' is not a list (should raise ValueError)
     with pytest.raises(ValueError):
