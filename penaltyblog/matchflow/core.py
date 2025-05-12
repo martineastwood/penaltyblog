@@ -24,6 +24,16 @@ _AGGS: dict[str, Callable] = {
 
 
 def _resolve_agg(records: list[dict], spec) -> Any:
+    """
+    Resolve an aggregate spec to a function and apply it to the records
+
+    Args:
+        records: The records to aggregate over
+        spec: The aggregate spec
+
+    Returns:
+        Any
+    """
     if isinstance(spec, str):
         try:
             func = _AGGS[spec]
@@ -47,4 +57,13 @@ def _resolve_agg(records: list[dict], spec) -> Any:
 
 
 def sanitize_filename(value: Any) -> str:
+    """
+    Sanitize a value for use in a filename.
+
+    Args:
+        value: The value to sanitize
+
+    Returns:
+        str
+    """
     return str(value).replace(" ", "_").replace("/", "-")
