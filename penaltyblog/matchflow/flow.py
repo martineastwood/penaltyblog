@@ -25,7 +25,7 @@ class Flow:
         records (Iterable[dict]): An iterable of dictionaries representing the records to be processed.
     """
 
-    def __init__(self, records: Iterable[dict[Any, Any]]):
+    def __init__(self, records: Iterator[dict[Any, Any]]):
         """
         Initialize a Flow instance from an iterable of records.
 
@@ -33,7 +33,7 @@ class Flow:
             records (Iterable[dict]): An iterable of dictionaries representing the records to be processed.
         """
         flow: Flow = Flow.from_records(records)
-        self._records: Iterator[dict[str, Any]] = flow._records
+        self._records: Iterator[dict[Any, Any]] = flow._records
 
     def __len__(self) -> int:
         """
@@ -364,7 +364,7 @@ class Flow:
             Flow: A new Flow with the duplicate records dropped.
         """
 
-        def gen():
+        def gen() -> Iterator[dict[Any, Any]]:
             seen: dict[Any, dict] = {}
             for record in self._records:
                 if fields:
@@ -1080,9 +1080,9 @@ class Flow:
 
         # narrow down to something that really is an Iterable[dict]
         if isinstance(data, dict):
-            iterable = [dict(data)]
+            iterable = iter([dict(data)])
         elif isinstance(data, list):
-            iterable = [dict(r) for r in data]
+            iterable = iter([dict(r) for r in data])
         # explicitly rule out strings/bytes before treating as a generic iterable
         elif isinstance(data, (str, bytes)):
             raise TypeError(

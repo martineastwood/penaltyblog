@@ -234,7 +234,7 @@ class FlowGroup:
             for col, spec in aggregates.items():
                 row[col] = _resolve_agg(records, spec)
             summary_rows.append(row)
-        return Flow(summary_rows)
+        return Flow(iter(summary_rows))
 
     def row_number(
         self, by: str, new_field: str = "row_number", reverse: bool = False
