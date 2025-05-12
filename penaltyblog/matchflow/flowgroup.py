@@ -232,7 +232,13 @@ class FlowGroup:
         for key_tuple, records in self.groups.items():
             row = dict(zip(self.group_keys, key_tuple))
             for col, spec in aggregates.items():
-                row[col] = _resolve_agg(records, spec)
+                value = _resolve_agg(records, spec)
+                # Check if value is a non-scalar (but allow str/bytes)
+                if isinstance(value, (list, tuple, dict, set)):
+                    raise ValueError(
+                        f"Aggregate '{col}' returned a non-scalar value for group {key_tuple}. Aggregates must return a single value per group."
+                    )
+                row[col] = value
             summary_rows.append(row)
         return Flow(iter(summary_rows))
 

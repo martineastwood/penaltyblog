@@ -700,6 +700,47 @@ def test_explode(sample_records):
     assert Flow([]).explode("tags").collect() == []
 
 
+def test_group_by_summary_scalar_enforcement(sample_records):
+    import pytest
+
+    from penaltyblog.matchflow.flow import Flow
+
+    # Valid custom aggregate: returns scalar
+    def scalar_agg(records):
+        return 42
+
+    result = Flow(sample_records).group_by("value").summary(x=scalar_agg).collect()
+    assert all(row["x"] == 42 for row in result)
+
+    # Invalid custom aggregate: returns list
+    def list_agg(records):
+        return [1, 2]
+
+    with pytest.raises(ValueError, match="non-scalar"):
+        Flow(sample_records).group_by("value").summary(x=list_agg).collect()
+
+    # Invalid custom aggregate: returns tuple
+    def tuple_agg(records):
+        return (1, 2)
+
+    with pytest.raises(ValueError, match="non-scalar"):
+        Flow(sample_records).group_by("value").summary(x=tuple_agg).collect()
+
+    # Invalid custom aggregate: returns dict
+    def dict_agg(records):
+        return {"a": 1}
+
+    with pytest.raises(ValueError, match="non-scalar"):
+        Flow(sample_records).group_by("value").summary(x=dict_agg).collect()
+
+    # Invalid custom aggregate: returns set
+    def set_agg(records):
+        return {1, 2}
+
+    with pytest.raises(ValueError, match="non-scalar"):
+        Flow(sample_records).group_by("value").summary(x=set_agg).collect()
+
+
 def test_group_by_summary_ungroup(sample_records):
     recs = (
         Flow(sample_records).group_by("value").summary(count=("id", "count")).collect()
