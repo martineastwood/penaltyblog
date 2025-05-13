@@ -106,19 +106,35 @@ class Flow:
 
         return NotImplemented
 
-    def cache(self) -> "Flow":
+    def materialize(self) -> "Flow":
         """
-        Fork this Flow into two independent streams using itertools.tee.
-        After calling, this Flow and the returned Flow can be iterated independently.
-
-        Does not consume the stream.
+        Fork off a fully‐realized, in‐memory copy of this stream, without
+        disturbing the original.  The returned Flow is backed by a list
+        you can re‐scan at will; the original remains a (one‐shot) stream.
 
         Returns:
-            Flow: A new Flow with the same records.
+            Flow: A new Flow instance that is a fully materialized copy of the
+            current stream, backed by a list of records. This allows for safe
+            re-scanning and manipulation without affecting the original stream.
+        """
+        # split the iterator in two
+        it_orig, it_cache = tee(self._records, 2)
+        # leave self alone (still streaming)
+        self._records = it_orig
+        # build a “cached” Flow from the second half
+        return Flow(list(it_cache))
+
+    def fork(self) -> tuple["Flow", "Flow"]:
+        """
+        Fork this Flow into two independent streams using itertools.tee.
+
+        Returns:
+            tuple[Flow, Flow]: A tuple of two new Flow instances,
+            each backed by an independent iterator of the original stream.
+            These flows are one-shot and cannot be iterated more than once.
         """
         it1, it2 = tee(self._records, 2)
-        self._records = it2
-        return Flow(it1)
+        return Flow(it1), Flow(it2)
 
     def filter(self, fn: Callable) -> "Flow":
         """
