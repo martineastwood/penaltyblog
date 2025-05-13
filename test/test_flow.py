@@ -15,6 +15,62 @@ def sample_records():
     ]
 
 
+def test_materialize_basic(sample_records):
+    flow = Flow(sample_records)
+    # Materialize returns a new Flow backed by a list
+    mat = flow.materialize()
+    assert isinstance(mat.collect(), list)
+    # The original flow is not exhausted
+    assert flow.collect() == sample_records
+    # The materialized flow is equal to the original
+    assert mat.collect() == sample_records
+    # Mutating the materialized flow does not affect the original
+    mat_list = mat.collect()
+    mat_list[0]["id"] = 999
+    assert flow.collect()[0]["id"] == 1
+
+
+def test_materialize_empty():
+    flow = Flow([])
+    mat = flow.materialize()
+    assert mat.collect() == []
+    assert flow.collect() == []
+
+
+def test_materialize_single():
+    record = {"id": 1}
+    flow = Flow([record])
+    mat = flow.materialize()
+    assert mat.collect() == [record]
+    assert flow.collect() == [record]
+
+
+def test_fork_basic(sample_records):
+    flow = Flow(sample_records)
+    f1, f2 = flow.fork()
+    # Both forks yield the same records
+    assert f1.collect() == sample_records
+    assert f2.collect() == sample_records
+    # Both are one-shot: after collecting, further iteration yields same list
+    assert f1.collect() == sample_records
+    assert f2.collect() == sample_records
+
+
+def test_fork_empty():
+    flow = Flow([])
+    f1, f2 = flow.fork()
+    assert f1.collect() == []
+    assert f2.collect() == []
+
+
+def test_fork_single():
+    record = {"id": 1}
+    flow = Flow([record])
+    f1, f2 = flow.fork()
+    assert f1.collect() == [record]
+    assert f2.collect() == [record]
+
+
 def test_assign_does_not_mutate_original():
     original = [{"a": 1}]
     flow1 = Flow(original)

@@ -58,6 +58,9 @@ class Flow:
         Return the number of records in the Flow.
 
         Consumes the stream (materializes all records).
+
+        Returns:
+            int: The number of records in the Flow.
         """
         return len(self.collect())
 
@@ -66,6 +69,9 @@ class Flow:
         Return an iterator over the records in the Flow.
 
         May consume the stream if iterated fully.
+
+        Returns:
+            Iterator[dict]: An iterator over the records in the Flow.
         """
         return iter(self._records)
 
@@ -117,11 +123,8 @@ class Flow:
             current stream, backed by a list of records. This allows for safe
             re-scanning and manipulation without affecting the original stream.
         """
-        # split the iterator in two
         it_orig, it_cache = tee(self._records, 2)
-        # leave self alone (still streaming)
         self._records = it_orig
-        # build a “cached” Flow from the second half
         return Flow(list(it_cache))
 
     def fork(self) -> tuple["Flow", "Flow"]:
