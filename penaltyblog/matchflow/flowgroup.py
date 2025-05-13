@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, Any, Callable, Iterator
+from typing import TYPE_CHECKING, Any, Callable, Iterator, List, Tuple, Union
 
 import pandas as pd
 
@@ -15,7 +15,7 @@ class FlowGroup:
     """
 
     def __init__(
-        self, keys: tuple[str, ...], groups: dict[tuple[Any, ...], list[dict[str, Any]]]
+        self, keys: Tuple[str, ...], groups: dict[tuple[Any, ...], List[dict[str, Any]]]
     ) -> None:
         """
         A group of records sharing the same key tuple.
@@ -27,12 +27,12 @@ class FlowGroup:
         self.group_keys = keys
         self.groups = groups
 
-    def __iter__(self) -> Iterator[tuple[tuple[str], list]]:
+    def __iter__(self) -> Iterator[Tuple[tuple[Any, ...], List[dict[str, Any]]]]:
         """
         Iterate over (group_key_tuple, records_list) pairs.
 
         Yields:
-            Iterator[tuple[tuple[str], list]]: An iterator over tuples where each tuple
+            Iterator[Tuple[tuple[Any, ...], List[dict[str, Any]]]]: An iterator over tuples where each tuple
             contains a group key and the corresponding list of records.
         """
         return iter(self.groups.items())
@@ -54,12 +54,12 @@ class FlowGroup:
         sample_keys = list(self.groups.keys())[:3]
         return f"<Penaltyblog Flow Group | n_groups={n} | sample_keys={sample_keys}>"
 
-    def keys(self) -> list[tuple[str]]:
+    def keys(self) -> List[tuple[Any, ...]]:
         """
         Return a list of the current group key tuples.
 
         Returns:
-            list[tuple[str]]: A list of the current group key tuples.
+            List[tuple[Any, ...]]: A list of the current group key tuples.
         """
         return list(self.groups.keys())
 
@@ -81,7 +81,7 @@ class FlowGroup:
 
         return Flow.from_generator(gen())
 
-    def drop_duplicates(self, *fields, keep: str = "first") -> "FlowGroup":
+    def drop_duplicates(self, *fields: str, keep: str = "first") -> "FlowGroup":
         """
         Within each group, drop duplicate records by `fields`.
         keep: 'first', 'last', or False (drop all duplicates).
@@ -89,6 +89,9 @@ class FlowGroup:
         Args:
             fields (tuple[str]): The fields to use for deduplication.
             keep (str, optional): How to handle duplicates. Defaults to "first".
+
+        Returns:
+            FlowGroup: A new FlowGroup with duplicates dropped.
         """
         new_groups = {}
         for key, recs in self.groups.items():
@@ -212,11 +215,14 @@ class FlowGroup:
 
         Args:
             n (int, optional): The number of records to take. Defaults to 5.
+
+        Returns:
+            FlowGroup: A new FlowGroup with the first n records in each group.
         """
         new_groups = {k: v[:n] for k, v in self.groups.items()}
         return FlowGroup(self.group_keys, new_groups)
 
-    def summary(self, **aggregates: str | tuple[str, str] | Callable) -> "Flow":
+    def summary(self, **aggregates: Union[str, Tuple[str, str], Callable]) -> "Flow":
         """
         Compute aggregates for each group and return a new Flow with the results.
 
@@ -269,11 +275,6 @@ class FlowGroup:
         Return a Group with only the first group (by insertion order).
         Useful for debugging.
 
-        Args:
-            by (str): The field to use for sorting.
-            new_field (str, optional): The name of the new field. Defaults to "row_number".
-            reverse (bool, optional): Whether to reverse the sort order. Defaults to False.
-
         Returns:
             FlowGroup: A new FlowGroup with row numbers
         """
@@ -284,11 +285,6 @@ class FlowGroup:
     def last(self) -> "FlowGroup":
         """
         Return a Group with only the last group.
-
-        Args:
-            by (str): The field to use for sorting.
-            new_field (str, optional): The name of the new field. Defaults to "row_number".
-            reverse (bool, optional): Whether to reverse the sort order. Defaults to False.
 
         Returns:
             FlowGroup: A new FlowGroup with row numbers
@@ -307,7 +303,7 @@ class FlowGroup:
         """
         return not bool(self.groups)
 
-    def pipe(self, func: Callable, *args: Any, **kwargs: Any) -> "FlowGroup":
+    def pipe(self, func: Callable, *args: Any, **kwargs: Any) -> Any:
         """
         Apply a function to the group.
 
@@ -317,21 +313,21 @@ class FlowGroup:
             **kwargs: Additional keyword arguments to pass to the function.
 
         Returns:
-            FlowGroup: A new FlowGroup with the function applied.
+            Any: The result of the function.
         """
         return func(self, *args, **kwargs)
 
-    def collect(self) -> dict[Any, list[dict[str, Any]]]:
+    def collect(self) -> dict[Any, List[dict[str, Any]]]:
         """
         Return the raw groups dict.
 
         Returns:
-            dict[Any, list[dict[str, Any]]]: The raw groups dict.
+            dict[Any, List[dict[str, Any]]]: The raw groups dict.
         """
         return self.groups
 
     def to_pandas(
-        self, agg_funcs: dict[str, str | tuple | Callable] | None = None
+        self, agg_funcs: Union[dict[str, Union[str, tuple, Callable]], None] = None
     ) -> pd.DataFrame:
         """
         Convert the group to a pandas DataFrame.

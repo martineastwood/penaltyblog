@@ -1,11 +1,12 @@
-import collections
 import glob
 import json
 import random
-from collections import defaultdict
+import warnings
+from collections import Counter, defaultdict
+from collections.abc import Iterable
 from itertools import chain, islice, tee, zip_longest
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Callable, Iterable, Iterator, Union
+from typing import TYPE_CHECKING, Any, Callable, Iterator, Union
 
 import pandas as pd
 import requests
@@ -23,137 +24,173 @@ class Flow:
 
     Args:
         records (Iterable[dict]): An iterable of dictionaries representing the records to be processed.
+
+    Notes:
+        Many methods in this class operate on a stream of records. Methods that materialize or exhaust the stream will be explicitly documented.
     """
 
-    def __init__(self, records: Iterator[dict[Any, Any]]):
+    def __init__(self, records: Iterable[dict[Any, Any]]):
         """
         Initialize a Flow instance from an iterable of records.
 
         Args:
             records (Iterable[dict]): An iterable of dictionaries representing the records to be processed.
+
+        Does not consume the data stream.
         """
-        flow: Flow = Flow.from_records(records)
-        self._records: Iterator[dict[Any, Any]] = flow._records
+        if isinstance(records, Flow):
+            self._records = records._records
+        elif isinstance(records, dict):
+            self._records = [dict(records)]
+        elif isinstance(records, list):
+            self._records = [dict(r) for r in records]
+        elif isinstance(records, (str, bytes)):
+            raise TypeError(
+                "Cannot build Flow from text; expected dict or iterable of dicts"
+            )
+        elif isinstance(records, Iterable):
+            self._records = (dict(r) for r in records)
+        else:
+            raise TypeError("Expected dict, list of dicts, or iterable of dicts")
 
     def __len__(self) -> int:
         """
-        Return the number of records in the flow.
+        Return the number of records in the Flow.
 
-        If the flow is backed by a list, uses the list's length. Otherwise,
-        materializes the flow and counts the records.
+        Consumes the stream (materializes all records).
         """
-        if isinstance(self._records, list):
-            return len(self._records)
-
-        it1, it2 = tee(self._records, 2)
-        self._records = it2
-        return sum(1 for _ in it1)
+        return len(self.collect())
 
     def __iter__(self) -> Iterator[dict]:
-        it1, it2 = tee(self._records, 2)
-        self._records = it2
-        return it1
+        """
+        Return an iterator over the records in the Flow.
+
+        May consume the stream if iterated fully.
+        """
+        return iter(self._records)
 
     def __repr__(self) -> str:
-        it1, it2 = tee(self._records, 2)
-        self._records = it2
-
-        sample = list(islice(it1, 3))
-        total: Union[int, str]
-        try:
-            total = len(self)
-        except Exception:
-            total = "?"
-
-        return f"<Penaltyblog Flow | n≈{total} | sample={sample}>"
-
-    def __eq__(self, other: object) -> bool:
         """
-        Compare a Flow to another Flow or to a list of records by materializing both.
+        Return a string representation of the Flow.
+
+        Does not consume the stream.
         """
+        if isinstance(self._records, list):
+            sample = self._records[:3]
+            return f"<Penaltyblog Flow | n={len(self._records)} | sample={sample}>"
+        else:
+            return "<Penaltyblog Flow (streaming)>"
+
+    def __eq__(self, other: Union["Flow", list[dict]]) -> bool:
+        """
+        Compare this Flow to another Flow or to a list of dicts.
+
+        Consumes (materializes) both Flows' streams.
+
+        Returns:
+            bool: True if the sequences of records are equal.
+        """
+        # collect self into a list and replace
+        self_list = list(self._records)
+        self._records = self_list
+
+        # Flow vs Flow
         if isinstance(other, Flow):
-            # clone both sides
-            it1a, it1b = tee(self._records, 2)
-            it2a, it2b = tee(other._records, 2)
-            # replace their streams with the second clones
-            self._records = it1b
-            other._records = it2b
-            return list(it1a) == list(it2a)
+            other_list = list(other._records)
+            other._records = other_list
+            return self_list == other_list
 
+        # Flow vs list
         if isinstance(other, list):
-            it, it_copy = tee(self._records, 2)
-            self._records = it_copy
-            return list(it) == other
+            return self_list == other
 
         return NotImplemented
 
     def cache(self) -> "Flow":
         """
-        Eagerly read the entire stream into memory and return a new Flow
-        backed by that in-memory list.  Subsequent operations on the
-        cached Flow are always replayable at zero extra cost.
+        Fork this Flow into two independent streams using itertools.tee.
+        After calling, this Flow and the returned Flow can be iterated independently.
+
+        Does not consume the stream.
 
         Returns:
-            Flow: A new Flow backed by the cached records.
+            Flow: A new Flow with the same records.
         """
-        data = self.collect()
-        return Flow.from_records(data)
+        it1, it2 = tee(self._records, 2)
+        self._records = it2
+        return Flow(it1)
 
     def filter(self, fn: Callable) -> "Flow":
         """
         Filter the records using the given function.
 
+        Does not consume the stream.
+
         Args:
-            fn (Callable): A function that takes a record and
-            returns a boolean.
+            fn (Callable): The function to use for filtering.
 
         Returns:
-            Flow: A new Flow with only the records where fn(record) is True.
+            Flow: A new Flow with the filtered records.
         """
+
         return Flow(r for r in self._records if fn(r))
 
     def assign(self, **kwargs) -> "Flow":
         """
         Assign new fields to each record using the given functions.
 
+        Does not consume the stream.
+
         Args:
-            **kwargs: Keyword arguments where the key is the name of the new
-            field and the value is a function that takes a record and returns
-            the value for the new field.
+            **kwargs (dict): The functions to use for assigning new fields.
 
         Returns:
-            Flow: A new Flow with the new fields added.
+            Flow: A new Flow with the assigned fields.
         """
 
         def mutate_record(record: dict) -> dict:
+            rec = dict(record)
             for key, func in kwargs.items():
-                record[key] = func(record)
-            return record
+                rec[key] = func(rec)
+            return rec
 
         return Flow(mutate_record(r) for r in self._records)
 
-    def select(self, *fields: str) -> "Flow":
+    def select(self, *fields: str, leaf_names: bool = False) -> "Flow":
         """
         Select the given (possibly nested) fields from each record.
 
-        If a record has a key exactly matching the field name, that wins.
-        Otherwise, if the name contains dots, we interpret it as nested lookup.
+        Does not consume the stream.
 
         Args:
-            *fields (str): The names of the fields to select.
+            *fields (str): The fields to select.
+            leaf_names (bool, optional): Whether to use leaf names for nested fields. Defaults to False.
 
         Returns:
-            Flow: A new Flow with only the selected fields.
+            Flow: A new Flow with the selected fields.
         """
+
+        if leaf_names:
+            # compute the would‐be output keys
+            leaf_keys = [f.split(".")[-1] for f in fields]
+            # find duplicates
+            dup_counts = Counter(leaf_keys)
+            dupes = [k for k, cnt in dup_counts.items() if cnt > 1]
+            if dupes:
+                warnings.warn(
+                    f"select(..., leaf_names=True) will produce duplicate keys: {dupes}. "
+                    "Later ones will overwrite earlier ones.",
+                    UserWarning,
+                    stacklevel=2,
+                )
 
         def select_fields(record: dict[Any, Any]) -> dict[Any, Any]:
             out = {}
             for field in fields:
                 if field in record:
-                    # exact key present → take it
-                    out[field] = record[field]
+                    key = field if not leaf_names else field.split(".")[-1]
+                    out[key] = record[field]
                 elif "." in field:
-                    # try nested = record[a][b][c]...
                     parts = field.split(".")
                     val: Any = record
                     for p in parts:
@@ -162,10 +199,11 @@ class Flow:
                         else:
                             val = None
                             break
-                    out[p] = val
+                    key = parts[-1] if leaf_names else field
+                    out[key] = val
                 else:
-                    # simple missing key
-                    out[field] = None
+                    key = field if not leaf_names else field.split(".")[-1]
+                    out[key] = None
             return out
 
         return Flow(select_fields(r) for r in self._records)
@@ -174,11 +212,13 @@ class Flow:
         """
         Remove the given fields from each record.
 
+        Does not consume the stream.
+
         Args:
-            *fields (str): The names of the fields to drop.
+            *fields (str): The fields to remove.
 
         Returns:
-            Flow: A new Flow with the given fields removed.
+            Flow: A new Flow with the removed fields.
         """
 
         def remover(record: dict) -> dict:
@@ -191,16 +231,13 @@ class Flow:
         return Flow(remover(r) for r in self._records)
 
     def sort(
-        self, by: "str | list[str] | tuple[str, ...]", reverse: bool = False
+        self, by: Union[str, list[str], tuple[str, ...]], reverse: bool = False
     ) -> "Flow":
         """
         Sort the records by one or more fields, always sending any records
         where any of the sort fields are None to the very end.
 
-        Note:
-            This method exhausts the underlying stream by materializing
-            all records into memory to perform the sort. After calling
-            this, the original Flow cannot be iterated again.
+        Consumes (materializes) the stream to perform the sort.
 
         Args:
             by (str or list/tuple of str): The field name, or list/tuple of field names, to sort by.
@@ -230,60 +267,58 @@ class Flow:
                 yield r
             yield from nulls
 
-        # tee to protect the original
-        _, it2 = tee(self._records, 2)
-        self._records = it2
-        return Flow.from_generator(_lazy_sort())
+        return Flow(_lazy_sort())
 
     def limit(self, n: int) -> "Flow":
         """
         Limit the number of records to the given number.
 
+        Does not consume the stream.
+
         Args:
-            n (int): The maximum number of records to return.
+            n (int): The number of records to limit to.
 
         Returns:
-            Flow: New Flow with at most n records.
+            Flow: A new Flow with the limited number of records.
         """
         if n < 0:
             raise ValueError("n must be non-negative")
 
-        it1, it2 = tee(self._records, 2)
-        self._records = it2
-        return Flow.from_generator(islice(it1, n))
+        return Flow(islice(self._records, n))
 
     def split_array(self, key: str, into: list[str]) -> "Flow":
         """
-        Split the given array field into multiple fields.
+        Split the given array field into multiple fields (keeping the original array).
+        Does not consume the stream.
 
         Args:
             key (str): The name of the array field to split.
-            into (list[str]): The names of the fields to split into.
+            into (list[str]): The names of the new fields to create.
 
         Returns:
-            Flow: A new Flow with the array field split into multiple fields.
+            Flow: A new Flow with the split array.
         """
 
         def splitter(record: dict) -> dict:
-            raw = record.get(key, None)
-            # only accept real lists, otherwise treat as if empty
+            rec = dict(record)
+            raw = rec.get(key)
             if isinstance(raw, list):
-                values = raw
-            else:
-                values = [None] * len(into)
-            # populate each new field
-            for i, name in enumerate(into):
-                record[name] = values[i] if i < len(values) else None
-            return record
-
-        if not isinstance(into, list):
-            raise ValueError("`into` arguemnt must be a list")
+                if len(raw) < len(into):
+                    warnings.warn(
+                        f"{key!r} has only {len(raw)} elements but expected {len(into)}",
+                        UserWarning,
+                    )
+                for i, name in enumerate(into):
+                    rec[name] = raw[i] if i < len(raw) else None
+            return rec
 
         return Flow(splitter(r) for r in self._records)
 
     def group_by(self, *keys: str) -> "FlowGroup":
         """
-        Group records by the specified keys and return a FlowGroup object
+        Group records by the specified keys and return a FlowGroup object.
+
+        Consumes (materializes) the stream to group records.
 
         Args:
             *keys (str): The names of the fields to group by.
@@ -299,15 +334,14 @@ class Flow:
             groups[group_key].append(dict(record))
         return FlowGroup(keys, groups)
 
-    def summary(self, **aggregates: str | tuple[str, str] | Callable) -> "Flow":
+    def summary(self, **aggregates: Union[str, tuple[str, str], Callable]) -> "Flow":
         """
         Summarize the stream by computing the given aggregates over each group.
 
-        Note: This materializes the entire stream to compute aggregates; the Flow is consumed.
+        Consumes (materializes) the stream to compute aggregates.
 
         Args:
-            **aggregates (str | tuple[str, str] | callable): The aggregates to compute. Note that
-            this causes the stream of data to be materialized.
+            **aggregates (Union[str, tuple[str, str], Callable]): The aggregates to compute.
 
         Returns:
             Flow: A new Flow with the summary rows.
@@ -318,19 +352,22 @@ class Flow:
             row = {col: _resolve_agg(data, spec) for col, spec in aggregates.items()}
             yield row
 
-        return Flow.from_generator(gen())
+        return Flow(gen())
 
     def concat(self, *others: "Flow") -> "Flow":
         """
         Concatenate this Flow with one or more other Flows.
 
+        Does not consume the stream.
+
         Args:
-            *others (Flow): The Flows to concatenate.
+            *others (Flow): The other Flows to concatenate.
 
         Returns:
             Flow: A new Flow with the concatenated records.
         """
-        return Flow.from_generator(chain(self._records, *(o._records for o in others)))
+
+        return Flow(chain(self._records, *(o._records for o in others)))
 
     def row_number(
         self, by: str, new_field: str = "row_number", reverse: bool = False
@@ -338,18 +375,21 @@ class Flow:
         """
         Assigns a row number based on sorting by `by`.
 
-        Note: This reads all records into memory to assign row numbers; the Flow is consumed.
+        Consumes (materializes) the stream to assign row numbers.
 
         Args:
             by (str): The name of the field to sort by.
             new_field (str, optional): The name of the new field to add. Defaults to "row_number".
             reverse (bool, optional): Whether to sort in descending order. Defaults to False.
+
+        Returns:
+            Flow: A new Flow with the row numbers assigned.
         """
 
         def gen():
             recs = list(self._records)  # only runs when someone iterates
-            non_null = [r for r in recs if r.get(by) is not None]
-            nulls = [r for r in recs if r.get(by) is None]
+            non_null = [dict(r) for r in recs if r.get(by) is not None]  # shallow copy
+            nulls = [dict(r) for r in recs if r.get(by) is None]  # shallow copy
             sorted_non_null = sorted(non_null, key=lambda r: r[by], reverse=reverse)
             for idx, rec in enumerate(sorted_non_null, start=1):
                 rec[new_field] = idx
@@ -357,11 +397,13 @@ class Flow:
                 rec[new_field] = None
             yield from (sorted_non_null + nulls)
 
-        return Flow.from_generator(gen())
+        return Flow(gen())
 
     def drop_duplicates(self, *fields: str, keep: str = "first") -> "Flow":
         """
         Drop duplicate records.
+
+        Consumes (materializes) the stream to identify duplicates.
 
         If no fields are specified, it considers the entire record for duplication.
         If fields are provided, only those fields are used to identify duplicates.
@@ -369,7 +411,6 @@ class Flow:
         Args:
             *fields (str): The fields to use for deduplication.
             keep (str, optional): How to handle duplicates. Defaults to "first".
-
                 - "first": Keep the first occurrence of a duplicate set.
                 - "last": Keep the last occurrence.
                 - False: Drop all records that are part of any duplicate set.
@@ -397,14 +438,13 @@ class Flow:
                 if rec is not None:
                     yield rec
 
-        return Flow.from_generator(gen())
+        return Flow(gen())
 
     def take_last(self, n: int) -> "Flow":
         """
         Take the last `n` records.
 
-        Note: This reads the entire stream in order to return the last records;
-        the Flow is consumed.
+        Consumes (materializes) the stream to return the last records.
 
         Args:
             n (int): The number of records to take.
@@ -422,11 +462,12 @@ class Flow:
             for rec in records[-n:]:
                 yield rec
 
-        return Flow.from_generator(gen())
+        return Flow(gen())
 
     def unique(self, *fields: str) -> "Flow":
         """
         Return unique values of one or more fields.
+        Consumes (materializes) the stream to determine uniqueness.
         If one field: yields {field: value} for each distinct value.
         If multiple: yields dicts of those field combos.
 
@@ -454,11 +495,13 @@ class Flow:
                         seen.add(key)
                         yield record
 
-        return Flow.from_generator(gen())
+        return Flow(gen())
 
     def rename(self, **mapping: str) -> "Flow":
         """
         Rename keys: old_name=new_name, …
+
+        Does not consume the stream.
 
         Args:
             **mapping (str): The keys to rename.
@@ -469,25 +512,26 @@ class Flow:
 
         def gen() -> Iterator[dict[str, Any]]:
             for record in self._records:
-                rec = dict(record)
+                rec = record.copy()  # shallow copy
                 for old, new in mapping.items():
                     if old in rec:
                         rec[new] = rec.pop(old)
                 yield rec
 
-        return Flow.from_generator(gen())
+        return Flow(gen())
 
     def join(
         self,
-        other: "Flow|list[dict]",
+        other: Union["Flow", list[dict]],
         left_on: str,
-        right_on: str | None = None,
-        fields: list[str] | None = None,
+        right_on: Union[str, None] = None,
+        fields: Union[list[str], None] = None,
         how: str = "left",
     ) -> "Flow":
         """
-        Join a Flow with another Flow or a list of dicts. Note that the right side
-        of the join will be fully materialized into memory.
+        Join a Flow with another Flow or a list of dicts.
+        The right side of the join is fully materialized into memory.
+        The left stream is not fully materialized, but is iterated.
 
         Args:
             other: The Flow or list of dicts to join with.
@@ -503,9 +547,11 @@ class Flow:
 
         # pull the RHS into memory once
         if isinstance(other, Flow):
-            right_data = list(other._records)
+            right_data = [
+                dict(r) for r in other._records
+            ]  # shallow copy of each record
         elif isinstance(other, list):
-            right_data = other
+            right_data = [dict(r) for r in other]  # shallow copy of each record
         else:
             raise TypeError("Join target must be a Flow or list of dicts.")
 
@@ -513,7 +559,9 @@ class Flow:
             raise ValueError(f"Unknown join type {how!r}; expected 'left' or 'inner'.")
 
         # build lookup: key → row
-        lookup: dict[Any, dict] = {r[right_on]: r for r in right_data if right_on in r}
+        lookup: dict[Any, dict] = {
+            r[right_on]: dict(r) for r in right_data if right_on in r
+        }  # shallow copy
 
         def gen():
             for left_rec in self._records:
@@ -523,7 +571,7 @@ class Flow:
                 # no match
                 if right_rec is None:
                     if how == "left":
-                        yield dict(left_rec)  # keep the LHS
+                        yield dict(left_rec)  # shallow copy of the LHS
                     # if how == "inner": drop it
                     continue
 
@@ -538,23 +586,26 @@ class Flow:
                             out[k] = v
                 yield out
 
-        return Flow.from_generator(gen())
+        return Flow(gen())
 
     def collect(self) -> list[dict]:
         """
-        Materialize the flow into a list of dicts, non-destructively.
-        You can call collect() again and again and always get the same result.
+        Materialize the flow into a list of dicts (one‐shot).
+        Consumes the stream. After this, self._records _is_ that list. You can call
+        `collect()` again and again and always get the same result.
 
         Returns:
             list[dict]: The records in the flow.
         """
-        it1, it2 = tee(self._records, 2)
-        self._records = it2
-        return list(it1)
+        if not isinstance(self._records, list):
+            self._records = list(self._records)
+        return self._records
 
     def head(self, n: int = 5) -> "Flow":
         """
         Return the first n records of the flow.
+
+        Consumes the stream up to n records (materializes those records).
 
         Args:
             n (int): The number of records to return.
@@ -562,11 +613,15 @@ class Flow:
         Returns:
             Flow: A new Flow with the first n records.
         """
+        if n < 0:
+            raise ValueError("n must be >= 0")
         return self.limit(n)
 
     def pipe(self, func: Callable, *args, **kwargs) -> Union["Flow", Any]:
         """
         Pipe the flow into a function.
+
+        Consumes the stream if the piped function does so.
 
         Args:
             func (callable): The function to pipe the flow into.
@@ -582,6 +637,8 @@ class Flow:
         """
         Serialize the flow to a JSON string.
 
+        Consumes the stream (materializes all records).
+
         Args:
             indent (int or None): The number of spaces to use for indentation.
                 - If None (default), the JSON string is compact.
@@ -596,91 +653,68 @@ class Flow:
         """
         Peek at the first record without consuming it.
 
-        Args:
-            n (int): The number of records to return.
+        Consumes the stream (materializes all records).
 
         Returns:
             dict | None: The first record in the flow or None if empty.
         """
-        it = iter(self._records)
-        try:
-            first = next(it)
-        except StopIteration:
-            return None
-
-        self._records = chain([first], it)
-        return first
+        lst = self.collect()
+        return lst[0] if lst else None
 
     def last(self) -> dict | None:
         """
         Return the last record in the flow or None if empty.
 
-        Note: This scans every record to find the last one;
-        the Flow is consumed.
-
-        Args:
-            n (int): The number of records to return.
+        Consumes (materializes) the stream.
 
         Returns:
             dict | None: The last record in the flow or None if empty.
         """
-        it1, it2 = tee(self._records, 2)
-        self._records = it2
-        last_rec = None
-        for rec in it1:
-            last_rec = rec
-        return last_rec
+        lst = self.collect()
+        return lst[-1] if lst else None
 
     def is_empty(self) -> bool:
         """
         Return True if the flow has no records, without losing any data
         and without buffering the entire stream.
 
-        Args:
-            n (int): The number of records to return.
+        Consumes the stream (materializes all records).
 
         Returns:
             bool: True if the flow is empty, False otherwise.
         """
-        it = iter(self._records)
-        try:
-            first = next(it)
-        except StopIteration:
-            return True
-
-        self._records = chain([first], it)
-        return False
+        lst = self.collect()
+        return not lst
 
     def keys(self, limit: int | None = None) -> set[str]:
         """
         Return the union of keys across up to `limit` records.
+
+        Consumes the stream (materializes all records, or up to `limit` if specified).
 
         Args:
             limit (int or None): number of records to inspect.
                 - If None (default), inspects all records.
                 - If an integer n, only the first n records are checked.
 
-        Does not consume the underlying stream.
-
         Returns:
             set[str]: The union of keys across up to `limit` records.
         """
-        # duplicate the iterator
-        it1, it2 = tee(self._records, 2)
-        self._records = it2
-
+        data = self.collect()
         keyset: set[str] = set()
         if limit is None:
-            for r in it1:
-                keyset.update(r.keys())
+            for record in data:
+                keyset.update(record.keys())
         else:
-            for r in islice(it1, limit):
-                keyset.update(r.keys())
+            for record in data[:limit]:
+                keyset.update(record.keys())
         return keyset
 
     def explode(self, key: str) -> "Flow":
         """
         Explode a list-field into multiple records.
+
+        Does not consume the stream.
 
         Args:
             key (str): The name of the field to explode.
@@ -706,11 +740,13 @@ class Flow:
                     # non-list or missing → keep as is
                     yield record
 
-        return Flow.from_generator(generator())
+        return Flow(generator())
 
     def explode_multi(self, keys: list[str], fillvalue=None) -> "Flow":
         """
         Explode multiple list-fields together (zip with fillvalue).
+
+        Does not consume the stream.
 
         Args:
             keys (list[str]): The names of the fields to explode.
@@ -748,15 +784,14 @@ class Flow:
                         out[key] = val
                     yield out
 
-        return Flow.from_generator(gen())
+        return Flow(gen())
 
     def sample(self, n: int, seed: int | None = None) -> "Flow":
         """
         Uniformly sample exactly `n` records from the stream (reservoir sampling).
         Returns a new Flow of length n (or fewer, if the stream has < n items).
 
-        Note: This consumes the stream to build a reservoir of size n;
-        the Flow is consumed.
+        Consumes (materializes) the stream to build a reservoir of size n.
 
         Args:
             n (int): The number of records to sample.
@@ -774,12 +809,14 @@ class Flow:
                 j = rnd.randint(1, i)
                 if j <= n:
                     reservoir[j - 1] = record
-        return Flow.from_generator(iter(reservoir))
+        return Flow(iter(reservoir))
 
     def sample_frac(self, frac: float, seed: int | None = None) -> "Flow":
         """
         Bernoulli sample: include each record with probability `frac` (0.0–1.0).
         This yields an *approximate* fraction of the stream.
+
+        Does not consume the stream.
 
         Args:
             frac (float): The fraction of records to include.
@@ -790,7 +827,7 @@ class Flow:
         """
         # check frac is between 0 and 1
         rnd = random.Random(seed)
-        return Flow.from_generator(r for r in self._records if rnd.random() < frac)
+        return Flow(r for r in self._records if rnd.random() < frac)
 
     def describe(
         self,
@@ -800,6 +837,8 @@ class Flow:
     ) -> pd.DataFrame:
         """
         Generate descriptive statistics.
+
+        Consumes (materializes) the stream to build a DataFrame.
 
         Args:
             percentiles (tuple of float): Percentiles to include between 0 and 1.
@@ -815,6 +854,8 @@ class Flow:
     def flatten(self, sep: str = ".") -> "Flow":
         """
         Recursively flatten nested dicts in each record.
+
+        Does not consume the stream.
 
         Nested keys are joined with `sep` to form the new field name.
 
@@ -840,38 +881,39 @@ class Flow:
                 _flatten(record)
                 yield flat
 
-        return Flow.from_generator(gen())
+        return Flow(gen())
 
     def to_pandas(self) -> pd.DataFrame:
         """
         Convert the Flow to a pandas DataFrame.
 
-        Note: This reads all records into a pandas DataFrame;
-        the Flow is consumed.
+        Consumes (materializes) the stream to build a DataFrame.
 
         Returns:
             DataFrame: A pandas DataFrame containing the records.
         """
         return pd.DataFrame(self._records)
 
-    def to_json_files(self, folder: str | Path, by: str | None = None) -> "Flow":
+    def to_json_files(
+        self, folder: Union[str, Path], by: Union[str, None] = None
+    ) -> None:
         """
         Write each record to a separate JSON file in the given folder.
 
-        Note:
-            This serializes every record to disk; the Flow is consumed.
+        Consumes (materializes) the stream and serializes every record to disk.
 
         Args:
             folder (str or Path): Output folder path. Will be created if needed.
             by (str, optional): Field to name the files by. Defaults to numbered files.
 
         Returns:
-            Flow: self
+            None
         """
         folder_p = Path(folder)
         folder_p.mkdir(parents=True, exist_ok=True)
 
-        for i, record in enumerate(self._records, start=1):
+        data = self.collect()
+        for i, record in enumerate(data, start=1):
             if by:
                 name = sanitize_filename(record.get(by, f"record_{i}"))
             else:
@@ -881,43 +923,38 @@ class Flow:
                 json.dumps(record, ensure_ascii=False, indent=2), encoding="utf-8"
             )
 
-        return self
-
-    def to_jsonl(self, path: str | Path, encoding: str = "utf-8") -> "Flow":
+    def to_jsonl(self, path: Union[str, Path], encoding: str = "utf-8") -> None:
         """
         Save all records to a single JSON Lines (.jsonl) file.
         Each record is written as one line of JSON.
 
-        Note:
-            This serializes every record to disk; the Flow is consumed.
+        Consumes (materializes) the stream and serializes every record to disk.
 
         Args:
             path (str or Path): Output file path.
             encoding (str, optional): File encoding. Defaults to "utf-8".
 
         Returns:
-            Flow: self
+            None
         """
         p = Path(path)
         # ensure parent folder exists
         if p.parent:
             p.parent.mkdir(parents=True, exist_ok=True)
 
+        data = self.collect()
         with p.open("w", encoding=encoding) as f:
-            for record in self._records:
+            for record in data:
                 f.write(json.dumps(record, ensure_ascii=False))
                 f.write("\n")
 
-        return self
-
     def to_json_single(
         self, path: str | Path, encoding: str = "utf-8", indent: int | None = 2
-    ) -> "Flow":
+    ) -> None:
         """
         Save all records to a single JSON file as an array.
 
-        Note:
-            This serializes every record to disk; the Flow is consumed.
+        Consumes (materializes) the stream and serializes every record to disk.
 
         Args:
             path (str or Path): Output file path.
@@ -925,22 +962,24 @@ class Flow:
             indent (int or None): Indentation level. Defaults to 2.
 
         Returns:
-            Flow: self
+            None
         """
         p = Path(path)
         if p.parent:
             p.parent.mkdir(parents=True, exist_ok=True)
 
+        data = self.collect()
         p.write_text(
-            json.dumps(list(self._records), ensure_ascii=False, indent=indent),
+            json.dumps(data, ensure_ascii=False, indent=indent),
             encoding=encoding,
         )
-        return self
 
     @classmethod
     def from_generator(cls, generator_instance: Iterator[dict[Any, Any]]) -> "Flow":
         """
         Create a Flow from a generator function.
+
+        Does not consume the stream.
 
         Args:
             generator_instance (Iterator[dict[Any, Any]]): A generator function.
@@ -956,8 +995,7 @@ class Flow:
         Load a .jsonl (JSON Lines) file into a Flow.
         Each line must be a valid JSON object.
 
-        Note:
-            This reads the file line by line and consumes the stream.
+        Consumes the file stream; the resulting Flow is a stream of records.
 
         Args:
             path (str or Path): Input file path.
@@ -984,8 +1022,7 @@ class Flow:
         Load a local JSON file (list or single dict) into a Flow.
         Generic — no provider-specific assumptions.
 
-        Note:
-            This reads the entire file into memory; the Flow is consumed.
+        Consumes the file stream; the resulting Flow is a stream of records.
 
         Args:
             path (str or Path): Input file path.
@@ -1014,8 +1051,7 @@ class Flow:
         - Flattens each file (list or single dict).
         - Skips non-JSON files.
 
-        Note:
-            This reads every matching file; the Flow is consumed.
+        Consumes the file streams; the resulting Flow is a stream of records.
 
         Args:
             folder (str or Path): The path to the folder.
@@ -1048,8 +1084,7 @@ class Flow:
         Load and stream all JSON records matching a glob path.
         E.g. '*.json', 'data/events/*378*.json', '**/*.json'
 
-        Note:
-            This reads every matching file; the Flow is consumed.
+        Consumes the file streams; the resulting Flow is a stream of records.
 
         Args:
             pattern (str or Path): The glob pattern.
@@ -1084,37 +1119,23 @@ class Flow:
         - single dict
         - iterable of dicts
 
+        Does not consume the stream.
+
         Args:
             data (dict | list[dict] | Iterable[dict]): The data to create the flow from.
 
         Returns:
             Flow: The created flow.
         """
-        inst = object.__new__(cls)
-
-        # narrow down to something that really is an Iterable[dict]
-        if isinstance(data, dict):
-            iterable = iter([dict(data)])
-        elif isinstance(data, list):
-            iterable = iter([dict(r) for r in data])
-        # explicitly rule out strings/bytes before treating as a generic iterable
-        elif isinstance(data, (str, bytes)):
-            raise TypeError(
-                "Cannot build Flow from text; expected dict or iterable of dicts"
-            )
-        elif isinstance(data, collections.abc.Iterable):
-            iterable = (dict(r) for r in data)
-        else:
-            raise TypeError("Expected dict, list of dicts, or iterable of dicts")
-
-        inst._records = iter(iterable)
-        return inst
+        return cls(data)
 
     class statsbomb:
         @staticmethod
         def from_github_file(match_id: int, type: str = "events") -> "Flow":
             """
             Load a StatsBomb event data file from GitHub.
+
+            Consumes the HTTP response; the resulting Flow is a stream of records.
 
             Args:
                 match_id (int): The StatsBomb match ID.
@@ -1128,6 +1149,6 @@ class Flow:
             response.raise_for_status()
             data = response.json()
             if isinstance(data, list):
-                return Flow.from_generator(r for r in data)
+                return Flow(r for r in data)
             else:
-                return Flow.from_generator(iter([data]))
+                return Flow(iter([data]))

@@ -24,3 +24,4 @@ Streamline your analytics pipelines with **MatchFlow**.
    inspection_interop
    parallel
    best_practices
+   recipes

@@ -59,7 +59,9 @@ def test_group_by_and_ungroup(sample_records):
     flat = fg.ungroup().collect()
     assert sorted([r["id"] for r in flat]) == [1, 2, 3]
 
-    assert Flow(sample_records).group_by("grp").ungroup() == Flow(sample_records)
+    assert Flow(sample_records).group_by("grp").ungroup().collect() == list(
+        Flow(sample_records)
+    )
     assert isinstance(Flow(sample_records).group_by("grp").ungroup(), Flow)
 
 
