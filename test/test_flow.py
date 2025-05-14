@@ -51,9 +51,9 @@ def test_fork_basic(sample_records):
     # Both forks yield the same records
     assert f1.collect() == sample_records
     assert f2.collect() == sample_records
-    # Both are one-shot: after collecting, further iteration yields same list
-    assert f1.collect() == sample_records
-    assert f2.collect() == sample_records
+    # # Both are one-shot: after collecting, further iteration yields empty list
+    assert f1.collect() == []
+    assert f2.collect() == []
 
 
 def test_fork_empty():
@@ -167,17 +167,17 @@ def test_iter(sample_records):
     # 2. Iterating counts all records
     assert n == len(sample_records)
     # # 3. Iterating again yields original records
-    # assert list(flow) == sample_records
+    assert list(flow) == sample_records
 
-    # # 4. Iterating counts all records again
-    # flow = Flow(sample_records)
-    # n = 0
-    # for _ in flow:
-    #     n += 1
-    # # 5. Iterating counts all records again
-    # assert n == len(sample_records)
-    # # 6. Iterating again yields original records again
-    # assert list(flow) == sample_records
+    # 4. Iterating counts all records again
+    flow = Flow(sample_records)
+    n = 0
+    for _ in flow:
+        n += 1
+    # 5. Iterating counts all records again
+    assert n == len(sample_records)
+    # 6. Iterating again yields original records again
+    assert list(flow) == sample_records
 
 
 def test_eq(sample_records):

@@ -34,7 +34,7 @@ def process_file(args) -> list[dict]:
     # transform
     result = flow_fn(flow)
     if not isinstance(result, Flow):
-        raise TypeError("`flow_fn` must return a Flow")
+        raise TypeError(f"`flow_fn` must return a Flow, got {type(result)} instead.")
 
     rows = result.collect()
 
@@ -56,6 +56,23 @@ def folder_flow(
     encoding: str = "utf-8",
     file_exts: tuple[str, ...] = (".json", ".jsonl"),
 ) -> Optional["Flow"]:
+    """
+    Apply a function to each file in a folder in parallel.
+
+    Args:
+        input_folder (Union[str, Path]): The input folder.
+        flow_fn (Callable[[Flow], Flow]): The function to apply to each file.
+        output_folder (Optional[Union[str, Path]], optional): The output folder. Defaults to None.
+        reduce_fn (Optional[Callable[[Flow], Flow]], optional): The function to apply to the results. Defaults to None.
+        n_jobs (Optional[int], optional): The number of jobs to run in parallel. Defaults to None.
+        encoding (str, optional): The encoding to use. Defaults to "utf-8".
+        file_exts (tuple[str, ...], optional): The file extensions to process. Defaults to (".json", ".jsonl").
+
+    Returns:
+        Flow: The combined results if output_folder is None
+        None: If results are written to disk
+    """
+
     from .flow import Flow
 
     # check if flow_fn is pickleable, if not it will cause multiprocessing to fail
@@ -95,7 +112,9 @@ def folder_flow(
     if reduce_fn:
         reduced = reduce_fn(result)
         if not isinstance(reduced, Flow):
-            raise TypeError("`reduce_fn` must return a Flow")
+            raise TypeError(
+                f"`reduce_fn` must return a Flow, got {type(reduced)} instead."
+            )
         return reduced
 
     return result

@@ -1,4 +1,13 @@
-from typing import TYPE_CHECKING, Any, Callable, Iterator, List, Tuple, Union
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Callable,
+    Iterator,
+    List,
+    Optional,
+    Tuple,
+    Union,
+)
 
 import pandas as pd
 
@@ -268,6 +277,45 @@ class FlowGroup:
             for idx, rec in enumerate(sorted_recs, start=1):
                 rec[new_field] = idx
             new_groups[key] = sorted_recs
+        return FlowGroup(self.group_keys, new_groups)
+
+    def cumulative(
+        self, field: str, new_field: str = "cumulative", sort_by: Optional[str] = None
+    ) -> "FlowGroup":
+        """
+        Compute a cumulative sum of `field` within each group.
+
+        Args:
+            field: The numeric field to accumulate.
+            new_field: Name of the new cumulative field.
+            sort_by: Field to sort records by before accumulating.
+
+        Returns:
+            FlowGroup: Groups with cumulative values added.
+        """
+        new_groups = {}
+        for key, recs in self.groups.items():
+            # Sort records; place None values at the end
+            if sort_by:
+
+                def _key(r):
+                    k = r.get(sort_by)
+                    return (k is None, k)
+
+                records = sorted(recs, key=_key)
+            else:
+                records = list(recs)
+
+            total = 0
+            cum_recs = []
+            for rec in records:
+                # Safely add numeric field values
+                val = rec.get(field, 0) or 0
+                total += val
+                r = dict(rec)
+                r[new_field] = total
+                cum_recs.append(r)
+            new_groups[key] = cum_recs
         return FlowGroup(self.group_keys, new_groups)
 
     def first(self) -> "FlowGroup":

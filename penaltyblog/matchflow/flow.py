@@ -114,18 +114,15 @@ class Flow:
 
     def materialize(self) -> "Flow":
         """
-        Fork off a fully‐realized, in‐memory copy of this stream, without
-        disturbing the original.  The returned Flow is backed by a list
-        you can re‐scan at will; the original remains a (one‐shot) stream.
+        Materializes the stream into a list of dicts. Note that this consumes the stream
+        of data and the flow will now be empty.
 
         Returns:
             Flow: A new Flow instance that is a fully materialized copy of the
             current stream, backed by a list of records. This allows for safe
             re-scanning and manipulation without affecting the original stream.
         """
-        it_orig, it_cache = tee(self._records, 2)
-        self._records = it_orig
-        return Flow(list(it_cache))
+        return Flow(self.collect())
 
     def fork(self) -> tuple["Flow", "Flow"]:
         """
@@ -486,9 +483,12 @@ class Flow:
     def unique(self, *fields: str) -> "Flow":
         """
         Return unique values of one or more fields.
-        Consumes (materializes) the stream to determine uniqueness.
+        Supports dot notation for nested keys.
+
         If one field: yields {field: value} for each distinct value.
         If multiple: yields dicts of those field combos.
+
+        Consumes (materializes) the stream to determine uniqueness.
 
         Args:
             *fields (str): The fields to return unique values for.
@@ -497,11 +497,21 @@ class Flow:
             Flow: A new Flow with unique values of one or more fields.
         """
 
+        def get_nested(record: dict, path: str):
+            parts = path.split(".")
+            val = record
+            for part in parts:
+                if isinstance(val, dict):
+                    val = val.get(part)
+                else:
+                    return None
+            return val
+
         def gen():
             seen = set()
             for record in self._records:
                 if fields:
-                    key = tuple(record.get(f) for f in fields)
+                    key = tuple(get_nested(record, f) for f in fields)
                     if key not in seen:
                         seen.add(key)
                         if len(fields) == 1:
@@ -609,16 +619,13 @@ class Flow:
 
     def collect(self) -> list[dict]:
         """
-        Materialize the flow into a list of dicts (one‐shot).
-        Consumes the stream. After this, self._records _is_ that list. You can call
-        `collect()` again and again and always get the same result.
+        Materializes the stream into a list of dicts. Note that this consumes the stream
+        of data and the flow will now be empty.
 
         Returns:
             list[dict]: The records in the flow.
         """
-        if not isinstance(self._records, list):
-            self._records = list(self._records)
-        return self._records
+        return list(self._records)
 
     def head(self, n: int = 5) -> "Flow":
         """
@@ -670,7 +677,7 @@ class Flow:
 
     def first(self) -> dict | None:
         """
-        Peek at the first record without consuming it.
+        Returns the first record in the flow or None if empty.
 
         Consumes the stream (materializes all records).
 

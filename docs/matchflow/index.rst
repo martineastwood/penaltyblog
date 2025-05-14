@@ -1,16 +1,19 @@
 MatchFlow
 =================================
 
-**MatchFlow** is a lightweight toolkit for working with football data stored as JSON.
+**MatchFlow** is a lightweight toolkit for working with structured football data, especially JSON files like
+StatsBomb events or match-level logs.
 
-Whether you’re loading StatsBomb match files, streaming multiple JSON logs from a folder or glob, or prototyping new metrics on tagged event streams,
-**MatchFlow** gives you lazy, composable pipelines - `filter`, `assign`, `explode`, `group_by`, `summary`, `join`, and more - that only load data into memory when you need it.
+Whether you're loading a single file, streaming a folder of matches, or building a custom metric from event-level data,
+**MatchFlow** gives you a powerful yet simple toolkit:
+chainable operations like `.filter()`, `.assign()`, `.explode()`, `.group_by()`, `.summary()`, and `.join()` - all built
+to work lazily and efficiently on your data.
 
-For group-based analyses (e.g. per team, per player, per half), **MatchFlow** lets you aggregate, de-duplicate, head / tail your data.
+You can group by player, team, or match period; aggregate or de-duplicate records; and inspect your data at any step.
+When you're ready, materialize your results with `.collect()` or `.to_pandas()`, or export directly to JSON/JSONL.
 
-Also, you can seamlessly convert your results to pandas DataFrames or export to JSON/JSONL files for downstream plotting, machine learning, or sharing with teammates.
-
-Streamline your analytics pipelines with **MatchFlow**.
+Whether you're exploring a single match or scaling up analysis across thousands, **MatchFlow** helps you build clean,
+composable pipelines - fast.
 
 .. toctree::
    :maxdepth: 1
@@ -22,6 +25,5 @@ Streamline your analytics pipelines with **MatchFlow**.
    advanced
    file_io
    inspection_interop
-   parallel
    best_practices
-   recipes
+   parallel
