@@ -27,3 +27,4 @@ composable pipelines - fast.
    inspection_interop
    best_practices
    parallel
+   helpers

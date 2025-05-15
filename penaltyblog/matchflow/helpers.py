@@ -1,16 +1,26 @@
 from typing import Any, Callable
 
+# --- Accessors ---
 
-def get_field(path: str, default: Any | None = None) -> Callable:
+
+def get_field(path: str, default: Any = None) -> Callable[[dict], Any]:
     """
-    Safely accesses a nested field using dot notation.
+    Safely access a nested field using dot notation.
+
+    Args:
+        path (str): Dot-separated path to a field, e.g. "player.name".
+        default (Any, optional): Value to return if the path is invalid.
+
+    Returns:
+        Callable[[dict], Any]: A function that retrieves the field value or default.
 
     Example:
-        get_field("player.name") -> lambda d: d["player"]["name"]
+        >>> f = get_field("player.name")
+        >>> f({"player": {"name": "Bukayo Saka"}})  # → "Bukayo Saka"
     """
     keys = path.split(".")
 
-    def accessor(d):
+    def accessor(d: dict) -> Any:
         for key in keys:
             if not isinstance(d, dict):
                 return default
@@ -20,28 +30,177 @@ def get_field(path: str, default: Any | None = None) -> Callable:
     return accessor
 
 
-def get_array(key: str, index: int, default: Any | None = None) -> Callable:
+def get_index(path: str, index: int, default: Any = None) -> Callable[[dict], Any]:
     """
-    Safely accesses an index in an array stored at `key`.
+    Safely access an index in a nested list using dot-separated path.
+
+    Args:
+        path (str): Dot-separated path to a list field, e.g. "pass.end_location".
+        index (int): The index to extract from the list.
+        default (Any, optional): Value to return if the path is invalid or index out of bounds.
+
+    Returns:
+        Callable[[dict], Any]: A function that retrieves the indexed value or default.
 
     Example:
-        get_array("location", 0) -> lambda d: d["location"][0]
+        >>> f = get_index("pass.end_location", 0)
+        >>> f({"pass": {"end_location": [100, 40]}})  # → 100
     """
 
-    def accessor(d):
-        value = d.get(key, [])
-        if isinstance(value, list) and len(value) > index:
-            return value[index]
+    keys = path.split(".")
+
+    def accessor(d: dict) -> Any:
+        for key in keys:
+            if not isinstance(d, dict):
+                return default
+            d = d.get(key)
+        if isinstance(d, list):
+            try:
+                return d[index]
+            except IndexError:
+                return default
         return default
 
     return accessor
 
 
-def get_statsbomb_x(key: str = "location", default: Any | None = None) -> Callable:
-    """Shortcut for get_array(key, 0)"""
-    return get_array(key, 0, default)
+# --- Predicates ---
 
 
-def get_statsbomb_y(key: str = "location", default: Any | None = None) -> Callable:
-    """Shortcut for get_array(key, 1)"""
-    return get_array(key, 1, default)
+def where_equals(path: str, value: Any) -> Callable[[dict], bool]:
+    """
+    Create a predicate that checks if a nested field equals a given value.
+
+    Args:
+        path (str): Dot-separated path to a field, e.g. "player.name".
+        value (Any): The value to compare against.
+
+    Returns:
+        Callable[[dict], bool]: A function that returns True if the field equals the value.
+
+    Example:
+        >>> f = where_equals("player.name", "Bukayo Saka")
+        >>> f({"player": {"name": "Bukayo Saka"}})  # → True
+    """
+    accessor = get_field(path)
+
+    def predicate(record: dict) -> bool:
+        return accessor(record) == value
+
+    return predicate
+
+
+def where_in(path: str, values: set | list | tuple) -> Callable[[dict], bool]:
+    """
+    Create a predicate that checks if a nested field is in a list of values.
+
+    Args:
+        path (str): Dot-separated path to a field, e.g. "player.name".
+        values (set | list | tuple): The values to check against.
+
+    Returns:
+        Callable[[dict], bool]: A function that returns True if the field is in the values.
+
+    Example:
+        >>> f = where_in("player.name", {"Bukayo Saka", "Mohamed Salah"})
+        >>> f({"player": {"name": "Bukayo Saka"}})  # → True
+    """
+    accessor = get_field(path)
+    values = set(values)
+
+    def predicate(record: dict) -> bool:
+        return accessor(record) in values
+
+    return predicate
+
+
+def where_exists(path: str) -> Callable[[dict], bool]:
+    """
+    Check if a nested field exists and is not None.
+
+    Args:
+        path (str): Dot-separated path to a field, e.g. "player.name".
+
+    Returns:
+        Callable[[dict], bool]: A function that returns True if the field exists and is not None.
+
+    Example:
+        >>> f = where_exists("player.name")
+        >>> f({"player": {"name": "Bukayo Saka"}})  # → True
+    """
+    accessor = get_field(path)
+
+    def predicate(record: dict) -> bool:
+        return accessor(record) is not None
+
+    return predicate
+
+
+def where_not_none(path: str) -> Callable[[dict], bool]:
+    """
+    Check if a nested field exists and is not None (alias of where_exists).
+
+    Args:
+        path (str): Dot-separated path to a field, e.g. "player.name".
+
+    Returns:
+        Callable[[dict], bool]: A function that returns True if the field exists and is not None.
+
+    Example:
+        >>> f = where_not_none("player.name")
+        >>> f({"player": {"name": "Bukayo Saka"}})  # → True
+    """
+    return where_exists(path)
+
+
+# --- Transformers ---
+
+
+def combine_fields(out_field: str, *paths: str, join_str: str = " ") -> Callable:
+    """
+    Combine multiple fields into a single field.
+
+    Args:
+        out_field (str): The name of the output field.
+        *paths (str): The paths to the fields to combine.
+        join_str (str, optional): The string to join the fields with. Defaults to " ".
+
+    Returns:
+        Callable: A function that takes a record and returns a new record with the combined fields.
+
+    Example:
+        >>> f = combine_fields("full_name", "first_name", "last_name")
+        >>> f({"first_name": "Bukayo", "last_name": "Saka"})  # → {"full_name": "Bukayo Saka"}
+    """
+
+    def transformer(d):
+        parts = [str(get_field(p)(d) or "") for p in paths]
+        return {out_field: join_str.join(parts)}
+
+    return transformer
+
+
+def coalesce(*paths: str, default=None) -> Callable:
+    """
+    Return the first non-None value from a list of paths.
+
+    Args:
+        *paths (str): The paths to the fields to check.
+        default (Any, optional): The default value to return if all paths are None. Defaults to None.
+
+    Returns:
+        Callable: A function that takes a record and returns the first non-None value from the paths.
+
+    Example:
+        >>> f = coalesce("player.name", "player.alias", default="Unknown")
+        >>> f({"player": {"name": "Bukayo Saka"}})  # → "Bukayo Saka"
+    """
+
+    def fn(d):
+        for path in paths:
+            val = get_field(path)(d)
+            if val is not None:
+                return val
+        return default
+
+    return fn
