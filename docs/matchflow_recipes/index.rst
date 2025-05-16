@@ -20,6 +20,7 @@ open data or a practitioner building production pipelines.
    :maxdepth: 1
    :caption: Examples:
 
+   06_statsbomb_api
    01_xg_by_player
    02_shot_accuracy_by_team
    03_pass_map
