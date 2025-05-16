@@ -1,9 +1,11 @@
-from typing import Any, Callable
+from typing import Any, Callable, Optional
 
 # --- Accessors ---
 
 
-def get_field(path: str, default: Any = None) -> Callable[[dict], Any]:
+def get_field(
+    path: str, default: Any = None
+) -> Callable[[Optional[dict[Any, Any]]], Any]:
     """
     Safely access a nested field using dot notation.
 
@@ -20,7 +22,7 @@ def get_field(path: str, default: Any = None) -> Callable[[dict], Any]:
     """
     keys = path.split(".")
 
-    def accessor(d: dict) -> Any:
+    def accessor(d: Optional[dict[Any, Any]]) -> Any:
         for key in keys:
             if not isinstance(d, dict):
                 return default
@@ -30,7 +32,9 @@ def get_field(path: str, default: Any = None) -> Callable[[dict], Any]:
     return accessor
 
 
-def get_index(path: str, index: int, default: Any = None) -> Callable[[dict], Any]:
+def get_index(
+    path: str, index: int, default: Any = None
+) -> Callable[[Optional[dict[Any, Any]]], Any]:
     """
     Safely access an index in a nested list using dot-separated path.
 
@@ -49,11 +53,13 @@ def get_index(path: str, index: int, default: Any = None) -> Callable[[dict], An
 
     keys = path.split(".")
 
-    def accessor(d: dict) -> Any:
+    def accessor(d: Optional[dict[Any, Any]]) -> Any:
         for key in keys:
             if not isinstance(d, dict):
                 return default
             d = d.get(key)
+        if d is None:
+            return default
         if isinstance(d, list):
             try:
                 return d[index]

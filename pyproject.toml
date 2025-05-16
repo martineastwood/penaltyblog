@@ -70,6 +70,7 @@ penaltyblog = [
 [project.optional-dependencies]
 dev = [
     "build",
+    "statsbombpy",
     "black>=22.6.0",
     "Sphinx>=5.1.1",
     "nbsphinx>=0.8.9",

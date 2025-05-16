@@ -6,12 +6,17 @@ from collections import Counter, defaultdict
 from collections.abc import Iterable
 from itertools import chain, islice, tee, zip_longest
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Callable, Iterator, Union
+from typing import TYPE_CHECKING, Any, Callable, Iterator, Optional, Union
 
 import pandas as pd
 import requests
 
 from .core import _resolve_agg, sanitize_filename
+
+try:
+    import statsbombpy
+except ImportError:
+    statsbombpy = None
 
 if TYPE_CHECKING:
     # only for type‐checking; no runtime import
@@ -38,6 +43,7 @@ class Flow:
 
         Does not consume the data stream.
         """
+        self._records: Union[Iterable[dict[Any, Any]], list[dict[Any, Any]]]
         if isinstance(records, Flow):
             self._records = records._records
         elif isinstance(records, dict):
@@ -87,7 +93,7 @@ class Flow:
         else:
             return "<Penaltyblog Flow (streaming)>"
 
-    def __eq__(self, other: Union["Flow", list[dict]]) -> bool:
+    def __eq__(self, other: object) -> bool:
         """
         Compare this Flow to another Flow or to a list of dicts.
 
@@ -497,7 +503,7 @@ class Flow:
             Flow: A new Flow with unique values of one or more fields.
         """
 
-        def get_nested(record: dict, path: str):
+        def get_nested(record: Optional[dict[Any, Any]], path: str):
             parts = path.split(".")
             val = record
             for part in parts:
@@ -1156,21 +1162,131 @@ class Flow:
         return cls(data)
 
     class statsbomb:
+
+        DEFAULT_CREDS = {
+            "user": os.environ.get("SB_USERNAME"),
+            "passwd": os.environ.get("SB_PASSWORD"),
+        }
+
         @staticmethod
-        def from_github_file(match_id: int, type: str = "events") -> "Flow":
+        def _require_statsbombpy():
+            if statsbombpy is None:
+                raise ImportError(
+                    "statsbombpy is required. Install with `pip install statsbombpy`"
+                )
+
+        @classmethod
+        def competitions(cls) -> "Flow":
+            """
+            Get Flow of all available competitions.
+
+            Returns:
+                Flow: A Flow of competition records.
+            """
+            cls._require_statsbombpy()
+            from statsbombpy import sb
+
+            data = list(sb.competitions(fmt="dict").values())
+            return Flow(data)
+
+        @classmethod
+        def matches(
+            cls, competition_id: int, season_id: int, creds: Optional[dict] = None
+        ) -> "Flow":
+            """
+            Get Flow of matches for a given competition + season.
+
+            Args:
+                competition_id (int): The competition ID.
+                season_id (int): The season ID.
+
+            Returns:
+                Flow: A Flow of match records.
+            """
+            cls._require_statsbombpy()
+            from statsbombpy import sb
+
+            data = list(
+                sb.matches(
+                    competition_id=competition_id,
+                    season_id=season_id,
+                    fmt="dict",
+                    creds=creds or cls.DEFAULT_CREDS,
+                ).values()
+            )
+            return Flow(data)
+
+        @classmethod
+        def lineups(cls, match_id: int, creds: Optional[dict] = None) -> "Flow":
+            """
+            Get Flow of lineups for a given match.
+
+            Args:
+                match_id (int): The match ID.
+                creds (dict, optional): StatsBomb credentials. Defaults to DEFAULT_CREDS.
+
+            Returns:
+                Flow: A Flow of match records.
+            """
+            cls._require_statsbombpy()
+            from statsbombpy import sb
+
+            data = list(
+                sb.lineups(
+                    match_id=match_id, fmt="dict", creds=creds or cls.DEFAULT_CREDS
+                ).values()
+            )
+            return Flow(data)
+
+        @classmethod
+        def events(
+            cls,
+            match_id: int,
+            include_360_metrics: bool = False,
+            creds: Optional[dict] = None,
+        ) -> "Flow":
+            """
+            Get Flow of events for a given match.
+
+            Args:
+                match_id (int): The match ID.
+                creds (dict, optional): StatsBomb credentials. Defaults to DEFAULT_CREDS.
+
+            Returns:
+                Flow: A Flow of match records.
+            """
+            cls._require_statsbombpy()
+            from statsbombpy import sb
+
+            data = list(
+                sb.events(
+                    match_id=match_id,
+                    fmt="dict",
+                    creds=creds or cls.DEFAULT_CREDS,
+                    include_360_metrics=include_360_metrics,
+                ).values()
+            )
+            return Flow(data)
+
+        @staticmethod
+        def from_github_file(file_id: int, type: str = "events") -> "Flow":
             """
             Load a StatsBomb event data file from GitHub.
 
             Consumes the HTTP response; the resulting Flow is a stream of records.
 
             Args:
-                match_id (int): The StatsBomb match ID.
-                type (str, optional): The type of data to load. Defaults to "events".
+                file_id (int): The StatsBomb file ID.
+                type (str, optional): The type of data to load. Defaults to "events". Can be one of:
+                    - "events"
+                    - "lineups"
+                    - "three-sixty"
+                    - "matches"
 
             Returns:
                 Flow: A Flow object.
             """
-            url = f"https://raw.githubusercontent.com/statsbomb/open-data/master/data/{type}/{match_id}.json"
+            url = f"https://raw.githubusercontent.com/statsbomb/open-data/master/data/{type}/{file_id}.json"
             response = requests.get(url)
             response.raise_for_status()
             data = response.json()

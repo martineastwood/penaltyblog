@@ -19,6 +19,7 @@ composable pipelines - fast.
    :maxdepth: 1
    :caption: Examples:
 
+   why
    introduction
    basic_pipeline
    grouping_and_aggregating

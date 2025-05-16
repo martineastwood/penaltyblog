@@ -5,7 +5,7 @@ test:
 	coverage report -m
 
 test_subset:
-	pytest -v test/test_flow.py test/test_flowgroup.py
+	pytest -v test/test_flow.py test/test_flowgroup.py test/test_flow_helpers.py test/test_flow_parallel.py
 
 test_implied:
 	pytest -v test/test_implied.py

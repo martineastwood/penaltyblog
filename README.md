@@ -32,13 +32,14 @@
 **penaltyblog** is a production-ready Python package designed for football (soccer) analytics, providing powerful tools from [pena.lt/y/blog](https://pena.lt/y/blog) for data analysis, outcome modelling, and betting insights. Optimized with Cython, **penaltyblog** delivers high-performance modelling to power faster, efficient predictions.
 
 ## Features
+
+- 🔄 **Streamline JSON Workflows with MatchFlow** – Process deeply nested football event data using a lazy, streaming pipeline built for JSON. Filter, select, flatten, join, group, and summarize large datasets — without loading everything into memory.
 - ⚽ **Scrape Data** – Collect match statistics from sources like FBRef, Understat, Club Elo, and Fantasy Premier League.
 - 📊 **Model Matches Efficiently** – High-performance implementations of Poisson, Bivariate Poisson, Dixon-Coles, and other advanced statistical models, optimized with Cython for rapid analysis.
 - 💰 **Bet Smarter** – Precisely estimate probabilities for Asian handicaps, over/under totals, match outcomes, and more.
 - 🏆 **Rank Teams** – Evaluate team strengths with sophisticated methods including Elo, Massey, Colley, and Pi ratings.
 - 📈 **Decode Bookmaker Odds** – Accurately extract implied probabilities by removing bookmaker margins (overrounds).
 - 🎯 **Fantasy Football Optimisation** – Mathematically optimize your fantasy football squad to maximize performance.
-- 🔄 **Streamline JSON Workflows with MatchFlow** – Process deeply nested football event data using a lazy, streaming pipeline built for JSON. Filter, select, flatten, join, group, and summarize large datasets — without loading everything into memory.
 
 Take your football analytics and betting strategy to the next level with **penaltyblog** 🚀
 
