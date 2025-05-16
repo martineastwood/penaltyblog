@@ -25,6 +25,10 @@ if TYPE_CHECKING:
 
 
 class Flow:
+    _CONSUMED_WARNING = (
+        "This Flow has already been consumed and is now empty. "
+        "If you need to iterate again, call .materialize() first or create a new Flow."
+    )
     """
     A class representing a flow of data records.
 
@@ -36,6 +40,7 @@ class Flow:
     """
 
     def __init__(self, records: Iterable[dict[Any, Any]]):
+        self._consumed = False
         """
         Initialize a Flow instance from an iterable of records.
 
@@ -60,6 +65,12 @@ class Flow:
         else:
             raise TypeError("Expected dict, list of dicts, or iterable of dicts")
 
+    def _is_consumable(self):
+        # Only iterators/generators are consumable, not lists/tuples/sets
+        import collections.abc
+
+        return isinstance(self._records, collections.abc.Iterator)
+
     def __len__(self) -> int:
         """
         Return the number of records in the Flow.
@@ -69,6 +80,9 @@ class Flow:
         Returns:
             int: The number of records in the Flow.
         """
+        if self._is_consumable() and self._consumed:
+            warnings.warn(self._CONSUMED_WARNING, RuntimeWarning, stacklevel=2)
+        self._consumed = self._is_consumable()
         return len(self.collect())
 
     def __iter__(self) -> Iterator[dict]:
@@ -80,6 +94,9 @@ class Flow:
         Returns:
             Iterator[dict]: An iterator over the records in the Flow.
         """
+        if self._is_consumable() and self._consumed:
+            warnings.warn(self._CONSUMED_WARNING, RuntimeWarning, stacklevel=2)
+        self._consumed = self._is_consumable()
         return iter(self._records)
 
     def __repr__(self) -> str:
@@ -103,6 +120,9 @@ class Flow:
         Returns:
             bool: True if the sequences of records are equal.
         """
+        if self._is_consumable() and self._consumed:
+            warnings.warn(self._CONSUMED_WARNING, RuntimeWarning, stacklevel=2)
+        self._consumed = self._is_consumable()
         # collect self into a list and replace
         self_list = list(self._records)
         self._records = self_list
@@ -349,6 +369,9 @@ class Flow:
         Returns:
             FlowGroup: A FlowGroup object
         """
+        if self._is_consumable() and self._consumed:
+            warnings.warn(self._CONSUMED_WARNING, RuntimeWarning, stacklevel=2)
+        self._consumed = self._is_consumable()
         from .flowgroup import FlowGroup
 
         groups = defaultdict(list)
@@ -632,6 +655,9 @@ class Flow:
         Returns:
             list[dict]: The records in the flow.
         """
+        if self._is_consumable() and self._consumed:
+            warnings.warn(self._CONSUMED_WARNING, RuntimeWarning, stacklevel=2)
+        self._consumed = self._is_consumable()
         return list(self._records)
 
     def head(self, n: int = 5) -> "Flow":
@@ -680,6 +706,9 @@ class Flow:
         Returns:
             str: The JSON string.
         """
+        if self._is_consumable() and self._consumed:
+            warnings.warn(self._CONSUMED_WARNING, RuntimeWarning, stacklevel=2)
+        self._consumed = self._is_consumable()
         return json.dumps(self.collect(), indent=indent)
 
     def first(self) -> dict | None:
@@ -691,6 +720,9 @@ class Flow:
         Returns:
             dict | None: The first record in the flow or None if empty.
         """
+        if self._is_consumable() and self._consumed:
+            warnings.warn(self._CONSUMED_WARNING, RuntimeWarning, stacklevel=2)
+        self._consumed = self._is_consumable()
         lst = self.collect()
         return lst[0] if lst else None
 
@@ -703,6 +735,9 @@ class Flow:
         Returns:
             dict | None: The last record in the flow or None if empty.
         """
+        if self._is_consumable() and self._consumed:
+            warnings.warn(self._CONSUMED_WARNING, RuntimeWarning, stacklevel=2)
+        self._consumed = self._is_consumable()
         lst = self.collect()
         return lst[-1] if lst else None
 
@@ -716,6 +751,9 @@ class Flow:
         Returns:
             bool: True if the flow is empty, False otherwise.
         """
+        if self._is_consumable() and self._consumed:
+            warnings.warn(self._CONSUMED_WARNING, RuntimeWarning, stacklevel=2)
+        self._consumed = self._is_consumable()
         lst = self.collect()
         return not lst
 
@@ -733,6 +771,9 @@ class Flow:
         Returns:
             set[str]: The union of keys across up to `limit` records.
         """
+        if self._is_consumable() and self._consumed:
+            warnings.warn(self._CONSUMED_WARNING, RuntimeWarning, stacklevel=2)
+        self._consumed = self._is_consumable()
         data = self.collect()
         keyset: set[str] = set()
         if limit is None:
@@ -925,6 +966,9 @@ class Flow:
         Returns:
             DataFrame: A pandas DataFrame containing the records.
         """
+        if self._is_consumable() and self._consumed:
+            warnings.warn(self._CONSUMED_WARNING, RuntimeWarning, stacklevel=2)
+        self._consumed = self._is_consumable()
         return pd.DataFrame(self._records)
 
     def to_json_files(
@@ -942,6 +986,9 @@ class Flow:
         Returns:
             None
         """
+        if self._is_consumable() and self._consumed:
+            warnings.warn(self._CONSUMED_WARNING, RuntimeWarning, stacklevel=2)
+        self._consumed = self._is_consumable()
         folder_p = Path(folder)
         folder_p.mkdir(parents=True, exist_ok=True)
 
@@ -970,6 +1017,9 @@ class Flow:
         Returns:
             None
         """
+        if self._is_consumable() and self._consumed:
+            warnings.warn(self._CONSUMED_WARNING, RuntimeWarning, stacklevel=2)
+        self._consumed = self._is_consumable()
         p = Path(path)
         # ensure parent folder exists
         if p.parent:
@@ -997,6 +1047,9 @@ class Flow:
         Returns:
             None
         """
+        if self._is_consumable() and self._consumed:
+            warnings.warn(self._CONSUMED_WARNING, RuntimeWarning, stacklevel=2)
+        self._consumed = self._is_consumable()
         p = Path(path)
         if p.parent:
             p.parent.mkdir(parents=True, exist_ok=True)

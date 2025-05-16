@@ -51,9 +51,13 @@ def test_fork_basic(sample_records):
     # Both forks yield the same records
     assert f1.collect() == sample_records
     assert f2.collect() == sample_records
-    # # Both are one-shot: after collecting, further iteration yields empty list
-    assert f1.collect() == []
-    assert f2.collect() == []
+    # Both are one-shot: after collecting, further iteration yields empty list
+    import pytest
+
+    with pytest.warns(RuntimeWarning):
+        assert f1.collect() == []
+    with pytest.warns(RuntimeWarning):
+        assert f2.collect() == []
 
 
 def test_fork_empty():
@@ -1123,6 +1127,97 @@ def test_sample_and_sample_frac_edge_cases(sample_records):
 
     # 9. Sample fraction from empty Flow
     assert Flow([]).sample_frac(0.5).collect() == []
+
+
+@pytest.mark.parametrize(
+    "flow_factory,should_warn",
+    [
+        (lambda records: Flow(records), False),  # list input: no warning
+        (lambda records: Flow((r for r in records)), True),  # generator input: warning
+    ],
+)
+def test_consumed_warning_collect(sample_records, flow_factory, should_warn):
+    flow = flow_factory(sample_records)
+    flow.collect()  # first time: no warning
+    if should_warn:
+        with pytest.warns(RuntimeWarning, match="already been consumed"):
+            flow.collect()
+    else:
+        flow.collect()  # should NOT warn
+
+
+@pytest.mark.filterwarnings(
+    "ignore:This Flow has already been consumed and is now empty"
+)
+@pytest.mark.parametrize(
+    "flow_factory,should_warn",
+    [
+        (lambda records: Flow(records), False),
+        (lambda records: Flow((r for r in records)), True),
+    ],
+)
+def test_consumed_warning_iter(sample_records, flow_factory, should_warn):
+    flow = flow_factory(sample_records)
+    list(flow)  # first time: no warning
+    if should_warn:
+        with pytest.warns(RuntimeWarning, match="already been consumed"):
+            list(flow)
+    else:
+        list(flow)
+
+
+@pytest.mark.filterwarnings(
+    "ignore:This Flow has already been consumed and is now empty"
+)
+@pytest.mark.parametrize(
+    "flow_factory,should_warn",
+    [
+        (lambda records: Flow(records), False),
+        (lambda records: Flow((r for r in records)), True),
+    ],
+)
+def test_consumed_warning_len(sample_records, flow_factory, should_warn):
+    flow = flow_factory(sample_records)
+    len(flow)  # first time: no warning
+    if should_warn:
+        with pytest.warns(RuntimeWarning, match="already been consumed"):
+            len(flow)
+    else:
+        len(flow)
+
+
+@pytest.mark.parametrize(
+    "flow_factory,should_warn",
+    [
+        (lambda records: Flow(records), False),
+        (lambda records: Flow((r for r in records)), True),
+    ],
+)
+def test_consumed_warning_group_by(sample_records, flow_factory, should_warn):
+    flow = flow_factory(sample_records)
+    flow.group_by("id")  # first time: no warning
+    if should_warn:
+        with pytest.warns(RuntimeWarning, match="already been consumed"):
+            flow.group_by("id")
+    else:
+        flow.group_by("id")
+
+
+@pytest.mark.parametrize(
+    "flow_factory,should_warn",
+    [
+        (lambda records: Flow(records), False),
+        (lambda records: Flow((r for r in records)), True),
+    ],
+)
+def test_consumed_warning_to_pandas(sample_records, flow_factory, should_warn):
+    flow = flow_factory(sample_records)
+    flow.to_pandas()  # first time: no warning
+    if should_warn:
+        with pytest.warns(RuntimeWarning, match="already been consumed"):
+            flow.to_pandas()
+    else:
+        flow.to_pandas()
 
 
 def test_flatten_edge_cases():
