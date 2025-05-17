@@ -5,7 +5,7 @@ Used to collect and process data from the StatsBomb API.
 """
 
 import os
-from typing import Optional
+from typing import TYPE_CHECKING, Optional
 
 import requests
 
@@ -13,6 +13,9 @@ try:
     import statsbombpy
 except ImportError:
     statsbombpy = None
+
+if TYPE_CHECKING:
+    from ..flow import Flow
 
 
 class statsbomb:
@@ -40,7 +43,7 @@ class statsbomb:
         cls._require_statsbombpy()
         from statsbombpy import sb
 
-        from .flow import Flow
+        from ..flow import Flow
 
         data = list(sb.competitions(fmt="dict").values())
         return Flow(data)
@@ -62,7 +65,7 @@ class statsbomb:
         cls._require_statsbombpy()
         from statsbombpy import sb
 
-        from .flow import Flow
+        from ..flow import Flow
 
         data = list(
             sb.matches(
@@ -89,7 +92,7 @@ class statsbomb:
         cls._require_statsbombpy()
         from statsbombpy import sb
 
-        from .flow import Flow
+        from ..flow import Flow
 
         data = list(
             sb.lineups(
@@ -118,7 +121,7 @@ class statsbomb:
         cls._require_statsbombpy()
         from statsbombpy import sb
 
-        from .flow import Flow
+        from ..flow import Flow
 
         data = list(
             sb.events(
@@ -149,7 +152,7 @@ class statsbomb:
         cls._require_statsbombpy()
         from statsbombpy import sb
 
-        from .flow import Flow
+        from ..flow import Flow
 
         data = list(
             sb.player_match_stats(
@@ -181,7 +184,7 @@ class statsbomb:
         cls._require_statsbombpy()
         from statsbombpy import sb
 
-        from .flow import Flow
+        from ..flow import Flow
 
         data = list(
             sb.player_season_stats(
@@ -212,7 +215,7 @@ class statsbomb:
         cls._require_statsbombpy()
         from statsbombpy import sb
 
-        from .flow import Flow
+        from ..flow import Flow
 
         data = list(
             sb.team_match_stats(
@@ -244,7 +247,7 @@ class statsbomb:
         cls._require_statsbombpy()
         from statsbombpy import sb
 
-        from .flow import Flow
+        from ..flow import Flow
 
         data = list(
             sb.team_season_stats(
@@ -274,7 +277,7 @@ class statsbomb:
         Returns:
             Flow: A Flow object.
         """
-        from .flow import Flow
+        from ..flow import Flow
 
         url = f"https://raw.githubusercontent.com/statsbomb/open-data/master/data/{type}/{file_id}.json"
         response = requests.get(url)

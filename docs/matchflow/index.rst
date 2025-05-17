@@ -29,3 +29,4 @@ composable pipelines - fast.
    best_practices
    parallel
    helpers
+   statsbomb
