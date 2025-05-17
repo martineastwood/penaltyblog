@@ -1,13 +1,17 @@
+"""
+Flow class for handling a streaming data pipeline.
+"""
+
 import collections.abc
 from collections.abc import Iterable
 from typing import Any, Union
 
-from .core_ops import CoreOpsMixin
-from .group_ops import GroupOpsMixin
-from .io_ops import IOOpsMixin
-from .sample_ops import SampleOpsMixin
-from .statsbombflow import statsbomb
-from .transform_ops import TransformOpsMixin
+from .mixins.core_ops import CoreOpsMixin
+from .mixins.group_ops import GroupOpsMixin
+from .mixins.io_ops import IOOpsMixin
+from .mixins.sample_ops import SampleOpsMixin
+from .mixins.transform_ops import TransformOpsMixin
+from .statsbomb.statsbombflow import statsbomb
 
 
 class Flow(GroupOpsMixin, CoreOpsMixin, IOOpsMixin, TransformOpsMixin, SampleOpsMixin):

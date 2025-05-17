@@ -1,3 +1,7 @@
+"""
+IO operations for handling a streaming data pipeline, specifically the Flow class.
+"""
+
 import glob
 import json
 from collections.abc import Iterable
@@ -6,8 +10,8 @@ from typing import Any, Iterator, Optional, Union
 
 import pandas as pd
 
-from .consumption_guard import guard_consumption
-from .core import sanitize_filename
+from ..consumption_guard import guard_consumption
+from ..core import sanitize_filename
 
 
 class IOOpsMixin:

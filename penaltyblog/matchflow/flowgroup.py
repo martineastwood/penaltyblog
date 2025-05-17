@@ -1,3 +1,7 @@
+"""
+FlowGroup class for handling a streaming data pipeline, specifically the Flow class.
+"""
+
 from typing import (
     TYPE_CHECKING,
     Any,

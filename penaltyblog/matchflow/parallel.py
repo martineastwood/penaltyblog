@@ -1,4 +1,7 @@
-import json
+"""
+Parallel processing for handling a streaming data pipeline, specifically the Flow class.
+"""
+
 import multiprocessing
 import os
 import pickle

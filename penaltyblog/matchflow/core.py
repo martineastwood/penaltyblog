@@ -1,3 +1,7 @@
+"""
+Core operations for handling a streaming data pipeline, specifically the Flow class.
+"""
+
 from collections import Counter
 from typing import Any, Callable
 

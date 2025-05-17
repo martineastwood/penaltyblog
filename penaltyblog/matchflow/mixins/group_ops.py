@@ -1,12 +1,16 @@
+"""
+Group operations for handling a streaming data pipeline, specifically the Flow class.
+"""
+
 from collections import defaultdict
 from typing import TYPE_CHECKING, Any, Callable, Iterator, Union
 
 if TYPE_CHECKING:
-    from .flowgroup import FlowGroup
-    from .flow import Flow
+    from ..flowgroup import FlowGroup
+    from ..flow import Flow
 
-from .consumption_guard import guard_consumption
-from .core import _resolve_agg
+from ..consumption_guard import guard_consumption
+from ..core import _resolve_agg
 
 
 class GroupOpsMixin:
@@ -45,7 +49,7 @@ class GroupOpsMixin:
             FlowGroup: A FlowGroup object
         """
         self._consumed = self._is_consumable()
-        from .flowgroup import FlowGroup
+        from ..flowgroup import FlowGroup
 
         groups = defaultdict(list)
         for record in self._records:

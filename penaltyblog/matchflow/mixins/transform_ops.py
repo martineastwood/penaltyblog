@@ -1,9 +1,13 @@
+"""
+Transform operations for handling a streaming data pipeline, specifically the Flow class.
+"""
+
 import warnings
 from collections import Counter
 from itertools import chain, islice, zip_longest
 from typing import Any, Callable, Iterator, Union
 
-from .consumption_guard import guard_consumption
+from ..consumption_guard import guard_consumption
 
 
 class TransformOpsMixin:
@@ -527,7 +531,7 @@ class TransformOpsMixin:
             Flow: A new Flow with the joined records.
         """
         right_on = right_on or left_on
-        from .flow import Flow
+        from ..flow import Flow
 
         # pull the RHS into memory once
         if isinstance(other, Flow):

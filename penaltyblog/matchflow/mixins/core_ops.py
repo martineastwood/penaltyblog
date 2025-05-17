@@ -1,7 +1,11 @@
+"""
+Core operations for handling a streaming data pipeline, specifically the Flow class.
+"""
+
 from itertools import tee
 from typing import Iterator
 
-from .consumption_guard import guard_consumption
+from ..consumption_guard import guard_consumption
 
 
 class CoreOpsMixin:
@@ -54,7 +58,7 @@ class CoreOpsMixin:
         Returns:
             bool: True if the sequences of records are equal.
         """
-        from .flow import Flow
+        from ..flow import Flow
 
         self._consumed = self._is_consumable()
         # collect self into a list and replace

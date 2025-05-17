@@ -1,3 +1,7 @@
+"""
+Helpers for handling a streaming data pipeline, specifically the Flow class.
+"""
+
 from typing import Any, Callable, Optional
 
 # --- Accessors ---

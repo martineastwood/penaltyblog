@@ -1,3 +1,7 @@
+"""
+Consumption guard for handling a streaming data pipeline, specifically the Flow class.
+"""
+
 import warnings
 from functools import wraps
 

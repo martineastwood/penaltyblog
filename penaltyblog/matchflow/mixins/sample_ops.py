@@ -1,6 +1,10 @@
+"""
+Sample operations for handling a streaming data pipeline, specifically the Flow class.
+"""
+
 import random
 
-from .consumption_guard import guard_consumption
+from ..consumption_guard import guard_consumption
 
 
 class SampleOpsMixin:

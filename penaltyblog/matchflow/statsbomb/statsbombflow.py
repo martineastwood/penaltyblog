@@ -1,3 +1,9 @@
+"""
+StatsBomb module
+
+Used to collect and process data from the StatsBomb API.
+"""
+
 import os
 from typing import Optional
 
