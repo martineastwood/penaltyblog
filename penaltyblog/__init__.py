@@ -1,4 +1,4 @@
-from . import (
+from . import (  # pitch,
     backtest,
     fpl,
     implied,
@@ -6,7 +6,6 @@ from . import (
     matchflow,
     metrics,
     models,
-    pitch,
     ratings,
     scrapers,
 )

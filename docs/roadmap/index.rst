@@ -36,7 +36,7 @@ MatchFlow
 
 - ☐ More ``where_`` and ``get_`` helpers
 - ☐ ``Flow.describe()`` improvements
-- ☐ Docs: Writing custom helpers
+- ☐ Docs: Writing custom helpers tutorial
 - ☐ Docs: More ``Flow`` recipes
 
 **Joins & I/O Enhancements**
@@ -49,13 +49,13 @@ MatchFlow
 **Rolling & Windowed Aggregates**
 
 - ☐ ``.rolling(...)`` and ``.expanding(...)`` on grouped flows
-- ☐ Support for rolling summary fields like moving average xG
+- ☐ Support for **rolling summary** fields like moving average xG
 
 Plotting
 """"""""
 
-- ☐ Publish my plotting library
-- ☐ Native support for plotting MatchFlow pipelines
+- ☐ Publish **plotting** library
+- ☐ Native support for plotting Flow pipelines
 
 Models
 """""""""
@@ -89,7 +89,7 @@ These are bigger ideas I'm researching - feedback welcome!
 MatchFlow
 """"""""""
 
-- **FlowPack**: A custom binary format for fast I/O on nested JSON
+- **FlowZ**: A custom binary format for fast I/O on nested JSON
 - **Partitioning** of large datasets for faster processing
 - Built-in **indexing or predicate pushdown**
 - **Streaming joins** for large datasets

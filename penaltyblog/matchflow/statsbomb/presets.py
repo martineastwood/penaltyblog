@@ -6,6 +6,7 @@ These are convenience transforms you can use with Flow.pipe(...).
 from typing import Callable
 
 from ..flow import Flow
+from ..helpers import where_exists
 
 
 def shots_only(flow: Flow) -> Flow:
@@ -20,6 +21,20 @@ def passes_only(flow: Flow) -> Flow:
     Filter the event stream to only include passes.
     """
     return flow.filter(lambda r: r.get("type", {}).get("name") == "Pass")
+
+
+def fouls_only(flow: Flow) -> Flow:
+    """
+    Filter the event stream to only include fouls.
+    """
+    return flow.filter(lambda r: r.get("type", {}).get("name") == "Foul Committed")
+
+
+def cards_only(flow: Flow) -> Flow:
+    """
+    Filter the event stream to only include cards.
+    """
+    return flow.filter(where_exists("foul_committed.card"))
 
 
 def goals(flow: Flow) -> Flow:

@@ -12,9 +12,11 @@ Usage:
     from penaltyblog.matchflow import Flow
 
     shots = (
-        Flow.statsbomb.events(match_id=12345)
+        Flow
+        .statsbomb.events(match_id=12345)
         .filter(lambda r: r.get("type", {}).get("name") == "Shot")
         .select("player.name", "location", "shot.outcome.name")
+        .collect()
     )
 """
 
@@ -31,3 +33,35 @@ from .helpers import (
     where_not_none,
 )
 from .parallel import folder_flow
+from .statsbomb import statsbombflow
+from .statsbomb.presets import (
+    assists,
+    cards_only,
+    fouls_only,
+    goals,
+    passes_only,
+    shots_only,
+    xg_above,
+)
+
+__all__ = [
+    "Flow",
+    "FlowGroup",
+    "coalesce",
+    "combine_fields",
+    "get_field",
+    "get_index",
+    "where_equals",
+    "where_exists",
+    "where_in",
+    "where_not_none",
+    "folder_flow",
+    "statsbombflow",
+    "cards_only",
+    "fouls_only",
+    "goals",
+    "assists",
+    "xg_above",
+    "shots_only",
+    "passes_only",
+]

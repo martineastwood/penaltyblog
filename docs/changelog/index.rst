@@ -4,8 +4,24 @@ Changelog
 Version Numbering
 ###################
 
-`penaltyblog` follows the SemVer versioning guidelines. For more information,
+``penaltyblog`` follows the SemVer versioning guidelines. For more information,
 see `semver.org <http://semver.org/>`_
+
+v1.3.0 (2025-05-20)
+^^^^^^^^^^^^^^^^^^^^
+
+Package Updates
+-----------------
+
+- Initial release of MatchFlow
+
+Documentation Improvements
+----------------------------
+
+- Added MatchFlow documentation
+- Added MatchFlow recipes documentation
+- Added API references for all of ``penaltyblog``
+- Updated Roadmap
 
 
 v1.2.0 (2025-04-10)
