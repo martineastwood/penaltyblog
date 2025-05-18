@@ -34,7 +34,7 @@ MatchFlow
 
 **Usability + Helper Expansion**
 
-- ☐ General optimisations / cythonization
+- ☐ General speed optimisations + cythonization to make faster
 - ☐ More ``where_`` and ``get_`` helpers
 - ☐ ``Flow.describe()`` improvements
 - ☐ Docs: Writing custom helpers tutorial
@@ -56,7 +56,7 @@ Plotting
 """"""""
 
 - ☐ Publish **plotting** library
-- ☐ Native support for plotting Flow pipelines
+- ☐ Native support for **plotting Flow pipelines**
 
 Models
 """""""""
@@ -73,6 +73,7 @@ Scrapers
 - ☐ Add support for **new data sources** such as Sofa Score
 - ☐ Add automatic **throttling** to avoid overloading servers
 - ☐ Hook up to **MatchFlow** as a data source
+- ☐ Caching of scraped data sources
 
 General
 """"""""

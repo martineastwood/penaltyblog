@@ -333,7 +333,7 @@ class TransformOpsMixin:
 
         return self.__class__(gen())
 
-    def first(self) -> dict | None:
+    def first(self) -> Optional[dict]:
         """
         Returns the first record in the flow or None if empty.
 
@@ -346,7 +346,7 @@ class TransformOpsMixin:
         lst = self.collect()
         return lst[0] if lst else None
 
-    def last(self) -> dict | None:
+    def last(self) -> Optional[dict]:
         """
         Return the last record in the flow or None if empty.
 
@@ -373,7 +373,7 @@ class TransformOpsMixin:
         lst = self.collect()
         return not lst
 
-    def keys(self, limit: int | None = None) -> set[str]:
+    def keys(self, limit: Optional[int] = None) -> set[str]:
         """
         Return the union of keys across up to `limit` records.
 

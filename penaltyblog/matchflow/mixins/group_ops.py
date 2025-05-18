@@ -9,7 +9,6 @@ if TYPE_CHECKING:
     from ..flowgroup import FlowGroup
     from ..flow import Flow
 
-from ..consumption_guard import guard_consumption
 from ..core import _resolve_agg
 
 
@@ -55,7 +54,6 @@ class GroupOpsMixin:
             groups[group_key].append(dict(record))
         return FlowGroup(keys, groups)
 
-    @guard_consumption
     def drop_duplicates(self, *fields: str, keep: str = "first") -> "Flow":
         """
         Drop duplicate records.

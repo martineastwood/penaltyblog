@@ -25,7 +25,9 @@ class Flow(GroupOpsMixin, CoreOpsMixin, IOOpsMixin, TransformOpsMixin, SampleOps
         Many methods in this class operate on a stream of records. Methods that materialize or exhaust the stream will be explicitly documented.
     """
 
-    def __init__(self, records: Iterable[dict[Any, Any]]):
+    def __init__(
+        self, records: Iterable[dict[Any, Any]]
+    ):  # no | in this signature, but ensure Union is used below if needed
         self._consumed = False
         """
         Initialize a Flow instance from an iterable of records.
