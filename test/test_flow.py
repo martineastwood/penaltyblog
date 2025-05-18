@@ -1216,8 +1216,6 @@ def test_consumed_warning_to_pandas(sample_records, flow_factory, should_warn):
     if should_warn:
         with pytest.warns(RuntimeWarning, match="already been consumed"):
             flow.to_pandas()
-    else:
-        flow.to_pandas()
 
 
 def test_flatten_edge_cases():

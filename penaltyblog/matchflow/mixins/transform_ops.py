@@ -120,7 +120,6 @@ class TransformOpsMixin:
 
         return self.__class__(remover(r) for r in self._records)
 
-    @guard_consumption
     def sort(
         self, by: Union[str, list[str], tuple[str, ...]], reverse: bool = False
     ) -> "Flow":
@@ -137,8 +136,6 @@ class TransformOpsMixin:
         Returns:
             Flow: A new Flow with the records sorted by the given field(s).
         """
-
-        self._consumed = self._is_consumable()
 
         def _get_key_func(fields):
             if isinstance(fields, str):
@@ -336,7 +333,6 @@ class TransformOpsMixin:
 
         return self.__class__(gen())
 
-    @guard_consumption
     def first(self) -> dict | None:
         """
         Returns the first record in the flow or None if empty.
@@ -350,7 +346,6 @@ class TransformOpsMixin:
         lst = self.collect()
         return lst[0] if lst else None
 
-    @guard_consumption
     def last(self) -> dict | None:
         """
         Return the last record in the flow or None if empty.
@@ -364,7 +359,6 @@ class TransformOpsMixin:
         lst = self.collect()
         return lst[-1] if lst else None
 
-    @guard_consumption
     def is_empty(self) -> bool:
         """
         Return True if the flow has no records, without losing any data
@@ -379,7 +373,6 @@ class TransformOpsMixin:
         lst = self.collect()
         return not lst
 
-    @guard_consumption
     def keys(self, limit: int | None = None) -> set[str]:
         """
         Return the union of keys across up to `limit` records.
@@ -481,7 +474,6 @@ class TransformOpsMixin:
 
         return self.__class__(gen())
 
-    @guard_consumption
     def take_last(self, n: int) -> "Flow":
         """
         Take the last `n` records.
@@ -499,7 +491,7 @@ class TransformOpsMixin:
         def gen():
             if n < 0:
                 raise ValueError("n must be >= 0")
-            records = list(self._records)
+            records = self.collect()
             if n == 0:
                 return  # yields nothing
             for rec in records[-n:]:

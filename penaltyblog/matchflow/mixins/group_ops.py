@@ -35,7 +35,6 @@ class GroupOpsMixin:
 
         return self.__class__(gen())
 
-    @guard_consumption
     def group_by(self, *keys: str) -> "FlowGroup":
         """
         Group records by the specified keys and return a FlowGroup object.
@@ -48,11 +47,10 @@ class GroupOpsMixin:
         Returns:
             FlowGroup: A FlowGroup object
         """
-        self._consumed = self._is_consumable()
         from ..flowgroup import FlowGroup
 
         groups = defaultdict(list)
-        for record in self._records:
+        for record in self.collect():
             group_key = tuple(record.get(k) for k in keys)
             groups[group_key].append(dict(record))
         return FlowGroup(keys, groups)

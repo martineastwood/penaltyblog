@@ -10,7 +10,6 @@ from ..consumption_guard import guard_consumption
 
 class CoreOpsMixin:
 
-    @guard_consumption
     def __len__(self) -> int:
         """
         Return the number of records in the Flow.
@@ -20,7 +19,6 @@ class CoreOpsMixin:
         Returns:
             int: The number of records in the Flow.
         """
-        self._consumed = self._is_consumable()
         return len(self.collect())
 
     @guard_consumption
@@ -48,7 +46,6 @@ class CoreOpsMixin:
         else:
             return "<Penaltyblog Flow (streaming)>"
 
-    @guard_consumption
     def __eq__(self, other: object) -> bool:
         """
         Compare this Flow to another Flow or to a list of dicts.
@@ -60,9 +57,7 @@ class CoreOpsMixin:
         """
         from ..flow import Flow
 
-        self._consumed = self._is_consumable()
-        # collect self into a list and replace
-        self_list = list(self._records)
+        self_list = self.collect()
         self._records = self_list
 
         # Flow vs Flow
@@ -77,7 +72,6 @@ class CoreOpsMixin:
 
         return NotImplemented
 
-    @guard_consumption
     def materialize(self) -> "Flow":
         """
         Materializes the stream and returns a new Flow instance. Note that this consumes the stream
@@ -88,7 +82,6 @@ class CoreOpsMixin:
             current stream, backed by a list of records. This allows for safe
             re-scanning and manipulation without affecting the original stream.
         """
-        self._consumed = self._is_consumable()
         return self.__class__(self.collect())
 
     @guard_consumption

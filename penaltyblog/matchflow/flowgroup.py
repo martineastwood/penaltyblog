@@ -378,19 +378,11 @@ class FlowGroup:
         """
         return self.groups
 
-    def to_pandas(
-        self, agg_funcs: Union[dict[str, Union[str, tuple, Callable]], None] = None
-    ) -> pd.DataFrame:
+    def to_pandas(self) -> pd.DataFrame:
         """
         Convert the group to a pandas DataFrame.
-
-        Args:
-            agg_funcs (dict[str, str | tuple | Callable], optional): The aggregates to use for summarizing. Defaults to None.
 
         Returns:
             pd.DataFrame: The group as a pandas DataFrame.
         """
-        if agg_funcs:
-            return self.summary(**agg_funcs).to_pandas()
-        else:
-            return self.ungroup().to_pandas()
+        return self.ungroup().to_pandas()

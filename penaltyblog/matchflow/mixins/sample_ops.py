@@ -3,13 +3,14 @@ Sample operations for handling a streaming data pipeline, specifically the Flow 
 """
 
 import random
+from typing import Optional
 
 from ..consumption_guard import guard_consumption
 
 
 class SampleOpsMixin:
     @guard_consumption
-    def sample(self, n: int, seed: int | None = None) -> "Flow":
+    def sample(self, n: int, seed: Optional[int] = None) -> "Flow":
         """
         Uniformly sample exactly `n` records from the stream (reservoir sampling).
         Returns a new Flow of length n (or fewer, if the stream has < n items).
@@ -35,7 +36,7 @@ class SampleOpsMixin:
                     reservoir[j - 1] = record
         return self.__class__(iter(reservoir))
 
-    def sample_frac(self, frac: float, seed: int | None = None) -> "Flow":
+    def sample_frac(self, frac: float, seed: Optional[int] = None) -> "Flow":
         """
         Bernoulli sample: include each record with probability `frac` (0.0–1.0).
         This yields an *approximate* fraction of the stream.

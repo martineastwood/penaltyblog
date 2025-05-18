@@ -16,7 +16,6 @@ from ..core import sanitize_filename
 
 class IOOpsMixin:
 
-    @guard_consumption
     def to_json(self, indent: Optional[int] = None) -> str:
         """
         Serialize the flow to a JSON string.
@@ -33,7 +32,6 @@ class IOOpsMixin:
         """
         return json.dumps(self.collect(), indent=indent)
 
-    @guard_consumption
     def to_pandas(self) -> pd.DataFrame:
         """
         Convert the Flow to a pandas DataFrame.
@@ -43,15 +41,13 @@ class IOOpsMixin:
         Returns:
             DataFrame: A pandas DataFrame containing the records.
         """
-        self._consumed = self._is_consumable()
-        return pd.DataFrame(self._records)
+        return pd.DataFrame(self.collect())
 
-    @guard_consumption
     def describe(
         self,
-        percentiles: tuple[float, ...] = (0.25, 0.5, 0.75),
-        include: list | None = None,
-        exclude: list | None = None,
+        percentiles: Optional[tuple[float, ...]] = (0.25, 0.5, 0.75),
+        include: Optional[list[Any]] = None,
+        exclude: Optional[list[Any]] = None,
     ) -> pd.DataFrame:
         """
         Generate descriptive statistics.
@@ -66,14 +62,10 @@ class IOOpsMixin:
         Returns:
             DataFrame: the same as pandas.DataFrame.describe().
         """
-        self._consumed = self._is_consumable()
         df = pd.DataFrame(self.collect())
         return df.describe(percentiles=percentiles, include=include, exclude=exclude)
 
-    @guard_consumption
-    def to_json_files(
-        self, folder: Union[str, Path], by: Union[str, None] = None
-    ) -> None:
+    def to_json_files(self, folder: Union[str, Path], by: Optional[str] = None) -> None:
         """
         Write each record to a separate JSON file in the given folder.
 
@@ -86,11 +78,11 @@ class IOOpsMixin:
         Returns:
             None
         """
-        self._consumed = self._is_consumable()
+        data = self.collect()
+
         folder_p = Path(folder)
         folder_p.mkdir(parents=True, exist_ok=True)
 
-        data = self.collect()
         for i, record in enumerate(data, start=1):
             if by:
                 name = sanitize_filename(record.get(by, f"record_{i}"))
@@ -101,7 +93,6 @@ class IOOpsMixin:
                 json.dumps(record, ensure_ascii=False, indent=2), encoding="utf-8"
             )
 
-    @guard_consumption
     def to_jsonl(self, path: Union[str, Path], encoding: str = "utf-8") -> None:
         """
         Save all records to a single JSON Lines (.jsonl) file.
@@ -116,21 +107,20 @@ class IOOpsMixin:
         Returns:
             None
         """
-        self._consumed = self._is_consumable()
+        data = self.collect()
+
         p = Path(path)
         # ensure parent folder exists
         if p.parent:
             p.parent.mkdir(parents=True, exist_ok=True)
 
-        data = self.collect()
         with p.open("w", encoding=encoding) as f:
             for record in data:
                 f.write(json.dumps(record, ensure_ascii=False))
                 f.write("\n")
 
-    @guard_consumption
     def to_json_single(
-        self, path: str | Path, encoding: str = "utf-8", indent: int | None = 2
+        self, path: Union[str, Path], encoding: str = "utf-8", indent: Optional[int] = 2
     ) -> None:
         """
         Save all records to a single JSON file as an array.
@@ -145,12 +135,12 @@ class IOOpsMixin:
         Returns:
             None
         """
-        self._consumed = self._is_consumable()
+        data = self.collect()
+
         p = Path(path)
         if p.parent:
             p.parent.mkdir(parents=True, exist_ok=True)
 
-        data = self.collect()
         p.write_text(
             json.dumps(data, ensure_ascii=False, indent=indent),
             encoding=encoding,
@@ -172,7 +162,7 @@ class IOOpsMixin:
         return cls(generator_instance)
 
     @classmethod
-    def from_jsonl(cls, path: str | Path, encoding: str = "utf-8") -> "Flow":
+    def from_jsonl(cls, path: Union[str, Path], encoding: str = "utf-8") -> "Flow":
         """
         Load a .jsonl (JSON Lines) file into a Flow.
         Each line must be a valid JSON object.
@@ -199,7 +189,7 @@ class IOOpsMixin:
         return cls.from_generator(generator())
 
     @classmethod
-    def from_file(cls, path: str | Path, encoding: str = "utf-8") -> "Flow":
+    def from_file(cls, path: Union[str, Path], encoding: str = "utf-8") -> "Flow":
         """
         Load a local JSON file (list or single dict) into a Flow.
         Generic — no provider-specific assumptions.
@@ -218,7 +208,7 @@ class IOOpsMixin:
             raise FileNotFoundError(f"File not found: {p}")
 
         text = p.read_text(encoding=encoding)
-        data: dict[Any, Any] | list[dict[Any, Any]]
+        data: Union[dict[Any, Any], list[dict[Any, Any]]]
         data = json.loads(text)
 
         if isinstance(data, list):
@@ -227,11 +217,12 @@ class IOOpsMixin:
             return cls.from_generator(iter([data]))
 
     @classmethod
-    def from_folder(cls, folder: str | Path, encoding: str = "utf-8") -> "Flow":
+    def from_folder(cls, folder: Union[str, Path], encoding: str = "utf-8") -> "Flow":
         """
-        Load and stream all JSON records from a folder.
-        - Flattens each file (list or single dict).
-        - Skips non-JSON files.
+        Load and stream all JSON and JSON Lines records from a folder.
+        - Flattens each JSON file (list or single dict).
+        - Each JSON Lines file streams records.
+        - Skips non-JSON/JSONL files.
 
         Consumes the file streams; the resulting Flow is a stream of records.
 
@@ -246,22 +237,25 @@ class IOOpsMixin:
         if not folder_p.is_dir():
             raise NotADirectoryError(f"Not a directory: {folder_p}")
 
-        def gen() -> Iterator[dict]:
+        def gen() -> Iterator[dict[Any, Any]]:
             for p in folder_p.iterdir():
-                if p.suffix.lower() != ".json":
-                    continue
-                text = p.read_text(encoding=encoding)
-                data = json.loads(text)
-                if isinstance(data, list):
-                    yield from data
-                elif isinstance(data, dict):
-                    yield data
-                # else: skip
+                if p.suffix.lower() == ".json":
+                    text = p.read_text(encoding=encoding)
+                    data = json.loads(text)
+                    if isinstance(data, list):
+                        yield from data
+                    elif isinstance(data, dict):
+                        yield data
+                elif p.suffix.lower() == ".jsonl":
+                    with p.open("r", encoding=encoding) as f:
+                        for line in f:
+                            if line.strip():
+                                yield json.loads(line)
 
         return cls.from_generator(gen())
 
     @classmethod
-    def from_glob(cls, pattern: str | Path) -> "Flow":
+    def from_glob(cls, pattern: Union[str, Path]) -> "Flow":
         """
         Load and stream all JSON records matching a glob path.
         E.g. '*.json', 'data/events/*378*.json', '**/*.json'
@@ -275,7 +269,7 @@ class IOOpsMixin:
             Flow: A Flow object.
         """
 
-        def gen():
+        def gen() -> Iterator[dict[Any, Any]]:
             for fp in glob.glob(str(pattern), recursive=True):
                 p = Path(fp)
                 if not p.is_file():
@@ -292,7 +286,7 @@ class IOOpsMixin:
 
     @classmethod
     def from_records(
-        cls, data: dict[Any, Any] | list[dict[Any, Any]] | Iterable[dict[Any, Any]]
+        cls, data: Union[dict[Any, Any], list[dict[Any, Any]], Iterable[dict[Any, Any]]]
     ) -> "Flow":
         """
         Create a Flow from one or more dict-like records.

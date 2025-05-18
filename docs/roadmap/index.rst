@@ -34,6 +34,7 @@ MatchFlow
 
 **Usability + Helper Expansion**
 
+- ☐ General optimisations / cythonization
 - ☐ More ``where_`` and ``get_`` helpers
 - ☐ ``Flow.describe()`` improvements
 - ☐ Docs: Writing custom helpers tutorial

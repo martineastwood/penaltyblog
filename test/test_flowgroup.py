@@ -84,11 +84,8 @@ def test_first_last_is_empty(sample_records):
 
 
 def test_to_pandas(sample_records):
-    fg = Flow(sample_records).group_by("grp")
-    df_flat = fg.to_pandas()
+    df_flat = Flow(sample_records).group_by("grp").to_pandas()
     assert isinstance(df_flat, pd.DataFrame)
-    df_sum = fg.to_pandas(agg_funcs={"sum_v": ("v", "sum")})
-    assert df_sum.loc[df_sum["grp"] == "A", "sum_v"].iloc[0] == 12
 
 
 def test_pipe(sample_records):
