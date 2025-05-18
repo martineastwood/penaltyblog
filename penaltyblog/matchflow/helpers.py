@@ -36,6 +36,25 @@ def get_field(
     return accessor
 
 
+def resolve_path(record: dict, path: str, default=None):
+    """
+    Safely access a nested field using dot notation.
+
+    Args:
+        record (dict): The record to resolve the path from.
+        path (str): The path to resolve.
+        default (Any, optional): Value to return if the path is invalid.
+
+    Returns:
+        Any: The resolved value or default if not found.
+
+    Example:
+        >>> resolve_path({"player": {"name": "Bukayo Saka"}}, "player.name")
+        "Bukayo Saka"
+    """
+    return get_field(path, default)(record)
+
+
 def get_index(
     path: str, index: int, default: Any = None
 ) -> Callable[[Optional[dict[Any, Any]]], Any]:
@@ -214,3 +233,36 @@ def coalesce(*paths: str, default=None) -> Callable:
         return default
 
     return fn
+
+
+def set_path(record: dict, path: str, value: Any):
+    """
+    Set a nested field using dot notation. Creates intermediate dicts.
+
+    Args:
+        record (dict): The record to set the path on.
+        path (str): The path to set.
+        value (Any): The value to set.
+    """
+    keys = path.split(".")
+    current = record
+    for k in keys[:-1]:
+        current = current.setdefault(k, {})
+    current[keys[-1]] = value
+
+
+def delete_path(record: dict, path: str):
+    """
+    Delete a nested field using dot notation. Silently does nothing if path doesn't exist.
+
+    Args:
+        record (dict): The record to delete the path from.
+        path (str): The path to delete.
+    """
+    keys = path.split(".")
+    current = record
+    for k in keys[:-1]:
+        current = current.get(k)
+        if not isinstance(current, dict):
+            return
+    current.pop(keys[-1], None)

@@ -519,6 +519,14 @@ def test_drop(sample_records):
     # 7. Drop missing field does nothing again
     assert recs == sample_records
 
+    # 8. Drop a nested field using dot notation
+    recs = Flow(sample_records).drop("nested.y.z").collect()
+    assert recs == [
+        {"id": 1, "value": 10, "tags": ["a", "b"], "nested": {"x": 1, "y": {}}},
+        {"id": 2, "value": 20, "tags": ["b"], "nested": {"x": 3, "y": {}}},
+        {"id": 3, "value": 10, "tags": [], "nested": {"x": 5}},
+    ]
+
 
 def test_sort_limit_head(sample_records):
     # 1. Sorting by a field missing in some records

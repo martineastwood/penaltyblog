@@ -10,6 +10,7 @@ if TYPE_CHECKING:
     from ..flow import Flow
 
 from ..core import _resolve_agg
+from ..helpers import resolve_path
 
 
 class GroupOpsMixin:
@@ -50,7 +51,9 @@ class GroupOpsMixin:
 
         groups = defaultdict(list)
         for record in self.collect():
-            group_key = tuple(record.get(k) for k in keys)
+            group_key = tuple(
+                record[k] if k in record else resolve_path(record, k) for k in keys
+            )
             groups[group_key].append(dict(record))
         return FlowGroup(keys, groups)
 

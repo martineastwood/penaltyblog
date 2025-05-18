@@ -5,9 +5,9 @@ Transform operations for handling a streaming data pipeline, specifically the Fl
 import warnings
 from collections import Counter
 from itertools import chain, islice, zip_longest
-from typing import Any, Callable, Iterator, Union
+from typing import Any, Callable, Iterator, Optional, Union
 
-from ..consumption_guard import guard_consumption
+from ..helpers import delete_path, resolve_path, set_path
 
 
 class TransformOpsMixin:
@@ -77,23 +77,11 @@ class TransformOpsMixin:
         def select_fields(record: dict[Any, Any]) -> dict[Any, Any]:
             out = {}
             for field in fields:
+                key = field if not leaf_names else field.split(".")[-1]
                 if field in record:
-                    key = field if not leaf_names else field.split(".")[-1]
                     out[key] = record[field]
-                elif "." in field:
-                    parts = field.split(".")
-                    val: Any = record
-                    for p in parts:
-                        if isinstance(val, dict):
-                            val = val.get(p)
-                        else:
-                            val = None
-                            break
-                    key = parts[-1] if leaf_names else field
-                    out[key] = val
                 else:
-                    key = field if not leaf_names else field.split(".")[-1]
-                    out[key] = None
+                    out[key] = resolve_path(record, field)
             return out
 
         return self.__class__(select_fields(r) for r in self._records)
@@ -111,11 +99,14 @@ class TransformOpsMixin:
             Flow: A new Flow with the removed fields.
         """
 
+    def drop(self, *fields: str) -> "Flow":
         def remover(record: dict) -> dict:
-            # shallow copy so we don’t mutate the original
             rec = dict(record)
             for f in fields:
-                rec.pop(f, None)
+                if f in rec:
+                    del rec[f]
+                else:
+                    delete_path(rec, f)
             return rec
 
         return self.__class__(remover(r) for r in self._records)
@@ -137,20 +128,24 @@ class TransformOpsMixin:
             Flow: A new Flow with the records sorted by the given field(s).
         """
 
+        # Patch _get_key_func to prefer flat keys
         def _get_key_func(fields):
             if isinstance(fields, str):
-                return lambda r: r.get(fields)
-            return lambda r: tuple(r.get(f) for f in fields)
+                return lambda r: r[fields] if fields in r else resolve_path(r, fields)
+            return lambda r: tuple(
+                r[f] if f in r else resolve_path(r, f) for f in fields
+            )
 
         def _is_null_record(record, fields):
             if isinstance(fields, str):
-                return record.get(fields) is None
-            return any(record.get(f) is None for f in fields)
+                return resolve_path(record, fields) is None
+            return any(resolve_path(record, f) is None for f in fields)
 
         def _lazy_sort():
-            recs = list(self._records)
+            recs = self.collect()
             fields = by
             key_func = _get_key_func(fields)
+
             non_null = [r for r in recs if not _is_null_record(r, fields)]
             nulls = [r for r in recs if _is_null_record(r, fields)]
             for r in sorted(non_null, key=key_func, reverse=reverse):
@@ -174,7 +169,7 @@ class TransformOpsMixin:
 
         def splitter(record: dict) -> dict:
             rec = dict(record)
-            raw = rec.get(key)
+            raw = rec[key] if key in rec else resolve_path(rec, key)
             if isinstance(raw, list):
                 if len(raw) < len(into):
                     warnings.warn(
@@ -220,15 +215,30 @@ class TransformOpsMixin:
         """
 
         def gen():
-            recs = list(self._records)  # only runs when someone iterates
-            non_null = [dict(r) for r in recs if r.get(by) is not None]  # shallow copy
-            nulls = [dict(r) for r in recs if r.get(by) is None]  # shallow copy
-            sorted_non_null = sorted(non_null, key=lambda r: r[by], reverse=reverse)
+            recs = self.collect()
+            non_null = [
+                r
+                for r in recs
+                if (by in r and r[by] is not None)
+                or (by not in r and resolve_path(r, by) is not None)
+            ]
+            nulls = [
+                r
+                for r in recs
+                if (by in r and r[by] is None)
+                or (by not in r and resolve_path(r, by) is None)
+            ]
+            sorted_non_null = sorted(
+                non_null, key=lambda r: resolve_path(r, by), reverse=reverse
+            )
             for idx, rec in enumerate(sorted_non_null, start=1):
+                rec = dict(rec)
                 rec[new_field] = idx
+                yield rec
             for rec in nulls:
+                rec = dict(rec)
                 rec[new_field] = None
-            yield from (sorted_non_null + nulls)
+                yield rec
 
         return self.__class__(gen())
 
@@ -249,21 +259,14 @@ class TransformOpsMixin:
             Flow: A new Flow with unique values of one or more fields.
         """
 
-        def get_nested(record: Optional[dict[Any, Any]], path: str):
-            parts = path.split(".")
-            val = record
-            for part in parts:
-                if isinstance(val, dict):
-                    val = val.get(part)
-                else:
-                    return None
-            return val
-
         def gen():
             seen = set()
-            for record in self._records:
+            for record in self.collect():
                 if fields:
-                    key = tuple(get_nested(record, f) for f in fields)
+                    key = tuple(
+                        record[f] if f in record else resolve_path(record, f)
+                        for f in fields
+                    )
                     if key not in seen:
                         seen.add(key)
                         if len(fields) == 1:
@@ -292,11 +295,17 @@ class TransformOpsMixin:
         """
 
         def gen() -> Iterator[dict[str, Any]]:
-            for record in self._records:
+            for record in self.collect():
                 rec = record.copy()  # shallow copy
                 for old, new in mapping.items():
+                    # Prefer flat key rename if present
                     if old in rec:
                         rec[new] = rec.pop(old)
+                    else:
+                        val = resolve_path(record, old)
+                        if val is not None:
+                            delete_path(rec, old)
+                            set_path(rec, new, val)
                 yield rec
 
         return self.__class__(gen())
