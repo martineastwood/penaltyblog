@@ -1201,23 +1201,6 @@ def test_consumed_warning_len(sample_records, flow_factory, should_warn):
         (lambda records: Flow((r for r in records)), True),
     ],
 )
-def test_consumed_warning_group_by(sample_records, flow_factory, should_warn):
-    flow = flow_factory(sample_records)
-    flow.group_by("id")  # first time: no warning
-    if should_warn:
-        with pytest.warns(RuntimeWarning, match="already been consumed"):
-            flow.group_by("id")
-    else:
-        flow.group_by("id")
-
-
-@pytest.mark.parametrize(
-    "flow_factory,should_warn",
-    [
-        (lambda records: Flow(records), False),
-        (lambda records: Flow((r for r in records)), True),
-    ],
-)
 def test_consumed_warning_to_pandas(sample_records, flow_factory, should_warn):
     flow = flow_factory(sample_records)
     flow.to_pandas()  # first time: no warning

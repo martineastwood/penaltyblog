@@ -16,6 +16,7 @@ from typing import (
 import pandas as pd
 
 from .core import _resolve_agg
+from .helpers import get_field
 
 if TYPE_CHECKING:
     # only for type‐checking; no runtime import
@@ -83,14 +84,17 @@ class FlowGroup:
         """
         from .flow import Flow
 
+        # pre-cache on locals
+        keys = self.group_keys
+        groups = self.groups
+
         def gen():
-            for key_tuple, recs in self.groups.items():
-                # build a dict of the grouping columns, e.g. {"team": "A", "period": 1}
-                prefix = dict(zip(self.group_keys, key_tuple))
+            for key_tuple, recs in groups.items():
+                # build a dict of the grouping columns once per group
+                prefix = dict(zip(keys, key_tuple))
                 for rec in recs:
-                    # shallow‐merge so we don't mutate the originals
-                    out = {**prefix, **rec}
-                    yield out
+                    # shallow-merge so we don't mutate the originals
+                    yield {**prefix, **rec}
 
         return Flow.from_generator(gen())
 
@@ -106,24 +110,31 @@ class FlowGroup:
         Returns:
             FlowGroup: A new FlowGroup with duplicates dropped.
         """
-        new_groups = {}
-        for key, recs in self.groups.items():
-            seen = {}
+        group_keys = self.group_keys
+        groups = self.groups
+        new_groups: dict[tuple[Any, ...], list[dict[str, Any]]] = {}
+
+        for key, recs in groups.items():
+            seen: dict[Any, dict[str, Any] | None] = {}
             for rec in recs:
                 if fields:
-                    k = tuple(rec.get(f) for f in fields)
+                    dedup_key = tuple(rec.get(f) for f in fields)
                 else:
-                    k = tuple(sorted(rec.items()))
-                if k in seen:
+                    dedup_key = tuple(sorted(rec.items()))
+
+                if dedup_key in seen:
                     if keep == "last":
-                        seen[k] = rec
+                        seen[dedup_key] = rec
                     elif keep is False:
-                        seen[k] = None
+                        seen[dedup_key] = None
+                    # else keep == "first": do nothing
                 else:
-                    seen[k] = rec
-            # preserve order, drop None
+                    seen[dedup_key] = rec
+
+            # preserve order, drop None entries
             new_groups[key] = [r for r in seen.values() if r is not None]
-        return FlowGroup(self.group_keys, new_groups)
+
+        return FlowGroup(group_keys, new_groups)
 
     def tail(self, n: int) -> "FlowGroup":
         """
@@ -152,20 +163,27 @@ class FlowGroup:
         Returns:
             FlowGroup: A new FlowGroup with unique records in each group.
         """
-        new_groups = {}
-        for key, recs in self.groups.items():
-            seen = set()
-            unique_recs = []
+        group_keys = self.group_keys
+        groups = self.groups
+        new_groups: dict[tuple[Any, ...], list[dict[str, Any]]] = {}
+
+        for key, recs in groups.items():
+            seen: set[Any] = set()
+            unique_recs: list[dict[str, Any]] = []
+
             for rec in recs:
                 if fields:
-                    k = tuple(rec.get(f) for f in fields)
+                    dedup_key = tuple(rec.get(f) for f in fields)
                 else:
-                    k = tuple(sorted(rec.items()))
-                if k not in seen:
-                    seen.add(k)
+                    dedup_key = tuple(sorted(rec.items()))
+
+                if dedup_key not in seen:
+                    seen.add(dedup_key)
                     unique_recs.append(rec)
+
             new_groups[key] = unique_recs
-        return FlowGroup(self.group_keys, new_groups)
+
+        return FlowGroup(group_keys, new_groups)
 
     def rename(self, **mapping: str) -> "FlowGroup":
         """
@@ -214,13 +232,23 @@ class FlowGroup:
         Returns:
             FlowGroup: A new FlowGroup with sorted records
         """
-        new_groups = {}
-        for k, records in self.groups.items():
-            non_null = [r for r in records if r.get(by) is not None]
-            nulls = [r for r in records if r.get(by) is None]
-            sorted_non_null = sorted(non_null, key=lambda r: r[by], reverse=reverse)
-            new_groups[k] = sorted_non_null + nulls
-        return FlowGroup(self.group_keys, new_groups)
+        getter = get_field(by)
+
+        group_keys = self.group_keys
+        groups = self.groups
+        new_groups: dict[tuple[Any, ...], list[dict[str, Any]]] = {}
+
+        for key, records in groups.items():
+            # partition records into those with a non-null key and those without
+            non_null = [r for r in records if getter(r) is not None]
+            nulls = [r for r in records if getter(r) is None]
+
+            # sort only the non-null slice
+            sorted_non_null = sorted(non_null, key=getter, reverse=reverse)
+
+            new_groups[key] = sorted_non_null + nulls
+
+        return FlowGroup(group_keys, new_groups)
 
     def head(self, n: int = 5) -> "FlowGroup":
         """
@@ -247,19 +275,27 @@ class FlowGroup:
         """
         from .flow import Flow
 
-        summary_rows = []
-        for key_tuple, records in self.groups.items():
-            row = dict(zip(self.group_keys, key_tuple))
+        group_keys = self.group_keys
+        groups = self.groups
+
+        summary_rows: list[dict[str, Any]] = []
+        for key_tuple, records in groups.items():
+            # Start with the grouping columns
+            row = dict(zip(group_keys, key_tuple))
+
+            # Compute each aggregate
             for col, spec in aggregates.items():
                 value = _resolve_agg(records, spec)
-                # Check if value is a non-scalar (but allow str/bytes)
+                # Ensure scalar
                 if isinstance(value, (list, tuple, dict, set)):
                     raise ValueError(
                         f"Aggregate '{col}' returned a non-scalar value for group {key_tuple}. Aggregates must return a single value per group."
                     )
                 row[col] = value
+
             summary_rows.append(row)
-        return Flow(iter(summary_rows))
+
+        return Flow.from_generator(iter(summary_rows))
 
     def row_number(
         self, by: str, new_field: str = "row_number", reverse: bool = False
@@ -275,12 +311,18 @@ class FlowGroup:
         Returns:
             FlowGroup: A new FlowGroup with row numbers
         """
-        new_groups = {}
+        new_groups: dict[tuple[Any, ...], list[dict[str, Any]]] = {}
+        getter = get_field(by)
+
         for key, recs in self.groups.items():
-            sorted_recs = sorted(recs, key=lambda r: r.get(by, None), reverse=reverse)
+            sorted_recs = sorted(recs, key=getter, reverse=reverse)
+            numbered: list[dict[str, Any]] = []
             for idx, rec in enumerate(sorted_recs, start=1):
-                rec[new_field] = idx
-            new_groups[key] = sorted_recs
+                new_rec = dict(rec)  # shallow-copy to avoid mutating original
+                new_rec[new_field] = idx
+                numbered.append(new_rec)
+            new_groups[key] = numbered
+
         return FlowGroup(self.group_keys, new_groups)
 
     def cumulative(
@@ -302,8 +344,10 @@ class FlowGroup:
             # Sort records; place None values at the end
             if sort_by:
 
+                getter = get_field(sort_by)
+
                 def _key(r):
-                    k = r.get(sort_by)
+                    k = getter(r)
                     return (k is None, k)
 
                 records = sorted(recs, key=_key)

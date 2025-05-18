@@ -39,6 +39,7 @@ MatchFlow
 - ☐ ``Flow.describe()`` improvements
 - ☐ Docs: Writing custom helpers tutorial
 - ☐ Docs: More ``Flow`` recipes
+- ☐ Generalize statsbomb functionality into a plugin interface to make it easy to add in other providers
 
 **Joins & I/O Enhancements**
 

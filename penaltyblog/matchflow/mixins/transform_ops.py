@@ -7,7 +7,7 @@ from collections import Counter
 from itertools import chain, islice, zip_longest
 from typing import Any, Callable, Iterator, Optional, Union
 
-from ..helpers import delete_path, resolve_path, set_path
+from ..helpers import delete_path, get_field, resolve_path, set_path
 
 
 class TransformOpsMixin:
@@ -99,7 +99,6 @@ class TransformOpsMixin:
             Flow: A new Flow with the removed fields.
         """
 
-    def drop(self, *fields: str) -> "Flow":
         def remover(record: dict) -> dict:
             rec = dict(record)
             for f in fields:
@@ -127,28 +126,31 @@ class TransformOpsMixin:
         Returns:
             Flow: A new Flow with the records sorted by the given field(s).
         """
+        if isinstance(by, (list, tuple)):
+            getters = [get_field(f) for f in by]
 
-        # Patch _get_key_func to prefer flat keys
-        def _get_key_func(fields):
-            if isinstance(fields, str):
-                return lambda r: r[fields] if fields in r else resolve_path(r, fields)
-            return lambda r: tuple(
-                r[f] if f in r else resolve_path(r, f) for f in fields
-            )
+            def get_sort_key(record):
+                return tuple(g(record) for g in getters)
 
-        def _is_null_record(record, fields):
-            if isinstance(fields, str):
-                return resolve_path(record, fields) is None
-            return any(resolve_path(record, f) is None for f in fields)
+            def is_null_record(record):
+                return any(g(record) is None for g in getters)
+
+        else:
+            getter = get_field(by)
+
+            def get_sort_key(record):
+                return getter(record)
+
+            def is_null_record(record):
+                return getter(record) is None
 
         def _lazy_sort():
-            recs = self.collect()
-            fields = by
-            key_func = _get_key_func(fields)
+            recs = self._materialize_once()
 
-            non_null = [r for r in recs if not _is_null_record(r, fields)]
-            nulls = [r for r in recs if _is_null_record(r, fields)]
-            for r in sorted(non_null, key=key_func, reverse=reverse):
+            non_null = [r for r in recs if not is_null_record(r)]
+            nulls = [r for r in recs if is_null_record(r)]
+
+            for r in sorted(non_null, key=get_sort_key, reverse=reverse):
                 yield r
             yield from nulls
 
@@ -213,32 +215,25 @@ class TransformOpsMixin:
         Returns:
             Flow: A new Flow with the row numbers assigned.
         """
+        getter = get_field(by)
 
         def gen():
-            recs = self.collect()
-            non_null = [
-                r
-                for r in recs
-                if (by in r and r[by] is not None)
-                or (by not in r and resolve_path(r, by) is not None)
-            ]
-            nulls = [
-                r
-                for r in recs
-                if (by in r and r[by] is None)
-                or (by not in r and resolve_path(r, by) is None)
-            ]
-            sorted_non_null = sorted(
-                non_null, key=lambda r: resolve_path(r, by), reverse=reverse
-            )
+            recs = self._materialize_once()
+
+            non_null = [r for r in recs if getter(r) is not None]
+            nulls = [r for r in recs if getter(r) is None]
+
+            sorted_non_null = sorted(non_null, key=getter, reverse=reverse)
+
             for idx, rec in enumerate(sorted_non_null, start=1):
-                rec = dict(rec)
-                rec[new_field] = idx
-                yield rec
+                r = dict(rec)
+                r[new_field] = idx
+                yield r
+
             for rec in nulls:
-                rec = dict(rec)
-                rec[new_field] = None
-                yield rec
+                r = dict(rec)
+                r[new_field] = None
+                yield r
 
         return self.__class__(gen())
 
@@ -261,12 +256,10 @@ class TransformOpsMixin:
 
         def gen():
             seen = set()
-            for record in self.collect():
+            accessors = [get_field(f) for f in fields]
+            for record in self._materialize_once():
                 if fields:
-                    key = tuple(
-                        record[f] if f in record else resolve_path(record, f)
-                        for f in fields
-                    )
+                    key = tuple(accessor(record) for accessor in accessors)
                     if key not in seen:
                         seen.add(key)
                         if len(fields) == 1:
@@ -295,6 +288,7 @@ class TransformOpsMixin:
         """
 
         def gen() -> Iterator[dict[str, Any]]:
+
             for record in self.collect():
                 rec = record.copy()  # shallow copy
                 for old, new in mapping.items():

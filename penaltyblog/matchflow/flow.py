@@ -4,7 +4,7 @@ Flow class for handling a streaming data pipeline.
 
 import collections.abc
 from collections.abc import Iterable
-from typing import Any, Union
+from typing import Any, Optional, Union
 
 from .mixins.core_ops import CoreOpsMixin
 from .mixins.group_ops import GroupOpsMixin
@@ -28,7 +28,6 @@ class Flow(GroupOpsMixin, CoreOpsMixin, IOOpsMixin, TransformOpsMixin, SampleOps
     def __init__(
         self, records: Iterable[dict[Any, Any]]
     ):  # no | in this signature, but ensure Union is used below if needed
-        self._consumed = False
         """
         Initialize a Flow instance from an iterable of records.
 
@@ -37,6 +36,9 @@ class Flow(GroupOpsMixin, CoreOpsMixin, IOOpsMixin, TransformOpsMixin, SampleOps
 
         Does not consume the data stream.
         """
+        self._materialized_data: Optional[list] = None
+        self._consumed: bool = False
+
         self._records: Union[Iterable[dict[Any, Any]], list[dict[Any, Any]]]
         if isinstance(records, Flow):
             self._records = records._records

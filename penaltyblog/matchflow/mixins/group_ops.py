@@ -10,7 +10,7 @@ if TYPE_CHECKING:
     from ..flow import Flow
 
 from ..core import _resolve_agg
-from ..helpers import resolve_path
+from ..helpers import get_field
 
 
 class GroupOpsMixin:
@@ -29,8 +29,8 @@ class GroupOpsMixin:
         """
 
         def gen():
-            data = list(self._records)  # only executed at iteration time
-            row = {col: _resolve_agg(data, spec) for col, spec in aggregates.items()}
+            recs = self._materialize_once()
+            row = {col: _resolve_agg(recs, spec) for col, spec in aggregates.items()}
             yield row
 
         return self.__class__(gen())
@@ -49,11 +49,11 @@ class GroupOpsMixin:
         """
         from ..flowgroup import FlowGroup
 
+        accessors = [get_field(k) for k in keys]
+
         groups = defaultdict(list)
-        for record in self.collect():
-            group_key = tuple(
-                record[k] if k in record else resolve_path(record, k) for k in keys
-            )
+        for record in self._materialize_once():
+            group_key = tuple(accessor(record) for accessor in accessors)
             groups[group_key].append(dict(record))
         return FlowGroup(keys, groups)
 
@@ -79,7 +79,7 @@ class GroupOpsMixin:
 
         def gen() -> Iterator[dict[Any, Any]]:
             seen: dict[Any, dict] = {}
-            for record in self._records:
+            for record in self._materialize_once():
                 if fields:
                     key = tuple(record.get(f) for f in fields)
                 else:

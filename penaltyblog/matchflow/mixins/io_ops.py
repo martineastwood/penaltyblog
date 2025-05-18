@@ -10,7 +10,6 @@ from typing import Any, Iterator, Optional, Union
 
 import pandas as pd
 
-from ..consumption_guard import guard_consumption
 from ..core import sanitize_filename
 
 
@@ -62,7 +61,7 @@ class IOOpsMixin:
         Returns:
             DataFrame: the same as pandas.DataFrame.describe().
         """
-        df = pd.DataFrame(self.collect())
+        df = pd.DataFrame(self._materialize_once())
         return df.describe(percentiles=percentiles, include=include, exclude=exclude)
 
     def to_json_files(self, folder: Union[str, Path], by: Optional[str] = None) -> None:
@@ -78,7 +77,7 @@ class IOOpsMixin:
         Returns:
             None
         """
-        data = self.collect()
+        data = self._materialize_once()
 
         folder_p = Path(folder)
         folder_p.mkdir(parents=True, exist_ok=True)
@@ -107,7 +106,7 @@ class IOOpsMixin:
         Returns:
             None
         """
-        data = self.collect()
+        data = self._materialize_once()
 
         p = Path(path)
         # ensure parent folder exists
@@ -135,7 +134,7 @@ class IOOpsMixin:
         Returns:
             None
         """
-        data = self.collect()
+        data = self._materialize_once()
 
         p = Path(path)
         if p.parent:
