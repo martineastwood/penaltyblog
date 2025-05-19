@@ -166,3 +166,10 @@ scratch.py
 /_build
 codecov
 docs/y
+.windsurfrules
+chatgpt_combined_output.txt
+copy_files.py
+/benchmarks
+/.windsurf
+.clinerules
+roadmap.md
