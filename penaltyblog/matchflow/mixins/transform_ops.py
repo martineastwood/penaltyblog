@@ -39,8 +39,14 @@ class TransformOpsMixin:
         """
 
         def mutate_record(record: dict) -> dict:
-            for key, func in kwargs.items():
-                record[key] = func(record)
+            for path, fn_or_value in kwargs.items():
+                if callable(fn_or_value):
+                    # compute new value by calling
+                    value = fn_or_value(record)
+                else:
+                    # treat as constant
+                    value = fn_or_value
+                set_path(record, path, value)
             return record
 
         return self.__class__(mutate_record(r) for r in self._records)
@@ -522,48 +528,47 @@ class TransformOpsMixin:
         Returns:
             Flow: A new Flow with the joined records.
         """
-        right_on = right_on or left_on
         from ..flow import Flow
 
-        # pull the RHS into memory once
+        right_on = right_on or left_on
+
+        # materialize RHS
         if isinstance(other, Flow):
-            right_data = [
-                dict(r) for r in other._records
-            ]  # shallow copy of each record
+            right_data = [dict(r) for r in other._records]
         elif isinstance(other, list):
-            right_data = [dict(r) for r in other]  # shallow copy of each record
+            right_data = [dict(r) for r in other]
         else:
             raise TypeError("Join target must be a Flow or list of dicts.")
 
         if how not in ("left", "inner"):
             raise ValueError(f"Unknown join type {how!r}; expected 'left' or 'inner'.")
 
-        # build lookup: key → row
+        # build lookup
         lookup: dict[Any, dict] = {
             r[right_on]: dict(r) for r in right_data if right_on in r
-        }  # shallow copy
+        }
 
         def gen():
             for left_rec in self._records:
-                key = left_rec.get(left_on, None)
+                out = dict(left_rec)  # always shallow-copy
+                key = left_rec.get(left_on)
                 right_rec = lookup.get(key)
 
-                # no match
                 if right_rec is None:
                     if how == "left":
-                        yield dict(left_rec)  # shallow copy of the LHS
-                    # if how == "inner": drop it
+                        yield out
+                    # else drop for inner
                     continue
 
-                # match! merge
+                # merge into our fresh copy
                 if fields:
                     for f in fields:
-                        left_rec[f] = right_rec.get(f)
+                        out[f] = right_rec.get(f)
                 else:
                     for k, v in right_rec.items():
                         if k != right_on:
-                            left_rec[k] = v
-                yield left_rec
+                            out[k] = v
+                yield out
 
         return self.__class__(gen())
 

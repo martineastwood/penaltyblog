@@ -246,8 +246,11 @@ def set_path(record: dict, path: str, value: Any):
     """
     keys = path.split(".")
     current = record
+    # walk/create intermediate dicts
     for k in keys[:-1]:
-        current = current.setdefault(k, {})
+        if not isinstance(current.get(k), dict):
+            current[k] = {}
+        current = current[k]
     current[keys[-1]] = value
 
 

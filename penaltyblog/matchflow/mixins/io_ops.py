@@ -1,8 +1,6 @@
 # File: io_ops.py
 
 import glob
-import os
-from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from typing import Any, Iterable, Iterator, Optional, Union
 

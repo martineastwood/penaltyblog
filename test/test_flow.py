@@ -412,8 +412,7 @@ def test_assign(sample_records):
     # 8. Assign constant value
     assert recs[0]["c"] == 1
     # 9. Assign with non-callable raises TypeError
-    with pytest.raises(TypeError):
-        Flow([{"a": 1, "b": 2}]).assign(c=1).collect()
+    assert Flow([{"a": 1, "b": 2}]).assign(c=1).collect() == [{"a": 1, "b": 2, "c": 1}]
 
     out = (
         Flow(sample_records)
@@ -471,8 +470,15 @@ def test_assign(sample_records):
     # 8. Assign constant value
     assert recs[0]["c"] == 1
 
-    with pytest.raises(TypeError):
-        Flow([{"a": 1, "b": 2}]).assign(c=1).collect()
+    assert Flow([{"a": 1, "b": 2}]).assign(c=1).collect() == [{"a": 1, "b": 2, "c": 1}]
+
+    flow = Flow([{"a": 1, "b": 2}])
+    flow.assign(**{"b.c": 12}).collect()
+    assert flow.collect() == [{"a": 1, "b": {"c": 12}}]
+
+    flow = Flow([{"a": 1, "b": 2}])
+    flow.assign(**{"b.c": lambda r: r["a"] * 4}).collect()
+    assert flow.collect() == [{"a": 1, "b": {"c": 4}}]
 
 
 def test_drop(sample_records):
