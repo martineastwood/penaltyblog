@@ -145,7 +145,7 @@ class TransformOpsMixin:
                 return getter(record) is None
 
         def _lazy_sort():
-            recs = self._materialize_once()
+            recs = self.collect()
 
             non_null = [r for r in recs if not is_null_record(r)]
             nulls = [r for r in recs if is_null_record(r)]
@@ -218,7 +218,7 @@ class TransformOpsMixin:
         getter = get_field(by)
 
         def gen():
-            recs = self._materialize_once()
+            recs = self.collect()
 
             non_null = [r for r in recs if getter(r) is not None]
             nulls = [r for r in recs if getter(r) is None]
@@ -257,7 +257,7 @@ class TransformOpsMixin:
         def gen():
             seen = set()
             accessors = [get_field(f) for f in fields]
-            for record in self._materialize_once():
+            for record in self.collect():
                 if fields:
                     key = tuple(accessor(record) for accessor in accessors)
                     if key not in seen:

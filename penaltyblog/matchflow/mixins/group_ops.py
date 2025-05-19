@@ -29,7 +29,7 @@ class GroupOpsMixin:
         """
 
         def gen():
-            recs = self._materialize_once()
+            recs = self.collect()
             row = {col: _resolve_agg(recs, spec) for col, spec in aggregates.items()}
             yield row
 
@@ -52,7 +52,7 @@ class GroupOpsMixin:
         accessors = [get_field(k) for k in keys]
 
         groups = defaultdict(list)
-        for record in self._materialize_once():
+        for record in self.collect():
             group_key = tuple(accessor(record) for accessor in accessors)
             groups[group_key].append(dict(record))
         return FlowGroup(keys, groups)
@@ -79,7 +79,7 @@ class GroupOpsMixin:
 
         def gen() -> Iterator[dict[Any, Any]]:
             seen: dict[Any, dict] = {}
-            for record in self._materialize_once():
+            for record in self.collect():
                 if fields:
                     key = tuple(record.get(f) for f in fields)
                 else:

@@ -13,25 +13,25 @@ if TYPE_CHECKING:
     from .flow import Flow
 
 
-def _write_records(path: Path, records: list[dict], encoding: str) -> None:
+def _write_records(path: Path, records: list[dict]) -> None:
     from .flow import Flow
 
     if path.suffix.lower() == ".jsonl":
-        Flow.from_records(records).to_jsonl(path, encoding=encoding)
+        Flow.from_records(records).to_jsonl(path)
     else:
-        Flow.from_records(records).to_json_single(path, encoding=encoding)
+        Flow.from_records(records).to_json_single(path)
 
 
 def process_file(args) -> list[dict]:
     from .flow import Flow
 
-    path, flow_fn, output_folder, encoding = args
+    path, flow_fn, output_folder = args
 
     # load
     flow = (
-        Flow.from_jsonl(path, encoding=encoding)
+        Flow.from_jsonl(path)
         if path.suffix.lower() == ".jsonl"
-        else Flow.from_file(path, encoding=encoding)
+        else Flow.from_file(path)
     )
 
     # transform
@@ -44,7 +44,7 @@ def process_file(args) -> list[dict]:
     # write if needed
     if output_folder:
         out_path = Path(output_folder) / path.name
-        _write_records(out_path, rows, encoding)
+        _write_records(out_path, rows)
         return []
 
     return rows
@@ -56,7 +56,6 @@ def folder_flow(
     output_folder: Optional[Union[str, Path]] = None,
     reduce_fn: Optional[Callable[["Flow"], "Flow"]] = None,
     n_jobs: Optional[int] = None,
-    encoding: str = "utf-8",
     file_exts: tuple[str, ...] = (".json", ".jsonl"),
 ) -> Optional["Flow"]:
     """
@@ -68,7 +67,6 @@ def folder_flow(
         output_folder (Optional[Union[str, Path]], optional): The output folder. Defaults to None.
         reduce_fn (Optional[Callable[[Flow], Flow]], optional): The function to apply to the results. Defaults to None.
         n_jobs (Optional[int], optional): The number of jobs to run in parallel. Defaults to None.
-        encoding (str, optional): The encoding to use. Defaults to "utf-8".
         file_exts (tuple[str, ...], optional): The file extensions to process. Defaults to (".json", ".jsonl").
 
     Returns:
@@ -102,7 +100,7 @@ def folder_flow(
     if output_folder:
         Path(output_folder).mkdir(parents=True, exist_ok=True)
 
-    args_list = [(p, flow_fn, output_folder, encoding) for p in files]
+    args_list = [(p, flow_fn, output_folder) for p in files]
     with multiprocessing.Pool(processes=n_jobs) as pool:
         mapped = pool.map(process_file, args_list)
 

@@ -68,6 +68,18 @@ class FlowGroup:
         sample_keys = list(self.groups.keys())[:3]
         return f"<Penaltyblog Flow Group | n_groups={n} | sample_keys={sample_keys}>"
 
+    def __contains__(self, key):
+        """
+        Check if a group key exists.
+        """
+        return key in self.groups
+
+    def __getitem__(self, key):
+        """
+        Get the records for a specific group key.
+        """
+        return self.groups[key]
+
     def keys(self) -> List[tuple[Any, ...]]:
         """
         Return a list of the current group key tuples.

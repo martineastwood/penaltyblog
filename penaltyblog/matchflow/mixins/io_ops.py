@@ -1,44 +1,54 @@
-"""
-IO operations for handling a streaming data pipeline, specifically the Flow class.
-"""
+# File: io_ops.py
 
 import glob
-import json
-from collections.abc import Iterable
+import os
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
-from typing import Any, Iterator, Optional, Union
+from typing import Any, Iterable, Iterator, Optional, Union
 
 import pandas as pd
 
 from ..core import sanitize_filename
 
+# ── Pick JSON backend ───────────────────────────────────────────────────────────
+try:
+    import orjson  # type: ignore
+
+    def _dumps(obj: Any) -> str:
+        # orjson.dumps returns bytes
+        return orjson.dumps(obj).decode("utf-8")
+
+    def _loads(s: Union[str, bytes]) -> Any:
+        return orjson.loads(s)
+
+except ImportError:
+    import json as _json  # type: ignore
+
+    _dumps = _json.dumps
+    _loads = _json.loads
+# ────────────────────────────────────────────────────────────────────────────────
+
 
 class IOOpsMixin:
-
-    def to_json(self, indent: Optional[int] = None) -> str:
+    def to_json(self) -> str:
         """
-        Serialize the flow to a JSON string.
+        Serialize the flow to a (compact) JSON string.
 
         Consumes the stream (materializes all records).
-
-        Args:
-            indent (int or None): The number of spaces to use for indentation.
-                - If None (default), the JSON string is compact.
-                - If an integer n, the JSON string is formatted with n spaces per indentation level.
 
         Returns:
             str: The JSON string.
         """
-        return json.dumps(self.collect(), indent=indent)
+        return _dumps(self.collect())
 
     def to_pandas(self) -> pd.DataFrame:
         """
-        Convert the Flow to a pandas DataFrame.
+        Convert the Flow into a pandas DataFrame.
 
-        Consumes (materializes) the stream to build a DataFrame.
+        Consumes the stream (materializes all records).
 
         Returns:
-            DataFrame: A pandas DataFrame containing the records.
+            pd.DataFrame: The DataFrame.
         """
         return pd.DataFrame(self.collect())
 
@@ -61,225 +71,161 @@ class IOOpsMixin:
         Returns:
             DataFrame: the same as pandas.DataFrame.describe().
         """
-        df = pd.DataFrame(self._materialize_once())
+        df = pd.DataFrame(self.collect())
         return df.describe(percentiles=percentiles, include=include, exclude=exclude)
 
     def to_json_files(self, folder: Union[str, Path], by: Optional[str] = None) -> None:
         """
-        Write each record to a separate JSON file in the given folder.
-
-        Consumes (materializes) the stream and serializes every record to disk.
+        Write each record to its own .json file under `folder`.
 
         Args:
-            folder (str or Path): Output folder path. Will be created if needed.
-            by (str, optional): Field to name the files by. Defaults to numbered files.
+            folder (Union[str, Path]): The directory to write files to.
+            by (Optional[str]): Key to use for file names (default: 'id').
 
         Returns:
             None
         """
-        data = self._materialize_once()
-
         folder_p = Path(folder)
         folder_p.mkdir(parents=True, exist_ok=True)
 
-        for i, record in enumerate(data, start=1):
-            if by:
-                name = sanitize_filename(record.get(by, f"record_{i}"))
-            else:
-                name = f"record_{i}"
-            path = folder_p / f"{name}.json"
-            path.write_text(
-                json.dumps(record, ensure_ascii=False, indent=2), encoding="utf-8"
+        for i, rec in enumerate(self.collect(), start=1):
+            name = (
+                sanitize_filename(rec.get(by, f"record_{i}")) if by else f"record_{i}"
             )
+            path = folder_p / f"{name}.json"
+            path.write_text(_dumps(rec), encoding="utf-8")
 
-    def to_jsonl(self, path: Union[str, Path], encoding: str = "utf-8") -> None:
+    def to_jsonl(self, path: Union[str, Path]) -> None:
         """
-        Save all records to a single JSON Lines (.jsonl) file.
-        Each record is written as one line of JSON.
-
-        Consumes (materializes) the stream and serializes every record to disk.
+        Write out as JSON Lines (.jsonl), one record per line.
 
         Args:
-            path (str or Path): Output file path.
-            encoding (str, optional): File encoding. Defaults to "utf-8".
+            path (Union[str, Path]): The path to write the file to.
 
         Returns:
             None
         """
-        data = self._materialize_once()
-
         p = Path(path)
-        # ensure parent folder exists
-        if p.parent:
-            p.parent.mkdir(parents=True, exist_ok=True)
-
-        with p.open("w", encoding=encoding) as f:
-            for record in data:
-                f.write(json.dumps(record, ensure_ascii=False))
+        p.parent.mkdir(parents=True, exist_ok=True)
+        with p.open("w", encoding="utf-8") as f:
+            for rec in self.collect():
+                f.write(_dumps(rec))
                 f.write("\n")
 
-    def to_json_single(
-        self, path: Union[str, Path], encoding: str = "utf-8", indent: Optional[int] = 2
-    ) -> None:
+    def to_json_single(self, path: Union[str, Path]) -> None:
         """
-        Save all records to a single JSON file as an array.
-
-        Consumes (materializes) the stream and serializes every record to disk.
+        Write all records as a single JSON array.
 
         Args:
-            path (str or Path): Output file path.
-            encoding (str, optional): File encoding. Defaults to "utf-8".
-            indent (int or None): Indentation level. Defaults to 2.
+            path (Union[str, Path]): The path to write the file to.
 
         Returns:
             None
         """
-        data = self._materialize_once()
-
         p = Path(path)
-        if p.parent:
-            p.parent.mkdir(parents=True, exist_ok=True)
-
-        p.write_text(
-            json.dumps(data, ensure_ascii=False, indent=indent),
-            encoding=encoding,
-        )
+        p.parent.mkdir(parents=True, exist_ok=True)
+        p.write_text(_dumps(self.collect()), encoding="utf-8")
 
     @classmethod
-    def from_generator(cls, generator_instance: Iterator[dict[Any, Any]]) -> "Flow":
+    def from_generator(cls, gen: Iterator[dict[Any, Any]]) -> "Flow":
         """
-        Create a Flow from a generator function.
-
-        Does not consume the stream.
+        Create a Flow from an iterator of records.
 
         Args:
-            generator_instance (Iterator[dict[Any, Any]]): A generator function.
+            gen (Iterator[dict[Any, Any]]): An iterator of records.
 
         Returns:
-            Flow: A Flow object.
+            Flow: A Flow containing the records from the iterator.
         """
-        return cls(generator_instance)
+        return cls(gen)
 
     @classmethod
-    def from_jsonl(cls, path: Union[str, Path], encoding: str = "utf-8") -> "Flow":
+    def from_jsonl(cls, path: Union[str, Path]) -> "Flow":
         """
-        Load a .jsonl (JSON Lines) file into a Flow.
-        Each line must be a valid JSON object.
-
-        Consumes the file stream; the resulting Flow is a stream of records.
+        Stream a .jsonl file (one JSON object per line).
 
         Args:
-            path (str or Path): Input file path.
-            encoding (str, optional): File encoding. Defaults to "utf-8".
+            path (Union[str, Path]): The path to the file to read.
 
         Returns:
-            Flow: A Flow object.
+            Flow: A Flow containing the records from the file.
         """
         p = Path(path)
         if not p.exists():
-            raise FileNotFoundError(f"File not found: {p}")
+            raise FileNotFoundError(path)
 
-        def generator():
-            with p.open("r", encoding=encoding) as f:
-                for line in f:
-                    if line.strip():
-                        yield json.loads(line)
+        def gen():
+            for line in p.read_text(encoding="utf-8").splitlines():
+                if line:
+                    yield _loads(line)
 
-        return cls.from_generator(generator())
+        return cls.from_generator(gen())
 
     @classmethod
-    def from_file(cls, path: Union[str, Path], encoding: str = "utf-8") -> "Flow":
+    def from_file(cls, path: Union[str, Path]) -> "Flow":
         """
-        Load a local JSON file (list or single dict) into a Flow.
-        Generic — no provider-specific assumptions.
-
-        Consumes the file stream; the resulting Flow is a stream of records.
+        Load a single .json file (object or array).
 
         Args:
-            path (str or Path): Input file path.
-            encoding (str, optional): File encoding. Defaults to "utf-8".
+            path (Union[str, Path]): The path to the file to read.
 
         Returns:
-            Flow: A Flow object.
+            Flow: A Flow containing the records from the file.
         """
         p = Path(path)
         if not p.exists():
-            raise FileNotFoundError(f"File not found: {p}")
+            raise FileNotFoundError(path)
 
-        text = p.read_text(encoding=encoding)
-        data: Union[dict[Any, Any], list[dict[Any, Any]]]
-        data = json.loads(text)
+        text = p.read_text(encoding="utf-8")
+        data = _loads(text)
 
-        if isinstance(data, list):
-            return cls.from_generator(iter(data))
-        else:
-            return cls.from_generator(iter([data]))
+        # if it’s a list, stream each element; otherwise wrap in a list
+        iterable = data if isinstance(data, list) else [data]
+        return cls.from_generator(iter(iterable))
 
     @classmethod
-    def from_folder(cls, folder: Union[str, Path], encoding: str = "utf-8") -> "Flow":
+    def from_folder(cls, folder: Union[str, Path]) -> "Flow":
         """
-        Load and stream all JSON and JSON Lines records from a folder.
-        - Flattens each JSON file (list or single dict).
-        - Each JSON Lines file streams records.
-        - Skips non-JSON/JSONL files.
-
-        Consumes the file streams; the resulting Flow is a stream of records.
+        Stream every .json and .jsonl in a directory.
 
         Args:
-            folder (str or Path): The path to the folder.
-            encoding (str, optional): File encoding. Defaults to "utf-8".
+            folder (Union[str, Path]): The directory to read from.
 
         Returns:
-            Flow: A Flow object.
+            Flow: A Flow containing the records from the directory.
         """
         folder_p = Path(folder)
         if not folder_p.is_dir():
-            raise NotADirectoryError(f"Not a directory: {folder_p}")
+            raise NotADirectoryError(folder)
 
-        def gen() -> Iterator[dict[Any, Any]]:
+        def gen():
             for p in folder_p.iterdir():
                 if p.suffix.lower() == ".json":
-                    text = p.read_text(encoding=encoding)
-                    data = json.loads(text)
-                    if isinstance(data, list):
-                        yield from data
-                    elif isinstance(data, dict):
-                        yield data
+                    yield from cls.from_file(p)
                 elif p.suffix.lower() == ".jsonl":
-                    with p.open("r", encoding=encoding) as f:
-                        for line in f:
-                            if line.strip():
-                                yield json.loads(line)
+                    yield from cls.from_jsonl(p)
 
         return cls.from_generator(gen())
 
     @classmethod
     def from_glob(cls, pattern: Union[str, Path]) -> "Flow":
         """
-        Load and stream all JSON records matching a glob path.
-        E.g. '*.json', 'data/events/*378*.json', '**/*.json'
-
-        Consumes the file streams; the resulting Flow is a stream of records.
+        Stream all JSON files matching a glob.
 
         Args:
-            pattern (str or Path): The glob pattern.
+            pattern (Union[str, Path]): The glob pattern.
 
         Returns:
-            Flow: A Flow object.
+            Flow: A Flow containing the records from the glob.
         """
 
-        def gen() -> Iterator[dict[Any, Any]]:
+        def gen():
             for fp in glob.glob(str(pattern), recursive=True):
                 p = Path(fp)
-                if not p.is_file():
-                    continue
-                text = p.read_text(encoding="utf-8")
-                data = json.loads(text)
-                if isinstance(data, list):
-                    yield from data
-                elif isinstance(data, dict):
-                    yield data
-                # else skip
+                if p.suffix.lower() == ".json":
+                    yield from cls.from_file(p)
+                elif p.suffix.lower() == ".jsonl":
+                    yield from cls.from_jsonl(p)
 
         return cls.from_generator(gen())
 
@@ -289,12 +235,6 @@ class IOOpsMixin:
     ) -> "Flow":
         """
         Create a Flow from one or more dict-like records.
-        Accepts:
-        - list of dicts
-        - single dict
-        - iterable of dicts
-
-        Does not consume the stream.
 
         Args:
             data (dict | list[dict] | Iterable[dict]): The data to create the flow from.

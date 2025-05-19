@@ -39,7 +39,8 @@ MatchFlow
 - ☐ ``Flow.describe()`` improvements
 - ☐ Docs: Writing custom helpers tutorial
 - ☐ Docs: More ``Flow`` recipes
-- ☐ Generalize statsbomb functionality into a plugin interface to make it easy to add in other providers
+- ☐ Add plugin interface to make it easy to add in other data providers
+- ☐ Progress bars
 
 **Joins & I/O Enhancements**
 
@@ -73,7 +74,7 @@ Scrapers
 - ☐ Give scraper module an overhaul to make it **more efficient and easier to use**
 - ☐ Add support for **new data sources** such as Sofa Score
 - ☐ Add automatic **throttling** to avoid overloading servers
-- ☐ Hook up to **MatchFlow** as a data source
+- ☐ Hook up scrapers to **MatchFlow**
 - ☐ Caching of scraped data sources
 
 General
@@ -103,7 +104,7 @@ MatchFlow
 Models
 """"""""""
 
-- Custom **Bayesian** library focussed on building sports models
+- Custom **Bayesian** library focussed on building sports models without depenency hassles
 
 --------
 

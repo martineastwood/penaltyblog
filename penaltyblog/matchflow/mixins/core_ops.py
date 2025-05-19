@@ -72,19 +72,6 @@ class CoreOpsMixin:
 
         return NotImplemented
 
-    def _materialize_once(self) -> list[dict]:
-        """
-        Materialize the stream once and return the result.
-
-        If the stream has already been materialized, return the cached result.
-
-        Returns:
-            list[dict]: The materialized records.
-        """
-        if self._materialized_data is None:
-            self._materialized_data = self.collect()
-        return self._materialized_data
-
     def materialize(self) -> "Flow":
         """
         Materializes the stream and returns a new Flow instance. Note that this consumes the stream
