@@ -33,5 +33,4 @@ jobs:
 
       - name: Run tests
         run: |
-          cd ..
-          pytest --import-mode=importlib --maxfail=1 --disable-warnings -q  -m "not local"
+          pytest ../tests --import-mode=importlib --maxfail=1 --disable-warnings -q  -m "not local"
