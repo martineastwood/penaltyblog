@@ -19,7 +19,7 @@ Metrics
 MatchFlow
 """"""""""""
 
-- ✅ Parallel file processing with ``folder_flow``
+- ✅ Initial release of MatchFlow
 - ✅ Custom helper functions for clean pipelines
 - ✅ Grouped cumulative sum
 - ✅ Sphinx + nbsphinx docs and recipe book
@@ -35,6 +35,7 @@ MatchFlow
 **Usability + Helper Expansion**
 
 - ☐ General speed optimisations + cythonization to make faster
+- ☐ Parallel processing of files
 - ☐ More ``where_`` and ``get_`` helpers
 - ☐ ``Flow.describe()`` improvements
 - ☐ Docs: Writing custom helpers tutorial
@@ -81,7 +82,6 @@ General
 """"""""
 
 - ☐ Refresh / expand rest of documentation
-
 
 --------
 

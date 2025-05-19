@@ -33,6 +33,5 @@ composable pipelines - fast.
    file_io
    inspection_interop
    best_practices
-   parallel
    helpers
    statsbomb

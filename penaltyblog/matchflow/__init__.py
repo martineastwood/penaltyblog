@@ -32,7 +32,8 @@ from .helpers import (
     where_in,
     where_not_none,
 )
-from .parallel import folder_flow
+
+# from .parallel import folder_flow
 from .statsbomb import statsbombflow
 from .statsbomb.presets import (
     assists,
@@ -55,7 +56,7 @@ __all__ = [
     "where_exists",
     "where_in",
     "where_not_none",
-    "folder_flow",
+    # "folder_flow",
     "statsbombflow",
     "cards_only",
     "fouls_only",
