@@ -27,6 +27,7 @@ dependencies = [
     "html5lib",
     "ipywidgets",
     "numpy",
+    "orjson",
     "pandas",
     "plotly",
     "PuLP",
