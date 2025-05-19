@@ -211,11 +211,10 @@ class FlowGroup:
         for key, recs in self.groups.items():
             renamed = []
             for rec in recs:
-                r = dict(rec)
                 for old, new in mapping.items():
-                    if old in r:
-                        r[new] = r.pop(old)
-                renamed.append(r)
+                    if old in rec:
+                        rec[new] = rec.pop(old)
+                renamed.append(rec)
             new_groups[key] = renamed
         return FlowGroup(self.group_keys, new_groups)
 
@@ -330,9 +329,8 @@ class FlowGroup:
             sorted_recs = sorted(recs, key=getter, reverse=reverse)
             numbered: list[dict[str, Any]] = []
             for idx, rec in enumerate(sorted_recs, start=1):
-                new_rec = dict(rec)  # shallow-copy to avoid mutating original
-                new_rec[new_field] = idx
-                numbered.append(new_rec)
+                rec[new_field] = idx
+                numbered.append(rec)
             new_groups[key] = numbered
 
         return FlowGroup(self.group_keys, new_groups)
@@ -372,9 +370,8 @@ class FlowGroup:
                 # Safely add numeric field values
                 val = rec.get(field, 0) or 0
                 total += val
-                r = dict(rec)
-                r[new_field] = total
-                cum_recs.append(r)
+                rec[new_field] = total
+                cum_recs.append(rec)
             new_groups[key] = cum_recs
         return FlowGroup(self.group_keys, new_groups)
 

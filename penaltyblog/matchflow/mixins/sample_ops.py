@@ -5,11 +5,8 @@ Sample operations for handling a streaming data pipeline, specifically the Flow 
 import random
 from typing import Optional
 
-from ..consumption_guard import guard_consumption
-
 
 class SampleOpsMixin:
-    @guard_consumption
     def sample(self, n: int, seed: Optional[int] = None) -> "Flow":
         """
         Uniformly sample exactly `n` records from the stream (reservoir sampling).
@@ -24,10 +21,9 @@ class SampleOpsMixin:
         Returns:
             Flow: A new Flow of the sampled records.
         """
-        self._consumed = self._is_consumable()
         rnd = random.Random(seed)
         reservoir = []
-        for i, record in enumerate(self._records, start=1):
+        for i, record in enumerate(self.collect(), start=1):
             if i <= n:
                 reservoir.append(record)
             else:

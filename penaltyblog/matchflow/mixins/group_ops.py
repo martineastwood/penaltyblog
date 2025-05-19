@@ -54,7 +54,7 @@ class GroupOpsMixin:
         groups = defaultdict(list)
         for record in self.collect():
             group_key = tuple(accessor(record) for accessor in accessors)
-            groups[group_key].append(dict(record))
+            groups[group_key].append(record)
         return FlowGroup(keys, groups)
 
     def drop_duplicates(self, *fields: str, keep: str = "first") -> "Flow":

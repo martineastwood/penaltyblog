@@ -39,10 +39,9 @@ class TransformOpsMixin:
         """
 
         def mutate_record(record: dict) -> dict:
-            rec = dict(record)
             for key, func in kwargs.items():
-                rec[key] = func(rec)
-            return rec
+                record[key] = func(record)
+            return record
 
         return self.__class__(mutate_record(r) for r in self._records)
 
@@ -60,12 +59,13 @@ class TransformOpsMixin:
             Flow: A new Flow with the selected fields.
         """
 
+        # Pre‐compute accessors
+        accessors = [get_field(f) for f in fields]
+
         if leaf_names:
-            # compute the would‐be output keys
-            leaf_keys = [f.split(".")[-1] for f in fields]
-            # find duplicates
-            dup_counts = Counter(leaf_keys)
-            dupes = [k for k, cnt in dup_counts.items() if cnt > 1]
+            # Warn if leaf names collide
+            leaf_keys = [f.rsplit(".", 1)[-1] for f in fields]
+            dupes = [k for k, cnt in Counter(leaf_keys).items() if cnt > 1]
             if dupes:
                 warnings.warn(
                     f"select(..., leaf_names=True) will produce duplicate keys: {dupes}. "
@@ -74,14 +74,18 @@ class TransformOpsMixin:
                     stacklevel=2,
                 )
 
-        def select_fields(record: dict[Any, Any]) -> dict[Any, Any]:
-            out = {}
-            for field in fields:
-                key = field if not leaf_names else field.split(".")[-1]
+        def select_fields(record: dict[str, Any]) -> dict[str, Any]:
+            out: dict[str, Any] = {}
+            for field, accessor in zip(fields, accessors):
+                # if record literally has this exact key (even if it contains dots), use it
                 if field in record:
-                    out[key] = record[field]
+                    val = record[field]
                 else:
-                    out[key] = resolve_path(record, field)
+                    # otherwise fall back to nested-path lookup
+                    val = accessor(record)
+                # choose output key name
+                key_name = field.rsplit(".", 1)[-1] if leaf_names else field
+                out[key_name] = val
             return out
 
         return self.__class__(select_fields(r) for r in self._records)
@@ -100,13 +104,12 @@ class TransformOpsMixin:
         """
 
         def remover(record: dict) -> dict:
-            rec = dict(record)
             for f in fields:
-                if f in rec:
-                    del rec[f]
+                if f in record:
+                    del record[f]
                 else:
-                    delete_path(rec, f)
-            return rec
+                    delete_path(record, f)
+            return record
 
         return self.__class__(remover(r) for r in self._records)
 
@@ -170,8 +173,7 @@ class TransformOpsMixin:
         """
 
         def splitter(record: dict) -> dict:
-            rec = dict(record)
-            raw = rec[key] if key in rec else resolve_path(rec, key)
+            raw = record[key] if key in record else resolve_path(record, key)
             if isinstance(raw, list):
                 if len(raw) < len(into):
                     warnings.warn(
@@ -179,8 +181,8 @@ class TransformOpsMixin:
                         UserWarning,
                     )
                 for i, name in enumerate(into):
-                    rec[name] = raw[i] if i < len(raw) else None
-            return rec
+                    record[name] = raw[i] if i < len(raw) else None
+            return record
 
         return self.__class__(splitter(r) for r in self._records)
 
@@ -226,14 +228,12 @@ class TransformOpsMixin:
             sorted_non_null = sorted(non_null, key=getter, reverse=reverse)
 
             for idx, rec in enumerate(sorted_non_null, start=1):
-                r = dict(rec)
-                r[new_field] = idx
-                yield r
+                rec[new_field] = idx
+                yield rec
 
             for rec in nulls:
-                r = dict(rec)
-                r[new_field] = None
-                yield r
+                rec[new_field] = None
+                yield rec
 
         return self.__class__(gen())
 
@@ -290,17 +290,16 @@ class TransformOpsMixin:
         def gen() -> Iterator[dict[str, Any]]:
 
             for record in self.collect():
-                rec = record.copy()  # shallow copy
                 for old, new in mapping.items():
                     # Prefer flat key rename if present
-                    if old in rec:
-                        rec[new] = rec.pop(old)
+                    if old in record:
+                        record[new] = record.pop(old)
                     else:
                         val = resolve_path(record, old)
                         if val is not None:
-                            delete_path(rec, old)
-                            set_path(rec, new, val)
-                yield rec
+                            delete_path(record, old)
+                            set_path(record, new, val)
+                yield record
 
         return self.__class__(gen())
 
@@ -421,9 +420,8 @@ class TransformOpsMixin:
                     if values:
                         # one row per element
                         for item in values:
-                            new_rec = dict(record)
-                            new_rec[key] = item
-                            yield new_rec
+                            record[key] = item
+                            yield record
                     else:
                         # empty list → keep the record unchanged
                         yield record
@@ -470,10 +468,9 @@ class TransformOpsMixin:
 
                 # otherwise explode
                 for items in zip_longest(*arrays, fillvalue=fillvalue):
-                    out = dict(rec)
                     for key, val in zip(keys, items):
-                        out[key] = val
-                    yield out
+                        rec[key] = val
+                    yield rec
 
         return self.__class__(gen())
 
@@ -559,15 +556,14 @@ class TransformOpsMixin:
                     continue
 
                 # match! merge
-                out = dict(left_rec)  # shallow copy of the LHS
                 if fields:
                     for f in fields:
-                        out[f] = right_rec.get(f)
+                        left_rec[f] = right_rec.get(f)
                 else:
                     for k, v in right_rec.items():
                         if k != right_on:
-                            out[k] = v
-                yield out
+                            left_rec[k] = v
+                yield left_rec
 
         return self.__class__(gen())
 
