@@ -153,9 +153,11 @@ class IOOpsMixin:
             raise FileNotFoundError(path)
 
         def gen():
-            for line in p.read_text(encoding="utf-8").splitlines():
-                if line:
-                    yield _loads(line)
+            with p.open("r", encoding="utf-8") as f:
+                for line in f:
+                    line = line.rstrip("\n\r")
+                    if line:
+                        yield _loads(line)
 
         return cls.from_generator(gen())
 

@@ -120,7 +120,7 @@ class TransformOpsMixin:
         return self.__class__(remover(r) for r in self._records)
 
     def sort(
-        self, by: Union[str, list[str], tuple[str, ...]], reverse: bool = False
+        self, by: Union[str, list[str], tuple[str, ...]], ascending: bool = True
     ) -> "Flow":
         """
         Sort the records by one or more fields, always sending any records
@@ -130,7 +130,7 @@ class TransformOpsMixin:
 
         Args:
             by (str or list/tuple of str): The field name, or list/tuple of field names, to sort by.
-            reverse (bool, optional): Whether to sort in descending order. Defaults to False.
+            ascending (bool, optional): Whether to sort in ascending order. Defaults to True. If False, sorts in descending order.
 
         Returns:
             Flow: A new Flow with the records sorted by the given field(s).
@@ -159,7 +159,7 @@ class TransformOpsMixin:
             non_null = [r for r in recs if not is_null_record(r)]
             nulls = [r for r in recs if is_null_record(r)]
 
-            for r in sorted(non_null, key=get_sort_key, reverse=reverse):
+            for r in sorted(non_null, key=get_sort_key, reverse=not ascending):
                 yield r
             yield from nulls
 
@@ -208,7 +208,7 @@ class TransformOpsMixin:
         return self.__class__(chain(self._records, *(o._records for o in others)))
 
     def row_number(
-        self, by: str, new_field: str = "row_number", reverse: bool = False
+        self, by: str, new_field: str = "row_number", ascending: bool = True
     ) -> "Flow":
         """
         Assigns a row number based on sorting by `by`.
@@ -218,7 +218,7 @@ class TransformOpsMixin:
         Args:
             by (str): The name of the field to sort by.
             new_field (str, optional): The name of the new field to add. Defaults to "row_number".
-            reverse (bool, optional): Whether to sort in descending order. Defaults to False.
+            ascending (bool, optional): Whether to sort in ascending order. Defaults to True. If False, sorts in descending order.
 
         Returns:
             Flow: A new Flow with the row numbers assigned.
@@ -231,7 +231,7 @@ class TransformOpsMixin:
             non_null = [r for r in recs if getter(r) is not None]
             nulls = [r for r in recs if getter(r) is None]
 
-            sorted_non_null = sorted(non_null, key=getter, reverse=reverse)
+            sorted_non_null = sorted(non_null, key=getter, reverse=not ascending)
 
             for idx, rec in enumerate(sorted_non_null, start=1):
                 rec[new_field] = idx

@@ -213,3 +213,77 @@ def test_row_number_edge_cases(sample_records):
     rn_custom = fg.row_number("v", new_field="pos")
     for recs in rn_custom.groups.values():
         assert "pos" in recs[0]
+
+
+def test_flowgroup_sort_ascending_descending():
+    sample_records = [
+        {"id": 1, "grp": "A", "v": 3},
+        {"id": 2, "grp": "A", "v": 1},
+        {"id": 3, "grp": "A", "v": 2},
+        {"id": 4, "grp": "B", "v": 2},
+        {"id": 5, "grp": "B", "v": None},
+        {"id": 6, "grp": "B", "v": 1},
+    ]
+    fg = Flow(sample_records).group_by("grp")
+    # Ascending sort
+    sorted_fg_asc = fg.sort(by="v", ascending=True)
+    a_sorted_records = sorted_fg_asc.groups[("A",)]
+    b_sorted_records = sorted_fg_asc.groups[("B",)]
+    a_sorted_ids = [r["id"] for r in a_sorted_records]
+    b_sorted_ids = [r["id"] for r in b_sorted_records]
+    assert a_sorted_ids == [2, 3, 1]
+    assert b_sorted_ids[:-1] == [6, 4]  # None should be last
+    assert b_sorted_records[-1]["v"] is None
+    # Descending sort
+    sorted_fg_desc = fg.sort(by="v", ascending=False)
+    a_sorted_records_desc = sorted_fg_desc.groups[("A",)]
+    b_sorted_records_desc = sorted_fg_desc.groups[("B",)]
+    a_sorted_ids_desc = [r["id"] for r in a_sorted_records_desc]
+    b_sorted_ids_desc = [r["id"] for r in b_sorted_records_desc]
+    assert a_sorted_ids_desc == [1, 3, 2]
+    assert b_sorted_ids_desc[0:2] == [4, 6]
+    assert b_sorted_records_desc[-1]["v"] is None
+
+
+def test_flowgroup_row_number_reverse():
+    sample_records = [
+        {"id": 1, "grp": "A", "v": 3},
+        {"id": 2, "grp": "A", "v": 1},
+        {"id": 3, "grp": "A", "v": 2},
+        {"id": 4, "grp": "B", "v": 2},
+        {"id": 5, "grp": "B", "v": 1},
+    ]
+    fg = Flow(sample_records).group_by("grp")
+    # Ascending row_number
+    fg_rownum_asc = fg.row_number(by="v", new_field="rn", reverse=False)
+    a_rn = [r["rn"] for r in fg_rownum_asc.groups[("A",)]]
+    assert a_rn == [1, 2, 3]  # Should be ordered by v ascending
+    # Descending row_number
+    fg_rownum_desc = fg.row_number(by="v", new_field="rn", reverse=True)
+    a_rn_desc = [r["rn"] for r in fg_rownum_desc.groups[("A",)]]
+    assert a_rn_desc == [1, 2, 3]  # Should be ordered by v descending
+    fg = Flow(sample_records).group_by("grp")
+    # Add duplicate and None for sort/unique
+    fg2 = Flow(
+        sample_records
+        + [
+            {"id": 4, "grp": "A", "v": None},
+            {"id": 1, "grp": "A", "v": 5},
+            {"id": 1, "grp": "A", "v": 3},
+        ]
+    ).group_by("grp")
+    # sort
+    sorted_fg = fg2.sort(by="v")
+    a_group = sorted_fg.groups[("A",)]
+    assert a_group[-1]["v"] is None
+    # tail
+    tailed_fg = fg2.tail(1)
+    assert all(len(recs) == 1 for recs in tailed_fg.groups.values())
+    # unique
+    unique_fg = fg2.unique()
+    assert len(unique_fg.groups[("A",)]) < len(fg2.groups[("A",)])
+    # rename
+    renamed_fg = fg.rename(grp="group")
+    for recs in renamed_fg.groups.values():
+        for rec in recs:
+            assert "group" in rec

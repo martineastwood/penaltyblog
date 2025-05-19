@@ -231,14 +231,14 @@ class FlowGroup:
         new_groups = {k: v for k, v in self.groups.items() if fn(v)}
         return FlowGroup(self.group_keys, new_groups)
 
-    def sort(self, by: str, reverse: bool = False) -> "FlowGroup":
+    def sort(self, by: str, ascending: bool = True) -> "FlowGroup":
         """
         Sort records within each group by the given field, always putting
         records where the field is None at the end.
 
         Args:
             by (str): The field to sort by.
-            reverse (bool, optional): Whether to reverse the sort order. Defaults to False.
+            ascending (bool, optional): Whether to sort in ascending order. Defaults to True. If False, sorts in descending order.
 
         Returns:
             FlowGroup: A new FlowGroup with sorted records
@@ -255,7 +255,7 @@ class FlowGroup:
             nulls = [r for r in records if getter(r) is None]
 
             # sort only the non-null slice
-            sorted_non_null = sorted(non_null, key=getter, reverse=reverse)
+            sorted_non_null = sorted(non_null, key=getter, reverse=not ascending)
 
             new_groups[key] = sorted_non_null + nulls
 

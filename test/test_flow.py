@@ -587,7 +587,7 @@ def test_sort_limit_head(sample_records):
         {"id": 2},
         {"id": 3, "value": 1},
     ]
-    sorted_recs = Flow(records).sort("value", reverse=True).collect()
+    sorted_recs = Flow(records).sort("value", ascending=False).collect()
     # 6. Sorting with reverse=True and None/missing values
     assert [r["id"] for r in sorted_recs] == [1, 3, 2]
 
@@ -616,15 +616,15 @@ def test_sort_limit_head(sample_records):
     # 9. Sorting by a field with duplicate values (stability)
     assert [r["id"] for r in sorted_recs] == [2, 1, 3]
 
-    top2 = Flow(sample_records).sort("value", reverse=True).limit(2).collect()
+    top2 = Flow(sample_records).sort("value", ascending=False).limit(2).collect()
     # 10. Limit after sorting in descending order
     assert [r["id"] for r in top2] == [2, 1]
 
-    top2 = Flow(sample_records).sort("value", reverse=False).limit(2).collect()
+    top2 = Flow(sample_records).sort("value", ascending=True).limit(2).collect()
     # 11. Limit after sorting in ascending order
     assert [r["id"] for r in top2] == [1, 3]
 
-    top2 = Flow(sample_records).sort("value", reverse=True).head(2).collect()
+    top2 = Flow(sample_records).sort("value", ascending=False).head(2).collect()
     # 12. Head after sorting in descending order
     assert [r["id"] for r in top2] == [2, 1]
 
@@ -660,7 +660,7 @@ def test_sort_multiple_fields():
     assert [r["id"] for r in sorted_recs] == [2, 3, 4, 1, 5, 6, 7]
 
     # Sort by a, then b, reverse
-    sorted_recs = Flow(records).sort(["a", "b"], reverse=True).collect()
+    sorted_recs = Flow(records).sort(["a", "b"], ascending=False).collect()
     # ids: 1 (a=2,b=3), 3 (a=2,b=2), 4 (a=1,b=3), 2 (a=1,b=2), 5 (a=None,b=1), 6 (a=2,b=None), 7 (a=None,b=None)
     assert [r["id"] for r in sorted_recs] == [1, 3, 4, 2, 5, 6, 7]
 
