@@ -101,8 +101,12 @@ def folder_flow(
         Path(output_folder).mkdir(parents=True, exist_ok=True)
 
     args_list = [(p, flow_fn, output_folder) for p in files]
-    with multiprocessing.Pool(processes=n_jobs) as pool:
-        mapped = pool.map(process_file, args_list)
+
+    if n_jobs == 1:
+        mapped = [process_file(arg) for arg in args_list]
+    else:
+        with multiprocessing.Pool(processes=n_jobs) as pool:
+            mapped = pool.map(process_file, args_list)
 
     if output_folder:
         return None
