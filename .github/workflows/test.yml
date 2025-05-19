@@ -33,5 +33,5 @@ jobs:
 
       - name: Run tests
         run: |
-          pytest --import-mode=importlib --maxfail=1 --disable-warnings -q  -m "not local"
+          pytest -v test --import-mode=importlib --maxfail=1 --disable-warnings -q  -m "not local"
         working-directory: ${{ github.workspace }}
