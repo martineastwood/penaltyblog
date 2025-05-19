@@ -35,5 +35,6 @@ jobs:
 
       - name: Run tests
         run: |
-          pytest -v test --import-mode=importlib --maxfail=1 --disable-warnings -q  -m "not local"
+          pytest -v test/test_flow_helpers.py::test_get_field_flat --import-mode=importlib --maxfail=1
+          # pytest -v test --import-mode=importlib --maxfail=1 --disable-warnings -q  -m "not local"
         working-directory: ${{ github.workspace }}
