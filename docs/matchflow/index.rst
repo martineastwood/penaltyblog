@@ -1,29 +1,91 @@
 MatchFlow
-=================================
+==========
 
-**MatchFlow** is a lightweight toolkit for working with structured football data, especially JSON files like
-StatsBomb events or match-level logs.
+**MatchFlow** is a lightweight toolkit for working with structured football data, especially nested JSON like StatsBomb event files or match-level logs. Whether you're building quick explorations or full pipelines, MatchFlow helps you work directly with deeply structured data using a clean, lazy, and chainable API.
 
-Whether you're loading a single file, streaming a folder of matches, or building a custom metric from event-level data,
-**MatchFlow** gives you a powerful yet simple toolkit:
-chainable operations like ``.filter()``, ``.assign()``, ``.explode()``, ``.group_by()``, ``.summary()``, and ``.join()`` - all built
-to work lazily and efficiently on your data.
+What is MatchFlow?
+------------------
 
-You can group by player, team, or match period; aggregate or de-duplicate records; and inspect your data at any step.
-When you're ready, materialize your results with ``.collect()`` or ``.to_pandas()``, or export directly to JSON/JSONL.
+Flow is not a DataFrame, it's a **stream-first query engine** built for irregular, event-based football data.
 
-Whether you're exploring a single match or scaling up analysis across thousands, **MatchFlow** helps you build clean,
-composable pipelines - fast.
+You can:
+
+- Load JSON, JSONL, or entire folders of match data
+- Filter and transform records lazily with ``.filter()``, ``.assign()``, ``.select()``
+- Group and summarize using ``.group_by()`` + ``.summary()``
+- Join datasets, explode lists, split arrays, pivot rows
+- Work with nested data without flattening too early
+- Chain steps fluently, materialize only when ready
+
+All transformations are **lazy**; nothing runs until you ask for results with ``.collect()``, ``.to_pandas()``, ``.to_jsonl()`` etc.
+
+Guide Index
+-----------
+
+.. list-table:: Guide Index
+   :widths: 25 75
+   :header-rows: 1
+
+   * - Section
+     - Description
+   * - :doc:`why`
+     - Why working with nested football data needs a new tool
+   * - :doc:`introduction`
+     - Introduction to MatchFlow
+   * - :doc:`basic_pipeline`
+     - Filtering, assigning, selecting, and shaping your data
+   * - :doc:`grouping_and_aggregating`
+     - Summarizing by team, player, period, and more
+   * - :doc:`advanced`
+     - Sorting, ranking, joining, pivoting, deduplicating
+   * - :doc:`file_io`
+     - Working with JSON, JSONL, folders, glob patterns
+   * - :doc:`inspection`
+     - Exploring structure, peeking at records, debugging
+   * - :doc:`best_practices`
+     - Materialization, memory, performance, clean code
+   * - :doc:`predicates`
+     - Reusable filters like ``where_equals()``, ``and_()``
+   * - :doc:`statsbomb`
+     - Streaming data directly from the StatsBomb API
+
+Example
+-------
+
+.. code-block:: python
+
+   from penaltyblog.matchflow import Flow, where_equals
+
+   # Load and filter StatsBomb shots
+   flow = (
+      Flow.statsbomb.events(match_id=19716)
+      .filter(where_equals("type.name", "Shot"))
+      .select("player.name", "location", "shot.statsbomb_xg")
+   )
+
+   for shot in flow.head(5):
+      print(shot)
+
+Notes
+-----
 
 .. note::
-   This is the first public release of ``penaltyblog.matchflow``. It's already powering a variety of real-world workflows,
-   but edge cases may still surface. If you spot anything surprising or have suggestions, your feedback is very welcome -
-   it helps improve the toolkit for everyone.
 
+    This is the first public release of ``penaltyblog.matchflow``.
+    It’s already powering real-world workflows, but edge cases may still surface.
+
+    **If you find bugs, performance issues, or have feature ideas then please open an issue or reach out.**
+    Your feedback makes this better for everyone.
+
+Ready to Flow?
+--------------
+
+Pick a section from the guide above, or jump in with ``.from_jsonl()``, ``.from_folder()``, or ``.statsbomb.events()``  and start building your pipeline.
+
+Need help? Ask questions, file issues, or suggest improvements any time.
 
 .. toctree::
-   :maxdepth: 1
-   :caption: Examples:
+   :hidden:
 
    why
    introduction
@@ -31,7 +93,7 @@ composable pipelines - fast.
    grouping_and_aggregating
    advanced
    file_io
-   inspection_interop
+   inspection
    best_practices
-   helpers
+   predicates
    statsbomb

@@ -1,1241 +1,1124 @@
 import json
 
-import pandas as pd
+import numpy as np
 import pytest
 
+from penaltyblog.matchflow.aggregates import (
+    all_,
+    any_,
+    count,
+    count_nonnull,
+    first_,
+    iqr_,
+    last_,
+    list_,
+    max_,
+    mean_,
+    median_,
+    min_,
+    mode_,
+    percentile_,
+    range_,
+    std_,
+    sum_,
+    unique,
+)
 from penaltyblog.matchflow.flow import Flow
+from penaltyblog.matchflow.predicates_helpers import (
+    and_,
+    not_,
+    or_,
+    where_contains,
+    where_equals,
+    where_exists,
+    where_gt,
+    where_in,
+    where_is_null,
+    where_not_in,
+)
 
 
 @pytest.fixture
-def sample_records():
+def data():
     return [
-        {"id": 1, "value": 10, "tags": ["a", "b"], "nested": {"x": 1, "y": {"z": 2}}},
-        {"id": 2, "value": 20, "tags": ["b"], "nested": {"x": 3, "y": {"z": 4}}},
-        {"id": 3, "value": 10, "tags": [], "nested": {"x": 5}},
+        {"player": {"name": "Kane"}, "xg": 0.4},
+        {"player": {"name": "Son"}, "xg": 0.1},
     ]
 
 
-def test_materialize_basic(sample_records):
-    flow = Flow(sample_records)
-    # Materialize returns a new Flow backed by a list
-    mat = flow.materialize()
-    assert isinstance(mat.collect(), list)
-    # The original flow is not exhausted
-    assert flow.collect() == sample_records
-    # The materialized flow is equal to the original
-    assert mat.collect() == sample_records
-    # Mutating the materialized flow does not affect the original
-    mat_list = mat.collect()
-    mat_list[0]["id"] = 999
-    assert flow.collect()[0]["id"] == 1
+@pytest.fixture
+def record():
+    return {
+        "type": {"name": "Shot"},
+        "team": {"name": "Barcelona"},
+        "xg": 0.18,
+        "player": {"name": None},
+        "tags": ["goal", "header"],
+    }
 
 
-def test_materialize_empty():
-    flow = Flow([])
-    mat = flow.materialize()
-    assert mat.collect() == []
-    assert flow.collect() == []
-
-
-def test_materialize_single():
-    record = {"id": 1}
-    flow = Flow([record])
-    mat = flow.materialize()
-    assert mat.collect() == [record]
-    assert flow.collect() == [record]
-
-
-def test_fork_basic(sample_records):
-    flow = Flow(sample_records)
-    f1, f2 = flow.fork()
-    # Both forks yield the same records
-    assert f1.collect() == sample_records
-    assert f2.collect() == sample_records
-    # Both are one-shot: after collecting, further iteration yields empty list
-    import pytest
-
-    with pytest.warns(RuntimeWarning):
-        assert f1.collect() == []
-    with pytest.warns(RuntimeWarning):
-        assert f2.collect() == []
-
-
-def test_fork_empty():
-    flow = Flow([])
-    f1, f2 = flow.fork()
-    assert f1.collect() == []
-    assert f2.collect() == []
-
-
-def test_fork_single():
-    record = {"id": 1}
-    flow = Flow([record])
-    f1, f2 = flow.fork()
-    assert f1.collect() == [record]
-    assert f2.collect() == [record]
-
-
-def test_assign_does_not_mutate_original():
-    original = [{"a": 1}]
-    flow1 = Flow(original)
-    flow1.assign(b=lambda r: 2)
-    assert "b" not in original[0]
-
-
-def test_init(sample_records):
-    # 1. Flow.collect returns all records as-is
-    assert Flow(sample_records).collect() == sample_records
-    # 2. Flow.from_records returns all records as-is
-    assert Flow.from_records(sample_records).collect() == sample_records
-    # 3. Single record input returns single record
-    assert Flow(sample_records[0]).collect() == [sample_records[0]]
-    # 4. Single record with from_records
-    assert Flow.from_records([sample_records[0]]).collect() == [sample_records[0]]
-
-    # 5. Flow from generator yields correct records
-    def gen():
-        yield {"id": 1}
-        yield {"id": 2}
-
-    # 6. Flow from generator yields correct records
-    assert Flow(gen()).collect() == [{"id": 1}, {"id": 2}]
-    # 7. Flow.from_generator yields correct records
-    assert Flow.from_generator(gen()).collect() == [{"id": 1}, {"id": 2}]
-
-    # 8. TypeError if not iterable (int)
-    with pytest.raises(TypeError):
-        Flow.from_records(123)
-    # 9. TypeError if not iterable (str)
-    with pytest.raises(TypeError):
-        Flow.from_records("123")
-
-    # 10. Flow from sample_records again
-    assert Flow(sample_records).collect() == sample_records
-    # 11. Flow.from_records from sample_records again
-    assert Flow.from_records(sample_records).collect() == sample_records
-    # 12. Single record input returns single record again
-    assert Flow(sample_records[0]).collect() == [sample_records[0]]
-    # 13. Single record with from_records again
-    assert Flow.from_records([sample_records[0]]).collect() == [sample_records[0]]
-
-    # 14. Flow from generator yields correct records again
-    def gen():
-        yield {"id": 1}
-        yield {"id": 2}
-
-    # 15. Flow from generator yields correct records again
-    assert Flow(gen()).collect() == [{"id": 1}, {"id": 2}]
-    # 16. Flow.from_generator yields correct records again
-    assert Flow.from_generator(gen()).collect() == [{"id": 1}, {"id": 2}]
-
-    # 17. TypeError if not iterable (int) again
-    with pytest.raises(TypeError):
-        Flow.from_records(123)
-    # 18. TypeError if not iterable (str) again
-    with pytest.raises(TypeError):
-        Flow.from_records("123")
-
-
-def test_len(sample_records):
-    # 1. Length of Flow is length of records
-    assert len(Flow(sample_records)) == len(sample_records)
-
-    # 2. Length after collect is unchanged
-    flow = Flow(sample_records)
-    len(flow)
-    results = flow.collect()
-    # 3. Length of collected results
-    assert len(results) == len(sample_records)
-    # 4. Collected results match input
-    assert results == sample_records
-
-    # 5. Length of Flow is length of records again
-    assert len(Flow(sample_records)) == len(sample_records)
-
-    # 6. Length after collect is unchanged again
-    flow = Flow(sample_records)
-    len(flow)
-    results = flow.collect()
-    # 7. Length of collected results again
-    assert len(results) == len(sample_records)
-    # 8. Collected results match input again
-    assert results == sample_records
-
-
-def test_iter(sample_records):
-    # 1. Iterating counts all records
-    flow = Flow(sample_records)
-    n = 0
-    for _ in flow:
-        n += 1
-    # 2. Iterating counts all records
-    assert n == len(sample_records)
-    # # 3. Iterating again yields original records
-    assert list(flow) == sample_records
-
-    # 4. Iterating counts all records again
-    flow = Flow(sample_records)
-    n = 0
-    for _ in flow:
-        n += 1
-    # 5. Iterating counts all records again
-    assert n == len(sample_records)
-    # 6. Iterating again yields original records again
-    assert list(flow) == sample_records
-
-
-def test_eq(sample_records):
-    # 1. Flow equals itself
-    assert Flow(sample_records) == Flow(sample_records)
-    # 2. Flow equals list of same records
-    assert Flow(sample_records) == sample_records
-    # 3. Flow not equal to different Flow
-    assert Flow(sample_records) != Flow(sample_records[1:])
-    # 4. Flow not equal to different list
-    assert Flow(sample_records) != sample_records[1:]
-
-    # 5. Flow equals itself again
-    assert Flow(sample_records) == Flow(sample_records)
-    # 6. Flow equals list of same records again
-    assert Flow(sample_records) == sample_records
-    # 7. Flow not equal to different Flow again
-    assert Flow(sample_records) != Flow(sample_records[1:])
-    # 8. Flow not equal to different list again
-    assert Flow(sample_records) != sample_records[1:]
-
-
-def test_collect(sample_records):
-    # 1. Collect returns all records
-    assert Flow(sample_records).collect() == sample_records
-    # 2. Collect single record
-    assert Flow(sample_records[0]).collect() == [sample_records[0]]
-
-    # 3. Collect from generator
-    def gen():
-        yield {"id": 1}
-        yield {"id": 2}
-
-    # 4. Collect from generator
-    assert Flow(gen()).collect() == [{"id": 1}, {"id": 2}]
-
-    # 5. Collect returns all records again
-    assert Flow(sample_records).collect() == sample_records
-    # 6. Collect single record again
-    assert Flow(sample_records[0]).collect() == [sample_records[0]]
-
-    # 7. Collect from generator again
-    def gen():
-        yield {"id": 1}
-        yield {"id": 2}
-
-    # 8. Collect from generator again
-    assert Flow(gen()).collect() == [{"id": 1}, {"id": 2}]
-
-
-def test_selecting():
-    data = [
-        {
-            "id": 1,
-            "value": 10,
-            "tags": ["a", "b"],
-            "nested": {"x": 1, "y": {"z": 2}},
-            "extra.field": "foo",
-            "another.extra.field": {"that.is.nested": "foo"},
-            "player.info": {"name.full": "Jane Doe"},
-        }
+@pytest.fixture
+def data2():
+    return [
+        {"x": 10, "nested": {"y": 1}},
+        {"x": 20, "nested": {"y": 2}},
+        {"x": None, "nested": {"y": 3}},
+        {"x": 40},
     ]
-    # 1. Select single and multiple fields
-    assert Flow(data).select("id", "value").collect() == [{"id": 1, "value": 10}]
-    # 2. Select nested field
-    assert Flow(data).select("nested.x").collect() == [{"nested.x": 1}]
-    assert Flow(data).select("nested.x", leaf_names=True).collect() == [{"x": 1}]
-    # 3. Select dotted field
-    assert Flow(data).select("extra.field").collect() == [{"extra.field": "foo"}]
-    # 4. Select missing field
-    assert Flow(data).select("does_not_exist").collect() == [{"does_not_exist": None}]
-    # 5. Select deep nested
-    assert Flow(data).select("nested.y.z").collect() == [{"nested.y.z": 2}]
-    assert Flow(data).select("nested.y.z", leaf_names=True).collect() == [{"z": 2}]
-    # 6. Select duplicate leaf names
-    with pytest.warns(UserWarning):
-        _ = Flow(data).select("foo.bar", "other.bar", leaf_names=True).collect()
-    # 6. Flatten and select
-    recs = Flow(data).flatten().select("another.extra.field.that.is.nested").collect()
-    assert recs == [{"another.extra.field.that.is.nested": "foo"}]
-    # 7. Rename and assign
-    recs = (
-        Flow(data)
-        .rename(**{"player.info": "player_info"})
-        .assign(name_full=lambda r: r["player_info"].get("name.full"))
-        .select("name_full")
+
+
+@pytest.fixture
+def scalar_record():
+    return {"team": {"name": "Barcelona"}}
+
+
+@pytest.fixture
+def list_record():
+    return {"tags": ["goal", "header", "cross"]}
+
+
+@pytest.fixture
+def dict_record():
+    return {"meta": {"info": {"provider": "StatsBomb"}}}
+
+
+@pytest.fixture
+def list_of_dicts_record():
+    return {"events": [{"type": "pass"}, {"type": "shot"}]}
+
+
+@pytest.fixture
+def dict_record():
+    return {"meta": {"provider": {"name": "StatsBomb"}}}
+
+
+@pytest.fixture
+def list_of_dicts_record():
+    return {"players": [{"id": 1}, {"id": 2}]}
+
+
+def test_plan(data):
+    flow = Flow()
+    assert flow.plan == []
+
+    f = Flow().filter(lambda r: r["value"] > 10)
+    assert len(f.plan) == 1
+    step = f.plan[0]
+    assert step["op"] == "filter"
+    assert callable(step["predicate"])
+
+    flow = (
+        Flow.from_list(data).filter(lambda r: r["xg"] > 0.2).select("player.name", "xg")
     )
-    # 8. Rename and assign
-    assert recs.collect() == [{"name_full": "Jane Doe"}]
 
+    results = flow.collect()
+    assert results == [{"player": {"name": "Kane"}, "xg": 0.4}]
+
+
+def test_flow_plan_structure(data):
+    flow = (
+        Flow.from_list(data).filter(lambda r: r["xg"] > 0.2).select("player.name", "xg")
+    )
+
+    plan = flow.plan
+
+    assert len(plan) == 3
+
+    assert plan[0]["op"] == "from_materialized"
+    assert isinstance(plan[0]["records"], list)
+
+    assert plan[1]["op"] == "filter"
+    assert callable(plan[1]["predicate"])
+
+    assert plan[2]["op"] == "select"
+    assert plan[2]["fields"] == ["player.name", "xg"]
+
+
+def test_rename(data):
+    # Flat rename
+    flow = Flow.from_list(data).rename(xg="expected_goals")
+    results = flow.collect()
+    assert results == [
+        {"player": {"name": "Kane"}, "expected_goals": 0.4},
+        {"player": {"name": "Son"}, "expected_goals": 0.1},
+    ]
+    plan = flow.plan
+    assert plan[-1]["op"] == "rename"
+    assert plan[-1]["mapping"] == {"xg": "expected_goals"}
+
+    # Nested rename
+    flow2 = Flow.from_list(data).rename(**{"player.name": "name"})
+    results2 = flow2.collect()
+    assert results2 == [
+        {"player": {}, "xg": 0.4, "name": "Kane"},
+        {"player": {}, "xg": 0.1, "name": "Son"},
+    ]
+    plan2 = flow2.plan
+    assert plan2[-1]["op"] == "rename"
+    assert plan2[-1]["mapping"] == {"player.name": "name"}
+
+
+def test_deeply_nested_rename():
     data = [
+        {"a": {"b": {"c": 42}}, "other": 1},
+        {"a": {"b": {"c": 99}}, "other": 2},
+    ]
+    flow = Flow.from_list(data).rename(**{"a.b.c": "x.y.z"})
+    results = flow.collect()
+    assert results == [
+        {"a": {"b": {}}, "other": 1, "x": {"y": {"z": 42}}},
+        {"a": {"b": {}}, "other": 2, "x": {"y": {"z": 99}}},
+    ]
+    plan = flow.plan
+    assert plan[-1]["op"] == "rename"
+    assert plan[-1]["mapping"] == {"a.b.c": "x.y.z"}
+
+
+def test_sort_by_ascending():
+    data = [
+        {"id": 3, "value": "c"},
+        {"id": 1, "value": "a"},
+        {"id": 2, "value": "b"},
+    ]
+    flow = Flow.from_list(data)
+    result = flow.sort_by("id").collect()
+    ids = [r["id"] for r in result]
+    assert ids == [1, 2, 3]
+
+
+def test_sort_by_descending():
+    data = [
+        {"score": 10},
+        {"score": 30},
+        {"score": 20},
+    ]
+    flow = Flow.from_list(data)
+    result = flow.sort_by("score", ascending=False).collect()
+    scores = [r["score"] for r in result]
+    assert scores == [30, 20, 10]
+
+
+def test_sort_by_mixed_directions():
+    data = [
+        {"team": "A", "score": 5},
+        {"team": "A", "score": 10},
+        {"team": "B", "score": 7},
+        {"team": "B", "score": 2},
+    ]
+    result = (
+        Flow.from_list(data).sort_by("team", "score", ascending=[True, False]).collect()
+    )
+    assert result == [
+        {"team": "A", "score": 10},
+        {"team": "A", "score": 5},
+        {"team": "B", "score": 7},
+        {"team": "B", "score": 2},
+    ]
+
+
+def test_limit_records():
+    data = [{"x": i} for i in range(100)]
+    result = Flow.from_list(data).limit(10).collect()
+    assert len(result) == 10
+    assert result == [{"x": i} for i in range(10)]
+
+
+def test_drop_fields():
+    data = [
+        {"a": 1, "b": 2, "meta": {"id": 123, "type": "x"}},
+        {"a": 3, "meta": {"type": "y"}},
+        {"a": 4},
+    ]
+    result = (
+        Flow.from_list(data).drop("b", "meta.id", "meta.type", "nonexistent").collect()
+    )
+    assert result == [
+        {"a": 1, "meta": {}},
+        {"a": 3, "meta": {}},
+        {"a": 4},
+    ]
+
+
+def test_select_preserves_structure():
+    data = [
+        {"a": 1, "meta": {"id": 42, "type": "goal"}},
+        {"a": 2, "meta": {"id": 99, "type": "pass"}},
+    ]
+
+    result = Flow.from_list(data).select("a", "meta.id").collect()
+
+    assert result == [
+        {"a": 1, "meta": {"id": 42}},
+        {"a": 2, "meta": {"id": 99}},
+    ]
+
+
+def test_flatten_nested_record():
+    data = [{"a": 1, "meta": {"id": 42, "details": {"type": "goal", "x": 12}}}]
+
+    result = Flow.from_list(data).flatten().collect()
+
+    assert result == [
         {
-            "id": 1,
-            "value": 10,
-            "tags": ["a", "b"],
-            "nested": {"x": 1, "y": {"z": 2}},
-            "extra.field": "foo",
-            "another.extra.field": {"that.is.nested": "foo"},
-            "player.info": {"name.full": "Jane Doe"},
+            "a": 1,
+            "meta.id": 42,
+            "meta.details.type": "goal",
+            "meta.details.x": 12,
         }
     ]
 
-    # 9. Select single and multiple fields again
-    assert Flow(data).select("id", "value").collect() == [{"id": 1, "value": 10}]
-    # 10. Select nested field again
-    assert Flow(data).select("nested.x").collect() == [{"nested.x": 1}]
-    # 11. Select dotted field again
-    assert Flow(data).select("extra.field").collect() == [{"extra.field": "foo"}]
-    # 12. Select missing field again
-    assert Flow(data).select("does_not_exist").collect() == [{"does_not_exist": None}]
-    # 13. Select deep nested again
-    assert Flow(data).select("nested.y.z").collect() == [{"nested.y.z": 2}]
 
-    # 14. Flatten and select
-    recs = Flow(data).flatten().select("another.extra.field.that.is.nested").collect()
-    assert recs == [{"another.extra.field.that.is.nested": "foo"}]
-
-    recs = (
-        Flow(data)
-        .rename(**{"player.info": "player_info"})
-        .assign(name_full=lambda r: r["player_info"].get("name.full"))
-        .select("name_full")
-    )
-    # 15. Rename and assign
-    assert recs.collect() == [{"name_full": "Jane Doe"}]
-
-
-def test_filter(sample_records):
-    # 1. Filter by value
-    out = Flow(sample_records).filter(lambda r: r["value"] == 10).collect()
-    assert out == [sample_records[0], sample_records[2]]
-    # 2. Filter with no matches
-    out = Flow(sample_records).filter(lambda r: r["value"] > 1000).collect()
-    assert out == []
-    # 3. Filter with get and missing field
-    out = (
-        Flow(sample_records)
-        .filter(lambda r: r.get("does_not_exist", -1) > 1000)
-        .collect()
-    )
-    assert out == []
-    # 4. Raise KeyError if field missing
-    with pytest.raises(KeyError):
-        Flow(sample_records).filter(lambda r: r["does_not_exist"] > 1000).collect()
-    # 5. Filter with get and missing field
-    out = (
-        Flow(sample_records)
-        .filter(lambda r: r.get("does_not_exist", -1) > 1000)
-        .collect()
-    )
-    # 6. Filter with get and missing field
-    assert out == []
-
-    out = Flow(sample_records).filter(lambda r: r["value"] == 10).collect()
-    # 7. Filter by value again
-    assert out == [sample_records[0], sample_records[2]]
-
-    out = Flow(sample_records).filter(lambda r: r["value"] > 1000).collect()
-    # 8. Filter with no matches again
-    assert out == []
-
-    # 9. Raise KeyError if field missing again
-    with pytest.raises(KeyError):
-        Flow(sample_records).filter(lambda r: r["does_not_exist"] > 1000).collect()
-
-    out = (
-        Flow(sample_records)
-        .filter(lambda r: r.get("does_not_exist", -1) > 1000)
-        .collect()
-    )
-    # 10. Filter with get and missing field again
-    assert out == []
-
-
-def test_assign(sample_records):
-    # 1. Assign new field
-    out = (
-        Flow(sample_records)
-        .assign(double=lambda r: r["value"] * 2)
-        .select("id", "double")
-        .collect()
-    )
-    # 1. Assign new field
-    assert out == [
-        {"id": 1, "double": 20},
-        {"id": 2, "double": 40},
-        {"id": 3, "double": 20},
+def test_distinct_keep_last():
+    data = [
+        {"x": 1, "y": 1},
+        {"x": 1, "y": 99},  # this should be kept if keep='last'
+        {"x": 2, "y": 2},
+        {"x": 2, "y": 88},  # this should be kept
     ]
-    # 2. Assign multiple fields
-    out = (
-        Flow(sample_records)
-        .assign(double=lambda r: r["value"] * 2, double_id=lambda r: r["id"] * 2)
-        .select("double_id", "double")
-        .collect()
-    )
-    assert out == [
-        {"double_id": 2, "double": 20},
-        {"double_id": 4, "double": 40},
-        {"double_id": 6, "double": 20},
+
+    result = Flow.from_list(data).distinct("x", keep="last").collect()
+
+    assert result == [
+        {"x": 1, "y": 99},
+        {"x": 2, "y": 88},
     ]
-    # 3. Assign overwrites field
-    out = Flow(sample_records).assign(id=lambda r: r["id"] * 2).select("id").collect()
-    assert out == [
-        {"id": 2},
+
+
+def test_distinct_keep_first():
+    data = [
+        {"x": 1, "y": 1},
+        {"x": 1, "y": 99},  # should be skipped
+        {"x": 2, "y": 2},
+        {"x": 2, "y": 88},  # should be skipped
+    ]
+
+    result = Flow.from_list(data).distinct("x", keep="first").collect()
+
+    assert result == [
+        {"x": 1, "y": 1},
+        {"x": 2, "y": 2},
+    ]
+
+
+def test_dropna_specific_fields():
+    data = [
+        {"id": 1, "score": 5},
+        {"id": 2, "score": None},
+        {"id": 3},
+        {"id": None, "score": 7},
+    ]
+    result = Flow.from_list(data).dropna("id", "score").collect()
+    assert result == [{"id": 1, "score": 5}]
+
+
+def test_dropna_any_top_level():
+    data = [
+        {"id": 1, "score": 5},
+        {"id": 2, "score": None},
+        {"id": None, "score": 3},
+        {"id": 3},  # missing score
+    ]
+    result = Flow.from_list(data).dropna().collect()
+    assert result == [{"id": 1, "score": 5}]
+
+
+def test_explode_flat():
+    data = [
+        {"id": 1, "tags": ["a", "b"]},
+        {"id": 2, "tags": []},
+        {"id": 3, "tags": None},
         {"id": 4},
-        {"id": 6},
     ]
-    # 4. Assign on empty Flow
-    assert Flow([]).assign(new_field=lambda r: 1).collect() == []
-    # 5. Assign value from record
-    recs = Flow(sample_records).assign(b=lambda r: r["id"]).collect()
-    # 5. Assign value from record
-    assert recs[0]["b"] == 1
-    # 6. Assign sum of fields
-    recs = Flow([{"a": 1, "b": 2}]).assign(c=lambda r: r["a"] + r["b"]).collect()
-    # 6. Assign sum of fields
-    assert recs == [{"a": 1, "b": 2, "c": 3}]
-    # 7. Assign order matters
-    recs = (
-        Flow([{"a": 1, "b": 2}])
-        .assign(a=lambda r: r["b"], b=lambda r: r["a"])
-        .collect()
-    )
-    # 7. Assign order matters
-    assert recs == [{"a": 2, "b": 2}]
-    # 8. Assign constant value
-    recs = Flow([{"a": 1, "b": 2}]).assign(c=lambda r: 1).collect()
-    # 8. Assign constant value
-    assert recs[0]["c"] == 1
-    # 9. Assign with non-callable raises TypeError
-    assert Flow([{"a": 1, "b": 2}]).assign(c=1).collect() == [{"a": 1, "b": 2, "c": 1}]
+    result = Flow.from_list(data).explode("tags").collect()
 
-    out = (
-        Flow(sample_records)
-        .assign(double=lambda r: r["value"] * 2)
-        .select("id", "double")
-        .collect()
-    )
-    # 1. Assign new field
-    assert out == [
-        {"id": 1, "double": 20},
-        {"id": 2, "double": 40},
-        {"id": 3, "double": 20},
-    ]
-
-    out = (
-        Flow(sample_records)
-        .assign(double=lambda r: r["value"] * 2, double_id=lambda r: r["id"] * 2)
-        .select("double_id", "double")
-        .collect()
-    )
-    # 2. Assign multiple fields
-    assert out == [
-        {"double_id": 2, "double": 20},
-        {"double_id": 4, "double": 40},
-        {"double_id": 6, "double": 20},
-    ]
-
-    # 3. Assign overwrites field
-    out = Flow(sample_records).assign(id=lambda r: r["id"] * 2).select("id").collect()
-    assert out == [
-        {"id": 2},
+    expected = [
+        {"id": 1, "tags": "a"},
+        {"id": 1, "tags": "b"},
+        {"id": 2, "tags": []},
+        {"id": 3, "tags": None},
         {"id": 4},
-        {"id": 6},
-    ]
-    # 4. Assign overwrites field
-    assert Flow([]).assign(new_field=lambda r: 1).collect() == []
-
-    recs = Flow(sample_records).assign(b=lambda r: r["id"]).collect()
-    # 5. Assign overwrites field
-    assert recs[0]["b"] == 1
-
-    recs = Flow([{"a": 1, "b": 2}]).assign(c=lambda r: r["a"] + r["b"]).collect()
-    # 6. Assign sum of fields
-    assert recs == [{"a": 1, "b": 2, "c": 3}]
-
-    recs = (
-        Flow([{"a": 1, "b": 2}])
-        .assign(a=lambda r: r["b"], b=lambda r: r["a"])
-        .collect()
-    )
-    # 7. Assign order matters
-    assert recs == [{"a": 2, "b": 2}]
-
-    recs = Flow([{"a": 1, "b": 2}]).assign(c=lambda r: 1).collect()
-    # 8. Assign constant value
-    assert recs[0]["c"] == 1
-
-    assert Flow([{"a": 1, "b": 2}]).assign(c=1).collect() == [{"a": 1, "b": 2, "c": 1}]
-
-    flow = Flow([{"a": 1, "b": 2}])
-    flow.assign(**{"b.c": 12}).collect()
-    assert flow.collect() == [{"a": 1, "b": {"c": 12}}]
-
-    flow = Flow([{"a": 1, "b": 2}])
-    flow.assign(**{"b.c": lambda r: r["a"] * 4}).collect()
-    assert flow.collect() == [{"a": 1, "b": {"c": 4}}]
-
-
-def test_drop(sample_records):
-    # 1. Drop a single field
-    recs = Flow(sample_records).drop("id").collect()
-    # 2. Drop multiple fields
-    assert recs == [
-        {"value": 10, "tags": ["a", "b"], "nested": {"x": 1, "y": {"z": 2}}},
-        {"value": 20, "tags": ["b"], "nested": {"x": 3, "y": {"z": 4}}},
-        {"value": 10, "tags": [], "nested": {"x": 5}},
-    ]
-    # 2. Drop multiple fields
-    recs = Flow(sample_records).drop("id", "value").collect()
-    assert recs == [
-        {"tags": ["a", "b"], "nested": {"x": 1, "y": {"z": 2}}},
-        {"tags": ["b"], "nested": {"x": 3, "y": {"z": 4}}},
-        {"tags": [], "nested": {"x": 5}},
-    ]
-    # 3. Drop on empty Flow
-    assert Flow([]).drop("id").collect() == []
-    # 4. Drop missing field does nothing
-    recs = Flow(sample_records).drop("does_not_exist").collect()
-    # 5. Drop missing field does nothing
-    assert recs == sample_records
-
-    recs = Flow(sample_records).drop("id").collect()
-    # 6. Drop a single field again
-    assert recs == [
-        {"value": 10, "tags": ["a", "b"], "nested": {"x": 1, "y": {"z": 2}}},
-        {"value": 20, "tags": ["b"], "nested": {"x": 3, "y": {"z": 4}}},
-        {"value": 10, "tags": [], "nested": {"x": 5}},
     ]
 
-    recs = Flow(sample_records).drop("id", "value").collect()
-    assert recs == [
-        {"tags": ["a", "b"], "nested": {"x": 1, "y": {"z": 2}}},
-        {"tags": ["b"], "nested": {"x": 3, "y": {"z": 4}}},
-        {"tags": [], "nested": {"x": 5}},
+    for r, e in zip(result, expected):
+        assert r == e, f"Mismatch:\nactual:   {r}\nexpected: {e}"
+
+    assert result == expected
+
+
+def test_explode_nested():
+    data = [
+        {"event": {"id": 1, "tags": ["a", "b"]}},
+        {"event": {"id": 2, "tags": ["c"]}},
     ]
+    result = Flow.from_list(data).explode("event.tags").collect()
 
-    assert Flow([]).drop("id").collect() == []
-
-    recs = Flow(sample_records).drop("does_not_exist").collect()
-    # 7. Drop missing field does nothing again
-    assert recs == sample_records
-
-    # 8. Drop a nested field using dot notation
-    recs = Flow(sample_records).drop("nested.y.z").collect()
-    assert recs == [
-        {"id": 1, "value": 10, "tags": ["a", "b"], "nested": {"x": 1, "y": {}}},
-        {"id": 2, "value": 20, "tags": ["b"], "nested": {"x": 3, "y": {}}},
-        {"id": 3, "value": 10, "tags": [], "nested": {"x": 5}},
+    assert result == [
+        {"event": {"id": 1, "tags": "a"}},
+        {"event": {"id": 1, "tags": "b"}},
+        {"event": {"id": 2, "tags": "c"}},
     ]
 
 
-def test_sort_limit_head(sample_records):
-    # 1. Sorting by a field missing in some records
-    records = [
-        {"id": 1, "value": 2},
-        {"id": 2},
-        {"id": 3, "value": 1},
+def test_explode_multiple_fields():
+    data = [
+        {"id": 1, "tags": ["a", "b"], "players": ["alice", "bob"]},
+        {"id": 2, "tags": ["c"], "players": ["charlie"]},
+        {"id": 3, "tags": None, "players": None},
+        {"id": 4},  # no fields
     ]
-    sorted_recs = Flow(records).sort("value").collect()
-    # 1. Sorting by a field missing in some records
-    assert [r["id"] for r in sorted_recs] == [3, 1, 2]  # missing value at end
+    result = Flow.from_list(data).explode("tags", "players").collect()
 
-    # 2. Sorting by a field with some None values
-    records = [
-        {"id": 1, "value": 2},
-        {"id": 2, "value": None},
-        {"id": 3, "value": 1},
+    assert result == [
+        {"id": 1, "tags": "a", "players": "alice"},
+        {"id": 1, "tags": "b", "players": "bob"},
+        {"id": 2, "tags": "c", "players": "charlie"},
+        {"id": 3, "tags": None, "players": None},
+        {"id": 4},
     ]
-    sorted_recs = Flow(records).sort("value").collect()
-    # 2. Sorting by a field with some None values
-    assert [r["id"] for r in sorted_recs] == [3, 1, 2]
 
-    # 3. Sorting by a field with mixed types (should raise TypeError)
-    records = [
-        {"id": 1, "value": 2},
-        {"id": 2, "value": "a"},
-        {"id": 3, "value": 1},
+
+def test_left_join():
+    left = [
+        {"id": 1, "x": 10},
+        {"id": 2, "x": 20},
+        {"id": 3, "x": 30},
     ]
-    with pytest.raises(TypeError):
-        Flow(records).sort("value").collect()
 
-    # 4. Sorting by a field where all values are None
-    records = [
-        {"id": 1, "value": None},
-        {"id": 2, "value": None},
+    right = [
+        {"id": 1, "y": 100},
+        {"id": 2, "y": 200},
     ]
-    sorted_recs = Flow(records).sort("value").collect()
-    # 4. Sorting by a field where all values are None
-    assert [r["id"] for r in sorted_recs] == [1, 2]
 
-    # 5. Sorting by a non-existent field (all missing)
-    records = [
-        {"id": 1},
-        {"id": 2},
+    flow1 = Flow.from_list(left)
+    flow2 = Flow.from_list(right)
+
+    result = flow1.join(flow2, on="id").collect()
+
+    assert result == [
+        {"id": 1, "x": 10, "y": 100},
+        {"id": 2, "x": 20, "y": 200},
+        {"id": 3, "x": 30},  # no match
     ]
-    sorted_recs = Flow(records).sort("nonexistent").collect()
-    assert [r["id"] for r in sorted_recs] == [1, 2]
 
-    # 6. Sorting with reverse=True and None/missing values
-    records = [
-        {"id": 1, "value": 2},
-        {"id": 2},
-        {"id": 3, "value": 1},
+
+def test_join_with_conflicting_keys():
+    left = [{"id": 1, "value": "left"}]
+    right = [{"id": 1, "value": "right"}]
+
+    flow1 = Flow.from_list(left)
+    flow2 = Flow.from_list(right)
+
+    result = flow1.join(flow2, on="id").collect()
+
+    assert result == [{"id": 1, "value": "left", "value_right": "right"}]
+
+
+def test_inner_join():
+    left = [
+        {"id": 1, "x": 10},
+        {"id": 2, "x": 20},
+        {"id": 3, "x": 30},
     ]
-    sorted_recs = Flow(records).sort("value", ascending=False).collect()
-    # 6. Sorting with reverse=True and None/missing values
-    assert [r["id"] for r in sorted_recs] == [1, 3, 2]
 
-    # 7. Sorting when field values are not comparable (should raise TypeError)
-    records = [
-        {"id": 1, "value": object()},
-        {"id": 2, "value": 1},
+    right = [
+        {"id": 1, "y": 100},
+        {"id": 2, "y": 200},
+        {"id": 4, "y": 400},
     ]
-    with pytest.raises(TypeError):
-        Flow(records).sort("value").collect()
 
-    # 8. Sorting a single-record Flow
-    records = [{"id": 1, "value": 2}]
-    sorted_recs = Flow(records).sort("value").collect()
-    # 8. Sorting a single-record Flow
-    assert sorted_recs == records
-
-    # 9. Sorting by a field with duplicate values (stability)
-    records = [
-        {"id": 1, "value": 2},
-        {"id": 2, "value": 1},
-        {"id": 3, "value": 2},
-    ]
-    sorted_recs = Flow(records).sort("value").collect()
-    # ids with value=2 should preserve order (1, then 3)
-    # 9. Sorting by a field with duplicate values (stability)
-    assert [r["id"] for r in sorted_recs] == [2, 1, 3]
-
-    top2 = Flow(sample_records).sort("value", ascending=False).limit(2).collect()
-    # 10. Limit after sorting in descending order
-    assert [r["id"] for r in top2] == [2, 1]
-
-    top2 = Flow(sample_records).sort("value", ascending=True).limit(2).collect()
-    # 11. Limit after sorting in ascending order
-    assert [r["id"] for r in top2] == [1, 3]
-
-    top2 = Flow(sample_records).sort("value", ascending=False).head(2).collect()
-    # 12. Head after sorting in descending order
-    assert [r["id"] for r in top2] == [2, 1]
-
-    assert Flow(sample_records).head(1).collect() == [sample_records[0]]
-    # 13. Sort on empty Flow
-    assert Flow([]).sort("id").collect() == []
-
-    with pytest.raises(ValueError):
-        Flow(sample_records).head(-1)
-
-    with pytest.raises(ValueError):
-        Flow(sample_records).limit(-1)
-
-
-def test_sort_multiple_fields():
-    records = [
-        {"id": 1, "a": 2, "b": 3},
-        {"id": 2, "a": 1, "b": 2},
-        {"id": 3, "a": 2, "b": 2},
-        {"id": 4, "a": 1, "b": 3},
-        {"id": 5, "a": None, "b": 1},
-        {"id": 6, "a": 2, "b": None},
-        {"id": 7, "a": None, "b": None},
-    ]
-    # Sort by a, then b
-    sorted_recs = Flow(records).sort(["a", "b"]).collect()
-    # ids: 2 (a=1,b=2), 4 (a=1,b=3), 3 (a=2,b=2), 1 (a=2,b=3), 5 (a=None,b=1), 6 (a=2,b=None), 7 (a=None,b=None)
-    assert [r["id"] for r in sorted_recs] == [2, 4, 3, 1, 5, 6, 7]
-
-    # Sort by b, then a
-    sorted_recs = Flow(records).sort(["b", "a"]).collect()
-    # ids: 2 (b=2,a=1), 3 (b=2,a=2), 4 (b=3,a=1), 1 (b=3,a=2), 5 (b=1,a=None), 6 (b=None,a=2), 7 (b=None,a=None)
-    assert [r["id"] for r in sorted_recs] == [2, 3, 4, 1, 5, 6, 7]
-
-    # Sort by a, then b, reverse
-    sorted_recs = Flow(records).sort(["a", "b"], ascending=False).collect()
-    # ids: 1 (a=2,b=3), 3 (a=2,b=2), 4 (a=1,b=3), 2 (a=1,b=2), 5 (a=None,b=1), 6 (a=2,b=None), 7 (a=None,b=None)
-    assert [r["id"] for r in sorted_recs] == [1, 3, 4, 2, 5, 6, 7]
-
-    # Sort by a single field (should match previous tests)
-    sorted_recs = Flow(records).sort("a").collect()
-    # ids: 2, 4, 1, 3, 6, 5, 7 (by a, then original order for ties)
-    assert [r["id"] for r in sorted_recs if r["a"] is not None] == [2, 4, 1, 3, 6]
-    assert [r["id"] for r in sorted_recs if r["a"] is None] == [5, 7]
-
-    # Stability: records with same a and b keep original order
-    records_dup = [
-        {"id": 1, "a": 1, "b": 2},
-        {"id": 2, "a": 1, "b": 2},
-        {"id": 3, "a": 1, "b": 2},
-    ]
-    sorted_recs = Flow(records_dup).sort(["a", "b"]).collect()
-    assert [r["id"] for r in sorted_recs] == [1, 2, 3]
-
-    # All None in one field
-    records_none = [
-        {"id": 1, "a": None, "b": 2},
-        {"id": 2, "a": None, "b": 1},
-    ]
-    sorted_recs = Flow(records_none).sort(["a", "b"]).collect()
-    assert [r["id"] for r in sorted_recs] == [1, 2]
-
-
-@pytest.mark.filterwarnings(
-    "ignore:'tags' has only.*elements but expected.*:UserWarning"
-)
-def test_split_array(sample_records):
-    # 1. 'into' is not a list (should raise ValueError)
-    with pytest.warns(UserWarning):
-        Flow(sample_records).split_array("tags", into="notalist").collect()
-
-    # 2. input list is shorter than 'into'
-    recs = Flow([{"tags": ["a"]}]).split_array("tags", into=["t0", "t1"]).collect()
-    # 2. Input list is shorter than 'into'
-    assert recs[0]["t0"] == "a" and recs[0]["t1"] is None
-
-    # 3. array field is None
-    recs = Flow([{"tags": None}]).split_array("tags", into=["t0", "t1"]).collect()
-    # 4. Array field is None or empty: keys may not exist, so check accordingly
-    assert ("t0" not in recs[0] or recs[0]["t0"] is None) and (
-        "t1" not in recs[0] or recs[0]["t1"] is None
+    result = (
+        Flow.from_list(left).join(Flow.from_list(right), on="id", how="inner").collect()
     )
 
-    # 5. array field is an empty list
-    recs = Flow([{"tags": []}]).split_array("tags", into=["t0", "t1"]).collect()
-    assert recs[0]["t0"] is None and recs[0]["t1"] is None
-
-    # 6. original record has extra fields
-    recs = (
-        Flow([{"tags": ["a", "b"], "extra": 123}])
-        .split_array("tags", into=["t0", "t1"])
-        .collect()
-    )
-    # 6. Original record has extra fields
-    assert recs[0]["extra"] == 123
-
-    # 7. 'into' has duplicate names
-    recs = Flow([{"tags": ["a", "b"]}]).split_array("tags", into=["x", "x"]).collect()
-    # The last one should overwrite
-    # 7. 'Into' has duplicate names
-    assert recs[0]["x"] == "b"
-
-    # 8. array field with mixed types
-    recs = (
-        Flow([{"tags": [1, "b", None]}])
-        .split_array("tags", into=["t0", "t1", "t2"])
-        .collect()
-    )
-    # 8. Array field with mixed types
-    assert recs[0]["t0"] == 1 and recs[0]["t1"] == "b" and recs[0]["t2"] is None
-
-    recs = Flow(sample_records).split_array("tags", into=["t0", "t1"]).collect()
-    # 9. Split array into fields
-    assert recs[0]["t0"] == "a" and recs[0]["t1"] == "b"
-
-    with pytest.raises(TypeError):
-        Flow(sample_records).split_array("tags").collect()
-
-    recs = (
-        Flow(sample_records).split_array("does_not_exist", into=["t0", "t1"]).collect()
-    )
-    assert ("t0" not in recs[0] or recs[0]["t0"] is None) and (
-        "t1" not in recs[0] or recs[0]["t1"] is None
-    )
-
-    recs = (
-        Flow([{"id": 1, "tags": "not_a_list"}])
-        .split_array("tags", into=["t0"])
-        .collect()
-    )
-    # 10. Split array with non-list field
-    assert "t0" not in recs[0] or recs[0]["t0"] is None
-
-    recs = (
-        Flow([{"id": 1, "tags": ["a", "b", "c"]}])
-        .split_array("tags", into=["t0", "t1"])
-        .collect()
-    )
-    # 11. Split array with more elements than 'into'
-    assert recs[0]["t0"] == "a" and recs[0]["t1"] == "b"
-    assert "t2" not in recs[0]
-
-    recs = Flow(sample_records).split_array("tags", into=[]).collect()
-    # 12. Split array with empty 'into'
-    assert recs == sample_records
-    assert Flow([]).split_array("tags", into=["t0"]).collect() == []
+    assert result == [
+        {"id": 1, "x": 10, "y": 100},
+        {"id": 2, "x": 20, "y": 200},
+    ]
 
 
-def test_explode(sample_records):
-    recs = Flow(sample_records).explode("tags").collect()
-    # 1. Explode list field into multiple records
-    assert all(isinstance(r["tags"], str) for r in recs if r["tags"] != [])
+def test_split_array_to_fields():
+    data = [
+        {"id": 1, "location": [10, 50]},
+        {"id": 2, "location": [30]},
+        {"id": 3, "location": None},
+        {"id": 4},
+    ]
 
-    recs = Flow(sample_records).explode("non_existent_tags").collect()
-    assert recs == sample_records
+    result = Flow.from_list(data).split_array("location", into=["x", "y"]).collect()
 
-    recs = Flow(sample_records).explode("tags").collect()
-    # 3. Explode list field and check length
-    assert len(recs) == 4
-
-    data = [{"id": 1, "tags": "abc"}]
-    # 4. Explode non-list field
-    assert Flow(data).explode("tags").collect() == data
-
-    # 5. Explode on empty Flow
-    assert Flow([]).explode("tags").collect() == []
+    assert result == [
+        {"id": 1, "location": [10, 50], "x": 10, "y": 50},
+        {"id": 2, "location": [30], "x": 30, "y": None},
+        {"id": 3, "location": None},
+        {"id": 4},  # <- passed through unchanged
+    ]
 
 
-def test_group_by_summary_scalar_enforcement(sample_records):
-    import pytest
+def test_pivot_basic():
+    data = [
+        {"player": "Alice", "metric": "goals", "value": 3},
+        {"player": "Alice", "metric": "assists", "value": 2},
+        {"player": "Bob", "metric": "goals", "value": 1},
+        {"player": "Bob", "metric": "assists", "value": 4},
+    ]
 
-    from penaltyblog.matchflow.flow import Flow
-
-    # Valid custom aggregate: returns scalar
-    def scalar_agg(records):
-        return 42
-
-    result = Flow(sample_records).group_by("value").summary(x=scalar_agg).collect()
-    assert all(row["x"] == 42 for row in result)
-
-    # Invalid custom aggregate: returns list
-    def list_agg(records):
-        return [1, 2]
-
-    with pytest.raises(ValueError, match="non-scalar"):
-        Flow(sample_records).group_by("value").summary(x=list_agg).collect()
-
-    # Invalid custom aggregate: returns tuple
-    def tuple_agg(records):
-        return (1, 2)
-
-    with pytest.raises(ValueError, match="non-scalar"):
-        Flow(sample_records).group_by("value").summary(x=tuple_agg).collect()
-
-    # Invalid custom aggregate: returns dict
-    def dict_agg(records):
-        return {"a": 1}
-
-    with pytest.raises(ValueError, match="non-scalar"):
-        Flow(sample_records).group_by("value").summary(x=dict_agg).collect()
-
-    # Invalid custom aggregate: returns set
-    def set_agg(records):
-        return {1, 2}
-
-    with pytest.raises(ValueError, match="non-scalar"):
-        Flow(sample_records).group_by("value").summary(x=set_agg).collect()
-
-
-def test_group_by_summary_ungroup(sample_records):
-    recs = (
-        Flow(sample_records).group_by("value").summary(count=("id", "count")).collect()
-    )
-    # 1. Group by value and summarize count
-    # 2. Group by value and summarize count with shorthand
-    assert {row["value"]: row["count"] for row in recs} == {10: 2, 20: 1}
-
-    recs = Flow(sample_records).group_by("value").summary(count="count").collect()
-    # 3. Group by value and summarize count with shorthand
-    assert {row["value"]: row["count"] for row in recs} == {10: 2, 20: 1}
-
-    recs = (
-        Flow(sample_records)
-        .group_by("id")
-        .summary(count="count", max_value=("value", "max"))
-        .collect()
-    )
-    # 4. Group by id and summarize count and max value
-    assert [x["max_value"] for x in recs] == [10, 20, 10]
-
-    with pytest.raises(AttributeError):
-        Flow(sample_records).ungroup().collect()
-
-    recs = Flow(sample_records).group_by("value").ungroup().collect()
-    # 5. Ungroup after grouping by value
-    assert len(recs) == len(sample_records)
-
-    recs = (
-        Flow(sample_records)
-        .group_by("id")
-        .summary(count="count", max_value=("value", "max"))
-        .select("id")
+    result = (
+        Flow.from_list(data)
+        .pivot(index="player", columns="metric", values="value")
         .collect()
     )
 
-    assert len(recs) == len(sample_records)
-    # 6. Check all ids are present after select
-    assert all(r["id"] is not None for r in recs)
-    # 7. Check max_value is not present after select
-    assert all(r.get("max_value") is None for r in recs)
+    assert result == [
+        {"player": "Alice", "goals": 3, "assists": 2},
+        {"player": "Bob", "goals": 1, "assists": 4},
+    ]
 
 
-def test_row_number_drop_duplicates_take_last(sample_records):
-    rn = Flow(sample_records).row_number("value", new_field="rn").collect()
-    # for value=10 you'd get rn=1,2 (in insertion order)
-    ids_for_10 = [r["id"] for r in rn if r["value"] == 10]
-    # 1. Row number by value
-    assert set(ids_for_10) == {1, 3}
-    # drop duplicates by value
-    unique = Flow([{"a": 1}, {"a": 1}, {"a": 2}]).drop_duplicates("a").collect()
-    # 2. Drop duplicates by field
-    assert unique == [{"a": 1}, {"a": 2}]
-    # take_last
-    last1 = Flow([{"x": i} for i in range(5)]).take_last(1).collect()
-    # 3. Take last n records
-    assert last1 == [{"x": 4}]
+def test_ungrouped_summary():
+    data = [
+        {"x": 10},
+        {"x": 20},
+        {"x": 30},
+    ]
+
+    result = (
+        Flow.from_list(data)
+        .summary(
+            {
+                "count": count(),
+                "sum_x": sum_("x"),
+                "mean_x": mean_("x"),
+            }
+        )
+        .collect()
+    )
+
+    assert result == [{"count": 3, "sum_x": 60, "mean_x": 20.0}]
 
 
-def test_concat():
-    # 1. Concatenate two empty Flows
-    assert Flow([]).concat(Flow([])).collect() == []
-    # 2. Concatenate two non-empty Flows
-    assert Flow([{"x": 1}]).concat(Flow([{"x": 2}])).collect() == [{"x": 1}, {"x": 2}]
-    assert Flow([{"x": 1}]).concat(Flow([{"x": 2}])).concat(
-        Flow([{"x": 3}])
-    ).collect() == [
+def test_invalid_summary_output():
+    with pytest.raises(ValueError, match="summary function must return a dict"):
+        Flow.from_list([{"x": 1}, {"x": 2}]).summary(
+            lambda rows: [{"x": 1}, {"x": 2}]
+        ).collect()
+
+
+def test_count(data2):
+    assert count()(data2) == 4
+
+
+def test_count_nonnull():
+    data = [
+        {"nested": {"v": 100}},
+        {"nested": {"v": 200}},
+        {"nested": {"v": None}},
+        {},  # missing entirely
+    ]
+
+    assert count_nonnull("nested.v")(data) == 2
+    assert count_nonnull("nested.v")(data) == 2
+
+
+def test_sum_(data2):
+    assert sum_("x")(data2) == 70
+
+
+def test_mean_(data2):
+    assert mean_("x")(data2) == pytest.approx(70 / 3)
+
+
+def test_min_(data2):
+    assert min_("x")(data2) == 10
+
+
+def test_max_(data2):
+    assert max_("x")(data2) == 40
+
+
+def test_std_(data2):
+    assert std_("x")(data2) == pytest.approx(np.std([10, 20, 40], ddof=0))
+
+
+def test_median_(data2):
+    assert median_("x")(data2) == 20
+
+
+def test_range_(data2):
+    assert range_("x")(data2) == 30
+
+
+def test_iqr_(data2):
+    assert iqr_("x")(data2) == pytest.approx(15)
+
+
+def test_percentile_(data2):
+    assert percentile_("x", 90)(data2) == pytest.approx(36)
+
+
+def test_mode_():
+    data = [
+        {"y": 1},
+        {"y": 1},
+        {"y": 2},
+        {"y": 3},
+    ]
+    assert mode_("y")(data) == 1
+
+
+def test_first_last(data2):
+    assert first_("x")(data2) == 10
+    assert last_("x")(data2) == 40
+
+
+def test_unique():
+    data = [
+        {"y": 1},
+        {"y": 1},
+        {"y": 2},
+        {"y": 3},
+    ]
+    assert set(unique("y")(data)) == {1, 2, 3}
+
+
+def test_list_():
+    data = [
+        {"y": 1},
+        {"y": 1},
+        {"y": 2},
+        {"y": 3},
+    ]
+    assert list_("y")(data) == [1, 1, 2, 3]
+
+
+def test_all_():
+    data = [
         {"x": 1},
         {"x": 2},
         {"x": 3},
     ]
+    assert all_("x")(data) == True
 
 
-def test_join_and_errors(sample_records):
-    right = [{"key": 10, "foo": "bar"}, {"key": 99, "foo": "nope"}]
-    joined = (
-        Flow(sample_records)
-        .join(right, left_on="value", right_on="key", fields=["foo"], how="inner")
-        .collect()
-    )
-    # 1. Inner join with matching keys
-    assert all(r.get("foo") == "bar" for r in joined)
-    # 2. Check length of joined records
-    assert len(joined) == 2
-
-    joined = (
-        Flow(sample_records)
-        .join(right, left_on="value", right_on="key", fields=["foo"], how="left")
-        .collect()
-    )
-    # 3. Left join with matching keys
-    assert any(r.get("foo") == "bar" for r in joined)
-    # 4. Check length of joined records
-    assert len(joined) == 3
-
-    joined = (
-        Flow(sample_records)
-        .join(right, left_on="value", right_on="key", fields=["foo"])
-        .collect()
-    )
-    assert any(r.get("foo") == "bar" for r in joined)
-    assert len(joined) == 3
-
-    with pytest.raises(ValueError):
-        flow = Flow(sample_records)
-        flow.join(right, "value", "key", how="weird").collect()
-
-    right = [{"key": 100, "foo": "bar"}, {"key": 99, "foo": "nope"}]
-    joined = (
-        Flow(sample_records)
-        .join(right, left_on="value", right_on="key", fields=["foo"], how="inner")
-        .collect()
-    )
-    # 5. Inner join with no matching keys
-    assert len(joined) == 0
-
-    right = [{"does_not_exist": 100, "foo": "bar"}]
-    joined = (
-        Flow(sample_records)
-        .join(
-            right,
-            left_on="value",
-            right_on="does_not_exist",
-            fields=["foo"],
-            how="inner",
-        )
-        .collect()
-    )
-    # 6. Inner join with non-existent keys
-    assert len(joined) == 0
-
-    right = [{"key": 10, "foo": "bar"}]
-    joined = (
-        Flow(sample_records)
-        .join(
-            right,
-            left_on="does_not_exist",
-            right_on="does_not_exist",
-            fields=["foo"],
-            how="inner",
-        )
-        .collect()
-    )
-    # 7. Inner join with non-existent keys on both sides
-    assert len(joined) == 0
+def test_all_any(data2):
+    assert all_("x")(data2) is False
+    assert any_("x")(data2) is True
 
 
-def test_first_last_is_empty_keys(sample_records):
-    flow = Flow(sample_records)
-    # 1. First record by id
-    assert flow.first()["id"] == 1
-    # 2. Last record by id
-    assert flow.last()["id"] == 3
-    # 3. Check if empty Flow is empty
-    assert Flow([]).is_empty() is True
-    # 4. Check if non-empty Flow is not empty
-    assert Flow(sample_records).is_empty() is False
-    # keys union
-    ks = flow.keys(limit=1)
-    # 5. Check keys in Flow
-    assert "id" in ks and "value" in ks
+def test_nested_field_access(data2):
+    assert sum_("nested.y")(data2) == 6
+    assert count_nonnull("x")(data2) == 3
+    assert first_("nested.y")(data2) == 1
 
 
-def test_flatten_and_to_pandas(sample_records):
-    flow = Flow(sample_records)
-    flat = flow.flatten().collect()
-    # nested.x should become top‐level
-    # 1. Flatten nested fields
-    assert all("nested.x" in r for r in flat)
-    df = Flow(sample_records).to_pandas()
-    # 2. Convert to pandas DataFrame
-    assert isinstance(df, pd.DataFrame)
-    # 3. Check DataFrame columns
-    assert set(df.columns) >= {"id", "value", "tags", "nested"}
+def test_empty_data():
+    empty = []
+
+    assert count()(empty) == 0
+    assert sum_("x")(empty) == 0
+    assert mean_("x")(empty) is None
+    assert median_("x")(empty) is None
+    assert percentile_("x", 90)(empty) is None
+    assert list_("x")(empty) == []
 
 
-def test_json_file_roundtrip(tmp_path, sample_records):
-    folder = tmp_path / "out"
-    Flow(sample_records).to_json_files(folder, by="id")
-    # ensure files exist
-    files = sorted(folder.iterdir())
-    # 1. Check JSON files exist
-    assert any(f.name == "1.json" for f in files)
-    # test jsonl
-    jl = tmp_path / "data.jsonl"
-    Flow(sample_records).to_jsonl(jl)
-    reloaded = Flow.from_jsonl(jl).collect()
-    # 2. Reload from JSONL and check records
-    assert reloaded == sample_records
-    # test single‐json
-    js = tmp_path / "data.json"
-    Flow(sample_records).to_json_single(js)
-    re2 = Flow.from_file(js).collect()
-    # 3. Reload from single JSON and check records
-    assert re2 == sample_records
-
-
-def test_from_folder_and_glob(tmp_path, sample_records):
-    # write two json files
-    f1 = tmp_path / "a.json"
-    f2 = tmp_path / "b.json"
-    f1.write_text(json.dumps(sample_records[0]))
-    f2.write_text(json.dumps([sample_records[1], sample_records[2]]))
-    all_recs = Flow.from_folder(tmp_path).collect()
-    # 1. Load from folder and check record count
-    assert len(all_recs) == 3
-
-    # glob
-    all2 = Flow.from_glob(str(tmp_path / "*.json")).collect()
-    # 2. Load from glob pattern and check record count
-    assert len(all2) == 3
-
-
-def test_describe(sample_records):
-    df = Flow(sample_records).describe()
-    unique_values = {r["value"] for r in sample_records}
-    # 1. Check unique values in description
-    assert len(unique_values) == 2
-    # 2. Check '25%' percentile in description
-    assert "25%" in df.index
-
-
-def test_pipe(sample_records):
-    def custom_filter_and_limit(flow_instance, val_gt, num):
-        return flow_instance.filter(lambda r: r.get("value", 0) == val_gt).limit(num)
-
-    recs = Flow(sample_records).pipe(custom_filter_and_limit, 10, 10)
-    # 1. Pipe custom filter and limit
-    assert len(recs.collect()) == 2
-
-    def returns_list(flow):
-        return flow.collect()
-
-    recs = Flow(sample_records).pipe(returns_list)
-    # 2. Pipe function returning list
-    assert isinstance(recs, list)
-
-
-def test_explode_multi():
+def test_groupby_summary_with_sum():
     data = [
-        {"id": 1, "names": ["A", "B"], "scores": [100, 200, 300]},
-        {"id": 2, "names": ["C", "D", "E"]},
-        {"id": 3, "scores": [400]},
+        {"team": "A", "points": 10},
+        {"team": "A", "points": 20},
+        {"team": "B", "points": 15},
     ]
 
-    recs = Flow(data).explode_multi(["names", "scores"]).collect()
-    expected = [
-        {"id": 1, "names": "A", "scores": 100},
-        {"id": 1, "names": "B", "scores": 200},
-        {"id": 1, "names": None, "scores": 300},
-        {"id": 2, "names": "C", "scores": None},
-        {"id": 2, "names": "D", "scores": None},
-        {"id": 2, "names": "E", "scores": None},
-        {"id": 3, "names": None, "scores": 400},
+    flow = Flow.from_list(data)
+    result = flow.group_by("team").summary({"points": ("sum", "points")}).collect()
+
+    assert any(r["team"] == "A" and r["points"] == 30 for r in result)
+    assert any(r["team"] == "B" and r["points"] == 15 for r in result)
+
+
+def test_summary_on_nested_field():
+    data = [
+        {"player": {"stats": {"points": 10}}},
+        {"player": {"stats": {"points": 20}}},
+        {"player": {"stats": {"points": 15}}},
     ]
-    # 1. Explode multiple fields with different lengths
-    assert recs == expected
 
-    # Custom fillvalue
-    recs = Flow(data).explode_multi(["names", "scores"], fillvalue="MISSING").collect()
-    # 2. Explode with custom fillvalue
-    assert recs[2]["names"] == "MISSING"
-
-    # Empty keys list
-    with pytest.raises(ValueError):
-        Flow(data).explode_multi([]).collect()
-
-    # missing key from all records
-    recs = Flow(data).explode_multi(["does_not_exist"]).collect()
-    # 4. Explode with missing key from all records
-    assert recs == data
-
-
-def test_sample_and_sample_frac_edge_cases(sample_records):
-    # sample
-    # 1. Sample with zero count
-    assert len(Flow(sample_records).sample(0).collect()) == 0
-    # 2. Sample with count greater than available
-    assert len(Flow(sample_records).sample(100).collect()) == len(sample_records)
-
-    sampled = Flow(sample_records).sample(3, seed=42).collect()
-    # 3. Sample with seed for reproducibility
-    assert len(sampled) == 3
-    sampled2 = Flow(sample_records).sample(3, seed=42).collect()
-    # 4. Check reproducibility with seed
-    assert sampled == sampled2
-    # 5. Sample from empty Flow
-    assert Flow([]).sample(5).collect() == []
-
-    # sample_frac
-    # 6. Sample fraction with zero fraction
-    assert len(Flow(sample_records).sample_frac(0.0).collect()) == 0
-    all_selected = Flow(sample_records).sample_frac(1.0).collect()
-    # 7. Sample fraction with full fraction
-    assert all_selected == sample_records
-    # Approx fraction
-    frac_sample = (
-        Flow(sample_records * 20).sample_frac(0.5, seed=123).collect()
-    )  # Larger N
-    assert (
-        len(sample_records * 20) * 0.2
-        < len(frac_sample)
-        < len(sample_records * 20) * 0.7
+    result = (
+        Flow.from_list(data)
+        .summary({"total_points": ("sum", "player.stats.points")})
+        .collect()
     )
 
-    # 9. Sample fraction from empty Flow
-    assert Flow([]).sample_frac(0.5).collect() == []
+    assert len(result) == 1
+    assert result[0]["total_points"] == 45
 
 
-@pytest.mark.parametrize(
-    "flow_factory,should_warn",
-    [
-        (lambda records: Flow(records), False),  # list input: no warning
-        (lambda records: Flow((r for r in records)), True),  # generator input: warning
-    ],
-)
-def test_consumed_warning_collect(sample_records, flow_factory, should_warn):
-    flow = flow_factory(sample_records)
-    flow.collect()  # first time: no warning
-    if should_warn:
-        with pytest.warns(RuntimeWarning, match="already been consumed"):
-            flow.collect()
-    else:
-        flow.collect()  # should NOT warn
-
-
-@pytest.mark.filterwarnings(
-    "ignore:This Flow has already been consumed and is now empty"
-)
-@pytest.mark.parametrize(
-    "flow_factory,should_warn",
-    [
-        (lambda records: Flow(records), False),
-        (lambda records: Flow((r for r in records)), True),
-    ],
-)
-def test_consumed_warning_iter(sample_records, flow_factory, should_warn):
-    flow = flow_factory(sample_records)
-    list(flow)  # first time: no warning
-    if should_warn:
-        with pytest.warns(RuntimeWarning, match="already been consumed"):
-            list(flow)
-    else:
-        list(flow)
-
-
-@pytest.mark.filterwarnings(
-    "ignore:This Flow has already been consumed and is now empty"
-)
-@pytest.mark.parametrize(
-    "flow_factory,should_warn",
-    [
-        (lambda records: Flow(records), False),
-        (lambda records: Flow((r for r in records)), True),
-    ],
-)
-def test_consumed_warning_len(sample_records, flow_factory, should_warn):
-    flow = flow_factory(sample_records)
-    len(flow)  # first time: no warning
-    if should_warn:
-        with pytest.warns(RuntimeWarning, match="already been consumed"):
-            len(flow)
-    else:
-        len(flow)
-
-
-@pytest.mark.parametrize(
-    "flow_factory,should_warn",
-    [
-        (lambda records: Flow(records), False),
-        (lambda records: Flow((r for r in records)), True),
-    ],
-)
-def test_consumed_warning_to_pandas(sample_records, flow_factory, should_warn):
-    flow = flow_factory(sample_records)
-    flow.to_pandas()  # first time: no warning
-    if should_warn:
-        with pytest.warns(RuntimeWarning, match="already been consumed"):
-            flow.to_pandas()
-
-
-def test_flatten_edge_cases():
-    # 1. Flatten empty Flow
-    assert Flow([]).flatten().collect() == []
-    # 2. Flatten Flow with empty dict
-    assert Flow([{}]).flatten().collect() == [{}]
-    no_nest = [{"a": 1, "b": 2}]
-    # 3. Flatten Flow with no nested fields
-    assert Flow(no_nest).flatten().collect() == no_nest
-
-    # Multiple levels
-    deep_nest = [{"a": {"b": {"c": 10, "d": 15}}, "e": 20}]
-    # 4. Flatten multiple levels of nesting
-    assert Flow(deep_nest).flatten().collect() == [{"a.b.c": 10, "a.b.d": 15, "e": 20}]
-    # 5. Flatten with custom separator
-    assert Flow(deep_nest).flatten(sep="_").collect() == [
-        {"a_b_c": 10, "a_b_d": 15, "e": 20}
+def test_groupby_summary_on_nested_fields():
+    data = [
+        {"player": {"id": "a", "stats": {"points": 10}}},
+        {"player": {"id": "a", "stats": {"points": 20}}},
+        {"player": {"id": "b", "stats": {"points": 15}}},
     ]
-    test_data = [{"a": {"b": 10}, "a.b": 20}]
-    # 6. Flatten with conflicting keys
-    assert Flow(test_data).flatten().collect() == [{"a.b": 20}]
 
-    test_data_rev = [{"a.b": 20, "a": {"b": 10}}]
-    # 7. Flatten with reversed conflicting keys
-    assert Flow(test_data_rev).flatten().collect() == [{"a.b": 10}]
+    result = (
+        Flow.from_list(data)
+        .group_by("player.id")
+        .summary({"total_points": ("sum", "player.stats.points")})
+        .collect()
+    )
+
+    assert len(result) == 2
+    grouped = {r["player.id"]: r["total_points"] for r in result}
+
+    assert grouped["a"] == 30
+    assert grouped["b"] == 15
+
+
+def test_summary_with_custom_callable():
+    data = [
+        {"player": {"name": "alice"}, "score": 10},
+        {"player": {"name": "bob"}, "score": 15},
+        {"player": {"name": "alice"}, "score": 25},
+    ]
+
+    # Custom summary: compute the average score manually
+    def compute_metrics(rows):
+        scores = [r["score"] for r in rows]
+        return {
+            "avg_score": sum(scores) / len(scores),
+            "max_score": max(scores),
+        }
+
+    result = Flow.from_list(data).summary(compute_metrics).collect()
+
+    assert len(result) == 1
+    summary = result[0]
+    assert summary["avg_score"] == 50 / 3
+    assert summary["max_score"] == 25
+
+
+def test_flow_summary_with_callable_and_field():
+    data = [
+        {"player": {"stats": {"points": 10}}},
+        {"player": {"stats": {"points": 20}}},
+        {"player": {"stats": {"points": 5}}},
+    ]
+
+    def scaled_sum(rows, field):
+        return sum(r["player"]["stats"]["points"] for r in rows) * 10
+
+    result = (
+        Flow.from_list(data)
+        .summary({"scaled_points": (scaled_sum, "player.stats.points")})
+        .collect()
+    )
+
+    assert len(result) == 1
+    assert result[0]["scaled_points"] == (10 + 20 + 5) * 10  # 350
+
+
+def test_group_summary_with_callable_and_field():
+    data = [
+        {"player": {"id": "a", "stats": {"points": 10}}},
+        {"player": {"id": "a", "stats": {"points": 5}}},
+        {"player": {"id": "b", "stats": {"points": 7}}},
+    ]
+
+    def range_fn(rows, field):
+        values = [r["player"]["stats"]["points"] for r in rows]
+        return max(values) - min(values)
+
+    result = (
+        Flow.from_list(data)
+        .group_by("player.id")
+        .summary({"point_range": (range_fn, "player.stats.points")})
+        .collect()
+    )
+
+    grouped = {r["player.id"]: r["point_range"] for r in result}
+
+    assert grouped["a"] == 5  # 10 - 5
+    assert grouped["b"] == 0  # single row
+
+
+def test_summary_with_invalid_tuple_format():
+    data = [{"a": 1}]
+
+    with pytest.raises(TypeError):
+        Flow.from_list(data).summary({"bad": (123, "a")}).collect()
+
+
+def test_schema_inference_flat_fields():
+    data = [
+        {"id": 1, "user": {"name": "Alice", "age": 30}},
+        {"id": 2, "user": {"name": "Bob", "age": 25}},
+        {"id": 3, "user": {"name": "Charlie", "age": None}},
+    ]
+
+    flow = Flow.from_list(data)
+    schema = flow.schema()
+
+    assert schema == {
+        "id": {int},
+        "user.name": {str},
+        "user.age": {int, type(None)},
+    }
+
+
+def test_cast_fields_to_types():
+    data = [
+        {"score": "10", "player": {"age": "25"}},
+        {"score": 12, "player": {"age": 30}},
+        {"score": None, "player": {"age": "unknown"}},
+    ]
+
+    flow = Flow.from_list(data).cast(
+        score=int, **{"player.age": lambda x: int(x) if x.isdigit() else None}
+    )
+
+    result = flow.flatten().collect()
+
+    assert result == [
+        {"score": 10, "player.age": 25},
+        {"score": 12, "player.age": 30},
+        {"score": None, "player.age": None},
+    ]
+
+
+def test_from_json_lazy(tmp_path):
+    data = [{"x": i} for i in range(3)]
+    path = tmp_path / "test.json"
+    path.write_text(json.dumps(data))
+
+    flow = Flow.from_json(str(path))
+    assert flow.plan[0]["op"] == "from_json"
+    assert flow.collect() == data
+
+
+def test_from_jsonl_lazy(tmp_path):
+    data = [{"x": i} for i in range(3)]
+    path = tmp_path / "test.jsonl"
+    with path.open("w") as f:
+        for row in data:
+            f.write(json.dumps(row) + "\n")
+
+    flow = Flow.from_jsonl(str(path))
+    assert flow.plan[0]["op"] == "from_jsonl"
+    assert flow.collect() == data
+
+
+def test_to_json_and_jsonl(tmp_path):
+    records = [{"a": 1}, {"a": 2}]
+    f = Flow.from_list(records)
+
+    json_path = tmp_path / "data.json"
+    jsonl_path = tmp_path / "data.jsonl"
+
+    f.to_json(str(json_path))
+    assert json.loads(json_path.read_text()) == records
+
+    f.to_jsonl(str(jsonl_path))
+    lines = jsonl_path.read_text().splitlines()
+    assert [json.loads(line) for line in lines] == records
+
+
+def test_to_pandas():
+    data = [{"a": 1, "b": "x"}, {"a": 2, "b": "y"}]
+    f = Flow.from_list(data)
+    df = f.to_pandas()
+
+    assert list(df.columns) == ["a", "b"]
+    assert df.shape == (2, 2)
+    assert df["a"].tolist() == [1, 2]
+
+
+def test_sample_fraction_deterministic():
+    data = [{"id": i} for i in range(100)]
+    sampled = Flow.from_list(data).sample_fraction(0.25, seed=42).collect()
+    assert 15 <= len(sampled) <= 35  # Rough bounds
+    assert all(r in data for r in sampled)
+
+
+def test_sample_fraction_zero():
+    data = [{"id": i} for i in range(10)]
+    out = Flow.from_list(data).sample_fraction(0.0).collect()
+    assert out == []
+
+
+def test_sample_fraction_one():
+    data = [{"id": i} for i in range(10)]
+    out = Flow.from_list(data).sample_fraction(1.0).collect()
+    assert out == data
+
+
+def test_map_basic():
+    flow = Flow.from_list([{"x": 1}, {"x": 2}])
+    out = flow.map(lambda r: {"y": r["x"] + 1}).collect()
+    assert out == [{"y": 2}, {"y": 3}]
+
+
+def test_map_drop_none():
+    flow = Flow.from_list([{"x": 1}, {"x": 2}, {"x": 3}])
+    out = flow.map(lambda r: {"x": r["x"]} if r["x"] % 2 == 1 else None).collect()
+    assert out == [{"x": 1}, {"x": 3}]
+
+
+def test_map_raises_on_non_dict():
+    flow = Flow.from_list([{"x": 1}])
+    with pytest.raises(TypeError, match="map function must return a dict"):
+        list(flow.map(lambda r: [1, 2, 3]).collect())
+
+
+def test_map_raises_on_none_when_strict():
+    flow = Flow.from_list([{"x": 1}])
+    assert list(flow.map(lambda r: None).collect()) == []
+
+
+def test_pipe_is_lazy():
+    called = []
+
+    def mark_call(flow):
+        called.append("called")
+        return flow.assign(x2=lambda r: r["x"] * 2)
+
+    flow = Flow.from_list([{"x": 4}]).pipe(mark_call)
+
+    # Nothing called yet
+    assert called == []
+
+    result = flow.collect()
+    assert result == [{"x": 4, "x2": 8}]
+    assert called == ["called"]
+
+
+def test_keys_flat_records():
+    records = [
+        {"id": 1, "name": "Alice"},
+        {"id": 2, "name": "Bob", "age": 30},
+        {"id": 3, "country": "UK"},
+    ]
+    flow = Flow.from_list(records)
+    keys = flow.keys()
+    assert keys == {"id", "name", "age", "country"}
+
+
+def test_keys_nested_records():
+    records = [
+        {"user": {"id": 1, "name": "Alice"}, "score": 10},
+        {"user": {"id": 2}, "score": 15},
+        {"user": {"id": 3, "name": "Charlie"}, "extra": {"active": True}},
+    ]
+    flow = Flow.from_list(records)
+    keys = flow.keys()
+    assert keys == {"user.id", "user.name", "score", "extra.active"}
+
+
+def test_keys_with_limit():
+    records = [{"a": 1}, {"b": 2}, {"c": 3}]
+    flow = Flow.from_list(records)
+    keys = flow.keys(limit=1)
+    assert keys == {"a"}  # Only first record scanned
+
+
+def test_keys_empty_flow():
+    flow = Flow.from_list([])
+    keys = flow.keys()
+    assert keys == set()
+
+
+def test_is_empty_true():
+    flow = Flow.from_list([])
+    assert flow.is_empty() is True
+
+
+def test_is_empty_false():
+    flow = Flow.from_list([{"a": 1}])
+    assert flow.is_empty() is False
+
+
+def test_is_empty_lazy_behavior():
+    called = {"count": 0}
+
+    def generator():
+        called["count"] += 1
+        yield {"a": 1}
+
+    flow = Flow.from_list(list(generator()))  # Materialized version
+    assert flow.is_empty() is False
+    assert called["count"] == 1  # generator evaluated exactly once
+
+
+def test_where_equals(record):
+    pred = where_equals("type.name", "Shot")
+    assert pred(record) is True
+
+    pred2 = where_equals("team.name", "Real Madrid")
+    assert pred2(record) is False
+
+
+def test_where_in(record):
+    pred = where_in("team.name", ["Barcelona", "Real"])
+    assert pred(record) is True
+
+    pred2 = where_in("team.name", ["Real", "City"])
+    assert pred2(record) is False
+
+
+def test_where_gt(record):
+    pred = where_gt("xg", 0.15)
+    assert pred(record) is True
+
+    pred2 = where_gt("xg", 0.3)
+    assert pred2(record) is False
+
+
+def test_where_exists_and_null(record):
+    assert where_exists("player.name")(record) is False
+    assert where_is_null("player.name")(record) is True
+    assert where_exists("team.name")(record) is True
+
+
+def test_where_contains(record):
+    assert where_contains("team.name", "Barça")(record) is False
+    assert where_contains("team.name", "Barc")(record) is True
+
+
+def test_and_predicate(record):
+    p1 = where_equals("type.name", "Shot")
+    p2 = where_gt("xg", 0.1)
+    combined = and_(p1, p2)
+    assert combined(record) is True
+
+    combined = and_(p1, where_gt("xg", 0.3))
+    assert combined(record) is False
+
+
+def test_or_predicate(record):
+    p1 = where_equals("type.name", "Pass")
+    p2 = where_gt("xg", 0.1)
+    combined = or_(p1, p2)
+    assert combined(record) is True
+
+    combined = or_(
+        where_equals("type.name", "Foul"), where_equals("team.name", "Chelsea")
+    )
+    assert combined(record) is False
+
+
+def test_not_predicate(record):
+    pred = where_equals("type.name", "Shot")
+    assert not_(pred)(record) is False
+
+    pred2 = where_gt("xg", 0.3)
+    assert not_(pred2)(record) is True
+
+
+def test_missing_field_safe():
+    record = {}
+    pred = where_equals("foo.bar", "baz")
+    assert pred(record) is False
+
+    assert where_is_null("foo.bar")(record) is True
+    assert where_exists("foo.bar")(record) is False
+
+
+# === where_in tests ===
+def test_where_in_scalar(scalar_record):
+    pred = where_in("team.name", ["Barcelona", "Real Madrid"])
+    assert pred(scalar_record) is True
+
+    pred2 = where_in("team.name", ["Man City"])
+    assert pred2(scalar_record) is False
+
+
+def test_where_in_list(list_record):
+    pred = where_in("tags", ["goal", "assist"])
+    assert pred(list_record) is True
+
+    pred2 = where_in("tags", ["penalty"])
+    assert pred2(list_record) is False
+
+
+def test_where_in_raises_on_dict(dict_record):
+    pred = where_in("meta.info", ["StatsBomb"])(dict_record)
+    with pytest.raises(TypeError):
+        pred(dict_record)
+
+
+def test_where_in_raises_on_list_of_dicts(list_of_dicts_record):
+    pred = where_in("events", ["pass"])(list_of_dicts_record)
+    with pytest.raises(TypeError):
+        pred(list_of_dicts_record)
+
+
+# === where_not_in tests ===
+def test_where_not_in_scalar(scalar_record):
+    pred = where_not_in("team.name", ["Man City", "PSG"])(scalar_record)
+    assert pred is True
+
+    pred2 = where_not_in("team.name", ["Barcelona"])(scalar_record)
+    assert pred2 is False
+
+
+def test_where_not_in_list(list_record):
+    pred = where_not_in("tags", ["penalty"])(list_record)
+    assert pred is True
+
+    pred2 = where_not_in("tags", ["goal", "header"])(list_record)
+    assert pred2 is False
+
+
+def test_where_not_in_raises_on_dict(dict_record):
+    pred = where_not_in("meta.info", ["StatsBomb"])(dict_record)
+    with pytest.raises(TypeError):
+        pred(dict_record)
+
+
+def test_where_not_in_raises_on_list_of_dicts(list_of_dicts_record):
+    pred = where_not_in("events", ["pass"])(list_of_dicts_record)
+    with pytest.raises(TypeError):
+        pred(list_of_dicts_record)
+
+
+# === where_equals ===
+def test_where_equals_scalar(scalar_record):
+    assert where_equals("team.name", "Barcelona")(scalar_record) is True
+    assert where_equals("team.name", "Madrid")(scalar_record) is False
+
+
+def test_where_equals_missing_field(scalar_record):
+    assert where_equals("team.coach", "Xavi")(scalar_record) is False
+
+
+# === where_gt ===
+def test_where_gt_pass():
+    record = {"xg": 0.25}
+    assert where_gt("xg", 0.2)(record) is True
+    assert where_gt("xg", 0.3)(record) is False
+
+
+def test_where_gt_missing_field(scalar_record):
+    assert where_gt("nonexistent", 0.1)(scalar_record) is False
+
+
+def test_where_gt_invalid_type_ignored(dict_record):
+    pred = where_gt("meta.provider", 1.0)
+    with pytest.raises(TypeError):
+        assert pred(dict_record) is False
+
+
+# === where_exists / where_is_null ===
+def test_where_exists(scalar_record):
+    assert where_exists("team.name")(scalar_record) is True
+    assert where_exists("player.name")(scalar_record) is False
+    assert where_exists("missing.field")(scalar_record) is False
+
+
+def test_where_is_null(scalar_record):
+    assert where_is_null("player.name")(scalar_record) is True
+    assert where_is_null("team.name")(scalar_record) is False
+    assert where_is_null("missing.field")(scalar_record) is True
+
+
+@pytest.fixture
+def scalar_record():
+    return {"team": {"name": "Barcelona"}}

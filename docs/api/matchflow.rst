@@ -8,7 +8,7 @@ MatchFlow
    :inherited-members:
 
 
-.. automodule:: penaltyblog.matchflow.statsbomb
+.. automodule:: penaltyblog.matchflow.contrib.statsbomb
    :members:
    :undoc-members:
    :show-inheritance:

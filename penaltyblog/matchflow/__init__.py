@@ -1,68 +1,46 @@
-"""
-Flow: A JSON-native query engine for football data.
-
-This module provides the `Flow` class — a powerful, composable way to work with
-nested football data structures without flattening. Built for real-world use
-cases like StatsBomb event files, it supports filtering, grouping, joining, and
-streaming directly from JSON, APIs, or folders of files.
-
-Part of the `penaltyblog` ecosystem.
-
-Usage:
-    from penaltyblog.matchflow import Flow
-
-    shots = (
-        Flow
-        .statsbomb.events(match_id=12345)
-        .filter(lambda r: r.get("type", {}).get("name") == "Shot")
-        .select("player.name", "location", "shot.outcome.name")
-        .collect()
-    )
-"""
-
+from . import aggregates
 from .flow import Flow
-from .flowgroup import FlowGroup
-from .helpers import (
-    coalesce,
-    combine_fields,
-    get_field,
-    get_index,
+from .predicates_helpers import (
+    and_,
+    not_,
+    or_,
+    where_contains,
     where_equals,
     where_exists,
+    where_gt,
+    where_gte,
     where_in,
-    where_not_none,
+    where_is_null,
+    where_lt,
+    where_lte,
+    where_not_equals,
+    where_not_in,
 )
-
-# from .parallel import folder_flow
-from .statsbomb import statsbombflow
-from .statsbomb.presets import (
-    assists,
-    cards_only,
-    fouls_only,
-    goals,
-    passes_only,
-    shots_only,
-    xg_above,
-)
+from .steps.utils import get_field, get_index
 
 __all__ = [
     "Flow",
-    "FlowGroup",
-    "coalesce",
-    "combine_fields",
-    "get_field",
-    "get_index",
+]
+
+# Optional: also expose under a namespace for convenience
+from . import predicates_helpers as predicates
+
+__all__ += [
+    # Individual helpers
     "where_equals",
-    "where_exists",
+    "where_not_equals",
     "where_in",
-    "where_not_none",
-    # "folder_flow",
-    "statsbombflow",
-    "cards_only",
-    "fouls_only",
-    "goals",
-    "assists",
-    "xg_above",
-    "shots_only",
-    "passes_only",
+    "where_not_in",
+    "where_gt",
+    "where_gte",
+    "where_lt",
+    "where_lte",
+    "where_exists",
+    "where_is_null",
+    "where_contains",
+    "and_",
+    "or_",
+    "not_",
+    # Optional grouped access
+    "predicates",
 ]
