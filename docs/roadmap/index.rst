@@ -35,20 +35,20 @@ MatchFlow
 **Usability + Helper Expansion**
 
 - ☐ General speed optimisations + cythonization to make faster
-- ☐ Parallel processing of files
 - ☐ More ``where_`` and ``get_`` helpers
 - ☐ ``Flow.describe()`` improvements
 - ☐ Docs: Writing custom helpers tutorial
 - ☐ Docs: More ``Flow`` recipes
 - ☐ Add plugin interface to make it easy to add in other data providers
 - ☐ Progress bars
+- ☐ Custom query DSL for natural quering - ``flow.query("player.name == 'Kevin de Bruyne'")``
+- ☐ Optimization of internal DAG plan
 
 **Joins & I/O Enhancements**
 
 - ☐ Join-on-multiple-fields support
-- ☐ ``Flow.to_sqlite()`` / ``from_sqlite()`` (exploration)
-- ☐ Option to use ``orjson`` for faster JSON I/O
 - ☐ Benchmarks page in docs
+- ☐ Parallel loading of files
 
 **Rolling & Windowed Aggregates**
 

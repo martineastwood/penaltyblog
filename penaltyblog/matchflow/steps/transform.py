@@ -65,23 +65,20 @@ def _set_nested(d, parts, value):
 
 def apply_rename(records, step):
     mapping = step["mapping"]
-    compiled_mapping = step.get("_compiled_mapping")
-    if not compiled_mapping:
-        compiled_mapping = [
-            (old, old.split("."), new_key, new_key.split("."))
-            for old, new_key in mapping.items()
-        ]
-        step["_compiled_mapping"] = compiled_mapping
-
-    needs_deep = any("." in old or "." in new for old, new in mapping.items())
-
     for r in records:
-        new = copy.deepcopy(r) if needs_deep else r.copy()
-        for old, old_parts, new_key, new_parts in compiled_mapping:
-            val = get_field(new, old_parts)
-            if val is not None:
-                _del_nested(new, old_parts)
-                _set_nested(new, new_parts, val)
+        new = dict(r)
+        for old, new_key in mapping.items():
+            # Try flat key match first
+            if old in new:
+                new[new_key] = new.pop(old)
+            else:
+                # Try nested (dot-path) access
+                old_parts = old.split(".")
+                new_parts = new_key.split(".")
+                val = get_field(new, old_parts)
+                if val is not None:
+                    _del_nested(new, old_parts)
+                    _set_nested(new, new_parts, val)
         yield new
 
 

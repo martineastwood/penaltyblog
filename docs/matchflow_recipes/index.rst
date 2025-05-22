@@ -13,12 +13,30 @@ You'll find patterns for:
 - Combining multiple matches
 - Building datasets for machine learning or reporting
 
-These notebooks are designed to be practical and adaptable - whether you're a beginner exploring
-open data or a practitioner building production pipelines.
+These notebooks are designed to be simple, to give you a quick feel for how MatchFlow works.
+
+.. list-table:: Guide Index
+   :widths: 25 75
+   :header-rows: 1
+
+   * - Section
+     - Description
+   * - :doc:`06_statsbomb_api`
+     - Streaming data directly from the StatsBomb API
+   * - :doc:`01_xg_by_player`
+     - Grouping and aggregating stats
+   * - :doc:`02_shot_accuracy_by_team`
+     - Using custom aggregation functions
+   * - :doc:`03_pass_map`
+     - Accessing values in arrays
+   * - :doc:`04_cumulative_xg_by_time`
+     - Calculating grouped cumulative stats
+   * - :doc:`05_touchmap`
+     - Using a pipe to apply a custom function to the Flow
+
 
 .. toctree::
-   :maxdepth: 1
-   :caption: Examples:
+   :hidden:
 
    06_statsbomb_api
    01_xg_by_player
