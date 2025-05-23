@@ -79,7 +79,7 @@ class Flow:
         return Flow(plan=[{"op": "from_glob", "pattern": pattern}])
 
     @staticmethod
-    def from_list(records: List[dict]) -> "Flow":
+    def from_records(records: List[dict]) -> "Flow":
         """
         Create a Flow from a list of records.
         Args:
@@ -87,6 +87,11 @@ class Flow:
         Returns:
             Flow: A new Flow with the records.
         """
+        if isinstance(records, dict):
+            raise TypeError(
+                "`from_records()` expects a list of dicts, not a single dict"
+            )
+
         return Flow(plan=[{"op": "from_materialized", "records": records}])
 
     def to_json(self, path: str, indent=4):

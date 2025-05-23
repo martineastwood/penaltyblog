@@ -11,7 +11,7 @@ def test_group_summary():
         {"team": "B", "minute": 2, "value": 4},
     ]
 
-    flow = Flow.from_list(data)
+    flow = Flow.from_records(data)
     result = (
         flow.group_by("team")
         .summary(lambda rows: {"total_value": sum(r["value"] for r in rows)})
@@ -34,7 +34,7 @@ def test_group_cumulative():
         {"team": "B", "minute": 2, "value": 4},
     ]
 
-    flow = Flow.from_list(data)
+    flow = Flow.from_records(data)
     result = flow.group_by("team").cumulative("value").collect()
 
     # Sort by team then minute to make order deterministic

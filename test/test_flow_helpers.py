@@ -201,7 +201,7 @@ def test_fast_get_field_nested_list():
     assert fast_get_field(record, ["frames", "1", "player"]) == "B"
 
 
-def test_fast_get_field_not_a_dict_or_list():
+def test_fast_get_field_not_a_dict():
     record = {"x": 5}
     assert fast_get_field(record, ["x", "y"]) is None
 

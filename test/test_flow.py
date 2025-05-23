@@ -108,7 +108,9 @@ def test_plan(data):
     assert callable(step["predicate"])
 
     flow = (
-        Flow.from_list(data).filter(lambda r: r["xg"] > 0.2).select("player.name", "xg")
+        Flow.from_records(data)
+        .filter(lambda r: r["xg"] > 0.2)
+        .select("player.name", "xg")
     )
 
     results = flow.collect()
@@ -117,7 +119,9 @@ def test_plan(data):
 
 def test_flow_plan_structure(data):
     flow = (
-        Flow.from_list(data).filter(lambda r: r["xg"] > 0.2).select("player.name", "xg")
+        Flow.from_records(data)
+        .filter(lambda r: r["xg"] > 0.2)
+        .select("player.name", "xg")
     )
 
     plan = flow.plan
@@ -136,7 +140,7 @@ def test_flow_plan_structure(data):
 
 def test_rename(data):
     # Flat rename
-    flow = Flow.from_list(data).rename(xg="expected_goals")
+    flow = Flow.from_records(data).rename(xg="expected_goals")
     results = flow.collect()
     assert results == [
         {"player": {"name": "Kane"}, "expected_goals": 0.4},
@@ -147,7 +151,7 @@ def test_rename(data):
     assert plan[-1]["mapping"] == {"xg": "expected_goals"}
 
     # Nested rename
-    flow2 = Flow.from_list(data).rename(**{"player.name": "name"})
+    flow2 = Flow.from_records(data).rename(**{"player.name": "name"})
     results2 = flow2.collect()
     assert results2 == [
         {"player": {}, "xg": 0.4, "name": "Kane"},
@@ -163,7 +167,7 @@ def test_deeply_nested_rename():
         {"a": {"b": {"c": 42}}, "other": 1},
         {"a": {"b": {"c": 99}}, "other": 2},
     ]
-    flow = Flow.from_list(data).rename(**{"a.b.c": "x.y.z"})
+    flow = Flow.from_records(data).rename(**{"a.b.c": "x.y.z"})
     results = flow.collect()
     assert results == [
         {"a": {"b": {}}, "other": 1, "x": {"y": {"z": 42}}},
@@ -180,7 +184,7 @@ def test_sort_by_ascending():
         {"id": 1, "value": "a"},
         {"id": 2, "value": "b"},
     ]
-    flow = Flow.from_list(data)
+    flow = Flow.from_records(data)
     result = flow.sort_by("id").collect()
     ids = [r["id"] for r in result]
     assert ids == [1, 2, 3]
@@ -192,7 +196,7 @@ def test_sort_by_descending():
         {"score": 30},
         {"score": 20},
     ]
-    flow = Flow.from_list(data)
+    flow = Flow.from_records(data)
     result = flow.sort_by("score", ascending=False).collect()
     scores = [r["score"] for r in result]
     assert scores == [30, 20, 10]
@@ -206,7 +210,9 @@ def test_sort_by_mixed_directions():
         {"team": "B", "score": 2},
     ]
     result = (
-        Flow.from_list(data).sort_by("team", "score", ascending=[True, False]).collect()
+        Flow.from_records(data)
+        .sort_by("team", "score", ascending=[True, False])
+        .collect()
     )
     assert result == [
         {"team": "A", "score": 10},
@@ -218,7 +224,7 @@ def test_sort_by_mixed_directions():
 
 def test_limit_records():
     data = [{"x": i} for i in range(100)]
-    result = Flow.from_list(data).limit(10).collect()
+    result = Flow.from_records(data).limit(10).collect()
     assert len(result) == 10
     assert result == [{"x": i} for i in range(10)]
 
@@ -230,7 +236,9 @@ def test_drop_fields():
         {"a": 4},
     ]
     result = (
-        Flow.from_list(data).drop("b", "meta.id", "meta.type", "nonexistent").collect()
+        Flow.from_records(data)
+        .drop("b", "meta.id", "meta.type", "nonexistent")
+        .collect()
     )
     assert result == [
         {"a": 1, "meta": {}},
@@ -245,7 +253,7 @@ def test_select_preserves_structure():
         {"a": 2, "meta": {"id": 99, "type": "pass"}},
     ]
 
-    result = Flow.from_list(data).select("a", "meta.id").collect()
+    result = Flow.from_records(data).select("a", "meta.id").collect()
 
     assert result == [
         {"a": 1, "meta": {"id": 42}},
@@ -256,7 +264,7 @@ def test_select_preserves_structure():
 def test_flatten_nested_record():
     data = [{"a": 1, "meta": {"id": 42, "details": {"type": "goal", "x": 12}}}]
 
-    result = Flow.from_list(data).flatten().collect()
+    result = Flow.from_records(data).flatten().collect()
 
     assert result == [
         {
@@ -276,7 +284,7 @@ def test_distinct_keep_last():
         {"x": 2, "y": 88},  # this should be kept
     ]
 
-    result = Flow.from_list(data).distinct("x", keep="last").collect()
+    result = Flow.from_records(data).distinct("x", keep="last").collect()
 
     assert result == [
         {"x": 1, "y": 99},
@@ -292,7 +300,7 @@ def test_distinct_keep_first():
         {"x": 2, "y": 88},  # should be skipped
     ]
 
-    result = Flow.from_list(data).distinct("x", keep="first").collect()
+    result = Flow.from_records(data).distinct("x", keep="first").collect()
 
     assert result == [
         {"x": 1, "y": 1},
@@ -307,7 +315,7 @@ def test_dropna_specific_fields():
         {"id": 3},
         {"id": None, "score": 7},
     ]
-    result = Flow.from_list(data).dropna("id", "score").collect()
+    result = Flow.from_records(data).dropna("id", "score").collect()
     assert result == [{"id": 1, "score": 5}]
 
 
@@ -318,7 +326,7 @@ def test_dropna_any_top_level():
         {"id": None, "score": 3},
         {"id": 3},  # missing score
     ]
-    result = Flow.from_list(data).dropna().collect()
+    result = Flow.from_records(data).dropna().collect()
     assert result == [{"id": 1, "score": 5}]
 
 
@@ -329,7 +337,7 @@ def test_explode_flat():
         {"id": 3, "tags": None},
         {"id": 4},
     ]
-    result = Flow.from_list(data).explode("tags").collect()
+    result = Flow.from_records(data).explode("tags").collect()
 
     expected = [
         {"id": 1, "tags": "a"},
@@ -350,7 +358,7 @@ def test_explode_nested():
         {"event": {"id": 1, "tags": ["a", "b"]}},
         {"event": {"id": 2, "tags": ["c"]}},
     ]
-    result = Flow.from_list(data).explode("event.tags").collect()
+    result = Flow.from_records(data).explode("event.tags").collect()
 
     assert result == [
         {"event": {"id": 1, "tags": "a"}},
@@ -366,7 +374,7 @@ def test_explode_multiple_fields():
         {"id": 3, "tags": None, "players": None},
         {"id": 4},  # no fields
     ]
-    result = Flow.from_list(data).explode("tags", "players").collect()
+    result = Flow.from_records(data).explode("tags", "players").collect()
 
     assert result == [
         {"id": 1, "tags": "a", "players": "alice"},
@@ -389,8 +397,8 @@ def test_left_join():
         {"id": 2, "y": 200},
     ]
 
-    flow1 = Flow.from_list(left)
-    flow2 = Flow.from_list(right)
+    flow1 = Flow.from_records(left)
+    flow2 = Flow.from_records(right)
 
     result = flow1.join(flow2, on="id").collect()
 
@@ -405,8 +413,8 @@ def test_join_with_conflicting_keys():
     left = [{"id": 1, "value": "left"}]
     right = [{"id": 1, "value": "right"}]
 
-    flow1 = Flow.from_list(left)
-    flow2 = Flow.from_list(right)
+    flow1 = Flow.from_records(left)
+    flow2 = Flow.from_records(right)
 
     result = flow1.join(flow2, on="id").collect()
 
@@ -427,7 +435,9 @@ def test_inner_join():
     ]
 
     result = (
-        Flow.from_list(left).join(Flow.from_list(right), on="id", how="inner").collect()
+        Flow.from_records(left)
+        .join(Flow.from_records(right), on="id", how="inner")
+        .collect()
     )
 
     assert result == [
@@ -444,7 +454,7 @@ def test_split_array_to_fields():
         {"id": 4},
     ]
 
-    result = Flow.from_list(data).split_array("location", into=["x", "y"]).collect()
+    result = Flow.from_records(data).split_array("location", into=["x", "y"]).collect()
 
     assert result == [
         {"id": 1, "location": [10, 50], "x": 10, "y": 50},
@@ -463,7 +473,7 @@ def test_pivot_basic():
     ]
 
     result = (
-        Flow.from_list(data)
+        Flow.from_records(data)
         .pivot(index="player", columns="metric", values="value")
         .collect()
     )
@@ -482,7 +492,7 @@ def test_ungrouped_summary():
     ]
 
     result = (
-        Flow.from_list(data)
+        Flow.from_records(data)
         .summary(
             {
                 "count": count(),
@@ -498,7 +508,7 @@ def test_ungrouped_summary():
 
 def test_invalid_summary_output():
     with pytest.raises(ValueError, match="summary function must return a dict"):
-        Flow.from_list([{"x": 1}, {"x": 2}]).summary(
+        Flow.from_records([{"x": 1}, {"x": 2}]).summary(
             lambda rows: [{"x": 1}, {"x": 2}]
         ).collect()
 
@@ -628,7 +638,7 @@ def test_groupby_summary_with_sum():
         {"team": "B", "points": 15},
     ]
 
-    flow = Flow.from_list(data)
+    flow = Flow.from_records(data)
     result = flow.group_by("team").summary({"points": ("sum", "points")}).collect()
 
     assert any(r["team"] == "A" and r["points"] == 30 for r in result)
@@ -643,7 +653,7 @@ def test_summary_on_nested_field():
     ]
 
     result = (
-        Flow.from_list(data)
+        Flow.from_records(data)
         .summary({"total_points": ("sum", "player.stats.points")})
         .collect()
     )
@@ -660,7 +670,7 @@ def test_groupby_summary_on_nested_fields():
     ]
 
     result = (
-        Flow.from_list(data)
+        Flow.from_records(data)
         .group_by("player.id")
         .summary({"total_points": ("sum", "player.stats.points")})
         .collect()
@@ -688,7 +698,7 @@ def test_summary_with_custom_callable():
             "max_score": max(scores),
         }
 
-    result = Flow.from_list(data).summary(compute_metrics).collect()
+    result = Flow.from_records(data).summary(compute_metrics).collect()
 
     assert len(result) == 1
     summary = result[0]
@@ -707,7 +717,7 @@ def test_flow_summary_with_callable_and_field():
         return sum(r["player"]["stats"]["points"] for r in rows) * 10
 
     result = (
-        Flow.from_list(data)
+        Flow.from_records(data)
         .summary({"scaled_points": (scaled_sum, "player.stats.points")})
         .collect()
     )
@@ -728,7 +738,7 @@ def test_group_summary_with_callable_and_field():
         return max(values) - min(values)
 
     result = (
-        Flow.from_list(data)
+        Flow.from_records(data)
         .group_by("player.id")
         .summary({"point_range": (range_fn, "player.stats.points")})
         .collect()
@@ -744,7 +754,7 @@ def test_summary_with_invalid_tuple_format():
     data = [{"a": 1}]
 
     with pytest.raises(TypeError):
-        Flow.from_list(data).summary({"bad": (123, "a")}).collect()
+        Flow.from_records(data).summary({"bad": (123, "a")}).collect()
 
 
 def test_schema_inference_flat_fields():
@@ -754,7 +764,7 @@ def test_schema_inference_flat_fields():
         {"id": 3, "user": {"name": "Charlie", "age": None}},
     ]
 
-    flow = Flow.from_list(data)
+    flow = Flow.from_records(data)
     schema = flow.schema()
 
     assert schema == {
@@ -771,7 +781,7 @@ def test_cast_fields_to_types():
         {"score": None, "player": {"age": "unknown"}},
     ]
 
-    flow = Flow.from_list(data).cast(
+    flow = Flow.from_records(data).cast(
         score=int, **{"player.age": lambda x: int(x) if x.isdigit() else None}
     )
 
@@ -808,7 +818,7 @@ def test_from_jsonl_lazy(tmp_path):
 
 def test_to_json_and_jsonl(tmp_path):
     records = [{"a": 1}, {"a": 2}]
-    f = Flow.from_list(records)
+    f = Flow.from_records(records)
 
     json_path = tmp_path / "data.json"
     jsonl_path = tmp_path / "data.jsonl"
@@ -823,7 +833,7 @@ def test_to_json_and_jsonl(tmp_path):
 
 def test_to_pandas():
     data = [{"a": 1, "b": "x"}, {"a": 2, "b": "y"}]
-    f = Flow.from_list(data)
+    f = Flow.from_records(data)
     df = f.to_pandas()
 
     assert list(df.columns) == ["a", "b"]
@@ -833,43 +843,43 @@ def test_to_pandas():
 
 def test_sample_fraction_deterministic():
     data = [{"id": i} for i in range(100)]
-    sampled = Flow.from_list(data).sample_fraction(0.25, seed=42).collect()
+    sampled = Flow.from_records(data).sample_fraction(0.25, seed=42).collect()
     assert 15 <= len(sampled) <= 35  # Rough bounds
     assert all(r in data for r in sampled)
 
 
 def test_sample_fraction_zero():
     data = [{"id": i} for i in range(10)]
-    out = Flow.from_list(data).sample_fraction(0.0).collect()
+    out = Flow.from_records(data).sample_fraction(0.0).collect()
     assert out == []
 
 
 def test_sample_fraction_one():
     data = [{"id": i} for i in range(10)]
-    out = Flow.from_list(data).sample_fraction(1.0).collect()
+    out = Flow.from_records(data).sample_fraction(1.0).collect()
     assert out == data
 
 
 def test_map_basic():
-    flow = Flow.from_list([{"x": 1}, {"x": 2}])
+    flow = Flow.from_records([{"x": 1}, {"x": 2}])
     out = flow.map(lambda r: {"y": r["x"] + 1}).collect()
     assert out == [{"y": 2}, {"y": 3}]
 
 
 def test_map_drop_none():
-    flow = Flow.from_list([{"x": 1}, {"x": 2}, {"x": 3}])
+    flow = Flow.from_records([{"x": 1}, {"x": 2}, {"x": 3}])
     out = flow.map(lambda r: {"x": r["x"]} if r["x"] % 2 == 1 else None).collect()
     assert out == [{"x": 1}, {"x": 3}]
 
 
 def test_map_raises_on_non_dict():
-    flow = Flow.from_list([{"x": 1}])
+    flow = Flow.from_records([{"x": 1}])
     with pytest.raises(TypeError, match="map function must return a dict"):
         list(flow.map(lambda r: [1, 2, 3]).collect())
 
 
 def test_map_raises_on_none_when_strict():
-    flow = Flow.from_list([{"x": 1}])
+    flow = Flow.from_records([{"x": 1}])
     assert list(flow.map(lambda r: None).collect()) == []
 
 
@@ -880,7 +890,7 @@ def test_pipe_is_lazy():
         called.append("called")
         return flow.assign(x2=lambda r: r["x"] * 2)
 
-    flow = Flow.from_list([{"x": 4}]).pipe(mark_call)
+    flow = Flow.from_records([{"x": 4}]).pipe(mark_call)
 
     # Nothing called yet
     assert called == []
@@ -896,7 +906,7 @@ def test_keys_flat_records():
         {"id": 2, "name": "Bob", "age": 30},
         {"id": 3, "country": "UK"},
     ]
-    flow = Flow.from_list(records)
+    flow = Flow.from_records(records)
     keys = flow.keys()
     assert keys == {"id", "name", "age", "country"}
 
@@ -907,31 +917,31 @@ def test_keys_nested_records():
         {"user": {"id": 2}, "score": 15},
         {"user": {"id": 3, "name": "Charlie"}, "extra": {"active": True}},
     ]
-    flow = Flow.from_list(records)
+    flow = Flow.from_records(records)
     keys = flow.keys()
     assert keys == {"user.id", "user.name", "score", "extra.active"}
 
 
 def test_keys_with_limit():
     records = [{"a": 1}, {"b": 2}, {"c": 3}]
-    flow = Flow.from_list(records)
+    flow = Flow.from_records(records)
     keys = flow.keys(limit=1)
     assert keys == {"a"}  # Only first record scanned
 
 
 def test_keys_empty_flow():
-    flow = Flow.from_list([])
+    flow = Flow.from_records([])
     keys = flow.keys()
     assert keys == set()
 
 
 def test_is_empty_true():
-    flow = Flow.from_list([])
+    flow = Flow.from_records([])
     assert flow.is_empty() is True
 
 
 def test_is_empty_false():
-    flow = Flow.from_list([{"a": 1}])
+    flow = Flow.from_records([{"a": 1}])
     assert flow.is_empty() is False
 
 
@@ -942,7 +952,7 @@ def test_is_empty_lazy_behavior():
         called["count"] += 1
         yield {"a": 1}
 
-    flow = Flow.from_list(list(generator()))  # Materialized version
+    flow = Flow.from_records(list(generator()))  # Materialized version
     assert flow.is_empty() is False
     assert called["count"] == 1  # generator evaluated exactly once
 
