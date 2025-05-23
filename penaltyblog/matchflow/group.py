@@ -1,4 +1,4 @@
-from typing import Any, Callable, Dict, Iterator, List, Tuple, Union
+from typing import Any, Callable, Dict, List, Optional, Union
 
 from .aggs_registry import resolve_aggregator
 from .executor import FlowExecutor
@@ -67,7 +67,7 @@ class FlowGroup:
             ]
         )
 
-    def cumulative(self, field: str, alias: str = None):
+    def cumulative(self, field: str, alias: Optional[str] = None):
         return Flow(
             self.plan
             + [

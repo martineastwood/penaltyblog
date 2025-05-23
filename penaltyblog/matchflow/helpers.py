@@ -263,9 +263,10 @@ def delete_path(record: dict, path: str):
         path (str): The path to delete.
     """
     keys = path.split(".")
-    current = record
+    current: Any = record
     for k in keys[:-1]:
-        current = current.get(k)
         if not isinstance(current, dict):
             return
-    current.pop(keys[-1], None)
+        current = current.get(k)
+    if isinstance(current, dict):
+        current.pop(keys[-1], None)

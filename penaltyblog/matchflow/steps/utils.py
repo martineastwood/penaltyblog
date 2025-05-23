@@ -9,7 +9,7 @@ def fast_get_field(record: dict, parts: list[str]) -> Any:
     Accepts a precompiled list of parts (split by '.').
     Supports numeric strings as list indices.
     """
-    current = record
+    current: Any = record
     for part in parts:
         if isinstance(current, dict):
             current = current.get(part)
@@ -30,7 +30,7 @@ def get_field(record: dict, path: Union[str, List[str]]):
     else:
         parts = path
 
-    current = record
+    current: Any = record
     for part in parts:
         if isinstance(current, dict):
             current = current.get(part)
@@ -58,7 +58,7 @@ def get_index(field: str, index: int) -> Callable[[dict], Any]:
     path = field.split(".")
 
     def _getter(record: dict) -> Any:
-        current = record
+        current: Any = record
         for part in path:
             if not isinstance(current, dict):
                 return None
@@ -103,7 +103,7 @@ def flatten_dict(d: dict, parent_key: str = "", sep: str = ".") -> dict:
     Returns:
         dict: Flattened dictionary with dot-notated keys.
     """
-    items = {}
+    items: dict[str, Any] = {}
     for k, v in d.items():
         new_key = f"{parent_key}{sep}{k}" if parent_key else k
         if isinstance(v, dict):

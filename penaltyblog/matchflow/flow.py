@@ -4,7 +4,7 @@ Flow class for handling a streaming data pipeline.
 
 import json
 from pprint import pprint
-from typing import Any, Callable, Dict, List, Union
+from typing import Any, Callable, Dict, List, Optional, Union
 
 import pandas as pd
 
@@ -17,7 +17,7 @@ PlanNode = Dict[str, Any]
 
 
 class Flow:
-    def __init__(self, plan: List[PlanNode] = None):
+    def __init__(self, plan: Optional[List[PlanNode]] = None):
         self.plan = plan or []
 
     def __eq__(self, other):
@@ -353,7 +353,7 @@ class Flow:
             set[str]: The set of keys.
         """
         sample = self.limit(limit).collect()
-        all_keys = set()
+        all_keys: set[str] = set()
         for record in sample:
             flat = flatten_dict(record)
             all_keys.update(flat.keys())
@@ -585,7 +585,7 @@ class Flow:
         assignments = {path: make_caster(path, func)[1] for path, func in casts.items()}
         return self.assign(**assignments)
 
-    def sample_fraction(self, p: float, seed: int = None) -> "Flow":
+    def sample_fraction(self, p: float, seed: Optional[int] = None) -> "Flow":
         """
         Lazily sample a fraction of records.
 
@@ -598,7 +598,7 @@ class Flow:
         """
         return Flow(self.plan + [{"op": "sample_fraction", "p": p, "seed": seed}])
 
-    def sample_n(self, n: int, seed: int = None) -> "Flow":
+    def sample_n(self, n: int, seed: Optional[int] = None) -> "Flow":
         """
         Lazily sample n records using reservoir sampling.
 
