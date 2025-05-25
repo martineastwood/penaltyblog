@@ -33,13 +33,13 @@
 
 ## Features
 
-- 🔄 **Streamline JSON Workflows with MatchFlow** – Process nested football data using a lazy, streaming pipeline built for JSON. Filter, select, flatten, join, group, and summarize large datasets without loading everything into memory.
-- 📊 **Model Matches Efficiently** – High-performance implementations of Poisson, Bivariate Poisson, Dixon-Coles, and other advanced statistical models, optimized with Cython for rapid analysis.
-- ⚽ **Scrape Data** – Collect match statistics from sources like FBRef, Understat, Club Elo, and Fantasy Premier League.
-- 💰 **Bet Smarter** – Precisely estimate probabilities for Asian handicaps, over/under totals, match outcomes, and more.
-- 🏆 **Rank Teams** – Evaluate team strengths with sophisticated methods including Elo, Massey, Colley, and Pi ratings.
-- 📈 **Decode Bookmaker Odds** – Accurately extract implied probabilities by removing bookmaker margins (overrounds).
-- 🎯 **Fantasy Football Optimisation** – Mathematically optimize your fantasy football squad to maximize performance.
+- 🔄 **Streamline JSON Workflows with MatchFlow:** Process nested football data using a lazy, streaming pipeline built for JSON. Filter, select, flatten, join, group, and summarize large datasets without loading everything into memory.
+- 📊 **Model Matches Efficiently:** High-performance implementations of Poisson, Bivariate Poisson, Dixon-Coles, and other advanced statistical models, optimized with Cython for rapid analysis.
+- ⚽ **Scrape Data:** Collect match statistics from sources like FBRef, Understat, Club Elo, and Fantasy Premier League.
+- 💰 **Bet Smarter:** Precisely estimate probabilities for Asian handicaps, over/under totals, match outcomes, and more.
+- 🏆 **Rank Teams:** Evaluate team strengths with sophisticated methods including Elo, Massey, Colley, and Pi ratings.
+- 📈 **Decode Bookmaker Odds:** Accurately extract implied probabilities by removing bookmaker margins (overrounds).
+- 🎯 **Fantasy Football Optimisation:** Mathematically optimize your fantasy football squad to maximize performance.
 
 Take your football analytics and betting strategy to the next level with **penaltyblog** 🚀
 
@@ -65,7 +65,7 @@ Learn more about how to utilize `penaltyblog` by exploring the [official documen
 
 Unlike many football analytics resources that are academic, one-off, or hard to scale, `penaltyblog` is designed from the ground up to be **production-ready**, **performance-optimized**, and **practically useful**.
 
-It combines advanced statistical models, efficient implementations (via **Cython**), and real-world workflows — from scraping public data to modelling outcomes and optimising fantasy teams.
+It combines advanced statistical models, efficient implementations (via **Cython**), and real-world workflows, from scraping public data to modelling outcomes and optimising fantasy teams.
 
 Built by [Martin Eastwood](https://pena.lt/y/about), who has worked with football clubs, governing bodies, and player agencies worldwide, `penaltyblog` is the foundation for football analytics.
 
