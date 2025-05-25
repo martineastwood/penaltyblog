@@ -11,14 +11,34 @@ from .utils import (
 )
 
 
-def apply_filter(records, step):
+def apply_filter(records, step) -> "Flow":
+    """
+    Filter records based on a predicate.
+
+    Args:
+        records (Flow): A Flow of records to filter.
+        step (dict): A dictionary containing the predicate to apply.
+
+    Returns:
+        Flow: A new Flow with filtered records.
+    """
     pred = step["predicate"]
     for r in records:
         if pred(r):
             yield r
 
 
-def apply_assign(records, step):
+def apply_assign(records, step) -> "Flow":
+    """
+    Assign new fields to each record.
+
+    Args:
+        records (Flow): A Flow of records to assign fields to.
+        step (dict): A dictionary containing the fields to assign.
+
+    Returns:
+        Flow: A new Flow with assigned fields.
+    """
     fields = step["fields"]
     for r in records:
         new = dict(r)
@@ -27,7 +47,17 @@ def apply_assign(records, step):
         yield new
 
 
-def apply_select(records, step):
+def apply_select(records, step) -> "Flow":
+    """
+    Select specific fields from each record.
+
+    Args:
+        records (Flow): A Flow of records to select fields from.
+        step (dict): A dictionary containing the fields to select.
+
+    Returns:
+        Flow: A new Flow with selected fields.
+    """
     field_names = step["fields"]
 
     if all("." not in f for f in field_names):
@@ -47,14 +77,14 @@ def apply_select(records, step):
             yield out
 
 
-def _del_nested(d, parts):
+def _del_nested(d, parts) -> None:
     """Delete a nested key from a dict given a list of parts."""
     for part in parts[:-1]:
         d = d.get(part, {})
     d.pop(parts[-1], None)
 
 
-def _set_nested(d, parts, value):
+def _set_nested(d, parts, value) -> None:
     """Set a nested key in a dict given a list of parts."""
     for part in parts[:-1]:
         if part not in d or not isinstance(d[part], dict):
@@ -63,7 +93,17 @@ def _set_nested(d, parts, value):
     d[parts[-1]] = value
 
 
-def apply_rename(records, step):
+def apply_rename(records, step) -> "Flow":
+    """
+    Rename fields in each record.
+
+    Args:
+        records (Flow): A Flow of records to rename fields in.
+        step (dict): A dictionary containing the mapping of old to new field names.
+
+    Returns:
+        Flow: A new Flow with renamed fields.
+    """
     mapping = step["mapping"]
     for r in records:
         new = dict(r)
@@ -82,7 +122,17 @@ def apply_rename(records, step):
         yield new
 
 
-def apply_sort(records, step):
+def apply_sort(records, step) -> "Flow":
+    """
+    Sort records based on a list of keys.
+
+    Args:
+        records (Flow): A Flow of records to sort.
+        step (dict): A dictionary containing the keys to sort by.
+
+    Returns:
+        Flow: A new Flow with sorted records.
+    """
     keys = step["keys"]
     ascending = step.get("ascending", [True] * len(keys))
     records = list(records)
@@ -107,7 +157,17 @@ def _invert(value):
         return value  # fallback: not reversed
 
 
-def apply_limit(records, step):
+def apply_limit(records, step) -> "Flow":
+    """
+    Limit the number of records.
+
+    Args:
+        records (Flow): A Flow of records to limit.
+        step (dict): A dictionary containing the count to limit by.
+
+    Returns:
+        Flow: A new Flow with limited records.
+    """
     count = step["count"]
     for i, record in enumerate(records):
         if i >= count:
@@ -115,7 +175,17 @@ def apply_limit(records, step):
         yield record
 
 
-def apply_drop(records, step):
+def apply_drop(records, step) -> "Flow":
+    """
+    Drop specified fields from each record.
+
+    Args:
+        records (Flow): A Flow of records to drop fields from.
+        step (dict): A dictionary containing the keys to drop.
+
+    Returns:
+        Flow: A new Flow with dropped fields.
+    """
     keys = step["keys"]
 
     for record in records:
@@ -134,12 +204,22 @@ def apply_drop(records, step):
         yield new
 
 
-def apply_flatten(records, step):
+def apply_flatten(records, step) -> "Flow":
+    """
+    Flatten nested dictionaries into a single-level dictionary using dot notation.
+
+    Args:
+        records (Flow): A Flow of records to flatten.
+        step (dict): A dictionary containing the keys to flatten.
+
+    Returns:
+        Flow: A new Flow with flattened records.
+    """
     for r in records:
         yield flatten_dict(r)
 
 
-def apply_distinct(records, step):
+def apply_distinct(records, step) -> "Flow":
     keys = step.get("keys")
     keep = step.get("keep", "first")
 
@@ -176,7 +256,17 @@ def _distinct_last(records, keys):
     yield from seen.values()
 
 
-def apply_dropna(records, step):
+def apply_dropna(records, step) -> "Flow":
+    """
+    Drop records with missing values.
+
+    Args:
+        records (Flow): A Flow of records to drop missing values from.
+        step (dict): A dictionary containing the fields to drop missing values from.
+
+    Returns:
+        Flow: A new Flow with dropped records.
+    """
     fields = step.get("fields")
     compiled = step.get("_compiled_fields")
 
@@ -202,7 +292,17 @@ def apply_dropna(records, step):
             yield record
 
 
-def apply_explode(records, step):
+def apply_explode(records, step) -> "Flow":
+    """
+    Explode records based on a list of fields.
+
+    Args:
+        records (Flow): A Flow of records to explode.
+        step (dict): A dictionary containing the fields to explode.
+
+    Returns:
+        Flow: A new Flow with exploded records.
+    """
     fields = step["fields"]
     compiled = step.get("_compiled_fields")
 
@@ -232,7 +332,17 @@ def apply_explode(records, step):
             yield copy.deepcopy(record)
 
 
-def apply_join(records, step):
+def apply_join(records, step) -> "Flow":
+    """
+    Join records based on a list of keys.
+
+    Args:
+        records (Flow): A Flow of records to join.
+        step (dict): A dictionary containing the keys to join by.
+
+    Returns:
+        Flow: A new Flow with joined records.
+    """
     from ..executor import FlowExecutor
 
     on = step["on"]
@@ -272,7 +382,17 @@ def apply_join(records, step):
             yield joined
 
 
-def apply_split_array(records, step):
+def apply_split_array(records, step) -> "Flow":
+    """
+    Split an array into multiple records.
+
+    Args:
+        records (Flow): A Flow of records to split arrays from.
+        step (dict): A dictionary containing the field to split.
+
+    Returns:
+        Flow: A new Flow with split records.
+    """
     field = step["field"]
     into = step["into"]
 
@@ -300,7 +420,17 @@ def apply_split_array(records, step):
             yield record
 
 
-def apply_pivot(records, step):
+def apply_pivot(records, step) -> "Flow":
+    """
+    Pivot records based on a list of index fields.
+
+    Args:
+        records (Flow): A Flow of records to pivot.
+        step (dict): A dictionary containing the index fields to pivot by.
+
+    Returns:
+        Flow: A new Flow with pivoted records.
+    """
     index_fields = step["index"]
     col_field = step["columns"]
     val_field = step["values"]
@@ -330,7 +460,17 @@ def apply_pivot(records, step):
         yield result
 
 
-def apply_summary(records, step):
+def apply_summary(records, step) -> "Flow":
+    """
+    Apply a summary function to the records.
+
+    Args:
+        records (Flow): A Flow of records to apply the summary function to.
+        step (dict): A dictionary containing the summary function to apply.
+
+    Returns:
+        Flow: A new Flow with the summary result.
+    """
     agg_func = step["agg"]
     rows = list(records)
     result = agg_func(rows)
@@ -341,7 +481,17 @@ def apply_summary(records, step):
     yield result
 
 
-def apply_sample_fraction(records, step):
+def apply_sample_fraction(records, step) -> "Flow":
+    """
+    Sample a fraction of the records.
+
+    Args:
+        records (Flow): A Flow of records to sample a fraction from.
+        step (dict): A dictionary containing the fraction to sample.
+
+    Returns:
+        Flow: A new Flow with sampled records.
+    """
     p = step["p"]
     seed = step.get("seed")
 
@@ -352,7 +502,17 @@ def apply_sample_fraction(records, step):
             yield r
 
 
-def apply_sample_n(records, step):
+def apply_sample_n(records, step) -> "Flow":
+    """
+    Sample a fixed number of records.
+
+    Args:
+        records (Flow): A Flow of records to sample a fixed number from.
+        step (dict): A dictionary containing the number to sample.
+
+    Returns:
+        Flow: A new Flow with sampled records.
+    """
     n = step["n"]
     seed = step.get("seed")
 
@@ -360,7 +520,17 @@ def apply_sample_n(records, step):
         yield r
 
 
-def apply_map(records, step):
+def apply_map(records, step) -> "Flow":
+    """
+    Apply a function to each record.
+
+    Args:
+        records (Flow): A Flow of records to apply the function to.
+        step (dict): A dictionary containing the function to apply.
+
+    Returns:
+        Flow: A new Flow with the mapped records.
+    """
     func = step["func"]
     for r in records:
         result = func(r)

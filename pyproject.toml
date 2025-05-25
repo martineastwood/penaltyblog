@@ -108,3 +108,4 @@ line_length = 79
 
 [tool.mypy]
 ignore_missing_imports = true
+disable_error_code = ["import-untyped"]
