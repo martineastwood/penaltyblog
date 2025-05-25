@@ -248,7 +248,9 @@ class NegativeBinomialGoalModel(BaseGoalsModel):
 
         score_matrix.shape = (max_goals, max_goals)
 
-        return FootballProbabilityGrid(score_matrix, lambda_home, lambda_away)
+        return FootballProbabilityGrid(
+            score_matrix, float(lambda_home[0]), float(lambda_away[0])
+        )
 
     def get_params(self) -> ParamsOutput:
         """

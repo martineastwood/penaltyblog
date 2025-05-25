@@ -5,7 +5,10 @@ test:
 	coverage report -m
 
 test_subset:
-	pytest -v test/test_metrics_briar.py
+	pytest -v test/test_flow.py test/test_flowgroup.py test/test_flow_glob.py test/test_flow_helpers.py
+
+test_implied:
+	pytest -v test/test_implied.py
 
 coverage:
 	coverage run -m pytest

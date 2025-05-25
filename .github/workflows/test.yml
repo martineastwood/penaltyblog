@@ -14,6 +14,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
+        with:
+          path: .
 
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v4
@@ -27,11 +29,12 @@ jobs:
           pip install pytest
 
       - name: Show working directory and files
+        shell: bash
         run: |
           pwd
           ls -la
 
       - name: Run tests
         run: |
-          cd ..
-          pytest --import-mode=importlib --maxfail=1 --disable-warnings -q  -m "not local"
+          pytest -v test --import-mode=importlib --maxfail=1 --disable-warnings -m "not local"
+        working-directory: ${{ github.workspace }}

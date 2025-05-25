@@ -29,11 +29,13 @@
 
 # penaltyblog: Football Data & Modelling Made Easy
 
-penaltyblog is a production-ready Python toolkit for football analytics — built for speed, clarity, and real-world impact.
+**penaltyblog** is a production-ready Python package designed for football (soccer) analytics, providing powerful tools from [pena.lt/y/blog](https://pena.lt/y/blog) for data analysis, outcome modelling, and betting insights. Optimized with Cython, **penaltyblog** delivers high-performance modelling to power faster, efficient predictions.
 
 ## Features
-- ⚽ **Scrape Data** – Collect match statistics from sources like FBRef, Understat, Club Elo, and Fantasy Premier League.
+
+- 🔄 **Streamline JSON Workflows with MatchFlow** – Process deeply nested football event data using a lazy, streaming pipeline built for JSON. Filter, select, flatten, join, group, and summarize large datasets — without loading everything into memory.
 - 📊 **Model Matches Efficiently** – High-performance implementations of Poisson, Bivariate Poisson, Dixon-Coles, and other advanced statistical models, optimized with Cython for rapid analysis.
+- ⚽ **Scrape Data** – Collect match statistics from sources like FBRef, Understat, Club Elo, and Fantasy Premier League.
 - 💰 **Bet Smarter** – Precisely estimate probabilities for Asian handicaps, over/under totals, match outcomes, and more.
 - 🏆 **Rank Teams** – Evaluate team strengths with sophisticated methods including Elo, Massey, Colley, and Pi ratings.
 - 📈 **Decode Bookmaker Odds** – Accurately extract implied probabilities by removing bookmaker margins (overrounds).
@@ -49,13 +51,14 @@ pip install penaltyblog
 
 ## Documentation
 
-Learn more about how to utilize `penaltyblog` by exploring the [official documentation](https://docs.pena.lt/y/) and detailed examples:
+Learn more about how to utilize `penaltyblog` by exploring the [official documentation](https://penaltyblog.readthedocs.io/en/latest/) and detailed examples:
 
-- [Scraping football data](https://docs.pena.lt/y/scrapers/index.html)
-- [Predicting football matches and betting markets](https://docs.pena.lt/y/models/index.html)
-- [Estimating implied odds from bookmaker prices](https://docs.pena.lt/y/implied/index.html)
-- [Calculating Massey, Colley, Pi, and Elo ratings](https://docs.pena.lt/y/ratings/index.html)
-- [Calculating metrics such as Ranked Probability Scores](https://docs.pena.lt/y/metrics/index.html)
+- [Scraping football data](https://penaltyblog.readthedocs.io/en/latest/scrapers/index.html)
+- [Predicting football matches and betting markets](https://penaltyblog.readthedocs.io/en/latest/models/index.html)
+- [Estimating implied odds from bookmaker prices](https://penaltyblog.readthedocs.io/en/latest/implied/index.html)
+- [Calculating Massey, Colley, Pi, and Elo ratings](https://penaltyblog.readthedocs.io/en/latest/ratings/index.html)
+- [Calculating metrics such as Ranked Probability Scores](https://penaltyblog.readthedocs.io/en/latest/metrics/index.html)
+- [Processing football event data with MatchFlow](https://penaltyblog.readthedocs.io/en/latest/matchflow/index.html)
 
 
 ## Why Penaltyblog?

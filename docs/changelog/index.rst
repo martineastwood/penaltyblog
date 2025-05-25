@@ -4,11 +4,28 @@ Changelog
 Version Numbering
 ###################
 
-`penaltyblog` follows the SemVer versioning guidelines. For more information,
+``penaltyblog`` follows the SemVer versioning guidelines. For more information,
 see `semver.org <http://semver.org/>`_
 
+v1.3.0 (2025-05-20)
+^^^^^^^^^^^^^^^^^^^^
 
-v1.2.0 (2025-04-06)
+Package Updates
+-----------------
+
+- Initial release of MatchFlow
+
+Documentation Improvements
+----------------------------
+
+- Added MatchFlow documentation
+- Added MatchFlow recipes documentation
+- Added API references for all of ``penaltyblog``
+- Added stub file for metric Cython code
+- Added stub file for model Cython code
+
+
+v1.2.0 (2025-04-10)
 ^^^^^^^^^^^^^^^^^^^^
 
 Package Updates

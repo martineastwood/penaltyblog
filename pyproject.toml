@@ -1,7 +1,7 @@
 [project]
 name = "penaltyblog"
-version = "1.2.0"
-description = "Library from http://pena.lt/y/blog for scraping and modelling football (soccer) data"
+version = "1.3.0"
+description = "Football (soccer) Data & Modelling Made Easy"
 authors = [{ name = "Martin Eastwood", email = "martin.eastwood@gmx.com" }]
 readme = "README.md"
 license = { file = "LICENSE" }
@@ -27,7 +27,9 @@ dependencies = [
     "html5lib",
     "ipywidgets",
     "numpy",
+    "orjson",
     "pandas",
+    "plotly",
     "PuLP",
     "requests",
     "scipy",
@@ -69,6 +71,7 @@ penaltyblog = [
 [project.optional-dependencies]
 dev = [
     "build",
+    "statsbombpy",
     "black>=22.6.0",
     "Sphinx>=5.1.1",
     "nbsphinx>=0.8.9",
@@ -105,3 +108,4 @@ line_length = 79
 
 [tool.mypy]
 ignore_missing_imports = true
+disable_error_code = ["import-untyped"]

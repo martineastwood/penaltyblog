@@ -7,6 +7,7 @@ Calculates the implied probabilities for a given set of odds.
 from typing import Any, Dict, List
 
 import numpy as np
+import numpy.typing as npt
 from scipy import optimize
 
 
@@ -31,10 +32,10 @@ def multiplicative(odds: List[float]) -> Dict[str, Any]:
     >>> odds = [2.7, 2.3, 4.4]
     >>> pb.implied.multiplicative(odds)
     """
-    odds = np.array(odds)
-    inv_odds = 1.0 / odds
-    normalized = inv_odds / np.sum(inv_odds)
-    margin = np.sum(inv_odds) - 1
+    odds_arr = np.array(odds, dtype=np.float64)
+    inv_odds = 1.0 / odds_arr
+    normalized = (inv_odds / np.sum(inv_odds)).tolist()
+    margin = float(np.sum(inv_odds) - 1)
     result = {
         "implied_probabilities": normalized,
         "method": "multiplicative",
@@ -64,10 +65,10 @@ def additive(odds: List[float]) -> Dict[str, Any]:
     >>> odds = [2.7, 2.3, 4.4]
     >>> pb.implied.additive(odds)
     """
-    odds = np.array(odds)
-    inv_odds = 1.0 / odds
-    normalized = inv_odds + 1 / len(inv_odds) * (1 - np.sum(inv_odds))
-    margin = np.sum(inv_odds) - 1
+    odds_arr = np.array(odds, dtype=np.float64)
+    inv_odds = 1.0 / odds_arr
+    normalized = (inv_odds + 1 / len(inv_odds) * (1 - np.sum(inv_odds))).tolist()
+    margin = float(np.sum(inv_odds) - 1)
     result = {
         "implied_probabilities": normalized,
         "method": "additive",
@@ -97,20 +98,20 @@ def power(odds: List[float]) -> Dict[str, Any]:
     >>> odds = [2.7, 2.3, 4.4]
     >>> pb.implied.power(odds)
     """
-    odds = np.array(odds)
-    inv_odds = 1.0 / odds
-    margin = np.sum(inv_odds) - 1
+    odds_arr = np.array(odds, dtype=np.float64)
+    inv_odds = 1.0 / odds_arr
+    margin = float(np.sum(inv_odds) - 1)
 
-    def _power(k, inv_odds):
+    def _power(k: float, inv_odds: np.ndarray) -> np.ndarray:
         implied = inv_odds**k
         return implied
 
-    def _power_error(k, inv_odds):
+    def _power_error(k: float, inv_odds: np.ndarray) -> float:
         implied = _power(k, inv_odds)
-        return 1 - np.sum(implied)
+        return float(1 - np.sum(implied))
 
-    res = optimize.ridder(_power_error, 0, 100, args=(inv_odds,))
-    normalized = _power(res, inv_odds)
+    res = float(optimize.ridder(_power_error, 0, 100, args=(inv_odds,)))
+    normalized = _power(res, inv_odds).tolist()
     result = {
         "implied_probabilities": normalized,
         "method": "power",
@@ -140,22 +141,22 @@ def shin(odds: List[float]) -> Dict[str, Any]:
     >>> odds = [2.7, 2.3, 4.4]
     >>> pb.implied.shin(odds)
     """
-    odds = np.array(odds)
-    inv_odds = 1.0 / odds
-    margin = np.sum(inv_odds) - 1
+    odds_arr = np.array(odds, dtype=np.float64)
+    inv_odds = 1.0 / odds_arr
+    margin = float(np.sum(inv_odds) - 1)
 
-    def _shin_error(z, inv_odds):
+    def _shin_error(z: float, inv_odds: np.ndarray) -> float:
         implied = _shin(z, inv_odds)
-        return 1 - np.sum(implied)
+        return float(1 - np.sum(implied))
 
-    def _shin(z, inv_odds):
+    def _shin(z: float, inv_odds: np.ndarray) -> np.ndarray:
         implied = (
             (z**2 + 4 * (1 - z) * inv_odds**2 / np.sum(inv_odds)) ** 0.5 - z
         ) / (2 - 2 * z)
         return implied
 
-    res = optimize.ridder(_shin_error, 0, 100, args=(inv_odds,))
-    normalized = _shin(res, inv_odds)
+    res = float(optimize.ridder(_shin_error, 0, 100, args=(inv_odds,)))
+    normalized = _shin(res, inv_odds).tolist()
     result = {
         "implied_probabilities": normalized,
         "method": "shin",
@@ -186,13 +187,16 @@ def differential_margin_weighting(odds: List[float]) -> Dict[str, Any]:
     >>> odds = [2.7, 2.3, 4.4]
     >>> pb.implied.differential_margin_weighting(odds)
     """
-    odds = np.array(odds)
-    inv_odds = 1.0 / odds
-    margin = np.sum(inv_odds) - 1
-    n_odds = len(odds)
-    fair_odds = (n_odds * odds) / (n_odds - (margin * odds))
+    odds_arr = np.array(odds, dtype=np.float64)
+    inv_odds: npt.NDArray[np.float64] = 1.0 / odds_arr
+    margin: float = float(np.sum(inv_odds) - 1)
+    n_odds: int = len(odds_arr)
+    fair_odds: npt.NDArray[np.float64] = (n_odds * odds_arr) / (
+        n_odds - (margin * odds_arr)
+    )
+    implied_probs = (1 / fair_odds).tolist()
     result = {
-        "implied_probabilities": 1 / fair_odds,
+        "implied_probabilities": implied_probs,
         "method": "differential_margin_weighting",
         "margin": margin,
     }
@@ -220,20 +224,20 @@ def odds_ratio(odds: List[float]) -> Dict[str, Any]:
     >>> odds = [2.7, 2.3, 4.4]
     >>> pb.implied.odds_ratio(odds)
     """
-    odds = np.array(odds)
-    inv_odds = 1.0 / odds
-    margin = np.sum(inv_odds) - 1
+    odds_arr = np.array(odds, dtype=np.float64)
+    inv_odds: npt.NDArray[np.float64] = 1.0 / odds_arr
+    margin: float = float(np.sum(inv_odds) - 1)
 
-    def _or_error(c, inv_odds):
+    def _or_error(c: float, inv_odds: npt.NDArray[np.float64]) -> float:
         implied = _or(c, inv_odds)
-        return 1 - np.sum(implied)
+        return float(1 - np.sum(implied))
 
-    def _or(c, inv_odds):
+    def _or(c: float, inv_odds: npt.NDArray[np.float64]) -> npt.NDArray[np.float64]:
         y = inv_odds / (c + inv_odds - (c * inv_odds))
         return y
 
-    res = optimize.ridder(_or_error, 0, 100, args=(inv_odds,))
-    normalized = _or(res, inv_odds)
+    res = float(optimize.ridder(_or_error, 0, 100, args=(inv_odds,)))
+    normalized = _or(res, inv_odds).tolist()
     result = {
         "implied_probabilities": normalized,
         "method": "odds_ratio",

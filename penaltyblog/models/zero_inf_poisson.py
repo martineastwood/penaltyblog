@@ -148,23 +148,6 @@ class ZeroInflatedPoissonGoalsModel(BaseGoalsModel):
         self.aic = -2 * self.loglikelihood + 2 * self.n_params
         self.fitted = True
 
-    def get_params(self) -> ParamsOutput:
-        if not self.fitted:
-            raise ValueError(
-                "Model's parameters have not been fit yet. Call `fit()` first."
-            )
-
-        params = dict(
-            zip(
-                ["attack_" + team for team in self.teams]
-                + ["defense_" + team for team in self.teams]
-                + ["home_advantage"]
-                + ["zero_inflation"],
-                self._params,
-            )
-        )
-        return params
-
     def predict(
         self, home_team: str, away_team: str, max_goals: int = 15
     ) -> FootballProbabilityGrid:
@@ -208,7 +191,9 @@ class ZeroInflatedPoissonGoalsModel(BaseGoalsModel):
 
         score_matrix.shape = (max_goals, max_goals)
 
-        return FootballProbabilityGrid(score_matrix, lambda_home, lambda_away)
+        return FootballProbabilityGrid(
+            score_matrix, float(lambda_home[0]), float(lambda_away[0])
+        )
 
     def get_params(self) -> ParamsOutput:
         """

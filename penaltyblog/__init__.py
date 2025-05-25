@@ -3,6 +3,7 @@ from . import (
     fpl,
     implied,
     kelly,
+    matchflow,
     metrics,
     models,
     ratings,
