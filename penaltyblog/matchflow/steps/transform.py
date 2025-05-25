@@ -1,6 +1,7 @@
 import copy
 import random
 from collections import OrderedDict, defaultdict
+from typing import TYPE_CHECKING, Any
 
 from .utils import (
     fast_get_field,
@@ -9,6 +10,9 @@ from .utils import (
     reservoir_sample,
     set_nested_field,
 )
+
+if TYPE_CHECKING:
+    from .flow import Flow
 
 
 def apply_filter(records, step) -> "Flow":
@@ -70,7 +74,7 @@ def apply_select(records, step) -> "Flow":
             step["_compiled_fields"] = compiled_paths
 
         for record in records:
-            out = {}
+            out: dict[str, Any] = {}
             for path in compiled_paths:
                 value = fast_get_field(record, path)
                 set_nested_field(out, ".".join(path), value)
@@ -175,7 +179,7 @@ def apply_limit(records, step) -> "Flow":
         yield record
 
 
-def apply_drop(records, step) -> "Flow":
+def apply_drop(records: "Flow", step: dict) -> "Flow":
     """
     Drop specified fields from each record.
 
@@ -204,7 +208,7 @@ def apply_drop(records, step) -> "Flow":
         yield new
 
 
-def apply_flatten(records, step) -> "Flow":
+def apply_flatten(records: "Flow", step: dict) -> "Flow":
     """
     Flatten nested dictionaries into a single-level dictionary using dot notation.
 
@@ -219,7 +223,7 @@ def apply_flatten(records, step) -> "Flow":
         yield flatten_dict(r)
 
 
-def apply_distinct(records, step) -> "Flow":
+def apply_distinct(records: "Flow", step: dict) -> "Flow":
     keys = step.get("keys")
     keep = step.get("keep", "first")
 
@@ -256,7 +260,7 @@ def _distinct_last(records, keys):
     yield from seen.values()
 
 
-def apply_dropna(records, step) -> "Flow":
+def apply_dropna(records: "Flow", step: dict) -> "Flow":
     """
     Drop records with missing values.
 
@@ -292,7 +296,7 @@ def apply_dropna(records, step) -> "Flow":
             yield record
 
 
-def apply_explode(records, step) -> "Flow":
+def apply_explode(records: "Flow", step: dict) -> "Flow":
     """
     Explode records based on a list of fields.
 
@@ -332,7 +336,7 @@ def apply_explode(records, step) -> "Flow":
             yield copy.deepcopy(record)
 
 
-def apply_join(records, step) -> "Flow":
+def apply_join(records: "Flow", step: dict) -> "Flow":
     """
     Join records based on a list of keys.
 
@@ -382,7 +386,7 @@ def apply_join(records, step) -> "Flow":
             yield joined
 
 
-def apply_split_array(records, step) -> "Flow":
+def apply_split_array(records: "Flow", step: dict) -> "Flow":
     """
     Split an array into multiple records.
 
@@ -420,7 +424,7 @@ def apply_split_array(records, step) -> "Flow":
             yield record
 
 
-def apply_pivot(records, step) -> "Flow":
+def apply_pivot(records: "Flow", step: dict) -> "Flow":
     """
     Pivot records based on a list of index fields.
 
@@ -460,7 +464,7 @@ def apply_pivot(records, step) -> "Flow":
         yield result
 
 
-def apply_summary(records, step) -> "Flow":
+def apply_summary(records: "Flow", step: dict) -> "Flow":
     """
     Apply a summary function to the records.
 
@@ -481,7 +485,7 @@ def apply_summary(records, step) -> "Flow":
     yield result
 
 
-def apply_sample_fraction(records, step) -> "Flow":
+def apply_sample_fraction(records: "Flow", step: dict) -> "Flow":
     """
     Sample a fraction of the records.
 
@@ -502,7 +506,7 @@ def apply_sample_fraction(records, step) -> "Flow":
             yield r
 
 
-def apply_sample_n(records, step) -> "Flow":
+def apply_sample_n(records: "Flow", step: dict) -> "Flow":
     """
     Sample a fixed number of records.
 
@@ -520,7 +524,7 @@ def apply_sample_n(records, step) -> "Flow":
         yield r
 
 
-def apply_map(records, step) -> "Flow":
+def apply_map(records: "Flow", step: dict) -> "Flow":
     """
     Apply a function to each record.
 

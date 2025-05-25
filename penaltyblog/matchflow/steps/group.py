@@ -1,9 +1,10 @@
 from collections import defaultdict
+from typing import Iterator
 
 from .utils import get_field
 
 
-def apply_group_by(records, step) -> list[dict]:
+def apply_group_by(records, step) -> Iterator[dict]:
     """
     Group records by one or more fields.
 
@@ -30,7 +31,7 @@ def apply_group_by(records, step) -> list[dict]:
         yield {"__group_key__": key, "__group_records__": group_records}
 
 
-def apply_group_summary(records, step) -> list[dict]:
+def apply_group_summary(records, step) -> Iterator[dict]:
     """
     Apply a summary function to each group of records.
 
@@ -61,7 +62,7 @@ def apply_group_summary(records, step) -> list[dict]:
         yield output
 
 
-def apply_group_cumulative(records, step) -> list[dict]:
+def apply_group_cumulative(records, step) -> Iterator[dict]:
     """
     Apply a cumulative function to each group of records.
 

@@ -1,5 +1,9 @@
 import glob
 import os
+from typing import TYPE_CHECKING, Iterator
+
+if TYPE_CHECKING:
+    from ..flow import Flow
 
 try:
     import orjson as json_lib
@@ -43,7 +47,7 @@ def dispatch(step) -> "Flow":
         raise ValueError(f"Unsupported source op: {step['op']}")
 
 
-def from_folder(step) -> "Flow":
+def from_folder(step) -> Iterator[dict]:
     """
     Create a Flow from a folder of JSON or JSONL files.
 
@@ -51,7 +55,7 @@ def from_folder(step) -> "Flow":
         step (dict): A dictionary containing the path to the folder.
 
     Returns:
-        Flow: A new Flow streaming matching files.
+        Iterator[dict]: A new Flow streaming matching files.
     """
     folder = step["path"]
     file_exts = (".json", ".jsonl")  # now explicitly includes .jsonl
@@ -76,7 +80,7 @@ def from_json(step):
         step (dict): A dictionary containing the path to the JSON file.
 
     Returns:
-        Flow: A new Flow streaming matching files.
+        Iterator[dict]: A new Flow streaming matching files.
     """
     path = step["path"]
     mode = "rb" if BINARY else "r"
@@ -88,7 +92,7 @@ def from_json(step):
         yield from data
 
 
-def from_jsonl(step) -> "Flow":
+def from_jsonl(step) -> Iterator[dict]:
     """
     Create a Flow from a JSONL file.
 
@@ -96,7 +100,7 @@ def from_jsonl(step) -> "Flow":
         step (dict): A dictionary containing the path to the JSONL file.
 
     Returns:
-        Flow: A new Flow streaming matching files.
+        Iterator[dict]: A new Flow streaming matching files.
     """
     path = step["path"]
     mode = "rb" if BINARY else "r"
@@ -108,7 +112,7 @@ def from_jsonl(step) -> "Flow":
             yield json_loads(line)
 
 
-def from_statsbomb(step) -> "Flow":
+def from_statsbomb(step) -> Iterator[dict]:
     """
     Create a Flow from a StatsBomb API endpoint.
 
@@ -116,7 +120,7 @@ def from_statsbomb(step) -> "Flow":
         step (dict): A dictionary containing the source and args for the StatsBomb API endpoint.
 
     Returns:
-        Flow: A new Flow streaming matching files.
+        Iterator[dict]: A new Flow streaming matching files.
     """
     if "source" not in step or "args" not in step:
         raise ValueError("from_statsbomb step must include 'source' and 'args'")
@@ -140,7 +144,7 @@ def from_statsbomb(step) -> "Flow":
     return iter(data.values())
 
 
-def from_glob(step) -> "Flow":
+def from_glob(step) -> Iterator[dict]:
     """
     Create a Flow from a glob pattern.
 
@@ -148,7 +152,7 @@ def from_glob(step) -> "Flow":
         step (dict): A dictionary containing the pattern for the glob.
 
     Returns:
-        Flow: A new Flow streaming matching files.
+        Iterator[dict]: A new Flow streaming matching files.
     """
     pattern = step["pattern"]
     for path in glob.glob(pattern, recursive=True):
@@ -174,7 +178,7 @@ def from_glob(step) -> "Flow":
                     yield data
 
 
-def from_concat(step) -> "Flow":
+def from_concat(step) -> Iterator[dict]:
     """
     Create a Flow from a list of plans.
 
@@ -182,7 +186,7 @@ def from_concat(step) -> "Flow":
         step (dict): A dictionary containing the plans to concatenate.
 
     Returns:
-        Flow: A new Flow streaming matching files.
+        Iterator[dict]: A new Flow streaming matching files.
     """
     from ..executor import FlowExecutor
 

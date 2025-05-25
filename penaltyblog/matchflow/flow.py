@@ -4,7 +4,10 @@ Flow class for handling a streaming data pipeline.
 
 import json
 from pprint import pprint
-from typing import Any, Callable, Dict, List, Optional, Union
+from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, Union
+
+if TYPE_CHECKING:
+    from .flowgroup import FlowGroup
 
 import pandas as pd
 

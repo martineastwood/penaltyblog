@@ -21,7 +21,8 @@ Documentation Improvements
 - Added MatchFlow documentation
 - Added MatchFlow recipes documentation
 - Added API references for all of ``penaltyblog``
-- Updated Roadmap
+- Added stub file for metric Cython code
+- Added stub file for model Cython code
 
 
 v1.2.0 (2025-04-10)
