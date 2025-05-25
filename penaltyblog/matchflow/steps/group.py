@@ -1,10 +1,19 @@
 from collections import defaultdict
-from typing import Any, Callable, Dict, List
 
 from .utils import get_field
 
 
-def apply_group_by(records, step):
+def apply_group_by(records, step) -> list[dict]:
+    """
+    Group records by one or more fields.
+
+    Args:
+        records (list[dict]): The records to group.
+        step (dict): The step to apply.
+
+    Returns:
+        list[dict]: The grouped records.
+    """
     keys = step["keys"]
     compiled = step.get("_compiled_keys")
 
@@ -21,7 +30,17 @@ def apply_group_by(records, step):
         yield {"__group_key__": key, "__group_records__": group_records}
 
 
-def apply_group_summary(records, step):
+def apply_group_summary(records, step) -> list[dict]:
+    """
+    Apply a summary function to each group of records.
+
+    Args:
+        records (list[dict]): The records to group.
+        step (dict): The step to apply.
+
+    Returns:
+        list[dict]: The grouped records.
+    """
     agg_func = step["agg"]
     group_keys = step.get("group_keys")  # get actual group key names if available
 
@@ -42,7 +61,17 @@ def apply_group_summary(records, step):
         yield output
 
 
-def apply_group_cumulative(records, step):
+def apply_group_cumulative(records, step) -> list[dict]:
+    """
+    Apply a cumulative function to each group of records.
+
+    Args:
+        records (list[dict]): The records to group.
+        step (dict): The step to apply.
+
+    Returns:
+        list[dict]: The grouped records.
+    """
     field = step["field"]
     alias = step["alias"]
 

@@ -8,6 +8,13 @@ def fast_get_field(record: dict, parts: list[str]) -> Any:
     Retrieve a nested field or list index from a record using dot notation.
     Accepts a precompiled list of parts (split by '.').
     Supports numeric strings as list indices.
+
+    Args:
+        record (dict): The record to retrieve the field from.
+        parts (list[str]): The list of parts to retrieve the field from.
+
+    Returns:
+        Any: The retrieved field or list index.
     """
     current: Any = record
     for part in parts:
@@ -24,7 +31,19 @@ def fast_get_field(record: dict, parts: list[str]) -> Any:
     return current
 
 
-def get_field(record: dict, path: Union[str, List[str]]):
+def get_field(record: dict, path: Union[str, List[str]]) -> Any:
+    """
+    Retrieve a nested field or list index from a record using dot notation.
+    Accepts a precompiled list of parts (split by '.').
+    Supports numeric strings as list indices.
+
+    Args:
+        record (dict): The record to retrieve the field from.
+        path (Union[str, List[str]]): The path to the field (dot notation).
+
+    Returns:
+        Any: The retrieved field or list index.
+    """
     if isinstance(path, str):
         parts = path.split(".")
     else:
@@ -73,7 +92,7 @@ def get_index(field: str, index: int) -> Callable[[dict], Any]:
     return _getter
 
 
-def set_nested_field(record: dict, path: str, value: Any):
+def set_nested_field(record: dict, path: str, value: Any) -> None:
     """
     Set a nested field in a record using dot notation.
 
@@ -113,7 +132,17 @@ def flatten_dict(d: dict, parent_key: str = "", sep: str = ".") -> dict:
     return items
 
 
-def schema(records: list[dict], sample_size: int = 50):
+def schema(records: list[dict], sample_size: int = 50) -> dict:
+    """
+    Get the schema of a list of records.
+
+    Args:
+        records (list[dict]): The list of records to get the schema from.
+        sample_size (int): The number of records to sample.
+
+    Returns:
+        dict: The schema of the records.
+    """
     type_map = defaultdict(set)
     for i, row in enumerate(records):
         if i >= sample_size:
@@ -125,6 +154,15 @@ def schema(records: list[dict], sample_size: int = 50):
 
 
 def unify_types(types: set[type]) -> type:
+    """
+    Unify a set of types into a single type.
+
+    Args:
+        types (set[type]): The set of types to unify.
+
+    Returns:
+        type: The unified type.
+    """
     if len(types) == 1:
         return next(iter(types))
     elif types.issubset({int, float}):
@@ -132,7 +170,18 @@ def unify_types(types: set[type]) -> type:
     return object  # fallback for mixed/unknown
 
 
-def reservoir_sample(iterable, k, seed=None):
+def reservoir_sample(iterable, k, seed=None) -> list:
+    """
+    Sample a fixed number of records from an iterable using the reservoir sampling algorithm.
+
+    Args:
+        iterable (iterable): The iterable to sample from.
+        k (int): The number of records to sample.
+        seed (int, optional): The seed for the random number generator.
+
+    Returns:
+        list: The sampled records.
+    """
     rng = random.Random(seed)
     result = []
     for i, item in enumerate(iterable):
