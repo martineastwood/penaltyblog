@@ -5,27 +5,6 @@ This roadmap outlines planned features, ideas under exploration, and long-term g
 
 It’s not a guarantee, but a guide - contributions, feedback, and suggestions are welcome!
 
---------
-
-✅ Recently Completed
----------------------
-
-Metrics
-""""""""
-
-- ✅ Added cythonized Ignorance Score (aka Log Loss)
-- ✅ Added cythonized Multiclass Brier Score
-
-MatchFlow
-""""""""""""
-
-- ✅ Initial release of MatchFlow
-- ✅ Custom helper functions for clean pipelines
-- ✅ Grouped cumulative sum
-- ✅ Sphinx + nbsphinx docs and recipe book
-
---------
-
 🔜 Planned
 -------------------------
 
@@ -58,7 +37,7 @@ MatchFlow
 Plotting
 """"""""
 
-- ☐ Publish **plotting** library
+- ☐ Publish penaltyblog **plotting** library
 - ☐ Native support for **plotting Flow pipelines**
 
 Models
