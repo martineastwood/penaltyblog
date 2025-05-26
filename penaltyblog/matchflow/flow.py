@@ -12,7 +12,8 @@ if TYPE_CHECKING:
 import pandas as pd
 
 from .aggs_registry import resolve_aggregator
-from .executor import FlowExecutor, is_materializing_op
+from .executor import FlowExecutor
+from .optimizer import FlowOptimizer
 from .predicates_helpers import and_
 from .steps.utils import flatten_dict, get_field, schema
 
@@ -20,8 +21,9 @@ PlanNode = Dict[str, Any]
 
 
 class Flow:
-    def __init__(self, plan: Optional[List[PlanNode]] = None):
+    def __init__(self, plan: Optional[List[PlanNode]] = None, optimize: bool = True):
         self.plan = plan or []
+        self.optimize = optimize
 
     def __eq__(self, other):
         return isinstance(other, Flow) and self.plan == other.plan
@@ -34,6 +36,9 @@ class Flow:
 
     def __repr__(self):
         return f"<Flow steps={len(self.plan)}>"
+
+    def _next(self, op: dict) -> "Flow":
+        return Flow(self.plan + [op], optimize=self.optimize)
 
     @staticmethod
     def from_folder(path: str) -> "Flow":
@@ -145,7 +150,7 @@ class Flow:
         Returns:
             bool: True if there are no records, False otherwise.
         """
-        it = FlowExecutor(self.plan).execute()
+        it = FlowExecutor(self.plan).execute() if self.optimize else self.plan
         try:
             next(it)
             return False
@@ -171,7 +176,7 @@ class Flow:
         Returns:
             Flow: A new Flow with assigned fields.
         """
-        return Flow(self.plan + [{"op": "assign", "fields": fields}])
+        return self._next({"op": "assign", "fields": fields})
 
     def select(self, *fields: str) -> "Flow":
         """
@@ -181,7 +186,7 @@ class Flow:
         Returns:
             Flow: A new Flow with selected fields.
         """
-        return Flow(self.plan + [{"op": "select", "fields": list(fields)}])
+        return self._next({"op": "select", "fields": list(fields)})
 
     def flatten(self) -> "Flow":
         """
@@ -190,7 +195,7 @@ class Flow:
         Returns:
             Flow: A new Flow with flattened records.
         """
-        return Flow(self.plan + [{"op": "flatten"}])
+        return self._next({"op": "flatten"})
 
     def distinct(self, *keys: str, keep: str = "first") -> "Flow":
         """
@@ -206,15 +211,12 @@ class Flow:
         if keep not in {"first", "last"}:
             raise ValueError("keep must be 'first' or 'last'")
 
-        return Flow(
-            self.plan
-            + [
-                {
-                    "op": "distinct",
-                    "keys": list(keys) if keys else None,
-                    "keep": keep,
-                }
-            ]
+        return self._next(
+            {
+                "op": "distinct",
+                "keys": list(keys) if keys else None,
+                "keep": keep,
+            }
         )
 
     def rename(self, **mapping: str):
@@ -225,7 +227,7 @@ class Flow:
         Returns:
             Flow: A new Flow with renamed keys.
         """
-        return Flow(self.plan + [{"op": "rename", "mapping": mapping}])
+        return self._next({"op": "rename", "mapping": mapping})
 
     def group_by(self, *keys: str) -> "FlowGroup":
         """
@@ -279,7 +281,7 @@ class Flow:
         else:
             raise TypeError("summary() requires a callable or dict")
 
-        return Flow(self.plan + [{"op": "summary", "agg": agg_func}])
+        return self._next({"op": "summary", "agg": agg_func})
 
     def sort_by(self, *keys: str, ascending: bool | list[bool] = True) -> "Flow":
         """
@@ -305,9 +307,7 @@ class Flow:
         else:
             raise TypeError("'ascending' must be a bool or list of bools.")
 
-        return Flow(
-            self.plan + [{"op": "sort", "keys": keys, "ascending": ascending_list}]
-        )
+        return self._next({"op": "sort", "keys": keys, "ascending": ascending_list})
 
     def limit(self, n: int) -> "Flow":
         """
@@ -319,7 +319,7 @@ class Flow:
         Returns:
             Flow: A new Flow that yields up to n records.
         """
-        return Flow(self.plan + [{"op": "limit", "count": n}])
+        return self._next({"op": "limit", "count": n})
 
     def head(self, n=5) -> list:
         """
@@ -372,7 +372,7 @@ class Flow:
         Returns:
             Flow: A new Flow with fields removed.
         """
-        return Flow(self.plan + [{"op": "drop", "keys": list(keys)}])
+        return self._next({"op": "drop", "keys": list(keys)})
 
     def dropna(self, *fields: str) -> "Flow":
         """
@@ -385,9 +385,7 @@ class Flow:
         Returns:
             Flow: A new Flow with records containing nulls removed.
         """
-        return Flow(
-            self.plan + [{"op": "dropna", "fields": list(fields) if fields else None}]
-        )
+        return self._next({"op": "dropna", "fields": list(fields) if fields else None})
 
     def concat(self, *others: "Flow") -> "Flow":
         """
@@ -399,8 +397,8 @@ class Flow:
         Returns:
             Flow: A new Flow representing the concatenated sequence.
         """
-        return Flow(
-            [{"op": "from_concat", "plans": [self.plan] + [f.plan for f in others]}]
+        return self._next(
+            {"op": "from_concat", "plans": [self.plan] + [f.plan for f in others]}
         )
 
     def explode(self, *fields: str) -> "Flow":
@@ -414,7 +412,7 @@ class Flow:
         Returns:
             Flow: A new Flow with records exploded along the given fields.
         """
-        return Flow(self.plan + [{"op": "explode", "fields": list(fields)}])
+        return self._next({"op": "explode", "fields": list(fields)})
 
     def join(
         self,
@@ -439,17 +437,14 @@ class Flow:
         if how not in {"left", "inner"}:
             raise ValueError("Only 'left' and 'inner' joins are supported currently.")
 
-        return Flow(
-            self.plan
-            + [
-                {
-                    "op": "join",
-                    "on": [on] if isinstance(on, str) else on,
-                    "right_plan": other.plan,
-                    "how": how,
-                    "suffix": suffix,
-                }
-            ]
+        return self._next(
+            {
+                "op": "join",
+                "on": [on] if isinstance(on, str) else on,
+                "right_plan": other.plan,
+                "how": how,
+                "suffix": suffix,
+            }
         )
 
     def split_array(self, field: str, into: list[str]) -> "Flow":
@@ -463,15 +458,12 @@ class Flow:
         Returns:
             Flow: A new Flow with the array split into separate fields.
         """
-        return Flow(
-            self.plan
-            + [
-                {
-                    "op": "split_array",
-                    "field": field,
-                    "into": into,
-                }
-            ]
+        return self._next(
+            {
+                "op": "split_array",
+                "field": field,
+                "into": into,
+            }
         )
 
     def pivot(self, index: str | list[str], columns: str, values: str) -> "Flow":
@@ -486,16 +478,13 @@ class Flow:
         Returns:
             Flow: A new Flow with records pivoted into wide format.
         """
-        return Flow(
-            self.plan
-            + [
-                {
-                    "op": "pivot",
-                    "index": [index] if isinstance(index, str) else index,
-                    "columns": columns,
-                    "values": values,
-                }
-            ]
+        return self._next(
+            {
+                "op": "pivot",
+                "index": [index] if isinstance(index, str) else index,
+                "columns": columns,
+                "values": values,
+            }
         )
 
     def cache(self) -> "Flow":
@@ -506,50 +495,56 @@ class Flow:
             Flow: A new Flow with the records cached.
         """
         records = list(self.collect())
-        return Flow([{"op": "from_materialized", "records": records}])
+        return self._next({"op": "from_materialized", "records": records})
 
-    def explain(self):
-        i = 0
-        while i < len(self.plan):
-            step = self.plan[i]
-            op = step["op"]
+    def explain(self, optimize: bool = True, compare: bool = False):
+        """
+        Print a readable version of the plan.
 
-            # Detect fusion block
-            if op in {"map", "assign", "filter"}:
-                fused = []
-                j = i
-                while j < len(self.plan) and self.plan[j]["op"] in {
-                    "map",
-                    "assign",
-                    "filter",
-                }:
-                    fused.append(self.plan[j]["op"])
-                    j += 1
-                if len(fused) > 1:
-                    print(f"{i+1:>2}. fused: {fused}")
-                    i = j
-                    continue
-                # If only one, treat it normally
-            # Standard step display
-            details = {k: v for k, v in step.items() if k != "op"}
-            if op == "from_materialized" and "records" in details:
-                details["records"] = f"<{len(details['records'])} records>"
-            if op in {"map", "pipe", "filter"} and "func" in details:
-                func = details["func"]
-                details["func"] = getattr(func, "__name__", repr(func))
+        Args:
+            optimize (bool): Whether to show the optimized plan (default True).
+            compare (bool): If True, show both pre- and post-optimization plans.
+        """
+        optimize = self.optimize if optimize is None else optimize
+        raw_plan = self.plan
+        opt_plan = (
+            FlowOptimizer(raw_plan).optimize() if optimize or compare else raw_plan
+        )
 
-            materializing = "⚠️ materializes data" if is_materializing_op(op) else ""
-            print(f"{i+1:>2}. {op}: {details} {materializing}")
-            i += 1
+        def _print_plan(plan):
+            for i, step in enumerate(plan):
+                op = step["op"]
+                details = {k: v for k, v in step.items() if k not in {"op", "_notes"}}
+                note_str = (
+                    "  // " + ", ".join(step.get("_notes", []))
+                    if "_notes" in step
+                    else ""
+                )
+                if op == "from_materialized" and "records" in details:
+                    details["records"] = f"<{len(details['records'])} records>"
+                print(f"{i+1:>2}. {op}: {details}{note_str}")
 
-    def collect(self) -> list:
+        if compare:
+            print("=== Pre-optimization plan ===")
+            _print_plan(raw_plan)
+            print("\n=== Post-optimization plan ===")
+            _print_plan(opt_plan)
+        else:
+            _print_plan(opt_plan if optimize else raw_plan)
+
+    def collect(self, optimize: Optional[bool] = None) -> list:
         """
         Collect all records from the flow.
+
+        Args:
+            optimize (bool): Whether to optimize the plan before execution.
 
         Returns:
             list: A list of records.
         """
-        return list(FlowExecutor(self.plan).execute())
+        optimize = self.optimize if optimize is None else optimize
+        plan = FlowOptimizer(self.plan).optimize() if optimize else self.plan
+        return list(FlowExecutor(plan).execute())
 
     def schema(self, n=100) -> dict[str, type]:
         """
@@ -599,7 +594,7 @@ class Flow:
         Returns:
             Flow: A new Flow with sampling applied.
         """
-        return Flow(self.plan + [{"op": "sample_fraction", "p": p, "seed": seed}])
+        return self._next({"op": "sample_fraction", "p": p, "seed": seed})
 
     def sample_n(self, n: int, seed: Optional[int] = None) -> "Flow":
         """
@@ -612,7 +607,7 @@ class Flow:
         Returns:
             Flow: A new Flow with sampling applied.
         """
-        return Flow(self.plan + [{"op": "sample_n", "n": n, "seed": seed}])
+        return self._next({"op": "sample_n", "n": n, "seed": seed})
 
     def map(self, func: Callable[[dict], dict]) -> "Flow":
         """
@@ -625,7 +620,7 @@ class Flow:
         Returns:
             Flow: A new Flow with the transformed records.
         """
-        return Flow(self.plan + [{"op": "map", "func": func}])
+        return self._next({"op": "map", "func": func})
 
     def pipe(self, func: Callable[["Flow"], "Flow"]) -> "Flow":
         """
@@ -634,7 +629,7 @@ class Flow:
 
         The function should return a new Flow, typically using this one as input.
         """
-        return Flow(self.plan + [{"op": "pipe", "func": func}])
+        return self._next({"op": "pipe", "func": func})
 
 
 from .contrib.statsbomb import statsbomb as statsbomb_module

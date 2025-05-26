@@ -4,8 +4,6 @@ from .steps import group, source, transform
 
 PlanNode = Dict[str, Any]
 
-FUSABLE_OPS = {"map", "filter", "assign"}
-
 
 def is_materializing_op(op_name: str) -> bool:
     """
@@ -14,16 +12,16 @@ def is_materializing_op(op_name: str) -> bool:
     """
     return op_name in {
         "sort",
-        "limit",  # materializes to truncate
-        "dropna",  # inspects multiple keys
-        "distinct",  # needs to track seen keys
-        "cache",  # explicitly buffers all data
-        "summary",  # aggregates entire dataset
-        "group_by",  # collects into group buckets
-        "group_summary",  # aggregates grouped records
-        "group_cumulative",  # runs cumulative logic per group
-        "pivot",  # restructures data after full pass
-        "schema",  # implicit materialization via limit+inspect
+        "limit",
+        "dropna",
+        "distinct",
+        "cache",
+        "summary",
+        "group_by",
+        "group_summary",
+        "group_cumulative",
+        "pivot",
+        "schema",
     }
 
 
@@ -40,17 +38,13 @@ class FlowExecutor:
             step = self.plan[i]
             op = step["op"]
 
-            # --- FUSION of adjacent map/assign/filter ---
-            if op in FUSABLE_OPS:
-                fused_steps = []
-                while i < len(self.plan) and self.plan[i]["op"] in FUSABLE_OPS:
-                    fused_steps.append(self.plan[i])
-                    i += 1
-                gen = self._apply_fused_transform(gen, fused_steps)
-                continue
-
-            # --- Non-fusible operators ---
-            if op == "select":
+            if op == "map":
+                gen = transform.apply_map(gen, step)
+            elif op == "assign":
+                gen = transform.apply_assign(gen, step)
+            elif op == "filter":
+                gen = transform.apply_filter(gen, step)
+            elif op == "select":
                 gen = transform.apply_select(gen, step)
             elif op == "rename":
                 gen = transform.apply_rename(gen, step)
@@ -90,34 +84,11 @@ class FlowExecutor:
                 func = step["func"]
                 flow = func(Flow(self.plan[:i]))
                 return FlowExecutor(flow.plan).execute()
+            elif op == "fused":
+                gen = transform.apply_fused(gen, step)
             else:
                 raise ValueError(f"Unknown plan op: {op}")
 
             i += 1
 
         return gen
-
-    def _apply_fused_transform(self, records, steps):
-        def fused():
-            for r in records:
-                for step in steps:
-                    op = step["op"]
-                    if op == "map":
-                        r = step["func"](r)
-                        if r is None:
-                            break
-                        if not isinstance(r, dict):
-                            raise TypeError("map function must return a dict")
-                    elif op == "assign":
-                        new_r = dict(r)
-                        for k, func in step["fields"].items():
-                            new_r[k] = func(r)
-                        r = new_r
-                    elif op == "filter":
-                        if not step["predicate"](r):
-                            r = None
-                            break
-                if r is not None:
-                    yield r
-
-        return fused()

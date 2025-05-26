@@ -543,3 +543,35 @@ def apply_map(records: "Flow", step: dict) -> "Flow":
         if not isinstance(result, dict):
             raise TypeError("map function must return a dict")
         yield result
+
+
+def apply_fused(records: "Flow", step: dict) -> "Flow":
+    """
+    Apply a fused sequence of map/assign/filter operations.
+
+    Args:
+        records (Flow): A Flow of records to apply fused operations to.
+        step (dict): A dictionary with an 'ops' list and potentially embedded steps.
+
+    Returns:
+        Flow: A new Flow with the fused operations applied.
+    """
+    # Extract embedded steps
+    embedded_steps = step.get("steps", [])
+
+    # Sanity fallback: reconstruct from original plan if needed
+    if not embedded_steps:
+        raise ValueError("Fused step missing original embedded steps")
+
+    # Apply them sequentially
+    for sub_step in embedded_steps:
+        op = sub_step["op"]
+        if op == "map":
+            records = apply_map(records, sub_step)
+        elif op == "assign":
+            records = apply_assign(records, sub_step)
+        elif op == "filter":
+            records = apply_filter(records, sub_step)
+        else:
+            raise ValueError(f"Unsupported op in fused step: {op}")
+    return records
