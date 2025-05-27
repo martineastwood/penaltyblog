@@ -1,7 +1,13 @@
 class FlowOptimizer:
     """
     Optimizer for a flow plan.
+
+    Performs conservative optimizations: it fuses simple operations,
+    pushes down filters, limits, and select/drop operations only when
+    provably safe, and eliminates redundant steps.
     """
+
+    MAX_PASSES = 5
 
     def __init__(self, plan):
         """
@@ -13,13 +19,15 @@ class FlowOptimizer:
         self.plan = plan
 
     def optimize(self):
-        """
-        Optimize the plan.
-
-        Returns:
-            list[dict]: The optimized plan.
-        """
         plan = self.plan
+        for _ in range(self.MAX_PASSES):
+            new_plan = self._optimize_once(plan)
+            if new_plan == plan:
+                break
+            plan = new_plan
+        return plan
+
+    def _optimize_once(self, plan):
         plan = self._fuse_map_assign_filter(plan)
         plan = self._pushdown_filters(plan)
         plan = self._pushdown_limit(plan)
@@ -27,261 +35,252 @@ class FlowOptimizer:
         plan = self._eliminate_redundant_steps(plan)
         return plan
 
-    def _get_fields_used(self, step: dict) -> set[str]:
-        """
-        Get the fields used by a step.
-
-        Args:
-            step (dict): The step to analyze.
-
-        Returns:
-            set[str]: The fields used by the step.
-        """
-        op = step["op"]
-        if op in {"select", "drop", "dropna"}:
+    def _get_fields_used(self, step):
+        op = step.get("op")
+        if op == "select":
+            return set(step.get("fields", []))
+        elif op == "drop":
+            return set(step.get("keys", []))
+        elif op == "dropna":
             return set(step.get("fields") or [])
-        elif op == "assign":
-            # Too dynamic to analyze safely
-            return set()
-        elif op == "cast":
-            return set(step["casts"].keys()) if "casts" in step else set()
-        elif op == "filter":
-            # Could try to introspect later, for now be conservative
-            return set()
-        elif op == "summary":
-            return set()
         elif op == "rename":
-            return set(step["mapping"].keys())
+            mapping = step.get("mapping", {})
+            # Consider both old and new names as used
+            return set(mapping.keys()) | set(mapping.values())
+        elif op == "assign":
+            # Fields created by assign must be preserved
+            return set(step.get("fields", {}).keys())
+        elif op == "cast":
+            return set(step.get("casts", {}).keys())
+        elif op == "filter":
+            # Arbitrary predicate: block select/drop above filter instead
+            return set()
         elif op == "join":
-            return set(step["on"])
+            return set(step.get("on", []))
         elif op == "sort":
-            return set(step["keys"])
+            return set(step.get("keys", []))
         elif op == "group_by":
-            return set(step["keys"])
+            return set(step.get("keys", []))
         else:
             return set()
 
-    def _compute_required_fields(self, plan: list[dict]) -> list[set[str]]:
+    def _compute_required_fields(self, plan):
         required = set()
         required_by_step = []
-
         for step in reversed(plan):
             required_by_step.append(required.copy())
             required |= self._get_fields_used(step)
-
         return list(reversed(required_by_step))
 
-    def _is_already_early_enough(self, plan: list[dict], index: int) -> bool:
-        """
-        Returns True if the step at `index` is already directly after a source op.
-        """
-        return index > 0 and plan[index - 1]["op"].startswith("from_")
+    def _is_already_early_enough(self, plan, index):
+        return index > 0 and plan[index - 1].get("op", "").startswith("from_")
 
-    def _pushdown_select_drop(self, plan: list[dict]) -> list[dict]:
-        """
-        Pushdown select and drop operations to earlier points in the plan.
-
-        Args:
-            plan (list[dict]): The plan to optimize.
-
-        Returns:
-            list[dict]: The optimized plan.
-        """
+    def _pushdown_select_drop(self, plan):
         required_fields_list = self._compute_required_fields(plan)
         new_plan = []
         pending_push = []
-
-        # These ops block pushdown beyond them
-        blocked_ops = {"assign", "map", "pipe", "summary", "join", "pivot", "explode"}
+        # Block select/drop pushdown across any of these ops
+        blocked_ops = {
+            "assign",
+            "filter",
+            "map",
+            "pipe",
+            "join",
+            "pivot",
+            "concat",
+            "explode",
+            "group_by",
+            "summary",
+            "group_summary",
+            "fused",
+        }
 
         for i, step in enumerate(plan):
-            op = step["op"]
+            op = step.get("op")
 
-            # Safe pushdown of select
-            if op == "select":
-                selected = set(step.get("fields") or [])
-                required_after = required_fields_list[i]
+            # Candidate for pushdown
+            if op in {"select", "drop"}:
+                if op == "select":
+                    fields = set(step.get("fields", []))
+                    cond = required_fields_list[i].issubset(fields)
+                else:
+                    fields = set(step.get("keys", []))
+                    cond = required_fields_list[i].isdisjoint(fields)
 
-                if required_after.issubset(selected):
-                    if self._is_already_early_enough(plan, i):
-                        new_plan.append(step)  # already well-placed
-                    else:
-                        step = dict(step)
-                        step.setdefault("_notes", []).append(
-                            "pushed down to earlier point"
-                        )
-                        pending_push.append(step)
-                    continue
-
-            # Safe pushdown of drop
-            elif op == "drop":
-                dropped = set(step.get("fields") or [])
-                required_after = required_fields_list[i]
-
-                if required_after.isdisjoint(dropped):
+                if cond:
+                    # Already at earliest safe point
                     if self._is_already_early_enough(plan, i):
                         new_plan.append(step)
                     else:
-                        step = dict(step)
-                        step.setdefault("_notes", []).append(
-                            "pushed down to earlier point"
-                        )
-                        pending_push.append(step)
+                        moved = dict(step)
+                        moved["_original_index"] = i
+                        pending_push.append(moved)
                     continue
 
-            # Stop pushdown at any dynamic/op-opaque steps
+            # Flush pending when hitting a blocker
             if op in blocked_ops:
                 new_plan.extend(pending_push)
                 pending_push = []
 
             new_plan.append(step)
 
-            if step["op"].startswith("from_") and pending_push:
+            # Flush immediately after any source
+            if op and op.startswith("from_") and pending_push:
                 new_plan.extend(pending_push)
                 pending_push = []
 
-        if pending_push:
-            new_plan.extend(pending_push)
+        return self._annotate_moves(new_plan)
 
-        return new_plan
+    def _annotate_moves(self, plan):
+        result = []
+        for idx, step in enumerate(plan):
+            if "_original_index" in step:
+                orig = step.pop("_original_index")
+                if idx < orig:
+                    note = (
+                        "moved earlier in plan"
+                        if orig - idx > 1
+                        else "reordered (same logical position)"
+                    )
+                    step.setdefault("_notes", []).append(note)
+            result.append(step)
+        return result
 
     def _eliminate_redundant_steps(self, plan):
-        """
-        Eliminate redundant steps from the plan.
-
-        Args:
-            plan (list[dict]): The plan to optimize.
-
-        Returns:
-            list[dict]: The optimized plan.
-        """
         new_plan = []
-        i = 0
-        while i < len(plan):
-            step = plan[i]
-            if i > 0 and step["op"] == plan[i - 1]["op"]:
-                if step["op"] in {"drop", "dropna"} and step == plan[i - 1]:
-                    # Remove exact duplicates silently
-                    i += 1
-                    continue
-            new_step = dict(step)
-            new_plan.append(new_step)
-            i += 1
+        prev_op = None
+        for step in plan:
+            op = step.get("op")
+            if op in {"drop", "dropna"} and op == prev_op:
+                continue
+            new_plan.append(dict(step))
+            prev_op = op
         return new_plan
 
     def _pushdown_filters(self, plan):
-        """
-        Pushdown filters to earlier points in the plan.
-
-        Args:
-            plan (list[dict]): The plan to optimize.
-
-        Returns:
-            list[dict]: The optimized plan.
-        """
         new_plan = []
-        filters = []
+        pending = []
+        pending_orig_idx = []
+        # Block pushing filters across these ops
+        blocking = {
+            "select",
+            "drop",
+            "dropna",
+            "rename",
+            "flatten",
+            "map",
+            "assign",
+            "pipe",
+            "join",
+            "group_by",
+            "group_summary",
+            "group_cumulative",
+            "sort",
+            "limit",
+            "explode",
+            "pivot",
+            "summary",
+        }
 
-        for step in plan:
-            if step["op"] == "filter":
-                filters.append(dict(step))  # clone for safety
-            elif step["op"].startswith("from_") and filters:
-                new_plan.append(dict(step))  # clone source
-                for f in filters:
-                    f.setdefault("_notes", []).append("pushed down from later step")
-                new_plan.extend(filters)
-                filters = []
-            else:
-                new_plan.append(dict(step))
+        for idx, step in enumerate(plan):
+            op = step.get("op")
 
-        for f in filters:
-            f.setdefault("_notes", []).append("could not push further")
-        new_plan.extend(filters)
+            # Stash filters
+            if op in {"filter"}:
+                pending.append(step.copy())
+                pending_orig_idx.append(idx)
+                continue
+
+            # Flush before any blocking op
+            if op in blocking and pending:
+                for filt, orig in zip(pending, pending_orig_idx):
+                    tagged = filt.copy()
+                    new_idx = len(new_plan)
+                    if new_idx < orig:
+                        tagged.setdefault("_notes", []).append(
+                            "pushed down from later step"
+                        )
+                    new_plan.append(tagged)
+                pending = []
+                pending_orig_idx = []
+
+            # Flush immediately after source
+            if op and op.startswith("from_") and pending:
+                for filt, orig in zip(pending, pending_orig_idx):
+                    tagged = filt.copy()
+                    new_idx = len(new_plan) + 1
+                    if new_idx < orig:
+                        tagged.setdefault("_notes", []).append(
+                            "pushed down from later step"
+                        )
+                    new_plan.append(tagged)
+                pending = []
+                pending_orig_idx = []
+
+            new_plan.append(step.copy())
+
+        # Append any remaining filters at end
+        for filt, orig in zip(pending, pending_orig_idx):
+            new_plan.append(filt)
+
         return new_plan
 
     def _pushdown_limit(self, plan):
-        """
-        Pushdown limit to earlier points in the plan.
-
-        Args:
-            plan (list[dict]): The plan to optimize.
-
-        Returns:
-            list[dict]: The optimized plan.
-        """
         limit_step = None
         new_plan = []
-        limit_was_moved = False
-
+        moved = False
         for step in reversed(plan):
-            if step["op"] == "limit":
+            if step.get("op") == "limit":
                 limit_step = dict(step)
-            elif limit_step and step["op"] in {
-                "map",
+            elif limit_step and step.get("op") in {
                 "assign",
                 "select",
                 "drop",
                 "rename",
             }:
-                limit_was_moved = True
+                # Do not push limit past map, since map may drop records
+                moved = True
                 new_plan.insert(0, dict(step))
             else:
                 if limit_step:
-                    if limit_was_moved:
+                    if moved:
                         limit_step.setdefault("_notes", []).append(
                             "pushed down from later step"
                         )
                     new_plan.insert(0, limit_step)
-                    limit_step = None
-                    limit_was_moved = False
+                    limit_step, moved = None, False
                 new_plan.insert(0, dict(step))
-
         if limit_step:
-            if limit_was_moved:
+            if moved:
                 limit_step.setdefault("_notes", []).append(
                     "pushed down to earliest safe point"
                 )
             new_plan.insert(0, limit_step)
-
         return new_plan
 
     def _fuse_map_assign_filter(self, plan):
-        """
-        Fuse map, assign, and filter operations.
-
-        Args:
-            plan (list[dict]): The plan to optimize.
-
-        Returns:
-            list[dict]: The optimized plan.
-        """
         new_plan = []
         i = 0
         fusables = {"map", "assign", "filter"}
-
         while i < len(plan):
-            if plan[i]["op"] in fusables:
-                fused_ops = []
+            if plan[i].get("op") in fusables:
                 j = i
-                while j < len(plan) and plan[j]["op"] in fusables:
-                    fused_ops.append(plan[j])
+                group = []
+                while j < len(plan) and plan[j].get("op") in fusables:
+                    group.append(plan[j])
                     j += 1
-
-                if len(fused_ops) > 1:
-                    fused_op = {
+                if len(group) > 1:
+                    fused = {
                         "op": "fused",
-                        "ops": [step["op"] for step in fused_ops],
-                        "steps": [dict(step) for step in fused_ops],
-                        "_notes": [
-                            f"fused: {', '.join(step['op'] for step in fused_ops)}"
-                        ],
+                        "ops": [s["op"] for s in group],
+                        "steps": [dict(s) for s in group],
+                        "_notes": [f"fused: {', '.join(s['op'] for s in group)}"],
                     }
-                    new_plan.append(fused_op)
+                    new_plan.append(fused)
                 else:
-                    new_plan.append(dict(fused_ops[0]))
+                    new_plan.append(dict(group[0]))
                 i = j
             else:
                 new_plan.append(dict(plan[i]))
                 i += 1
-
         return new_plan

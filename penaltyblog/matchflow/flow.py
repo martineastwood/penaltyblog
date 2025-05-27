@@ -9,12 +9,14 @@ from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, Union
 if TYPE_CHECKING:
     from .flowgroup import FlowGroup
 
+import matplotlib.pyplot as plt
 import pandas as pd
 
 from .aggs_registry import resolve_aggregator
 from .executor import FlowExecutor
 from .helpers import set_path
 from .optimizer import FlowOptimizer
+from .plotting import plot_plan
 from .predicates_helpers import and_
 from .steps.utils import flatten_dict, get_field, schema
 
@@ -42,7 +44,7 @@ class Flow:
         return Flow(self.plan + [op], optimize=self.optimize)
 
     @staticmethod
-    def from_folder(path: str) -> "Flow":
+    def from_folder(path: str, optimize: bool = False) -> "Flow":
         """
         Create a Flow from a folder of records.
         Args:
@@ -50,10 +52,10 @@ class Flow:
         Returns:
             Flow: A new Flow pointing to the records.
         """
-        return Flow(plan=[{"op": "from_folder", "path": path}])
+        return Flow(plan=[{"op": "from_folder", "path": path}], optimize=optimize)
 
     @staticmethod
-    def from_json(path: str) -> "Flow":
+    def from_json(path: str, optimize: bool = False) -> "Flow":
         """Lazily load a list of records from a JSON file.
 
         Args:
@@ -61,10 +63,10 @@ class Flow:
         Returns:
             Flow: A new Flow pointing to the records.
         """
-        return Flow(plan=[{"op": "from_json", "path": path}])
+        return Flow(plan=[{"op": "from_json", "path": path}], optimize=optimize)
 
     @staticmethod
-    def from_jsonl(path: str) -> "Flow":
+    def from_jsonl(path: str, optimize: bool = False) -> "Flow":
         """Lazily load records from a JSONL file.
 
         Args:
@@ -72,10 +74,10 @@ class Flow:
         Returns:
             Flow: A new Flow pointing to the records.
         """
-        return Flow(plan=[{"op": "from_jsonl", "path": path}])
+        return Flow(plan=[{"op": "from_jsonl", "path": path}], optimize=optimize)
 
     @staticmethod
-    def from_glob(pattern: str) -> "Flow":
+    def from_glob(pattern: str, optimize: bool = False) -> "Flow":
         """
         Create a Flow from a glob pattern.
 
@@ -85,10 +87,10 @@ class Flow:
         Returns:
             Flow: A new Flow streaming matching files.
         """
-        return Flow(plan=[{"op": "from_glob", "pattern": pattern}])
+        return Flow(plan=[{"op": "from_glob", "pattern": pattern}], optimize=optimize)
 
     @staticmethod
-    def from_records(records: List[dict]) -> "Flow":
+    def from_records(records: List[dict], optimize: bool = False) -> "Flow":
         """
         Create a Flow from a list of records.
         Args:
@@ -101,7 +103,9 @@ class Flow:
                 "`from_records()` expects a list of dicts, not a single dict"
             )
 
-        return Flow(plan=[{"op": "from_materialized", "records": records}])
+        return Flow(
+            plan=[{"op": "from_materialized", "records": records}], optimize=optimize
+        )
 
     def to_json(self, path: str, indent=4):
         """
@@ -168,7 +172,7 @@ class Flow:
         else:
             predicate = and_(*predicates)
 
-        return Flow(self.plan + [{"op": "filter", "predicate": predicate}])
+        return self._next({"op": "filter", "predicate": predicate})
 
     def assign(self, **fields: Callable[[dict], Any]) -> "Flow":
         """
@@ -243,7 +247,9 @@ class Flow:
         """
         from .group import FlowGroup
 
-        return FlowGroup(self.plan + [{"op": "group_by", "keys": list(keys)}])
+        return FlowGroup(
+            self.plan + [{"op": "group_by", "keys": list(keys)}], optimize=self.optimize
+        )
 
     def grouped(self, key: str):
         """
@@ -544,7 +550,10 @@ class Flow:
         Returns:
             list: A list of records.
         """
-        execution_plan = FlowOptimizer(self.plan).optimize() if optimize else self.plan
+        effective_optimize = self.optimize if optimize is None else optimize
+        execution_plan = (
+            FlowOptimizer(self.plan).optimize() if effective_optimize else self.plan
+        )
         return list(FlowExecutor(execution_plan).execute())
 
     def schema(self, n=100) -> dict[str, type]:
@@ -672,6 +681,25 @@ class Flow:
         The function should return a new Flow, typically using this one as input.
         """
         return self._next({"op": "pipe", "func": func})
+
+    def plot_plan(self, compare: bool = False):
+        if compare:
+            fig, axes = plt.subplots(
+                1, 2, figsize=(10, len(self.plan) * 0.75), sharey=True
+            )
+            plot_plan(self.plan, axes[0], "Original Plan")
+            optimized = FlowOptimizer(self.plan).optimize()
+            plot_plan(optimized, axes[1], "Optimized Plan")
+            plt.tight_layout()
+            plt.show()
+        else:
+            fig, ax = plt.subplots(figsize=(5, len(self.plan) * 0.75))
+            plan_to_plot = (
+                FlowOptimizer(self.plan).optimize() if self.optimize else self.plan
+            )
+            plot_plan(plan_to_plot, ax, "Flow Plan")
+            plt.tight_layout()
+            plt.show()
 
 
 from .contrib.statsbomb import statsbomb as statsbomb_module

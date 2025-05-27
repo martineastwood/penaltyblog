@@ -137,3 +137,48 @@ def test_optimizer_pushdown_select():
     select_index = next(i for i, step in enumerate(opt_plan) if step["op"] == "select")
     assign_index = next(i for i, step in enumerate(opt_plan) if step["op"] == "assign")
     assert select_index < assign_index
+
+
+def test_pushdown_filters_respects_blocking_ops():
+    original_plan = [
+        {"op": "from_jsonl"},
+        {"op": "select", "fields": ["x", "y"]},
+        {"op": "filter", "condition": "x > 0"},
+        {"op": "summary", "summary": {"count": "count"}},
+    ]
+
+    optimizer = FlowOptimizer(original_plan)
+    optimized_plan = optimizer._pushdown_filters(original_plan)
+
+    # We should filter before summary, not after it
+    assert [step["op"] for step in optimized_plan] == [
+        "from_jsonl",
+        "select",
+        "filter",
+        "summary",
+    ]
+
+
+def dummy_pred(r):
+    return r["z"] > 0
+
+
+def test_pushdown_filters_always_before_summary():
+    original = [
+        {"op": "from_jsonl"},
+        {"op": "filter", "cond": "a"},  # idx 1
+        {"op": "select", "fields": ["x"]},  # idx 2
+        {"op": "filter", "cond": "b"},  # idx 3
+        {"op": "summary", "summary": {"c": "count"}},  # idx 4
+    ]
+
+    optimizer = FlowOptimizer(original)
+    optimized = optimizer._pushdown_filters(original)
+
+    assert [step["op"] for step in optimized] == [
+        "from_jsonl",
+        "filter",
+        "select",
+        "filter",
+        "summary",
+    ]

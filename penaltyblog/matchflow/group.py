@@ -9,7 +9,7 @@ PlanNode = Dict[str, Any]
 
 
 class FlowGroup:
-    def __init__(self, plan: List[PlanNode], optimize: bool = True):
+    def __init__(self, plan: List[PlanNode], optimize: bool = False):
         self.plan = plan
         self.optimize = optimize
 

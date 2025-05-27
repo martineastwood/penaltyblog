@@ -46,3 +46,24 @@ def test_group_cumulative():
         {"team": "B", "minute": 1, "value": 2, "cumulative_value": 2},
         {"team": "B", "minute": 2, "value": 4, "cumulative_value": 6},
     ]
+
+
+def test_group_by_respects_optimize_flag():
+    flow = (
+        Flow.from_records([{"x": 1}, {"x": 2}], optimize=False)
+        .select("x")
+        .filter(lambda r: r["x"] > 0)
+        .filter(lambda r: r["x"] > 0)
+        .filter(lambda r: r["x"] > 0)
+    )
+
+    group = flow.group_by("x")
+    plan = group._get_plan()
+
+    # Ensure no fused steps appear
+    assert all(
+        step["op"] != "fused" for step in plan
+    ), "Plan was optimized despite optimize=False"
+
+    # Ensure FlowGroup inherited the optimize=False flag
+    assert group.optimize is False
