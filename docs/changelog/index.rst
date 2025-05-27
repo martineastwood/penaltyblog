@@ -19,7 +19,12 @@ Package Updates
     - Improved plan explanation with `.explain(compare=True)`
     - All optimizer behavior is opt-in and backwards-compatible
 - Added `Flow.plot_plan` for visualizing plans
-- Updated `Flow.explain` to optionally show pre- and post-optimization plans
+- Added `FlowGroup.plot_plan` for visualizing grouped plans
+- Added `FlowGroup.explain` for explaining grouped plans
+- Updated `.explain` methods to optionally show pre- and post-optimization plans
+- Added `Flow.with_schema` for schema validation and type casting
+- updated `Flow.collect` to expose optional progress bars
+
 
 v1.3.0 (2025-05-20)
 ^^^^^^^^^^^^^^^^^^^^

@@ -6,11 +6,13 @@ import json
 from pprint import pprint
 from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, Union
 
+from typing_extensions import Literal
+
 if TYPE_CHECKING:
     from .flowgroup import FlowGroup
 
-import matplotlib.pyplot as plt
 import pandas as pd
+from tqdm.auto import tqdm
 
 from .aggs_registry import resolve_aggregator
 from .executor import FlowExecutor
@@ -518,21 +520,54 @@ class Flow:
         opt_plan = FlowOptimizer(raw).optimize() if effective_opt or compare else None
         explain_plan(raw, optimized_plan=opt_plan, compare=compare)
 
-    def collect(self, optimize: Optional[bool] = None) -> list:
+    def collect(
+        self,
+        optimize: Optional[bool] = None,
+        progress: Optional[Literal["output", "input"]] = None,
+        total_records: Optional[int] = None,
+    ) -> list:
         """
         Collect all records from the flow.
 
         Args:
             optimize (bool): Whether to optimize the plan before execution.
+            progress (Optional[Literal["output", "input"]]): Whether to show progress.
+            total_records (Optional[int]): Total number of rows to expect.
 
         Returns:
             list: A list of records.
         """
+
+        # figure out whether to optimize
         effective_optimize = self.optimize if optimize is None else optimize
-        execution_plan = (
-            FlowOptimizer(self.plan).optimize() if effective_optimize else self.plan
-        )
-        return list(FlowExecutor(execution_plan).execute())
+        plan = FlowOptimizer(self.plan).optimize() if effective_optimize else self.plan
+
+        # === INPUT‐PROGRESS MODE ===
+        if progress == "input":
+            # unwrap the very first step
+            source_step, *rest = plan
+            # dispatch it & wrap in tqdm
+            raw_iter = FlowExecutor([source_step]).execute()
+            wrapped = tqdm(
+                raw_iter,
+                total=total_records,
+                desc="input rows",
+                unit="it",
+            )
+            # build a new plan: from_materialized over our wrapped iterator
+            wrapped_plan = [
+                {"op": "from_materialized", "records": wrapped},
+            ] + rest
+            return list(FlowExecutor(wrapped_plan).execute())
+
+        # === OUTPUT‐PROGRESS MODE ===
+        if progress == "output":
+            gen = FlowExecutor(plan).execute()
+            wrapped = tqdm(gen, total=total_records, desc="output rows", unit="it")
+            return list(wrapped)
+
+        # === NO PROGRESS BAR ===
+        return list(FlowExecutor(plan).execute())
 
     def schema(self, n=100) -> dict[str, type]:
         """
