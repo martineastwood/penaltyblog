@@ -2,6 +2,7 @@
 Flow class for handling a streaming data pipeline.
 """
 
+import itertools
 import json
 from pprint import pprint
 from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, Union
@@ -12,6 +13,7 @@ if TYPE_CHECKING:
     from .flowgroup import FlowGroup
 
 import pandas as pd
+from tabulate import tabulate
 from tqdm.auto import tqdm
 
 from .aggs_registry import resolve_aggregator
@@ -343,21 +345,26 @@ class Flow:
         """
         return self.limit(n).collect()
 
-    def show(self, n: int = 5, fmt: Literal["auto", "table", "dict"] = "auto"):
+    def show(self, n: int = 5, fmt: Literal["table", "record"] = "table"):
         """
         Print the first `n` records in a pretty format.
 
         Args:
             n (int): Number of records to show.
+            fmt (Literal["auto", "table", "dict"]): Format to use for display.
         """
-        sample = self.limit(n).collect()
-        if fmt in ("auto", "table"):
-            show_tabular(sample)
+        rows = list(itertools.islice(self.collect(), n))
 
-        # fallback to pprint-style
-        else:
-            for row in sample:
-                pprint(row)
+        if fmt == "record":
+            for r in rows:
+                pprint(r)
+            return
+
+        if fmt == "table":
+            show_tabular(rows)
+            return
+
+        raise ValueError(f"Unknown format: {fmt}")
 
     def keys(self, limit: int = 100) -> set[str]:
         """
