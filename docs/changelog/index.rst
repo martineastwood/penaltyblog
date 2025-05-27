@@ -8,14 +8,16 @@ Version Numbering
 see `semver.org <http://semver.org/>`_
 
 
-v1.3.x (xx-xx-xx)
+v1.4.0 (xx-xx-xx)
 ^^^^^^^^^^^^^^^^^^^^
 
 Package Updates
 -----------------
 
-- Added `.with_schema()` method to matchflow
-- Added Logical Plan Optimizer to matchflow
+- Introduced optional `FlowOptimizer` for plan rewrites
+    - New `.optimize` flag on all flows (defaults to `False`)
+    - Improved plan explanation with `.explain(compare=True)`
+    - All optimizer behavior is opt-in and backwards-compatible
 
 
 v1.3.0 (2025-05-20)
