@@ -18,7 +18,8 @@ Package Updates
     - New `.optimize` flag on all flows (defaults to `False`)
     - Improved plan explanation with `.explain(compare=True)`
     - All optimizer behavior is opt-in and backwards-compatible
-
+- Added `Flow.plot_plan` for visualizing plans
+- Updated `Flow.explain` to optionally show pre- and post-optimization plans
 
 v1.3.0 (2025-05-20)
 ^^^^^^^^^^^^^^^^^^^^

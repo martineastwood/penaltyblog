@@ -1,4 +1,8 @@
+import copy
+
 import networkx as nx
+
+from .optimizer import FlowOptimizer
 
 NODE_COLOURS = {
     "from_json": "#AED6F1",
@@ -76,3 +80,35 @@ def plot_plan(plan, ax=None, title=""):
     ax.set_xlim(0, 1)
     ax.set_title(title, fontsize=12)
     ax.axis("off")
+
+
+def plot_flow_plan(plan, optimize=False, compare=False, title_prefix=""):
+    """
+    Helper to visualize a plan (single or compare mode), optionally optimizing.
+    optimizer_cls: class to use for optimization (must have .optimize()).
+    """
+    import matplotlib.pyplot as plt
+
+    if compare:
+        fig, axes = plt.subplots(
+            1,
+            2,
+            figsize=(10, max(2, len(plan) * 0.75)),
+            sharey=True,
+        )
+        plot_plan(plan, axes[0], f"{title_prefix}Original Plan")
+        optimized = FlowOptimizer(copy.deepcopy(plan)).optimize()
+        plot_plan(optimized, axes[1], f"{title_prefix}Optimized Plan")
+        plt.tight_layout()
+        plt.show()
+    else:
+        if optimize:
+            plan_to_plot = FlowOptimizer(plan).optimize()
+            title = f"{title_prefix}Optimized Plan"
+        else:
+            plan_to_plot = plan
+            title = f"{title_prefix}Original Plan"
+        fig, ax = plt.subplots(figsize=(5, max(2, len(plan_to_plot) * 0.75)))
+        plot_plan(plan_to_plot, ax, title)
+        # plt.tight_layout()
+        plt.show()

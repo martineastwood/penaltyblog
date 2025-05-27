@@ -2,7 +2,6 @@
 Flow class for handling a streaming data pipeline.
 """
 
-import copy
 import json
 from pprint import pprint
 from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, Union
@@ -15,9 +14,9 @@ import pandas as pd
 
 from .aggs_registry import resolve_aggregator
 from .executor import FlowExecutor
-from .helpers import set_path
+from .helpers import explain_plan, set_path
 from .optimizer import FlowOptimizer
-from .plotting import plot_plan
+from .plotting import plot_flow_plan
 from .predicates_helpers import and_
 from .steps.utils import flatten_dict, get_field, schema
 
@@ -506,7 +505,7 @@ class Flow:
         records = list(self.collect())
         return self._next({"op": "from_materialized", "records": records})
 
-    def explain(self, optimize: bool = True, compare: bool = False):
+    def explain(self, optimize: Optional[bool] = None, compare: bool = False):
         """
         Print a readable version of the plan.
 
@@ -514,32 +513,10 @@ class Flow:
             optimize (bool): Whether to show the optimized plan (default True).
             compare (bool): If True, show both pre- and post-optimization plans.
         """
-        optimize = self.optimize if optimize is None else optimize
-        raw_plan = self.plan
-        opt_plan = (
-            FlowOptimizer(raw_plan).optimize() if optimize or compare else raw_plan
-        )
-
-        def _print_plan(plan):
-            for i, step in enumerate(plan):
-                op = step["op"]
-                details = {k: v for k, v in step.items() if k not in {"op", "_notes"}}
-                note_str = (
-                    "  // " + ", ".join(step.get("_notes", []))
-                    if "_notes" in step
-                    else ""
-                )
-                if op == "from_materialized" and "records" in details:
-                    details["records"] = f"<{len(details['records'])} records>"
-                print(f"{i+1:>2}. {op}: {details}{note_str}")
-
-        if compare:
-            print("=== Pre-optimization plan ===")
-            _print_plan(raw_plan)
-            print("\n=== Post-optimization plan ===")
-            _print_plan(opt_plan)
-        else:
-            _print_plan(opt_plan if optimize else raw_plan)
+        effective_opt = self.optimize if optimize is None else optimize
+        raw = self.plan
+        opt_plan = FlowOptimizer(raw).optimize() if effective_opt or compare else None
+        explain_plan(raw, optimized_plan=opt_plan, compare=compare)
 
     def collect(self, optimize: Optional[bool] = None) -> list:
         """
@@ -693,29 +670,11 @@ class Flow:
                 - False: show a single subplot. If this Flow was constructed
                   with optimize=True, show the optimized plan; otherwise the raw.
         """
-        if compare:
-            # Always show raw plan on the left, optimized on the right
-            fig, axes = plt.subplots(
-                1, 2, figsize=(10, len(self.plan) * 0.75), sharey=True
-            )
-            plot_plan(self.plan, axes[0], "Original Plan")
-            optimized = FlowOptimizer(copy.deepcopy(self.plan)).optimize()
-            plot_plan(optimized, axes[1], "Optimized Plan")
-            plt.tight_layout()
-            plt.show()
-        else:
-            # Single-panel mode: choose based on self.optimize
-            if self.optimize:
-                plan_to_plot = FlowOptimizer(self.plan).optimize()
-                title = "Optimized Plan"
-            else:
-                plan_to_plot = self.plan
-                title = "Original Plan"
-
-            fig, ax = plt.subplots(figsize=(5, len(plan_to_plot) * 0.75))
-            plot_plan(plan_to_plot, ax, title)
-            plt.tight_layout()
-            plt.show()
+        plot_flow_plan(
+            self.plan,
+            optimize=self.optimize,
+            compare=compare,
+        )
 
 
 from .contrib.statsbomb import statsbomb as statsbomb_module

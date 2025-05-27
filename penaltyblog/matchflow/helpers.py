@@ -270,3 +270,36 @@ def delete_path(record: dict, path: str):
         current = current.get(k)
     if isinstance(current, dict):
         current.pop(keys[-1], None)
+
+
+def explain_plan(
+    raw_plan: list[dict],
+    optimized_plan: Optional[list[dict]] = None,
+    compare: bool = False,
+    indent: int = 2,
+):
+    """
+    Print a plan. If compare=True and optimized_plan is given,
+    show both raw and optimized side by side.
+    """
+
+    def _print(title: str, plan: list[dict]):
+        print(title)
+        for i, step in enumerate(plan, 1):
+            op = step["op"]
+            # strip out internal keys
+            details = {k: v for k, v in step.items() if k not in ("op", "_notes")}
+            notes = step.get("_notes", [])
+            line = f"{i:>2}. {op:<15} {details}"
+            if notes:
+                line += "    // " + "; ".join(notes)
+            print(" " * indent + line)
+
+    if compare and optimized_plan is not None:
+        _print("=== Pre-optimization plan ===", raw_plan)
+        print()
+        _print("=== Post-optimization plan ===", optimized_plan)
+    else:
+        title = "Optimized Plan" if optimized_plan is not None else "Plan"
+        plan = optimized_plan or raw_plan
+        _print(f"=== {title} ===", plan)

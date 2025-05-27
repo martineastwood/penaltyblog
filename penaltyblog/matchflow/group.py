@@ -3,6 +3,9 @@ from typing import Any, Callable, Dict, List, Optional, Union
 from .aggs_registry import resolve_aggregator
 from .executor import FlowExecutor
 from .flow import Flow
+from .helpers import explain_plan
+from .optimizer import FlowOptimizer
+from .plotting import plot_flow_plan
 
 PlanNode = Dict[str, Any]
 
@@ -162,14 +165,31 @@ class FlowGroup:
             FlowExecutor(Flow(self.plan, optimize=self.optimize).plan).execute()
         )
 
-    def explain(self) -> None:
+    def plot_plan(self, compare: bool = False):
+        """
+        Visualize the flow group plan.
+
+        Args:
+            compare (bool):
+                - True: show two subplots (raw vs. optimized).
+                - False: show a single subplot. If this FlowGroup was constructed
+                  with optimize=True, show the optimized plan; otherwise the raw.
+        """
+        plot_flow_plan(
+            self.plan,
+            optimize=self.optimize,
+            compare=compare,
+            title_prefix="Group: ",
+        )
+
+    def explain(self, optimize: Optional[bool] = None, compare: bool = False):
         """
         Explain the plan.
 
         Returns:
             None
         """
-        plan = FlowOptimizer(self.plan).optimize() if self.optimize else self.plan
-        for step in plan:
-            details = {k: v for k, v in step.items() if k != "op"}
-            print(f"• {step['op']}: {details}")
+        effective_opt = self.optimize if optimize is None else optimize
+        raw = self.plan
+        opt_plan = FlowOptimizer(raw).optimize() if effective_opt or compare else None
+        explain_plan(raw, optimized_plan=opt_plan, compare=compare)
