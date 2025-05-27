@@ -2,6 +2,7 @@
 Flow class for handling a streaming data pipeline.
 """
 
+import copy
 import json
 from pprint import pprint
 from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, Union
@@ -683,21 +684,36 @@ class Flow:
         return self._next({"op": "pipe", "func": func})
 
     def plot_plan(self, compare: bool = False):
+        """
+        Visualize the flow plan.
+
+        Args:
+            compare (bool):
+                - True: show two subplots (raw vs. optimized).
+                - False: show a single subplot. If this Flow was constructed
+                  with optimize=True, show the optimized plan; otherwise the raw.
+        """
         if compare:
+            # Always show raw plan on the left, optimized on the right
             fig, axes = plt.subplots(
                 1, 2, figsize=(10, len(self.plan) * 0.75), sharey=True
             )
             plot_plan(self.plan, axes[0], "Original Plan")
-            optimized = FlowOptimizer(self.plan).optimize()
+            optimized = FlowOptimizer(copy.deepcopy(self.plan)).optimize()
             plot_plan(optimized, axes[1], "Optimized Plan")
             plt.tight_layout()
             plt.show()
         else:
-            fig, ax = plt.subplots(figsize=(5, len(self.plan) * 0.75))
-            plan_to_plot = (
-                FlowOptimizer(self.plan).optimize() if self.optimize else self.plan
-            )
-            plot_plan(plan_to_plot, ax, "Flow Plan")
+            # Single-panel mode: choose based on self.optimize
+            if self.optimize:
+                plan_to_plot = FlowOptimizer(self.plan).optimize()
+                title = "Optimized Plan"
+            else:
+                plan_to_plot = self.plan
+                title = "Original Plan"
+
+            fig, ax = plt.subplots(figsize=(5, len(plan_to_plot) * 0.75))
+            plot_plan(plan_to_plot, ax, title)
             plt.tight_layout()
             plt.show()
 

@@ -1,3 +1,6 @@
+import copy
+
+
 class FlowOptimizer:
     """
     Optimizer for a flow plan.
@@ -19,7 +22,7 @@ class FlowOptimizer:
         self.plan = plan
 
     def optimize(self):
-        plan = self.plan
+        plan = copy.deepcopy(self.plan)
         for _ in range(self.MAX_PASSES):
             new_plan = self._optimize_once(plan)
             if new_plan == plan:

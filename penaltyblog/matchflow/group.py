@@ -3,45 +3,48 @@ from typing import Any, Callable, Dict, List, Optional, Union
 from .aggs_registry import resolve_aggregator
 from .executor import FlowExecutor
 from .flow import Flow
-from .optimizer import FlowOptimizer
 
 PlanNode = Dict[str, Any]
 
 
 class FlowGroup:
+    """
+    A FlowGroup is a collection of records grouped by one or more keys.
+    """
+
     def __init__(self, plan: List[PlanNode], optimize: bool = False):
+        """
+        Args:
+            plan (List[PlanNode]): The plan to execute.
+            optimize (bool, optional): Whether to optimize the plan. Defaults to False.
+        """
         self.plan = plan
         self.optimize = optimize
 
-    def _get_plan(self) -> List[PlanNode]:
-        if self.optimize:
-            return FlowOptimizer(self.plan).optimize()
-        return self.plan
-
     def __iter__(self):
-        from .executor import FlowExecutor
-
-        for group in FlowExecutor(self._get_plan()).execute():
-            key = group["__group_key__"]
-            records = group["__group_records__"]
-            yield key if len(key) > 1 else key[0], records
-
-    def summary(self, aggregators: Union[Callable, dict[str, Any]]) -> "FlowGroup":
         """
-        Supports:
-        - Callable (e.g. lambda rows: {...})
-        - Dict of {alias: callable}
-        - Dict of {alias: "name"} or (name/callable, field)
+        Iterate over the groups.
+        """
+        plan_to_execute = (
+            FlowOptimizer(self.plan).optimize() if self.optimize else self.plan
+        )
+        for group in FlowExecutor(plan_to_execute).execute():
+            key = group.get("__group_key__")
+            records = group.get("__group_records__")
+            yield (key if isinstance(key, tuple) and len(key) == 1 else key), records
+
+    def summary(self, aggregators: Union[Callable, Dict[str, Any]]) -> Flow:
+        """
+        Apply group-summary without eagerly optimizing previous steps.
 
         Args:
-            aggregators (Union[Callable, dict[str, Any]]): The aggregators to apply.
+            aggregators (Union[Callable, Dict[str, Any]]): The aggregators to apply.
 
         Returns:
-            FlowGroup: A new FlowGroup with the summary applied.
+            Flow: A new Flow with the group-summary applied.
         """
         if callable(aggregators):
             agg_func = aggregators
-
         elif isinstance(aggregators, dict):
 
             def agg_func(rows):
@@ -53,20 +56,40 @@ class FlowGroup:
         else:
             raise TypeError("summary() requires a callable or dict")
 
+        # Find original group_by keys
         group_keys = None
-        for step in reversed(self._get_plan()):
-            if step["op"] == "group_by":
-                group_keys = step["keys"]
+        for step in reversed(self.plan):
+            if step.get("op") == "group_by":
+                group_keys = step.get("keys")
                 break
 
+        # Build new Flow with raw plan + summary, carry optimize flag
         return Flow(
-            self._get_plan()
-            + [{"op": "group_summary", "agg": agg_func, "group_keys": group_keys}]
+            plan=self.plan
+            + [
+                {
+                    "op": "group_summary",
+                    "agg": agg_func,
+                    "group_keys": group_keys,
+                }
+            ],
+            optimize=self.optimize,
         )
 
-    def sort_by(self, *keys: str, ascending: bool = True):
+    def sort_by(self, *keys: str, ascending: bool = True) -> "FlowGroup":
+        """
+        Sort the groups by one or more fields.
+
+        Args:
+            *keys (str): Field names to sort by.
+            ascending (bool or list[bool], optional): Sort order(s). Either a single bool
+                applied to all keys or a list of bools (one per key).
+
+        Returns:
+            FlowGroup: A new FlowGroup with sorted groups.
+        """
         return FlowGroup(
-            self._get_plan()
+            plan=self.plan
             + [
                 {
                     "op": "sort",
@@ -77,60 +100,76 @@ class FlowGroup:
                         else ascending
                     ),
                 }
-            ]
+            ],
+            optimize=self.optimize,
         )
 
-    def cumulative(self, field: str, alias: Optional[str] = None):
+    def cumulative(self, field: str, alias: Optional[str] = None) -> Flow:
         """
+        Apply group-cumulative without eagerly optimizing previous steps.
+
         Args:
             field (str): The field to cumulative.
             alias (Optional[str], optional): The alias for the cumulative field. Defaults to None.
 
         Returns:
-            Flow: A new Flow with the cumulative applied.
+            Flow: A new Flow with the group-cumulative applied.
         """
         return Flow(
-            self._get_plan()
+            plan=self.plan
             + [
                 {
                     "op": "group_cumulative",
                     "field": field,
                     "alias": alias or f"cumulative_{field}",
                 }
-            ]
+            ],
+            optimize=self.optimize,
         )
 
-    def select(self, *fields: str):
+    def select(self, *fields: str) -> "FlowGroup":
         """
+        Select specific fields from each record.
+
         Args:
             *fields (str): The fields to select.
 
         Returns:
-            FlowGroup: A new FlowGroup with the select applied.
+            FlowGroup: A new FlowGroup with selected fields.
         """
-        return FlowGroup(self._get_plan() + [{"op": "select", "fields": fields}])
+        return FlowGroup(
+            plan=self.plan + [{"op": "select", "fields": list(fields)}],
+            optimize=self.optimize,
+        )
 
-    def to_flow(self):
+    def to_flow(self) -> Flow:
         """
         Convert the FlowGroup to a Flow.
 
         Returns:
-            Flow: A new Flow with the group applied.
+            Flow: A new Flow with the same plan and optimize flag.
         """
-        return Flow(self._get_plan())
+        return Flow(plan=self.plan, optimize=self.optimize)
 
-    def collect(self):
+    def collect(self) -> List[Dict[str, Any]]:
         """
         Collect the FlowGroup into a list of records.
 
         Returns:
-            list: The collected records.
+            List[Dict[str, Any]]: The collected records.
         """
-        return list(FlowExecutor(self._get_plan()).execute())
+        return list(
+            FlowExecutor(Flow(self.plan, optimize=self.optimize).plan).execute()
+        )
 
-    def explain(self):
+    def explain(self) -> None:
         """
-        Print the plan for the FlowGroup.
+        Explain the plan.
+
+        Returns:
+            None
         """
-        for step in self._get_plan():
-            print(f"• {step['op']}: { {k: v for k, v in step.items() if k != 'op'} }")
+        plan = FlowOptimizer(self.plan).optimize() if self.optimize else self.plan
+        for step in plan:
+            details = {k: v for k, v in step.items() if k != "op"}
+            print(f"• {step['op']}: {details}")
