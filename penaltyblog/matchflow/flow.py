@@ -16,7 +16,7 @@ from tqdm.auto import tqdm
 
 from .aggs_registry import resolve_aggregator
 from .executor import FlowExecutor
-from .helpers import explain_plan, set_path
+from .helpers import explain_plan, set_path, show_tabular
 from .optimizer import FlowOptimizer
 from .plotting import plot_flow_plan
 from .predicates_helpers import and_
@@ -343,17 +343,21 @@ class Flow:
         """
         return self.limit(n).collect()
 
-    def show(self, n: int = 5):
+    def show(self, n: int = 5, fmt: Literal["auto", "table", "dict"] = "auto"):
         """
         Print the first `n` records in a pretty format.
 
         Args:
             n (int): Number of records to show.
         """
-        for i, row in enumerate(self.collect()):
-            if i >= n:
-                break
-            pprint(row)
+        sample = self.limit(n).collect()
+        if fmt in ("auto", "table"):
+            show_tabular(sample)
+
+        # fallback to pprint-style
+        else:
+            for row in sample:
+                pprint(row)
 
     def keys(self, limit: int = 100) -> set[str]:
         """
@@ -612,8 +616,6 @@ class Flow:
                     casted = value
                 set_path(rec, path, casted)
             if drop_extra:
-                # Only keep fields in schema (supporting nested)
-                # We'll reconstruct a new dict with only those fields
                 new_rec = {}
                 for path in schema.keys():
                     val = get_field(rec, path)

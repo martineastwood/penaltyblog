@@ -28,11 +28,13 @@ dependencies = [
     "ipywidgets",
     "numpy",
     "orjson",
+    "matplotlib",
     "pandas",
     "plotly",
     "PuLP",
     "requests",
     "scipy",
+    "tabulate",
     "tqdm",
 ]
 

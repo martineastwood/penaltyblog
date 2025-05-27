@@ -21,10 +21,15 @@ Package Updates
 - Added `Flow.plot_plan` for visualizing plans
 - Added `FlowGroup.plot_plan` for visualizing grouped plans
 - Added `FlowGroup.explain` for explaining grouped plans
-- Updated `.explain` methods to optionally show pre- and post-optimization plans
+- Updated `Flow.explain` method to optionally show pre- and post-optimization plans
+- Updated `FlowGroup.explain` method to optionally show pre- and post-optimization plans
 - Added `Flow.with_schema` for schema validation and type casting
-- updated `Flow.collect` to expose optional progress bars
+- Updated `Flow.collect` to expose optional progress bars
 
+Documentation Improvements
+----------------------------
+
+- Updated MatchFlow documentation to include new features
 
 v1.3.0 (2025-05-20)
 ^^^^^^^^^^^^^^^^^^^^

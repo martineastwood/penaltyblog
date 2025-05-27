@@ -4,6 +4,10 @@ Helpers for handling a streaming data pipeline, specifically the Flow class.
 
 from typing import Any, Callable, Optional
 
+from tabulate import tabulate
+
+from .steps.utils import flatten_dict
+
 # --- Accessors ---
 
 
@@ -303,3 +307,24 @@ def explain_plan(
         title = "Optimized Plan" if optimized_plan is not None else "Plan"
         plan = optimized_plan or raw_plan
         _print(f"=== {title} ===", plan)
+
+
+def show_tabular(sample: list[dict]) -> None:
+    """
+    Show a tabular representation of a sample of records.
+
+    Args:
+        sample (list[dict]): A sample of records to show.
+    """
+    # flatten each record to a flat dict
+    flat = [flatten_dict(r) for r in sample]
+    if not flat:
+        print("<no rows>")
+        return
+
+    # collect columns in sorted order
+    cols = sorted({k for row in flat for k in row})
+
+    # build rows
+    rows = [[row.get(c, "") for c in cols] for row in flat]
+    print(tabulate(rows, headers=cols, tablefmt="github"))
