@@ -25,6 +25,7 @@ Package Updates
 - Updated `FlowGroup.explain` method to optionally show pre- and post-optimization plans
 - Added `Flow.with_schema` for schema validation and type casting
 - Updated `Flow.collect` to expose optional progress bars
+- Added `Flow.show` for visualizing plans using tabulate
 
 Documentation Improvements
 ----------------------------

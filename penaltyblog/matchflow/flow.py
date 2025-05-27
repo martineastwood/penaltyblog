@@ -5,15 +5,16 @@ Flow class for handling a streaming data pipeline.
 import itertools
 import json
 from pprint import pprint
+from time import perf_counter
 from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, Union
 
+from tabulate import tabulate
 from typing_extensions import Literal
 
 if TYPE_CHECKING:
     from .flowgroup import FlowGroup
 
 import pandas as pd
-from tabulate import tabulate
 from tqdm.auto import tqdm
 
 from .aggs_registry import resolve_aggregator
@@ -718,6 +719,57 @@ class Flow:
             self.plan,
             optimize=self.optimize,
             compare=compare,
+        )
+
+    def profile(
+        self,
+        optimize: bool | None = None,
+        fmt: Literal["table", "records"] = "table",
+    ):
+        """
+        Profile each step in the plan. Returns a report of
+        (step_index, op_name, time_s, rows_emitted).
+
+        Args:
+          optimize: whether to optimize the plan (default = self.optimize)
+          fmt: 'table' to print a table, 'records' to return the raw list of dicts.
+        """
+        # 1. pick effective plan
+        effective_opt = self.optimize if optimize is None else optimize
+        plan = FlowOptimizer(self.plan).optimize() if effective_opt else self.plan
+
+        stats = []
+        # 2. for each prefix of the plan, execute just that prefix
+        for idx in range(1, len(plan) + 1):
+            prefix = plan[:idx]
+            op = prefix[-1]["op"]
+
+            start = perf_counter()
+            rows = 0
+            # fully materialize prefix so we can count rows
+            for _ in FlowExecutor(prefix).execute():
+                rows += 1
+            elapsed = perf_counter() - start
+
+            stats.append(
+                {
+                    "step": idx,
+                    "op": op,
+                    "time_s": round(elapsed, 3),
+                    "rows": rows,
+                }
+            )
+
+        if fmt == "records":
+            return stats
+
+        # pretty‐print via tabulate
+        print(
+            tabulate(
+                [[s["step"], s["op"], s["time_s"], s["rows"]] for s in stats],
+                headers=["#", "op", "sec", "rows"],
+                tablefmt="github",
+            )
         )
 
 
