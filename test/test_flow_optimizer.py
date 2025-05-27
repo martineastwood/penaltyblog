@@ -1,3 +1,4 @@
+from penaltyblog.matchflow.flow import Flow
 from penaltyblog.matchflow.optimizer import FlowOptimizer
 
 
@@ -125,3 +126,14 @@ def test_multiple_limits_only_outer_remains():
     assert ops.count("limit") == 2
     assert new_plan[1]["count"] == 100
     assert new_plan[3]["count"] == 10
+
+
+def test_optimizer_pushdown_select():
+    flow = Flow.from_jsonl("data.jsonl").select("x", "y").assign(z=lambda r: r["y"] + 1)
+    plan = flow.plan
+    opt_plan = FlowOptimizer(plan).optimize()
+
+    # Ensure select came before assign
+    select_index = next(i for i, step in enumerate(opt_plan) if step["op"] == "select")
+    assign_index = next(i for i, step in enumerate(opt_plan) if step["op"] == "assign")
+    assert select_index < assign_index

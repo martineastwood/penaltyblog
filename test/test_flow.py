@@ -1,4 +1,5 @@
 import json
+from datetime import datetime
 
 import numpy as np
 import pytest
@@ -1129,6 +1130,42 @@ def test_where_is_null(scalar_record):
     assert where_is_null("missing.field")(scalar_record) is True
 
 
-@pytest.fixture
-def scalar_record():
-    return {"team": {"name": "Barcelona"}}
+def test_with_schema_basic_cast():
+    data = [{"x": "1", "y": "2.5"}, {"x": "3", "y": "4.0"}]
+    flow = Flow.from_records(data).with_schema({"x": int, "y": float})
+    result = flow.collect()
+    assert result == [{"x": 1, "y": 2.5}, {"x": 3, "y": 4.0}]
+
+
+def test_with_schema_nested_field():
+    data = [{"user": {"age": "20"}}]
+    flow = Flow.from_records(data).with_schema({"user.age": int})
+    result = flow.collect()
+    assert result[0]["user"]["age"] == 20
+
+
+def test_with_schema_strict_mode_raises():
+    data = [{"x": "abc"}]
+    with pytest.raises(ValueError):
+        Flow.from_records(data).with_schema({"x": int}, strict=True).collect()
+
+
+def test_with_schema_fallback_on_error():
+    data = [{"x": "abc"}]
+    flow = Flow.from_records(data).with_schema({"x": int}, strict=False)
+    result = flow.collect()
+    assert result[0]["x"] == "abc"
+
+
+def test_with_schema_drop_extra_fields():
+    data = [{"a": "1", "b": "2", "c": "3"}]
+    flow = Flow.from_records(data).with_schema({"a": int}, drop_extra=True)
+    result = flow.collect()
+    assert result == [{"a": 1}]
+
+
+def test_without_schema_drop_extra_fields():
+    data = [{"a": "1", "b": "2", "c": "3"}]
+    flow = Flow.from_records(data).with_schema({"a": int})
+    result = flow.collect()
+    assert result == [{"a": 1, "b": "2", "c": "3"}]

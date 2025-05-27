@@ -13,6 +13,7 @@ import pandas as pd
 
 from .aggs_registry import resolve_aggregator
 from .executor import FlowExecutor
+from .helpers import set_path
 from .optimizer import FlowOptimizer
 from .predicates_helpers import and_
 from .steps.utils import flatten_dict, get_field, schema
@@ -21,7 +22,7 @@ PlanNode = Dict[str, Any]
 
 
 class Flow:
-    def __init__(self, plan: Optional[List[PlanNode]] = None, optimize: bool = True):
+    def __init__(self, plan: Optional[List[PlanNode]] = None, optimize: bool = False):
         self.plan = plan or []
         self.optimize = optimize
 
@@ -150,7 +151,8 @@ class Flow:
         Returns:
             bool: True if there are no records, False otherwise.
         """
-        it = FlowExecutor(self.plan).execute() if self.optimize else self.plan
+        plan = FlowOptimizer(self.plan).optimize() if self.optimize else self.plan
+        it = FlowExecutor(plan).execute()
         try:
             next(it)
             return False
@@ -542,9 +544,8 @@ class Flow:
         Returns:
             list: A list of records.
         """
-        optimize = self.optimize if optimize is None else optimize
-        plan = FlowOptimizer(self.plan).optimize() if optimize else self.plan
-        return list(FlowExecutor(plan).execute())
+        execution_plan = FlowOptimizer(self.plan).optimize() if optimize else self.plan
+        return list(FlowExecutor(execution_plan).execute())
 
     def schema(self, n=100) -> dict[str, type]:
         """
@@ -558,6 +559,47 @@ class Flow:
         """
         sample = list(self.limit(n).collect())
         return schema(sample)
+
+    def with_schema(
+        self,
+        schema: dict[str, Union[type, Callable[[Any], Any]]],
+        strict: bool = False,
+        drop_extra: bool = False,
+    ) -> "Flow":
+        """
+        Cast fields to specified types/functions and optionally validate or prune fields.
+
+        Args:
+            schema (dict): Mapping of field names (dot paths allowed) to types or casting functions.
+            strict (bool): If True, raise an error on cast failure. Otherwise, fallback to original value.
+            drop_extra (bool): If True, only retain fields explicitly listed in the schema.
+
+        Returns:
+            Flow: A new Flow with schema enforcement applied.
+        """
+
+        def cast_and_set(record):
+            rec = record.copy()
+            for path, func in schema.items():
+                value = get_field(rec, path)
+                try:
+                    casted = func(value)
+                except Exception:
+                    if strict:
+                        raise ValueError(f"Failed to cast field '{path}' to {func}")
+                    casted = value
+                set_path(rec, path, casted)
+            if drop_extra:
+                # Only keep fields in schema (supporting nested)
+                # We'll reconstruct a new dict with only those fields
+                new_rec = {}
+                for path in schema.keys():
+                    val = get_field(rec, path)
+                    set_path(new_rec, path, val)
+                return new_rec
+            return rec
+
+        return self.map(cast_and_set)
 
     def cast(self, **casts: Union[type, Callable[[Any], Any]]) -> "Flow":
         """

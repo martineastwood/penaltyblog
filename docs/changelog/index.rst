@@ -7,6 +7,17 @@ Version Numbering
 ``penaltyblog`` follows the SemVer versioning guidelines. For more information,
 see `semver.org <http://semver.org/>`_
 
+
+v1.3.x (xx-xx-xx)
+^^^^^^^^^^^^^^^^^^^^
+
+Package Updates
+-----------------
+
+- Added `.with_schema()` method to matchflow
+- Added Logical Plan Optimizer to matchflow
+
+
 v1.3.0 (2025-05-20)
 ^^^^^^^^^^^^^^^^^^^^
 
