@@ -346,26 +346,26 @@ class Flow:
         """
         return self.limit(n).collect()
 
-    def show(self, n: int = 5, fmt: Literal["table", "record"] = "table"):
+    def show(self, n: int = 5, format: Literal["table", "record"] = "table"):
         """
         Print the first `n` records in a pretty format.
 
         Args:
             n (int): Number of records to show.
-            fmt (Literal["auto", "table", "dict"]): Format to use for display.
+            format (Literal["table", "record"]): Format to use for display.
         """
         rows = list(itertools.islice(self.collect(), n))
 
-        if fmt == "record":
+        if format == "record":
             for r in rows:
                 pprint(r)
             return
 
-        if fmt == "table":
+        if format == "table":
             show_tabular(rows)
             return
 
-        raise ValueError(f"Unknown format: {fmt}")
+        raise ValueError(f"Unknown format: {format}")
 
     def keys(self, limit: int = 100) -> set[str]:
         """
