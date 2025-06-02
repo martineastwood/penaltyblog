@@ -26,6 +26,7 @@ Package Updates
 - Added `Flow.with_schema` for schema validation and type casting
 - Updated `Flow.collect` to expose optional progress bars
 - Added `Flow.show` for visualizing plans using tabulate
+- Added `FlowGroup.rolling_summary` for group-rolling-summary
 
 Documentation Improvements
 ----------------------------

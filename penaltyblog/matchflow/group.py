@@ -130,6 +130,47 @@ class FlowGroup:
             optimize=self.optimize,
         )
 
+    def rolling_summary(
+        self,
+        window: int | str,
+        aggregators: dict[str, Any],
+        time_field: str | None = None,
+        min_periods: int = 1,
+    ) -> Flow:
+        """
+        Apply group-rolling-summary. Note that you should sort the records
+        before applying this step.
+
+        Args:
+            window (int | str): Rolling window size.
+                - int → number of records
+                - str → time-based window (e.g. '30s', '5m')
+            aggregators (dict): {alias: aggregator_def}
+            time_field (str): Field to use for time-based rolling (must be datetime)
+            min_periods (int): Minimum records before output
+
+        Returns:
+            Flow: A new Flow with rolling summary fields added.
+        """
+        resolved_aggs = {
+            alias: resolve_aggregator(value, alias)
+            for alias, value in aggregators.items()
+        }
+
+        return Flow(
+            self.plan
+            + [
+                {
+                    "op": "group_rolling_summary",
+                    "window": window,
+                    "min_periods": min_periods,
+                    "time_field": time_field,
+                    "aggregators": resolved_aggs,
+                }
+            ],
+            optimize=self.optimize,
+        )
+
     def select(self, *fields: str) -> "FlowGroup":
         """
         Select specific fields from each record.

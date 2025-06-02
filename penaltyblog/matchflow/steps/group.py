@@ -1,7 +1,67 @@
-from collections import defaultdict
+from collections import defaultdict, deque
 from typing import Iterator
 
 from .utils import get_field
+
+
+def apply_group_rolling_summary(records, step) -> Iterator[dict]:
+    """
+    Streaming rolling aggregation per group — supports row or time-based windows.
+    """
+    window = step["window"]
+    min_periods = step.get("min_periods", 1)
+    time_field = step.get("time_field")
+    aggregators = step["aggregators"]
+
+    # Parse time-based window string, e.g. "30s", "5m"
+    def parse_time_window(w: str) -> int:
+        units = {"s": 1, "m": 60}
+        if not isinstance(w, str) or len(w) < 2:
+            raise ValueError(
+                f"Invalid window string: {w}, expected format: '30s' or '5m'"
+            )
+        unit = w[-1]
+        if unit not in units:
+            raise ValueError(f"Unsupported time unit in window: {w}")
+        return int(w[:-1]) * units[unit]
+
+    time_window_s = None
+    if isinstance(window, str):
+        if not time_field:
+            raise ValueError("`time_field` is required for time-based rolling windows")
+        time_window_s = parse_time_window(window)
+
+    for group in records:
+        rows = group["__group_records__"]
+        buffer = deque()
+
+        for row in rows:
+            current_time = row.get(time_field) if time_field else None
+            buffer.append(row)
+
+            if time_window_s is not None:
+                # Time-based window
+                while (
+                    buffer
+                    and (current_time - buffer[0][time_field]).total_seconds()
+                    > time_window_s
+                ):
+                    buffer.popleft()
+            else:
+                # Row-count window
+                if len(buffer) > window:
+                    buffer.popleft()
+
+            result = dict(row)
+
+            if len(buffer) >= min_periods:
+                for alias, fn in aggregators.items():
+                    result[alias] = fn(list(buffer))
+            else:
+                for alias in aggregators:
+                    result[alias] = None
+
+            yield result
 
 
 def apply_group_by(records, step) -> Iterator[dict]:
