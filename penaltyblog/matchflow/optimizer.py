@@ -317,12 +317,12 @@ class FlowOptimizer:
             if op == "group_rolling_summary":
                 # Look back for a sort_by step after the most recent group_by
                 sorted_before = any(
-                    p.get("op") == "sort_by" for p in plan[last_group_by_idx + 1 : idx]
+                    p.get("op") == "sort" for p in plan[last_group_by_idx + 1 : idx]
                 )
                 if not sorted_before:
                     step = dict(step)  # avoid mutating original
                     step.setdefault("_notes", []).append(
-                        "⚠️  group_rolling_summary used without prior sort_by — results may be unstable"
+                        "⚠️  group_rolling_summary used without prior sort — results may be unstable"
                     )
             validated_plan.append(step)
 
