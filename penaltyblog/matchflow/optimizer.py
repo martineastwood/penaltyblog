@@ -28,6 +28,7 @@ class FlowOptimizer:
             if new_plan == plan:
                 break
             plan = new_plan
+        plan = self._validate_rolling_has_sort(plan)
         return plan
 
     def _optimize_once(self, plan):
@@ -64,6 +65,15 @@ class FlowOptimizer:
             return set(step.get("keys", []))
         elif op == "group_by":
             return set(step.get("keys", []))
+        elif op == "group_rolling_summary":
+            fields = set()
+            time_field = step.get("time_field")
+            if time_field:
+                fields.add(time_field)
+            for agg in step.get("aggregators", {}).values():
+                if isinstance(agg, tuple):
+                    fields.add(agg[1])
+            return fields
         else:
             return set()
 
@@ -95,6 +105,7 @@ class FlowOptimizer:
             "group_by",
             "summary",
             "group_summary",
+            "group_rolling_summary",
             "fused",
         }
 
@@ -178,6 +189,7 @@ class FlowOptimizer:
             "group_by",
             "group_summary",
             "group_cumulative",
+            "group_rolling_summary",
             "sort",
             "limit",
             "explode",
@@ -287,3 +299,31 @@ class FlowOptimizer:
                 new_plan.append(dict(plan[i]))
                 i += 1
         return new_plan
+
+    def _validate_rolling_has_sort(self, plan):
+        """
+        Detects if group_rolling_summary is missing a prior sort_by step after group_by.
+        Adds a _notes field with a warning if so.
+        """
+        validated_plan = []
+        last_group_by_idx = -1
+
+        for idx, step in enumerate(plan):
+            op = step.get("op")
+
+            if op == "group_by":
+                last_group_by_idx = idx
+
+            if op == "group_rolling_summary":
+                # Look back for a sort_by step after the most recent group_by
+                sorted_before = any(
+                    p.get("op") == "sort_by" for p in plan[last_group_by_idx + 1 : idx]
+                )
+                if not sorted_before:
+                    step = dict(step)  # avoid mutating original
+                    step.setdefault("_notes", []).append(
+                        "⚠️  group_rolling_summary used without prior sort_by — results may be unstable"
+                    )
+            validated_plan.append(step)
+
+        return validated_plan
