@@ -165,6 +165,7 @@ def apply_group_time_bucket(records, step):
       - each aggregator’s output
 
     We assume `time_field` in each raw row is either a `datetime.datetime` or a `datetime.timedelta`.
+    If `time_field` is missing or invalid, those records will be skipped.
     """
     freq_str = step["freq"]
     aggregators = step["aggregators"]
@@ -199,7 +200,12 @@ def apply_group_time_bucket(records, step):
         #    We accumulate all rows with the same bucket_index into one bucket.
 
         # Detect if time_field values are timedelta or datetime
+        if not sorted_rows:
+            return []  # No valid rows to process
+
         sample_time = _get_time(sorted_rows[0])
+        if sample_time is None:
+            raise ValueError(f"Time field '{time_field}' is missing or invalid in all records.")
         is_timedelta = isinstance(sample_time, datetime.timedelta)
         is_datetime = isinstance(sample_time, datetime.datetime)
 
@@ -227,7 +233,10 @@ def apply_group_time_bucket(records, step):
                 try:
                     total_s = t.total_seconds()
                 except AttributeError:
-                    total_s = float(t)  # Assume it's a numeric type representing seconds
+                    try:
+                        total_s = float(t)  # Assume it's a numeric type representing seconds
+                    except ValueError:
+                        raise ValueError(f"Invalid time value '{t}' in record.")
 
             bucket_index = int(total_s // bucket_size_seconds)
             buckets[bucket_index].append(row)
