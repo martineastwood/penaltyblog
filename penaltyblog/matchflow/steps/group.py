@@ -1,6 +1,6 @@
 import datetime
 from collections import defaultdict, deque
-from typing import Iterator, Literal
+from typing import Iterator
 
 from ..aggs_registry import resolve_aggregator
 from .utils import get_field
@@ -33,14 +33,13 @@ def parse_window_size(window_str: str) -> float:
 
 def apply_group_rolling_summary(records: Iterator[dict], step: dict) -> Iterator[dict]:
     """
-    Lazily apply a rolling summary within each group in a FlowGroup.
-    Expects each incoming 'record' to be a dict of:
-        {
-          "__group_key__":     (<value1>, <value2>, …),
-          "__group_records__": [list of raw rows belonging to that group]
-        }
-    Emits one “rolled‐up” row per original row in each group (whenever (i % step) == 0
-    and window has at least min_periods), attaching the group‐by key fields as real columns.
+    Lazily apply a rolling summary within each group.
+
+    Two modes:
+      - Count mode: `window` is int → last N rows
+      - Time mode:  `window` is str ending in s/m/h/d → last T seconds
+
+    In time mode, `time_field` must be datetime or timedelta.
     """
     window = step["window"]
     aggregators = step["aggregators"]
@@ -50,77 +49,95 @@ def apply_group_rolling_summary(records: Iterator[dict], step: dict) -> Iterator
     step_size = raw_step if (isinstance(raw_step, int) and raw_step > 0) else 1
     group_keys = step.get("__group_keys") or []
 
+    # --- determine mode ---
+    if isinstance(window, (int, float)):
+        count_mode = True
+        count_window = int(window)
+        time_window_seconds = None
+    elif isinstance(window, str) and window[-1].lower() in {"s", "m", "h", "d"}:
+        count_mode = False
+        time_window_seconds = parse_window_size(window)
+        if time_field is None:
+            raise ValueError("String window requires a time_field")
+    else:
+        raise ValueError(
+            f"Invalid window {window!r}: use int for row-count or str ending in s/m/h/d for time."
+        )
+
     def process_one_group(group_key_tuple, group_records):
-        """
-        Given a single group’s key (tuple) and its list of original rows, yield
-        one rolling‐summary row per input row (subject to min_periods/step_size).
-        """
-        # If time_field is set, sort that group by timestamp first:
-        if time_field:
+        # sort by time_field if time mode, else leave original order
+        if not count_mode:
+            # validate time_field type
+            sample = get_field(group_records[0], time_field)
+            if isinstance(sample, datetime):
+                origin = sample
+                is_datetime = True
+            elif isinstance(sample, timedelta):
+                origin = timedelta(0)
+                is_datetime = False
+            else:
+                raise ValueError(
+                    f"Rolling-summary: time_field '{time_field}' is {type(sample).__name__}; "
+                    "for a string window you must supply datetime or timedelta values."
+                )
             group_records = sorted(
                 group_records, key=lambda r: get_field(r, time_field)
             )
+        else:
+            origin = None
+            is_datetime = False
 
         window_deque = deque()
         results = []
 
         for idx, row in enumerate(group_records):
-            # Append the new row into the sliding window
             window_deque.append(row)
-            current_time = get_field(row, time_field) if time_field else None
 
-            # If using a string window (e.g. "5m"), pop off any rows older than that Δ:
-            if time_field and isinstance(window, str):
-                max_seconds = parse_window_size(window)
+            # drop old items
+            if count_mode:
+                while len(window_deque) > count_window:
+                    window_deque.popleft()
+                current_window = list(window_deque)
+            else:
+                # time‐based eviction
+                t = get_field(row, time_field)
+                now_s = (
+                    (t - origin).total_seconds() if is_datetime else t.total_seconds()
+                )
                 while window_deque:
                     oldest = window_deque[0]
-                    oldest_time = get_field(oldest, time_field)
-                    delta = current_time - oldest_time
-                    if not isinstance(delta, datetime.timedelta):
-                        # If these aren’t datetime objects, bail out
-                        break
-                    if delta.total_seconds() > max_seconds:
+                    old_t = get_field(oldest, time_field)
+                    old_s = (
+                        (old_t - origin).total_seconds()
+                        if is_datetime
+                        else old_t.total_seconds()
+                    )
+                    if now_s - old_s > time_window_seconds:
                         window_deque.popleft()
                     else:
                         break
-            else:
-                # Fixed‐size window by count
-                while len(window_deque) > window:
-                    window_deque.popleft()
+                current_window = list(window_deque)
 
-            # Only emit when we have at least min_periods and (idx % step_size) == 0
-            if len(window_deque) >= min_periods and (idx % step_size == 0):
-                out = dict(row)  # start from the original row’s fields
-
-                # Re‐attach each group_by key as a real column, if requested:
+            # emit if enough and on step
+            if len(current_window) >= min_periods and (idx % step_size == 0):
+                out = dict(row)
+                # reattach group keys
                 for key_name, key_val in zip(group_keys, group_key_tuple):
                     out[key_name] = key_val
 
-                # Now compute each aggregator on window_deque
-                for out_field, (
-                    agg_fn_name_or_callable,
-                    in_field,
-                ) in aggregators.items():
-                    # `resolve_aggregator` can take either a callable or ("name", field) tuple
-                    agg_callable = resolve_aggregator(
-                        (agg_fn_name_or_callable, in_field), out_field
-                    )
-                    out[out_field] = agg_callable(list(window_deque))
-
+                # compute aggregations
+                for out_field, (fn, in_f) in aggregators.items():
+                    agg_fn = resolve_aggregator((fn, in_f), out_field)
+                    out[out_field] = agg_fn(current_window)
                 results.append(out)
 
         return results
 
-    def runner(records):
-        # First, “records” is an iterator over group‐dicts,
-        # each of which has "__group_key__" and "__group_records__".
-        for group_dict in records:
-            grp_key = group_dict.get("__group_key__")
-            grp_rows = group_dict.get("__group_records__", [])
-            # We expect grp_key to be a tuple (even if it's length 1).
-            # If group_keys was a single field, grp_key might be (val,) rather than val.
-            for outrow in process_one_group(grp_key, grp_rows):
-                yield outrow
+    def runner(records_iter):
+        for group_dict in records_iter:
+            key = group_dict["__group_key__"]
+            recs = group_dict.get("__group_records__", [])
+            yield from process_one_group(key, recs)
 
     return runner(records)
 
@@ -151,142 +168,107 @@ def parse_window_size(window_str: str) -> float:
 def apply_group_time_bucket(records, step):
     """
     For each group (provided as a dict with "__group_key__" & "__group_records__"),
-    assign each record into a fixed, non-overlapping time bin of size `freq` (e.g. 5 minutes)
-    and compute one aggregated output per bucket.
-
-    Expects each incoming `record` to be:
-        {
-          "__group_key__": (<val1>, <val2>, …),
-          "__group_records__": [ list of raw rows in that group ]
-        }
-    Emits exactly one row per non-empty bucket per group, with:
-      - group-by key fields (as normal columns)
-      - a bucket-label field (either bucket start or bucket end)
-      - each aggregator’s output
-
-    We assume `time_field` in each raw row is either a `datetime.datetime` or a `datetime.timedelta`.
-    If `time_field` is missing or invalid, those records will be skipped.
+    assign each record into a fixed, non-overlapping time bin.
+    Two modes:
+    - String freq with suffix (e.g. "5m", "1h"): requires datetime or timedelta time_field.
+    - Numeric freq (int/float): buckets numeric values directly.
     """
-    freq_str = step["freq"]
+    freq = step["freq"]
     aggregators = step["aggregators"]
     time_field = step["time_field"]
     label_side = step.get("label", "left")
     group_keys = step.get("__group_keys", [])
 
-    # Convert freq_str → bucket_size_seconds (float)
-    bucket_size_seconds = parse_window_size(freq_str)
+    # Determine mode and bucket size
+    if isinstance(freq, (int, float)):
+        numeric_mode = True
+        bucket_size = float(freq)
+    elif isinstance(freq, str) and freq[-1].lower() in {"s", "m", "h", "d"}:
+        numeric_mode = False
+        bucket_size = parse_window_size(freq)
+    else:
+        raise ValueError(
+            f"Invalid freq '{freq}': use a number for numeric buckets or a string ending in s/m/h/d for time."
+        )
+
+    from datetime import datetime, timedelta
 
     def process_one_group(group_key_tuple, group_records):
-        # 1) Sort group_records by time_field
+        # Extract non-null values
         def _get_time(r):
             return get_field(r, time_field)
 
-        # Filter out records without the time_field
-        sorted_rows = sorted(
-            (r for r in group_records if _get_time(r) is not None), key=_get_time
-        )
+        rows = [r for r in group_records if _get_time(r) is not None]
+        if not rows:
+            return []
 
-        # 2) Determine, for each row, which bucket index it belongs to.
-        #    We treat the "zero" origin as the *start of the match*, i.e. time=0.
-        #    In other words, if row_time is a timedelta or datetime, we compute:
-        #
-        #      seconds_since_origin =
-        #         row_time.total_seconds()           (if it's a timedelta)
-        #         OR
-        #         (row_time - min_datetime).total_seconds()  (if it's a datetime)
-        #
-        #    Then bucket_index = floor(seconds_since_origin / bucket_size_seconds).
-        #
-        #    We accumulate all rows with the same bucket_index into one bucket.
+        # Sample one to inspect type
+        sample = _get_time(rows[0])
 
-        # Detect if time_field values are timedelta or datetime
-        if not sorted_rows:
-            return []  # No valid rows to process
-
-        sample_time = _get_time(sorted_rows[0])
-        if sample_time is None:
-            raise ValueError(f"Time field '{time_field}' is missing or invalid in all records.")
-        is_timedelta = isinstance(sample_time, datetime.timedelta)
-        is_datetime = isinstance(sample_time, datetime.datetime)
-
-        if is_datetime:
-            # Anchor the start (origin) at the earliest event’s full datetime
-            origin = sample_time
-            # Then for any row, seconds_since_origin = (row_time – origin).total_seconds()
-        else:
-            # Assume a timedelta (e.g. "00:01:17" → timedelta(minutes=1, seconds=17))
-            origin = None
-            # seconds_since_origin = row_time.total_seconds()
-
-        buckets: dict[int, list] = defaultdict(list)
-        bucket_labels: dict[int, float] = {}
-
-        for row in sorted_rows:
-            t = _get_time(row)
-            if t is None:
-                continue  # Skip records without a valid time_field
-            elif is_datetime:
-                delta = t - origin
-                total_s = delta.total_seconds()
+        # Time-based mode: must be datetime or timedelta
+        if not numeric_mode:
+            if isinstance(sample, datetime):
+                origin = sample
+                is_datetime = True
+            elif isinstance(sample, timedelta):
+                origin = timedelta(0)
+                is_datetime = False
             else:
-                # Attempt to treat as timedelta if not already
-                try:
-                    total_s = t.total_seconds()
-                except AttributeError:
-                    try:
-                        total_s = float(t)  # Assume it's a numeric type representing seconds
-                    except ValueError:
-                        raise ValueError(f"Invalid time value '{t}' in record.")
+                raise ValueError(
+                    f"time_bucket: field '{time_field}' has type {type(sample).__name__}; "
+                    "when freq has a time suffix you must provide datetime or timedelta values."
+                )
+            # sort by timestamp/timedelta
+            rows.sort(key=_get_time)
+        else:
+            # numeric mode: we treat values as floats, no origin needed
+            is_datetime = False
+            origin = None
 
-            bucket_index = int(total_s // bucket_size_seconds)
-            buckets[bucket_index].append(row)
-
-            # Compute bucket label (either left‐edge or right‐edge)
-            if bucket_index not in bucket_labels:
-                if label_side == "left":
-                    label_s = bucket_index * bucket_size_seconds
-                else:  # "right"
-                    label_s = (bucket_index + 1) * bucket_size_seconds
-
-                # Convert that numeric label_s back into same type as t
-                if is_datetime:
-                    bucket_labels[bucket_index] = origin + datetime.timedelta(
-                        seconds=label_s
+        # Partition into buckets
+        buckets: dict[int, list] = {}
+        labels: dict[int, datetime | timedelta | float] = {}
+        for r in rows:
+            t = _get_time(r)
+            total = (
+                (t - origin).total_seconds()
+                if (not numeric_mode and is_datetime)
+                else (
+                    t.total_seconds()
+                    if (not numeric_mode and isinstance(t, timedelta))
+                    else float(t)
+                )
+            )
+            idx = int(total // bucket_size)
+            buckets.setdefault(idx, []).append(r)
+            if idx not in labels:
+                edge = (idx + (1 if label_side == "right" else 0)) * bucket_size
+                if not numeric_mode:
+                    # datetime label
+                    labels[idx] = (
+                        origin + timedelta(seconds=edge)
+                        if is_datetime
+                        else timedelta(seconds=edge)
                     )
                 else:
-                    bucket_labels[bucket_index] = datetime.timedelta(seconds=label_s)
+                    labels[idx] = edge
 
-        # 3) Now that we have grouped rows into buckets[bucket_index],
-        #    produce exactly one output row per bucket_index.
-        results = []
-        for bidx, rows_in_bucket in buckets.items():
-            out = {}
+        # Build output
+        out = []
+        for idx, group in buckets.items():
+            row_out = {k: v for k, v in zip(group_keys, group_key_tuple)}
+            row_out["bucket"] = labels[idx]
+            for out_field, (fn, in_f) in aggregators.items():
+                agg = resolve_aggregator((fn, in_f), out_field)
+                row_out[out_field] = agg(group)
+            out.append(row_out)
+        return out
 
-            # reattach each group_by key as real columns
-            for key_name, key_val in zip(group_keys, group_key_tuple):
-                out[key_name] = key_val
-
-            # attach the bucket label (e.g. "5m bucket starting at 00:00" or ending at 00:05)
-            # We’ll call this field "bucket" (you can rename as you wish)
-            out["bucket"] = bucket_labels[bidx]
-
-            # For each user-supplied aggregator, resolve and apply over rows_in_bucket
-            for out_field, (agg_fn_name_or_callable, in_field) in aggregators.items():
-                agg_callable = resolve_aggregator(
-                    (agg_fn_name_or_callable, in_field), out_field
-                )
-                out[out_field] = agg_callable(rows_in_bucket)
-
-            results.append(out)
-
-        return results
-
-    def runner(all_group_dicts):
-        for group_dict in all_group_dicts:
-            grp_key = group_dict.get("__group_key__")
-            grp_rows = group_dict.get("__group_records__", [])
-            for outrow in process_one_group(grp_key, grp_rows):
-                yield outrow
+    def runner(all_groups):
+        for g in all_groups:
+            key = g["__group_key__"]
+            recs = g["__group_records__"]
+            yield from process_one_group(key, recs)
 
     return runner(records)
 
