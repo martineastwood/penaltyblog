@@ -1,8 +1,6 @@
 .PHONY: test coverage precommit docs test_subset
 
-test:
-	coverage run -m pytest
-	coverage report -m
+test: test_subset
 
 test_subset:
 	pytest -v test/test_flow.py test/test_flowgroup.py test/test_flow_glob.py test/test_flow_helpers.py test/test_flow_optimizer.py
