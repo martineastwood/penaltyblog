@@ -114,7 +114,10 @@ def test_time_bucket_with_non_datetime_field():
             .collect()
         )
     except ValueError as e:
-        assert str(e) == "time_bucket: field 'ts' has type int; when freq has a time suffix you must provide datetime or timedelta values."
+        assert (
+            str(e)
+            == "time_bucket: field 'ts' has type int; when freq has a time suffix you must provide datetime or timedelta values."
+        )
 
 
 def test_time_bucket_invalid_frequency_string():
@@ -135,7 +138,10 @@ def test_time_bucket_invalid_frequency_string():
             .collect()
         )
     except ValueError as e:
-        assert str(e) == "Invalid window '5x': use int for row-count or str ending in s/m/h/d for time."
+        assert (
+            str(e)
+            == "Invalid window '5x': use int for row-count or str ending in s/m/h/d for time."
+        )
 
 
 def test_time_bucket_empty_group_after_filtering():
@@ -350,7 +356,11 @@ def test_time_bucket_with_custom_bucket_name():
 
     expected = [
         {"player": "X", "custom_bucket": base_time, "sum_score": 30},
-        {"player": "X", "custom_bucket": base_time + timedelta(seconds=30), "sum_score": 30},
+        {
+            "player": "X",
+            "custom_bucket": base_time + timedelta(seconds=30),
+            "sum_score": 30,
+        },
     ]
 
     assert result == expected

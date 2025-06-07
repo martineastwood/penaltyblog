@@ -35,6 +35,7 @@ Documentation Improvements
   - ``FlowOptimizer`` and ``.optimize=True``
   - ``.with_schema``, ``.rolling_summary``, ``.show()``
   - Plan introspection via ``.explain(compare=True)`` and ``.plot_plan()``
+  - Enhanced type hints throughout the package for improved compatibility with `mypy`.
 
 v1.3.0 (2025-05-20)
 ^^^^^^^^^^^^^^^^^^^^

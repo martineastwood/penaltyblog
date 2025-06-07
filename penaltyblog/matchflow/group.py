@@ -175,6 +175,7 @@ class FlowGroup:
         aggregators: dict[str, Any],
         time_field: str,
         label: Literal["left", "right"] = "left",
+        bucket_name: str = "bucket",
     ) -> Flow:
         """
         Create fixed (non-overlapping) time buckets of size `freq` (e.g. "5m") and
@@ -184,8 +185,9 @@ class FlowGroup:
             freq (str): e.g. "5m", "10m", "1h", "30s". Must end with 's','m','h', or 'd'.
             aggregators (dict): mapping output_field -> (agg_name_or_callable, input_field)
             time_field (str): dot-path to a field that is either a `timedelta` or a `datetime` in each record.
-            label (str): "left" (default) → bucket labeled at the interval’s start;
-                         "right" → label at interval’s end.
+            label (str): "left" (default) → bucket labeled at the interval's start;
+                         "right" → label at interval's end.
+            bucket_name (str): Name of the output field for the bucket label. Defaults to "bucket".
 
         Returns:
             Flow: a new Flow whose records are one row per bucket per group, with the bucket label
@@ -207,6 +209,7 @@ class FlowGroup:
                     "aggregators": aggregators,
                     "time_field": time_field,
                     "label": label,
+                    "bucket_name": bucket_name,
                     "__group_keys": group_keys or [],
                 }
             ],

@@ -182,6 +182,7 @@ def apply_group_time_bucket(
     aggregators = step["aggregators"]
     time_field = step["time_field"]
     label_side = step.get("label", "left")
+    bucket_name = step.get("bucket_name", "bucket")
     group_keys = step.get("__group_keys", [])
 
     numeric_mode, _, bucket_size, _, _ = get_time_window_details(freq, time_field)
@@ -270,7 +271,7 @@ def apply_group_time_bucket(
         out = []
         for idx, group in buckets.items():
             row_out = {k: v for k, v in zip(group_keys, group_key_tuple)}
-            row_out["bucket"] = labels[idx]
+            row_out[bucket_name] = labels[idx]
             for out_field, (fn, in_f) in aggregators.items():
                 agg = resolve_aggregator((fn, in_f), out_field)
                 row_out[out_field] = agg(group)
