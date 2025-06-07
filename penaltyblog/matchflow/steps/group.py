@@ -180,7 +180,10 @@ def apply_group_time_bucket(records, step):
         def _get_time(r):
             return get_field(r, time_field)
 
-        sorted_rows = sorted(group_records, key=_get_time)
+        # Filter out records without the time_field
+        sorted_rows = sorted(
+            (r for r in group_records if _get_time(r) is not None), key=_get_time
+        )
 
         # 2) Determine, for each row, which bucket index it belongs to.
         #    We treat the "zero" origin as the *start of the match*, i.e. time=0.
@@ -214,12 +217,17 @@ def apply_group_time_bucket(records, step):
 
         for row in sorted_rows:
             t = _get_time(row)
-            if is_datetime:
+            if t is None:
+                continue  # Skip records without a valid time_field
+            elif is_datetime:
                 delta = t - origin
                 total_s = delta.total_seconds()
             else:
-                # must be timedelta
-                total_s = t.total_seconds()
+                # Attempt to treat as timedelta if not already
+                try:
+                    total_s = t.total_seconds()
+                except AttributeError:
+                    total_s = float(t)  # Assume it's a numeric type representing seconds
 
             bucket_index = int(total_s // bucket_size_seconds)
             buckets[bucket_index].append(row)
