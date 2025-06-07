@@ -46,7 +46,7 @@ def apply_group_rolling_summary(
     step_size = raw_step if (isinstance(raw_step, int) and raw_step > 0) else 1
     group_keys = step.get("__group_keys") or []
 
-    count_mode, count_window, time_window_seconds, origin, is_datetime = (
+    count_mode, count_window, time_window_seconds, _, _ = (
         get_time_window_details(window, time_field)
     )
 
@@ -54,8 +54,6 @@ def apply_group_rolling_summary(
         group_key_tuple: tuple[Any, ...], group_records: list[dict[str, Any]]
     ) -> list[dict[str, Any]]:
         # sort by time_field if time mode, else leave original order
-        local_origin: Optional[datetime] = None
-        local_is_datetime = False
 
         if not count_mode and time_field is not None:
             # validate time_field type
@@ -75,8 +73,6 @@ def apply_group_rolling_summary(
                 group_records, key=lambda r: get_field(r, time_field)
             )
         else:
-            local_origin = None
-            local_is_datetime = False
 
         window_deque: deque[dict[str, Any]] = deque()
         results = []
@@ -187,8 +183,6 @@ def apply_group_time_bucket(
 
     numeric_mode, _, bucket_size, _, _ = get_time_window_details(freq, time_field)
 
-    from datetime import datetime, timedelta
-
     def process_one_group(
         group_key_tuple: tuple[Any, ...], group_records: list[dict[str, Any]]
     ) -> list[dict[str, Any]]:
@@ -206,8 +200,6 @@ def apply_group_time_bucket(
         sample = _get_time(rows[0])
 
         # Initialize variables with proper types
-        local_origin: Optional[Union[datetime, timedelta]] = None
-        local_is_datetime = False
 
         # Time-based mode: must be datetime or timedelta
         if not numeric_mode:
@@ -226,8 +218,6 @@ def apply_group_time_bucket(
             rows.sort(key=_get_time)
         else:
             # numeric mode: we treat values as floats, no origin needed
-            local_is_datetime = False
-            local_origin = None
             # Sort by numeric time field
             rows.sort(key=_get_time)
 
