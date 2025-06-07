@@ -125,6 +125,195 @@ def test_time_bucket_with_non_datetime_field():
     assert result == expected
 
 
+def test_time_bucket_invalid_frequency_string():
+    records = [
+        {"player": "X", "ts": 0, "score": 10},
+    ]
+
+    try:
+        Flow.from_records(records)
+        .group_by("player")
+        .time_bucket(
+            freq="5x",  # Invalid frequency
+            aggregators={"sum_score": ("sum", "score")},
+            time_field="ts",
+            label="left",
+        )
+        .collect()
+    except ValueError as e:
+        assert str(e) == "Unrecognized unit 'x' in window '5x'"
+
+def test_time_bucket_empty_group_after_filtering():
+    records = [
+        {"player": "X", "score": 10},  # Missing time field
+    ]
+
+    result = (
+        Flow.from_records(records)
+        .group_by("player")
+        .time_bucket(
+            freq="30s",
+            aggregators={"sum_score": ("sum", "score")},
+            time_field="ts",
+            label="left",
+        )
+        .collect()
+    )
+    assert result == []
+
+def test_time_bucket_mixed_valid_invalid_time_fields():
+    base_time = datetime(2023, 1, 1, 0, 0, 0)
+    records = [
+        {"player": "X", "ts": base_time + timedelta(seconds=0), "score": 10},
+        {"player": "X", "score": 20},  # Missing time field
+        {"player": "X", "ts": base_time + timedelta(seconds=40), "score": 30},
+    ]
+
+    result = (
+        Flow.from_records(records)
+        .group_by("player")
+        .time_bucket(
+            freq="30s",
+            aggregators={"sum_score": ("sum", "score")},
+            time_field="ts",
+            label="left",
+        )
+        .collect()
+    )
+
+    expected = [
+        {"player": "X", "bucket": base_time + timedelta(seconds=0), "sum_score": 10},
+        {"player": "X", "bucket": base_time + timedelta(seconds=30), "sum_score": 30},
+    ]
+
+    assert result == expected
+
+def test_time_bucket_boundary_conditions():
+    base_time = datetime(2023, 1, 1, 0, 0, 0)
+    records = [
+        {"player": "X", "ts": base_time + timedelta(seconds=30), "score": 10},
+        {"player": "X", "ts": base_time + timedelta(seconds=60), "score": 20},
+    ]
+
+    result = (
+        Flow.from_records(records)
+        .group_by("player")
+        .time_bucket(
+            freq="30s",
+            aggregators={"sum_score": ("sum", "score")},
+            time_field="ts",
+            label="left",
+        )
+        .collect()
+    )
+
+    expected = [
+        {"player": "X", "bucket": base_time + timedelta(seconds=30), "sum_score": 10},
+        {"player": "X", "bucket": base_time + timedelta(seconds=60), "sum_score": 20},
+    ]
+
+    assert result == expected
+
+def test_time_bucket_large_time_gaps():
+    base_time = datetime(2023, 1, 1, 0, 0, 0)
+    records = [
+        {"player": "X", "ts": base_time + timedelta(seconds=0), "score": 10},
+        {"player": "X", "ts": base_time + timedelta(seconds=120), "score": 20},
+    ]
+
+    result = (
+        Flow.from_records(records)
+        .group_by("player")
+        .time_bucket(
+            freq="30s",
+            aggregators={"sum_score": ("sum", "score")},
+            time_field="ts",
+            label="left",
+        )
+        .collect()
+    )
+
+    expected = [
+        {"player": "X", "bucket": base_time + timedelta(seconds=0), "sum_score": 10},
+        {"player": "X", "bucket": base_time + timedelta(seconds=120), "sum_score": 20},
+    ]
+
+    assert result == expected
+
+def test_time_bucket_multiple_aggregators():
+    base_time = datetime(2023, 1, 1, 0, 0, 0)
+    records = [
+        {"player": "X", "ts": base_time + timedelta(seconds=0), "score": 10, "assists": 1},
+        {"player": "X", "ts": base_time + timedelta(seconds=20), "score": 20, "assists": 2},
+    ]
+
+    result = (
+        Flow.from_records(records)
+        .group_by("player")
+        .time_bucket(
+            freq="30s",
+            aggregators={
+                "sum_score": ("sum", "score"),
+                "sum_assists": ("sum", "assists"),
+            },
+            time_field="ts",
+            label="left",
+        )
+        .collect()
+    )
+
+    expected = [
+        {"player": "X", "bucket": base_time, "sum_score": 30, "sum_assists": 3},
+    ]
+
+    assert result == expected
+
+def test_time_bucket_negative_time_values():
+    records = [
+        {"player": "X", "ts": -10, "score": 10},
+        {"player": "X", "ts": 20, "score": 20},
+    ]
+
+    try:
+        Flow.from_records(records)
+        .group_by("player")
+        .time_bucket(
+            freq="30s",
+            aggregators={"sum_score": ("sum", "score")},
+            time_field="ts",
+            label="left",
+        )
+        .collect()
+    except ValueError as e:
+        assert str(e) == "Invalid time value '-10' in record."
+
+def test_time_bucket_non_uniform_time_intervals():
+    base_time = datetime(2023, 1, 1, 0, 0, 0)
+    records = [
+        {"player": "X", "ts": base_time + timedelta(seconds=0), "score": 10},
+        {"player": "X", "ts": base_time + timedelta(seconds=15), "score": 20},
+        {"player": "X", "ts": base_time + timedelta(seconds=45), "score": 30},
+    ]
+
+    result = (
+        Flow.from_records(records)
+        .group_by("player")
+        .time_bucket(
+            freq="30s",
+            aggregators={"sum_score": ("sum", "score")},
+            time_field="ts",
+            label="left",
+        )
+        .collect()
+    )
+
+    expected = [
+        {"player": "X", "bucket": base_time, "sum_score": 30},
+        {"player": "X", "bucket": base_time + timedelta(seconds=30), "sum_score": 30},
+    ]
+
+    assert result == expected
+
 def test_time_bucket_with_right_label():
     base_time = datetime(2023, 1, 1, 0, 0, 0)
     records = [
