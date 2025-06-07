@@ -70,7 +70,36 @@ def test_row_based_rolling_sum():
     assert values == [1, 3, 5, 7]
 
 
-def test_time_based_rolling_mean():
+def test_time_bucket():
+    base_time = datetime(2023, 1, 1, 0, 0, 0)
+    records = [
+        {"player": "X", "ts": base_time + timedelta(seconds=0), "score": 10},
+        {"player": "X", "ts": base_time + timedelta(seconds=20), "score": 20},
+        {"player": "X", "ts": base_time + timedelta(seconds=40), "score": 30},
+        {"player": "X", "ts": base_time + timedelta(seconds=70), "score": 40},
+        {"player": "X", "ts": base_time + timedelta(seconds=100), "score": 50},
+    ]
+
+    result = (
+        Flow.from_records(records)
+        .group_by("player")
+        .time_bucket(
+            freq="30s",
+            aggregators={"sum_score": ("sum", "score")},
+            time_field="ts",
+            label="left",
+        )
+        .collect()
+    )
+
+    expected = [
+        {"player": "X", "bucket": base_time + timedelta(seconds=0), "sum_score": 30},
+        {"player": "X", "bucket": base_time + timedelta(seconds=30), "sum_score": 30},
+        {"player": "X", "bucket": base_time + timedelta(seconds=60), "sum_score": 40},
+        {"player": "X", "bucket": base_time + timedelta(seconds=90), "sum_score": 50},
+    ]
+
+    assert result == expected
     base_time = datetime(2023, 1, 1, 0, 0, 0)
     records = [
         {"player": "X", "ts": base_time + timedelta(seconds=0), "score": 10},
