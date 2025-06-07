@@ -6,7 +6,7 @@ from ..aggs_registry import resolve_aggregator
 from .utils import get_field
 
 
-def get_time_window_details(window, time_field):
+def get_time_window_details(window: Union[int, float, str], time_field: Optional[str]) -> Tuple[bool, Optional[int], Optional[int], Optional[datetime], bool]:
     """
     Determine the mode (count or time) and parse the window size.
     Returns a tuple (count_mode, count_window, time_window_seconds, origin, is_datetime).
@@ -24,7 +24,7 @@ def get_time_window_details(window, time_field):
         )
 
 
-def apply_group_rolling_summary(records: Iterator[dict], step: dict) -> Iterator[dict]:
+def apply_group_rolling_summary(records: Iterator[dict[str, Any]], step: dict[str, Any]) -> Iterator[dict[str, Any]]:
     """
     Lazily apply a rolling summary within each group.
 
@@ -147,7 +147,7 @@ def parse_window_size(window_str: str) -> float:
     raise ValueError(f"Unrecognized unit '{unit}' in window '{window_str}'")
 
 
-def apply_group_time_bucket(records, step):
+def apply_group_time_bucket(records: Iterator[dict[str, Any]], step: dict[str, Any]) -> Iterator[dict[str, Any]]:
     """
     For each group (provided as a dict with "__group_key__" & "__group_records__"),
     assign each record into a fixed, non-overlapping time bin.
@@ -245,7 +245,7 @@ def apply_group_time_bucket(records, step):
     return runner(records)
 
 
-def apply_group_by(records, step) -> Iterator[dict]:
+def apply_group_by(records: Iterator[dict[str, Any]], step: dict[str, Any]) -> Iterator[dict[str, Any]]:
     """
     Group records by one or more fields.
 
@@ -272,7 +272,7 @@ def apply_group_by(records, step) -> Iterator[dict]:
         yield {"__group_key__": key, "__group_records__": group_records}
 
 
-def apply_group_summary(records, step) -> Iterator[dict]:
+def apply_group_summary(records: Iterator[dict[str, Any]], step: dict[str, Any]) -> Iterator[dict[str, Any]]:
     """
     Apply a summary function to each group of records.
 
@@ -303,7 +303,7 @@ def apply_group_summary(records, step) -> Iterator[dict]:
         yield output
 
 
-def apply_group_cumulative(records, step) -> Iterator[dict]:
+def apply_group_cumulative(records: Iterator[dict[str, Any]], step: dict[str, Any]) -> Iterator[dict[str, Any]]:
     """
     Apply a cumulative function to each group of records.
 
