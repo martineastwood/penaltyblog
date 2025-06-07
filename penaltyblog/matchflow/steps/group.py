@@ -244,7 +244,7 @@ def apply_group_time_bucket(
 
                     if not numeric_mode:
                         # datetime label
-                        if local_is_datetime and isinstance(local_origin, datetime):
+                        if isinstance(local_origin, datetime):
                             labels[idx] = local_origin + timedelta(seconds=edge)
                         else:
                             labels[idx] = timedelta(seconds=edge)
