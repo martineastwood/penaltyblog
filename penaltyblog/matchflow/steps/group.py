@@ -203,9 +203,7 @@ def apply_group_time_bucket(records, step):
         is_timedelta = isinstance(sample_time, datetime.timedelta)
         is_datetime = isinstance(sample_time, datetime.datetime)
 
-        if t is None:
-            continue  # Skip records without a valid time_field
-        elif is_datetime:
+        if is_datetime:
             # Anchor the start (origin) at the earliest event’s full datetime
             origin = sample_time
             # Then for any row, seconds_since_origin = (row_time – origin).total_seconds()
