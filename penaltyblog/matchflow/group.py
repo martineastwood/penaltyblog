@@ -1,4 +1,4 @@
-from typing import Any, Callable, Dict, List, Optional, Union
+from typing import Any, Callable, Dict, List, Literal, Optional, Union
 
 from .aggs_registry import resolve_aggregator
 from .executor import FlowExecutor
@@ -131,41 +131,83 @@ class FlowGroup:
         )
 
     def rolling_summary(
-        self,
-        window: int | str,
-        aggregators: dict[str, Any],
-        time_field: str | None = None,
-        min_periods: int = 1,
-    ) -> Flow:
+        self, window, aggregators, time_field=None, min_periods=1, step=None
+    ):
         """
-        Apply group-rolling-summary. Note that you should sort the records
-        before applying this step.
+        Lazily apply a rolling summary within each group in a FlowGroup.
+
+        This appends a 'group_rolling_summary' step to the plan and returns a new Flow.
 
         Args:
-            window (int | str): Rolling window size.
-                - int → number of records
-                - str → time-based window (e.g. '30s', '5m')
-            aggregators (dict): {alias: aggregator_def}
-            time_field (str): Field to use for time-based rolling (must be datetime)
-            min_periods (int): Minimum records before output
+            window (int | str): Number of records or time window (e.g., '5m').
+            aggregators (dict): Mapping of output field -> (agg_func_name, field).
+            time_field (str | None): Field used for time-based windows.
+            min_periods (int): Minimum rows needed to compute result.
+            step (int | None): Step size for window movement.
 
         Returns:
-            Flow: A new Flow with rolling summary fields added.
+            Flow: A new Flow with a group_rolling_summary step added.
         """
-        resolved_aggs = {
-            alias: resolve_aggregator(value, alias)
-            for alias, value in aggregators.items()
-        }
+        group_keys = None
+        for step in reversed(self.plan):
+            if step.get("op") == "group_by":
+                group_keys = step.get("keys")
+                break
 
         return Flow(
-            self.plan
+            plan=self.plan
             + [
                 {
                     "op": "group_rolling_summary",
                     "window": window,
-                    "min_periods": min_periods,
+                    "aggregators": aggregators,
                     "time_field": time_field,
-                    "aggregators": resolved_aggs,
+                    "min_periods": min_periods,
+                    "step": step,
+                    "__group_keys": group_keys,
+                }
+            ]
+        )
+
+    def time_bucket(
+        self,
+        freq: str,
+        aggregators: dict[str, Any],
+        time_field: str,
+        label: Literal["left", "right"] = "left",
+    ) -> Flow:
+        """
+        Create fixed (non-overlapping) time buckets of size `freq` (e.g. "5m") and
+        aggregate each bucket.
+
+        Args:
+            freq (str): e.g. "5m", "10m", "1h", "30s". Must end with 's','m','h', or 'd'.
+            aggregators (dict): mapping output_field -> (agg_name_or_callable, input_field)
+            time_field (str): dot-path to a field that is either a `timedelta` or a `datetime` in each record.
+            label (str): "left" (default) → bucket labeled at the interval’s start;
+                         "right" → label at interval’s end.
+
+        Returns:
+            Flow: a new Flow whose records are one row per bucket per group, with the bucket label
+                  and aggregated values.
+        """
+        # Find the group_by keys (same logic as rolling_summary)
+        group_keys = None
+        for step in reversed(self.plan):
+            if step.get("op") == "group_by":
+                group_keys = step.get("keys")
+                break
+
+        return Flow(
+            plan=self.plan
+            + [
+                {
+                    "op": "group_time_bucket",
+                    "freq": freq,
+                    "aggregators": aggregators,
+                    "time_field": time_field,
+                    "label": label,
+                    "__group_keys": group_keys or [],
                 }
             ],
             optimize=self.optimize,

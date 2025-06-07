@@ -760,7 +760,7 @@ class Flow:
                 }
             )
 
-        if fmt == "records":
+        if fmt == "json":
             return stats
 
         # pretty‐print via tabulate

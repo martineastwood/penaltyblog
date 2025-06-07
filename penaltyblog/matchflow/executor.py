@@ -56,6 +56,8 @@ class FlowExecutor:
                 gen = group.apply_group_cumulative(gen, step)
             elif op == "group_rolling_summary":
                 gen = group.apply_group_rolling_summary(gen, step)
+            elif op == "group_time_bucket":
+                gen = group.apply_group_time_bucket(gen, step)
             elif op == "summary":
                 gen = transform.apply_summary(gen, step)
             elif op == "sort":

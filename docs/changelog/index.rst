@@ -12,26 +12,29 @@ v1.4.0 (xx-xx-xx)
 ^^^^^^^^^^^^^^^^^^^^
 
 Package Updates
------------------
+---------------
 
-- Introduced optional `FlowOptimizer` for plan rewrites
-    - New `.optimize` flag on all flows (defaults to `False`)
-    - Improved plan explanation with `.explain(compare=True)`
-    - All optimizer behavior is opt-in and backwards-compatible
-- Added `Flow.plot_plan` for visualizing plans
-- Added `FlowGroup.plot_plan` for visualizing grouped plans
-- Added `FlowGroup.explain` for explaining grouped plans
-- Updated `Flow.explain` method to optionally show pre- and post-optimization plans
-- Updated `FlowGroup.explain` method to optionally show pre- and post-optimization plans
-- Added `Flow.with_schema` for schema validation and type casting
-- Updated `Flow.collect` to expose optional progress bars
-- Added `Flow.show` for visualizing plans using tabulate
-- Added `FlowGroup.rolling_summary` for group-rolling-summary
+- Introduced optional ``FlowOptimizer`` for smart plan rewrites
+  - New ``optimize=True`` flag on all flows (off by default)
+  - Safe, conservative rewrites: pushdown, fusion, and simplification
+  - Enhanced ``.explain(compare=True)`` for before/after plan introspection
+  - Optimizer is backwards-compatible and fully opt-in
+- Added ``.plot_plan()`` on ``Flow`` and ``FlowGroup`` to visualize pipeline structure
+- ``.explain()`` now works on ``FlowGroup``, and supports ``compare=True``
+- New ``.with_schema({...})`` method to cast and validate fields
+  - Example: ``Flow.with_schema({"x": int, "ts": parse_datetime})``
+- Added ``.rolling_summary()`` to ``FlowGroup`` for windowed group summaries
+  (e.g. rolling 5-minute aggregates per player or team)
+- Added ``.show()`` method to pretty-print results using tabulate
+- ``Flow.collect()`` now supports optional progress bars during execution
 
 Documentation Improvements
-----------------------------
+--------------------------
 
-- Updated MatchFlow documentation to include new features
+- Refreshed documentation to include:
+  - ``FlowOptimizer`` and ``.optimize=True``
+  - ``.with_schema``, ``.rolling_summary``, ``.show()``
+  - Plan introspection via ``.explain(compare=True)`` and ``.plot_plan()``
 
 v1.3.0 (2025-05-20)
 ^^^^^^^^^^^^^^^^^^^^

@@ -13,13 +13,55 @@ class FlowOptimizer:
     MAX_PASSES = 5
 
     def __init__(self, plan):
-        """
-        Initialize the optimizer with a plan.
-
-        Args:
-            plan (list[dict]): The plan to optimize.
-        """
         self.plan = plan
+
+    FIELD_USAGE_HANDLERS = {
+        "select": lambda step: set(step.get("fields", [])),
+        "drop": lambda step: set(step.get("keys", [])),
+        "dropna": lambda step: set(step.get("fields") or []),
+        "rename": lambda step: set(step.get("mapping", {}).keys())
+        | set(step.get("mapping", {}).values()),
+        "assign": lambda step: set(step.get("fields", {}).keys()),
+        "cast": lambda step: set(step.get("casts", {}).keys()),
+        "filter": lambda step: set(),
+        "join": lambda step: set(step.get("on", [])),
+        "sort": lambda step: set(step.get("keys", [])),
+        "group_by": lambda step: set(step.get("keys", [])),
+        "group_rolling_summary": lambda step: (
+            ({step.get("time_field")} if step.get("time_field") else set())
+            | {
+                agg[1]
+                for agg in step.get("aggregators", {}).values()
+                if isinstance(agg, tuple)
+            }
+        ),
+    }
+
+    def _is_order_sensitive(self, op: str) -> bool:
+        return op in {
+            "sort",
+            "group_summary",
+            "group_cumulative",
+            "group_rolling_summary",
+            "pivot",
+        }
+
+    def _blocks_filter_pushdown(self, op: str) -> bool:
+        return self._is_order_sensitive(op) or op in {
+            "select",
+            "drop",
+            "dropna",
+            "rename",
+            "flatten",
+            "map",
+            "assign",
+            "pipe",
+            "join",
+            "group_by",
+            "summary",
+            "limit",
+            "explode",
+        }
 
     def optimize(self):
         plan = copy.deepcopy(self.plan)
@@ -40,42 +82,7 @@ class FlowOptimizer:
         return plan
 
     def _get_fields_used(self, step):
-        op = step.get("op")
-        if op == "select":
-            return set(step.get("fields", []))
-        elif op == "drop":
-            return set(step.get("keys", []))
-        elif op == "dropna":
-            return set(step.get("fields") or [])
-        elif op == "rename":
-            mapping = step.get("mapping", {})
-            # Consider both old and new names as used
-            return set(mapping.keys()) | set(mapping.values())
-        elif op == "assign":
-            # Fields created by assign must be preserved
-            return set(step.get("fields", {}).keys())
-        elif op == "cast":
-            return set(step.get("casts", {}).keys())
-        elif op == "filter":
-            # Arbitrary predicate: block select/drop above filter instead
-            return set()
-        elif op == "join":
-            return set(step.get("on", []))
-        elif op == "sort":
-            return set(step.get("keys", []))
-        elif op == "group_by":
-            return set(step.get("keys", []))
-        elif op == "group_rolling_summary":
-            fields = set()
-            time_field = step.get("time_field")
-            if time_field:
-                fields.add(time_field)
-            for agg in step.get("aggregators", {}).values():
-                if isinstance(agg, tuple):
-                    fields.add(agg[1])
-            return fields
-        else:
-            return set()
+        return self.FIELD_USAGE_HANDLERS.get(step.get("op"), lambda s: set())(step)
 
     def _compute_required_fields(self, plan):
         required = set()
@@ -92,27 +99,10 @@ class FlowOptimizer:
         required_fields_list = self._compute_required_fields(plan)
         new_plan = []
         pending_push = []
-        # Block select/drop pushdown across any of these ops
-        blocked_ops = {
-            "assign",
-            "filter",
-            "map",
-            "pipe",
-            "join",
-            "pivot",
-            "concat",
-            "explode",
-            "group_by",
-            "summary",
-            "group_summary",
-            "group_rolling_summary",
-            "fused",
-        }
 
         for i, step in enumerate(plan):
             op = step.get("op")
 
-            # Candidate for pushdown
             if op in {"select", "drop"}:
                 if op == "select":
                     fields = set(step.get("fields", []))
@@ -122,7 +112,6 @@ class FlowOptimizer:
                     cond = required_fields_list[i].isdisjoint(fields)
 
                 if cond:
-                    # Already at earliest safe point
                     if self._is_already_early_enough(plan, i):
                         new_plan.append(step)
                     else:
@@ -131,14 +120,12 @@ class FlowOptimizer:
                         pending_push.append(moved)
                     continue
 
-            # Flush pending when hitting a blocker
-            if op in blocked_ops:
+            if self._is_order_sensitive(op):
                 new_plan.extend(pending_push)
                 pending_push = []
 
             new_plan.append(step)
 
-            # Flush immediately after any source
             if op and op.startswith("from_") and pending_push:
                 new_plan.extend(pending_push)
                 pending_push = []
@@ -175,67 +162,40 @@ class FlowOptimizer:
         new_plan = []
         pending = []
         pending_orig_idx = []
-        # Block pushing filters across these ops
-        blocking = {
-            "select",
-            "drop",
-            "dropna",
-            "rename",
-            "flatten",
-            "map",
-            "assign",
-            "pipe",
-            "join",
-            "group_by",
-            "group_summary",
-            "group_cumulative",
-            "group_rolling_summary",
-            "sort",
-            "limit",
-            "explode",
-            "pivot",
-            "summary",
-        }
 
         for idx, step in enumerate(plan):
             op = step.get("op")
 
-            # Stash filters
-            if op in {"filter"}:
+            if op == "filter":
                 pending.append(step.copy())
                 pending_orig_idx.append(idx)
                 continue
 
-            # Flush before any blocking op
-            if op in blocking and pending:
+            if self._blocks_filter_pushdown(op) and pending:
                 for filt, orig in zip(pending, pending_orig_idx):
                     tagged = filt.copy()
-                    new_idx = len(new_plan)
-                    if new_idx < orig:
+                    if len(new_plan) < orig:
                         tagged.setdefault("_notes", []).append(
                             "pushed down from later step"
                         )
                     new_plan.append(tagged)
-                pending = []
-                pending_orig_idx = []
+                pending.clear()
+                pending_orig_idx.clear()
 
-            # Flush immediately after source
             if op and op.startswith("from_") and pending:
                 for filt, orig in zip(pending, pending_orig_idx):
                     tagged = filt.copy()
-                    new_idx = len(new_plan) + 1
-                    if new_idx < orig:
+                    if len(new_plan) + 1 < orig:
                         tagged.setdefault("_notes", []).append(
                             "pushed down from later step"
                         )
                     new_plan.append(tagged)
-                pending = []
-                pending_orig_idx = []
+                pending.clear()
+                pending_orig_idx.clear()
 
             new_plan.append(step.copy())
 
-        # Append any remaining filters at end
-        for filt, orig in zip(pending, pending_orig_idx):
+        for filt in pending:
             new_plan.append(filt)
 
         return new_plan
@@ -253,7 +213,6 @@ class FlowOptimizer:
                 "drop",
                 "rename",
             }:
-                # Do not push limit past map, since map may drop records
                 moved = True
                 new_plan.insert(0, dict(step))
             else:
@@ -301,10 +260,6 @@ class FlowOptimizer:
         return new_plan
 
     def _validate_rolling_has_sort(self, plan):
-        """
-        Detects if group_rolling_summary is missing a prior sort_by step after group_by.
-        Adds a _notes field with a warning if so.
-        """
         validated_plan = []
         last_group_by_idx = -1
 
@@ -315,12 +270,11 @@ class FlowOptimizer:
                 last_group_by_idx = idx
 
             if op == "group_rolling_summary":
-                # Look back for a sort_by step after the most recent group_by
                 sorted_before = any(
                     p.get("op") == "sort" for p in plan[last_group_by_idx + 1 : idx]
                 )
                 if not sorted_before:
-                    step = dict(step)  # avoid mutating original
+                    step = dict(step)
                     step.setdefault("_notes", []).append(
                         "⚠️  group_rolling_summary used without prior sort — results may be unstable"
                     )
