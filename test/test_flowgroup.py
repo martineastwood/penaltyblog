@@ -3,6 +3,7 @@ from datetime import datetime, timedelta
 import numpy as np
 
 from penaltyblog.matchflow.flow import Flow
+from penaltyblog.matchflow.group import FlowGroup
 
 
 def test_group_summary():
@@ -147,3 +148,92 @@ def test_multiple_groups():
 
     assert [r["sum_last_2"] for r in a] == [1, 3, 5]
     assert [r["sum_last_2"] for r in b] == [10, 30, 50]
+def test_flowgroup_summary():
+    data = [
+        {"team": "A", "score": 10},
+        {"team": "A", "score": 20},
+        {"team": "B", "score": 30},
+        {"team": "B", "score": 40},
+    ]
+
+    flow = Flow.from_records(data)
+    group = flow.group_by("team")
+    result = group.summary({"total_score": ("sum", "score")}).collect()
+
+    result = sorted(result, key=lambda x: x["team"])
+
+    assert result == [
+        {"team": "A", "total_score": 30},
+        {"team": "B", "total_score": 70},
+    ]
+
+
+def test_flowgroup_cumulative():
+    data = [
+        {"team": "A", "score": 10},
+        {"team": "A", "score": 20},
+        {"team": "B", "score": 30},
+        {"team": "B", "score": 40},
+    ]
+
+    flow = Flow.from_records(data)
+    group = flow.group_by("team")
+    result = group.cumulative("score").collect()
+
+    result = sorted(result, key=lambda x: (x["team"], x["score"]))
+
+    assert result == [
+        {"team": "A", "score": 10, "cumulative_score": 10},
+        {"team": "A", "score": 20, "cumulative_score": 30},
+        {"team": "B", "score": 30, "cumulative_score": 30},
+        {"team": "B", "score": 40, "cumulative_score": 70},
+    ]
+
+
+def test_flowgroup_rolling_summary():
+    data = [
+        {"team": "A", "minute": 1, "score": 10},
+        {"team": "A", "minute": 2, "score": 20},
+        {"team": "A", "minute": 3, "score": 30},
+        {"team": "A", "minute": 4, "score": 40},
+    ]
+
+    flow = Flow.from_records(data)
+    group = flow.group_by("team")
+    result = group.rolling_summary(window=2, aggregators={"sum_last_2": ("sum", "score")}).collect()
+
+    result = sorted(result, key=lambda x: x["minute"])
+
+    assert result == [
+        {"team": "A", "minute": 1, "score": 10, "sum_last_2": 10},
+        {"team": "A", "minute": 2, "score": 20, "sum_last_2": 30},
+        {"team": "A", "minute": 3, "score": 30, "sum_last_2": 50},
+        {"team": "A", "minute": 4, "score": 40, "sum_last_2": 70},
+    ]
+
+
+def test_flowgroup_time_bucket():
+    base_time = datetime(2023, 1, 1, 0, 0, 0)
+    data = [
+        {"team": "A", "ts": base_time + timedelta(seconds=0), "score": 10},
+        {"team": "A", "ts": base_time + timedelta(seconds=20), "score": 20},
+        {"team": "A", "ts": base_time + timedelta(seconds=40), "score": 30},
+        {"team": "A", "ts": base_time + timedelta(seconds=60), "score": 40},
+    ]
+
+    flow = Flow.from_records(data)
+    group = flow.group_by("team")
+    result = group.time_bucket(
+        freq="30s",
+        aggregators={"sum_score": ("sum", "score")},
+        time_field="ts",
+        label="left"
+    ).collect()
+
+    result = sorted(result, key=lambda x: x["bucket"])
+
+    assert result == [
+        {"team": "A", "bucket": base_time, "sum_score": 30},
+        {"team": "A", "bucket": base_time + timedelta(seconds=30), "sum_score": 30},
+        {"team": "A", "bucket": base_time + timedelta(seconds=60), "sum_score": 40},
+    ]
