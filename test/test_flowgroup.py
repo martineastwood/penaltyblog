@@ -131,15 +131,17 @@ def test_time_bucket_invalid_frequency_string():
     ]
 
     try:
-        Flow.from_records(records)
-        .group_by("player")
-        .time_bucket(
-            freq="5x",  # Invalid frequency
-            aggregators={"sum_score": ("sum", "score")},
-            time_field="ts",
-            label="left",
+        (
+            Flow.from_records(records)
+            .group_by("player")
+            .time_bucket(
+                freq="5x",  # Invalid frequency
+                aggregators={"sum_score": ("sum", "score")},
+                time_field="ts",
+                label="left",
+            )
+            .collect()
         )
-        .collect()
     except ValueError as e:
         assert str(e) == "Unrecognized unit 'x' in window '5x'"
 
@@ -275,15 +277,17 @@ def test_time_bucket_negative_time_values():
     ]
 
     try:
-        Flow.from_records(records)
-        .group_by("player")
-        .time_bucket(
-            freq="30s",
-            aggregators={"sum_score": ("sum", "score")},
-            time_field="ts",
-            label="left",
+        (
+            Flow.from_records(records)
+            .group_by("player")
+            .time_bucket(
+                freq="30s",
+                aggregators={"sum_score": ("sum", "score")},
+                time_field="ts",
+                label="left",
+            )
+            .collect()
         )
-        .collect()
     except ValueError as e:
         assert str(e) == "Invalid time value '-10' in record."
 
