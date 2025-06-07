@@ -86,17 +86,17 @@ class Understat(RequestsScraper):
         tree = html.fromstring(content)
         events = None
         for s in tree.cssselect("script"):
-            if "datesData" in s.text:
-                script = s.text
-                script = " ".join(script.split())
-                script = str(script.encode(), "unicode-escape")
-                script = re.match(
-                    r"var datesData = JSON\.parse\('(?P<json>.*?)'\)", script
+            if s.text and "datesData" in s.text:
+                script_text = s.text
+                script_text = " ".join(script_text.split())
+                script_text = str(script_text.encode(), "unicode-escape")
+                match = re.match(
+                    r"var datesData = JSON\.parse\('(?P<json>.*?)'\)", script_text
                 )
-                if script is not None:
-                    script = script.group("json")
-                events = json.loads(script)
-                break
+                if match is not None:
+                    json_str = match.group("json")
+                    events = json.loads(json_str)
+                    break
 
         if events is None:
             raise ValueError("Error: no data found")
@@ -150,17 +150,17 @@ class Understat(RequestsScraper):
         events = None
 
         for s in tree.cssselect("script"):
-            if "shotsData" in s.text:
-                script = s.text
-                script = " ".join(script.split())
-                script = str(script.encode(), "unicode-escape")
-                script = re.match(
-                    r"var shotsData = JSON\.parse\('(?P<json>.*?)'\)", script
+            if s.text and "shotsData" in s.text:
+                script_text = s.text
+                script_text = " ".join(script_text.split())
+                script_text = str(script_text.encode(), "unicode-escape")
+                match = re.match(
+                    r"var shotsData = JSON\.parse\('(?P<json>.*?)'\)", script_text
                 )
-                if script is not None:
-                    script = script.group("json")
-                events = json.loads(script)
-                break
+                if match is not None:
+                    json_str = match.group("json")
+                    events = json.loads(json_str)
+                    break
 
         if events is None:
             raise ValueError("Error: no data found")
@@ -211,18 +211,20 @@ class Understat(RequestsScraper):
         events = None
 
         for s in tree.cssselect("script"):
-            if "match_info" in s.text:
-                script = s.text
-                script = " ".join(script.split())
-                script = str(script.encode(), "unicode-escape")
-                match_info = "match_info" + script.split(" match_info")[1]
-                script = re.match(
-                    r"match_info = JSON\.parse\('(?P<json>.*?)'\)", match_info
-                )
-                if script is not None:
-                    script = script.group("json")
-                events = json.loads(script)
-                break
+            if s.text and "match_info" in s.text:
+                script_text = s.text
+                script_text = " ".join(script_text.split())
+                script_text = str(script_text.encode(), "unicode-escape")
+                match_info_parts = script_text.split(" match_info")
+                if len(match_info_parts) > 1:
+                    match_info = "match_info" + match_info_parts[1]
+                    match = re.match(
+                        r"match_info = JSON\.parse\('(?P<json>.*?)'\)", match_info
+                    )
+                    if match is not None:
+                        json_str = match.group("json")
+                        events = json.loads(json_str)
+                        break
 
         if events is None:
             raise ValueError("Error: no data found")
@@ -279,17 +281,17 @@ class Understat(RequestsScraper):
         events = None
 
         for s in tree.cssselect("script"):
-            if "groupsData" in s.text:
-                script = s.text
-                script = " ".join(script.split())
-                script = str(script.encode(), "unicode-escape")
-                script = re.match(
-                    r"var groupsData = JSON\.parse\('(?P<json>.*?)'\)", script
+            if s.text and "groupsData" in s.text:
+                script_text = s.text
+                script_text = " ".join(script_text.split())
+                script_text = str(script_text.encode(), "unicode-escape")
+                match = re.match(
+                    r"var groupsData = JSON\.parse\('(?P<json>.*?)'\)", script_text
                 )
-                if script is not None:
-                    script = script.group("json")
-                events = json.loads(script)
-                break
+                if match is not None:
+                    json_str = match.group("json")
+                    events = json.loads(json_str)
+                    break
 
         if events is None:
             raise ValueError("Error: no data found")
@@ -320,18 +322,20 @@ class Understat(RequestsScraper):
         events = None
 
         for s in tree.cssselect("script"):
-            if "shotsData" in s.text:
-                script = s.text
-                script = " ".join(script.split())
-                script = str(script.encode(), "unicode-escape")
-                if script is None:
+            if s.text and "shotsData" in s.text:
+                script_text = s.text
+                script_text = " ".join(script_text.split())
+                script_text = str(script_text.encode(), "unicode-escape")
+                # The check below is redundant since script_text is already a string
+                # but we'll keep the error handling logic
+                if not script_text:
                     raise ValueError("Failed to parse script data")
-                script = re.match(
-                    r"var shotsData = JSON\.parse\('(?P<json>.*?)'\)", script
+                match = re.match(
+                    r"var shotsData = JSON\.parse\('(?P<json>.*?)'\)", script_text
                 )
-                if script is not None:
-                    script = script.group("json")
-                events = json.loads(script)
+                if match is not None:
+                    json_str = match.group("json")
+                    events = json.loads(json_str)
                 break
 
         if events is None:

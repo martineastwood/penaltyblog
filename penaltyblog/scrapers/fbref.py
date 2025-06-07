@@ -107,7 +107,7 @@ class FBRef(RequestsScraper):
             p1 = "" if "Unnamed:" in col[0] else col[0].replace(" ", "_").lower() + "_"
             p2 = col[1].replace(" ", "_").replace("# ", "").lower()
             columns.append(p1 + p2)
-        df.columns = columns
+        df.columns = pd.Index(columns)
         return df
 
     def _set_stat_col_types(self, df: pd.DataFrame) -> pd.DataFrame:
