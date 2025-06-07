@@ -1,6 +1,6 @@
 from collections import defaultdict, deque
 from datetime import datetime, timedelta
-from typing import Iterator
+from typing import Iterator, Union, Optional, Tuple, Any
 
 from ..aggs_registry import resolve_aggregator
 from .utils import get_field
