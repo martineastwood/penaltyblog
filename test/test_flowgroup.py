@@ -327,7 +327,34 @@ def test_time_bucket_non_uniform_time_intervals():
     assert result == expected
 
 
-def test_time_bucket_with_right_label():
+def test_time_bucket_with_custom_bucket_name():
+    base_time = datetime(2023, 1, 1, 0, 0, 0)
+    records = [
+        {"player": "X", "ts": base_time + timedelta(seconds=0), "score": 10},
+        {"player": "X", "ts": base_time + timedelta(seconds=20), "score": 20},
+        {"player": "X", "ts": base_time + timedelta(seconds=40), "score": 30},
+    ]
+
+    result = (
+        Flow.from_records(records)
+        .group_by("player")
+        .time_bucket(
+            freq="30s",
+            aggregators={"sum_score": ("sum", "score")},
+            time_field="ts",
+            label="left",
+            bucket_name="custom_bucket",
+        )
+        .collect()
+    )
+
+    expected = [
+        {"player": "X", "custom_bucket": base_time, "sum_score": 30},
+        {"player": "X", "custom_bucket": base_time + timedelta(seconds=30), "sum_score": 30},
+    ]
+
+    assert result == expected
+
     base_time = datetime(2023, 1, 1, 0, 0, 0)
     records = [
         {"player": "X", "ts": base_time + timedelta(seconds=0), "score": 10},
