@@ -198,7 +198,7 @@ def apply_group_time_bucket(records, step):
             origin = None
 
         # Partition into buckets
-        buckets: dict[int, list] = {}
+        buckets: dict[int, list[dict]] = {}
         labels: dict[int, datetime | timedelta | float] = {}
         for r in rows:
             t = _get_time(r)
