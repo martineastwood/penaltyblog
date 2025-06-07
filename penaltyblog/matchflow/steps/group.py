@@ -6,29 +6,22 @@ from ..aggs_registry import resolve_aggregator
 from .utils import get_field
 
 
-def parse_window_size(window_str: str) -> float:
+def get_time_window_details(window, time_field):
     """
-    Parse a window size string like '5m', '2h', '30s', '1d' into a number of seconds.
-    Supported suffixes: s=seconds, m=minutes, h=hours, d=days.
+    Determine the mode (count or time) and parse the window size.
+    Returns a tuple (count_mode, count_window, time_window_seconds, origin, is_datetime).
     """
-    if not isinstance(window_str, str):
+    if isinstance(window, (int, float)):
+        return True, int(window), None, None, False
+    elif isinstance(window, str) and window[-1].lower() in {"s", "m", "h", "d"}:
+        time_window_seconds = parse_window_size(window)
+        if time_field is None:
+            raise ValueError("String window requires a time_field")
+        return False, None, time_window_seconds, None, False
+    else:
         raise ValueError(
-            f"Expected a string for window, got {type(window_str).__name__}"
+            f"Invalid window {window!r}: use int for row-count or str ending in s/m/h/d for time."
         )
-    unit = window_str[-1].lower()
-    try:
-        val = float(window_str[:-1])
-    except Exception:
-        raise ValueError(f"Could not parse window size from '{window_str}'")
-    if unit == "s":
-        return val
-    if unit == "m":
-        return val * 60
-    if unit == "h":
-        return val * 3600
-    if unit == "d":
-        return val * 86400
-    raise ValueError(f"Unrecognized time unit '{unit}' in window '{window_str}'")
 
 
 def apply_group_rolling_summary(records: Iterator[dict], step: dict) -> Iterator[dict]:
@@ -49,20 +42,7 @@ def apply_group_rolling_summary(records: Iterator[dict], step: dict) -> Iterator
     step_size = raw_step if (isinstance(raw_step, int) and raw_step > 0) else 1
     group_keys = step.get("__group_keys") or []
 
-    # --- determine mode ---
-    if isinstance(window, (int, float)):
-        count_mode = True
-        count_window = int(window)
-        time_window_seconds = None
-    elif isinstance(window, str) and window[-1].lower() in {"s", "m", "h", "d"}:
-        count_mode = False
-        time_window_seconds = parse_window_size(window)
-        if time_field is None:
-            raise ValueError("String window requires a time_field")
-    else:
-        raise ValueError(
-            f"Invalid window {window!r}: use int for row-count or str ending in s/m/h/d for time."
-        )
+    count_mode, count_window, time_window_seconds, origin, is_datetime = get_time_window_details(window, time_field)
 
     def process_one_group(group_key_tuple, group_records):
         # sort by time_field if time mode, else leave original order
@@ -179,17 +159,7 @@ def apply_group_time_bucket(records, step):
     label_side = step.get("label", "left")
     group_keys = step.get("__group_keys", [])
 
-    # Determine mode and bucket size
-    if isinstance(freq, (int, float)):
-        numeric_mode = True
-        bucket_size = float(freq)
-    elif isinstance(freq, str) and freq[-1].lower() in {"s", "m", "h", "d"}:
-        numeric_mode = False
-        bucket_size = parse_window_size(freq)
-    else:
-        raise ValueError(
-            f"Invalid freq '{freq}': use a number for numeric buckets or a string ending in s/m/h/d for time."
-        )
+    numeric_mode, _, bucket_size, _, _ = get_time_window_details(freq, time_field)
 
     from datetime import datetime, timedelta
 
