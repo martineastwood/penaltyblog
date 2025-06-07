@@ -1,9 +1,6 @@
 from datetime import datetime, timedelta
 
-import numpy as np
-
 from penaltyblog.matchflow.flow import Flow
-from penaltyblog.matchflow.group import FlowGroup
 
 
 def test_group_summary():
@@ -104,25 +101,20 @@ def test_time_bucket_with_non_datetime_field():
         {"player": "X", "ts": 20, "score": 20},
         {"player": "X", "ts": 40, "score": 30},
     ]
-
-    result = (
-        Flow.from_records(records)
-        .group_by("player")
-        .time_bucket(
-            freq="30s",
-            aggregators={"sum_score": ("sum", "score")},
-            time_field="ts",
-            label="left",
+    try:
+        (
+            Flow.from_records(records)
+            .group_by("player")
+            .time_bucket(
+                freq="30s",
+                aggregators={"sum_score": ("sum", "score")},
+                time_field="ts",
+                label="left",
+            )
+            .collect()
         )
-        .collect()
-    )
-
-    expected = [
-        {"player": "X", "bucket": timedelta(seconds=0), "sum_score": 30},
-        {"player": "X", "bucket": timedelta(seconds=30), "sum_score": 30},
-    ]
-
-    assert result == expected
+    except ValueError as e:
+        assert str(e) == "time_bucket: field 'ts' has type int; when freq has a time suffix you must provide datetime or timedelta values."
 
 
 def test_time_bucket_invalid_frequency_string():
@@ -143,7 +135,8 @@ def test_time_bucket_invalid_frequency_string():
             .collect()
         )
     except ValueError as e:
-        assert str(e) == "Unrecognized unit 'x' in window '5x'"
+        assert str(e) == "Invalid freq '5x': use a number for numeric buckets or a string ending in s/m/h/d for time."
+
 
 def test_time_bucket_empty_group_after_filtering():
     records = [
@@ -162,6 +155,7 @@ def test_time_bucket_empty_group_after_filtering():
         .collect()
     )
     assert result == []
+
 
 def test_time_bucket_mixed_valid_invalid_time_fields():
     base_time = datetime(2023, 1, 1, 0, 0, 0)
@@ -190,6 +184,7 @@ def test_time_bucket_mixed_valid_invalid_time_fields():
 
     assert result == expected
 
+
 def test_time_bucket_boundary_conditions():
     base_time = datetime(2023, 1, 1, 0, 0, 0)
     records = [
@@ -215,6 +210,7 @@ def test_time_bucket_boundary_conditions():
     ]
 
     assert result == expected
+
 
 def test_time_bucket_large_time_gaps():
     base_time = datetime(2023, 1, 1, 0, 0, 0)
@@ -242,11 +238,22 @@ def test_time_bucket_large_time_gaps():
 
     assert result == expected
 
+
 def test_time_bucket_multiple_aggregators():
     base_time = datetime(2023, 1, 1, 0, 0, 0)
     records = [
-        {"player": "X", "ts": base_time + timedelta(seconds=0), "score": 10, "assists": 1},
-        {"player": "X", "ts": base_time + timedelta(seconds=20), "score": 20, "assists": 2},
+        {
+            "player": "X",
+            "ts": base_time + timedelta(seconds=0),
+            "score": 10,
+            "assists": 1,
+        },
+        {
+            "player": "X",
+            "ts": base_time + timedelta(seconds=20),
+            "score": 20,
+            "assists": 2,
+        },
     ]
 
     result = (
@@ -270,18 +277,18 @@ def test_time_bucket_multiple_aggregators():
 
     assert result == expected
 
+
 def test_time_bucket_negative_time_values():
     records = [
         {"player": "X", "ts": -10, "score": 10},
         {"player": "X", "ts": 20, "score": 20},
     ]
-
     try:
         (
             Flow.from_records(records)
             .group_by("player")
             .time_bucket(
-                freq="30s",
+                freq=30,  # Use numeric freq for numeric time fields
                 aggregators={"sum_score": ("sum", "score")},
                 time_field="ts",
                 label="left",
@@ -290,6 +297,7 @@ def test_time_bucket_negative_time_values():
         )
     except ValueError as e:
         assert str(e) == "Invalid time value '-10' in record."
+
 
 def test_time_bucket_non_uniform_time_intervals():
     base_time = datetime(2023, 1, 1, 0, 0, 0)
@@ -317,6 +325,7 @@ def test_time_bucket_non_uniform_time_intervals():
     ]
 
     assert result == expected
+
 
 def test_time_bucket_with_right_label():
     base_time = datetime(2023, 1, 1, 0, 0, 0)
@@ -400,7 +409,9 @@ def test_time_bucket_multiple_groups():
         {"team": "A", "bucket": base_time, "sum_score": 30},
         {"team": "B", "bucket": base_time + timedelta(seconds=10), "sum_score": 20},
     ]
-    assert sorted(result, key=lambda x: (x["team"], x["bucket"])) == sorted(expected, key=lambda x: (x["team"], x["bucket"]))
+    assert sorted(result, key=lambda x: (x["team"], x["bucket"])) == sorted(
+        expected, key=lambda x: (x["team"], x["bucket"])
+    )
 
 
 def test_time_bucket_empty_input():
@@ -472,7 +483,7 @@ def test_time_bucket_numeric_time_field():
         Flow.from_records(records)
         .group_by("team")
         .time_bucket(
-            freq="30s",
+            freq=30,  # Use numeric freq for numeric time fields
             aggregators={"sum_score": ("sum", "score")},
             time_field="ts",
             label="left",
@@ -480,8 +491,8 @@ def test_time_bucket_numeric_time_field():
         .collect()
     )
     expected = [
-        {"team": "A", "bucket": timedelta(seconds=0), "sum_score": 3},
-        {"team": "A", "bucket": timedelta(seconds=30), "sum_score": 3},
+        {"team": "A", "bucket": 0.0, "sum_score": 3},
+        {"team": "A", "bucket": 30.0, "sum_score": 3},
     ]
     assert result == expected
 
@@ -507,6 +518,7 @@ def test_time_bucket_custom_aggregator():
         {"team": "A", "bucket": base_time, "max_score": 30},
     ]
     assert result == expected
+
 
 def test_time_bucket_with_right_label():
     base_time = datetime(2023, 1, 1, 0, 0, 0)
