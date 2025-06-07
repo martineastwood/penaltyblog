@@ -73,8 +73,7 @@ def apply_group_rolling_summary(
                 group_records, key=lambda r: get_field(r, time_field)
             )
         else:
-
-        window_deque: deque[dict[str, Any]] = deque()
+            window_deque: deque[dict[str, Any]] = deque()
         results = []
 
         for idx, row in enumerate(group_records):
