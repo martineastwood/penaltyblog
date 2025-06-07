@@ -70,7 +70,88 @@ def test_row_based_rolling_sum():
     assert values == [1, 3, 5, 7]
 
 
-def test_time_bucket():
+def test_time_bucket_with_missing_time_field():
+    base_time = datetime(2023, 1, 1, 0, 0, 0)
+    records = [
+        {"player": "X", "ts": base_time + timedelta(seconds=0), "score": 10},
+        {"player": "X", "score": 20},  # Missing time field
+        {"player": "X", "ts": base_time + timedelta(seconds=40), "score": 30},
+    ]
+
+    result = (
+        Flow.from_records(records)
+        .group_by("player")
+        .time_bucket(
+            freq="30s",
+            aggregators={"sum_score": ("sum", "score")},
+            time_field="ts",
+            label="left",
+        )
+        .collect()
+    )
+
+    expected = [
+        {"player": "X", "bucket": base_time + timedelta(seconds=0), "sum_score": 10},
+        {"player": "X", "bucket": base_time + timedelta(seconds=30), "sum_score": 30},
+    ]
+
+    assert result == expected
+
+
+def test_time_bucket_with_non_datetime_field():
+    records = [
+        {"player": "X", "ts": 0, "score": 10},
+        {"player": "X", "ts": 20, "score": 20},
+        {"player": "X", "ts": 40, "score": 30},
+    ]
+
+    result = (
+        Flow.from_records(records)
+        .group_by("player")
+        .time_bucket(
+            freq="30s",
+            aggregators={"sum_score": ("sum", "score")},
+            time_field="ts",
+            label="left",
+        )
+        .collect()
+    )
+
+    expected = [
+        {"player": "X", "bucket": timedelta(seconds=0), "sum_score": 30},
+        {"player": "X", "bucket": timedelta(seconds=30), "sum_score": 30},
+    ]
+
+    assert result == expected
+
+
+def test_time_bucket_with_right_label():
+    base_time = datetime(2023, 1, 1, 0, 0, 0)
+    records = [
+        {"player": "X", "ts": base_time + timedelta(seconds=0), "score": 10},
+        {"player": "X", "ts": base_time + timedelta(seconds=20), "score": 20},
+        {"player": "X", "ts": base_time + timedelta(seconds=40), "score": 30},
+    ]
+
+    result = (
+        Flow.from_records(records)
+        .group_by("player")
+        .time_bucket(
+            freq="30s",
+            aggregators={"sum_score": ("sum", "score")},
+            time_field="ts",
+            label="right",
+        )
+        .collect()
+    )
+
+    expected = [
+        {"player": "X", "bucket": base_time + timedelta(seconds=30), "sum_score": 30},
+        {"player": "X", "bucket": base_time + timedelta(seconds=60), "sum_score": 30},
+    ]
+
+    assert result == expected
+
     base_time = datetime(2023, 1, 1, 0, 0, 0)
     records = [
         {"player": "X", "ts": base_time + timedelta(seconds=0), "score": 10},
