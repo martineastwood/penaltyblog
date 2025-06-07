@@ -308,7 +308,7 @@ class Flow:
         Returns:
             Flow: A new Flow with sorted records.
         """
-        keys = list(keys)
+        keys_list: list[str] = list(keys)
 
         # Normalize ascending to a list of same length as keys
         if isinstance(ascending, bool):
@@ -320,7 +320,9 @@ class Flow:
         else:
             raise TypeError("'ascending' must be a bool or list of bools.")
 
-        return self._next({"op": "sort", "keys": keys, "ascending": ascending_list})
+        return self._next(
+            {"op": "sort", "keys": keys_list, "ascending": ascending_list}
+        )
 
     def limit(self, n: int) -> "Flow":
         """
@@ -775,4 +777,4 @@ class Flow:
 
 from .contrib.statsbomb import statsbomb as statsbomb_module
 
-Flow.statsbomb = statsbomb_module
+Flow.statsbomb = statsbomb_module  # type: ignore[attr-defined]

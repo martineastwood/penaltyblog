@@ -199,9 +199,10 @@ def apply_drop(records: "Flow", step: dict) -> "Flow":
             d = new
             try:
                 for part in parts[:-1]:
-                    d = d.get(part)
-                    if not isinstance(d, dict):
+                    next_d = d.get(part)
+                    if not isinstance(next_d, dict):
                         raise KeyError
+                    d = next_d
                 d.pop(parts[-1], None)  # silently ignore missing keys
             except Exception:
                 continue  # skip malformed paths
@@ -360,7 +361,7 @@ def apply_join(records: "Flow", step: dict) -> "Flow":
 
     right_records = list(FlowExecutor(step["right_plan"]).execute())
 
-    right_index = {}
+    right_index: dict[tuple[Any, ...], list[dict]] = {}
     for r in right_records:
         key = tuple(get_field(r, k) for k in compiled)
         right_index.setdefault(key, []).append(r)

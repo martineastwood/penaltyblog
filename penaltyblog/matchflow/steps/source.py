@@ -1,53 +1,69 @@
 import glob
 import os
-from typing import TYPE_CHECKING, Iterator
+from typing import TYPE_CHECKING, Any, Dict, Iterator, cast
 
 if TYPE_CHECKING:
     from ..flow import Flow
 
 try:
-    import orjson as json_lib
-
-    def json_load(f):
-        return json_lib.loads(f.read())
-
-    def json_loads(b):
-        return json_lib.loads(b)
+    import orjson as _json_lib_orjson
 
     BINARY = True
-except ImportError:
-    import json as json_lib
 
     def json_load(f):
-        return json_lib.load(f)
+        return _json_lib_orjson.loads(f.read())
 
     def json_loads(b):
-        return json_lib.loads(b.decode("utf-8"))
+        return _json_lib_orjson.loads(b)
+
+except ImportError:
+    import json as _json_lib_std
 
     BINARY = False
+
+    def json_load(f):
+        return _json_lib_std.load(f)
+
+    def json_loads(b):
+        return _json_lib_std.loads(b.decode("utf-8"))
 
 
 def dispatch(step) -> "Flow":
     op = step["op"]
     if op == "from_folder":
-        return from_folder(step)
+        # Cast the iterator to Flow for type checking
+        from ..flow import Flow
+
+        return cast(Flow, from_folder(step))
     elif op == "from_materialized":
-        return iter(step["records"])
+        from ..flow import Flow
+
+        return cast(Flow, iter(step["records"]))
     elif op == "from_json":
-        return from_json(step)
+        from ..flow import Flow
+
+        return cast(Flow, from_json(step))
     elif op == "from_jsonl":
-        return from_jsonl(step)
+        from ..flow import Flow
+
+        return cast(Flow, from_jsonl(step))
     elif op == "from_statsbomb":
-        return from_statsbomb(step)
+        from ..flow import Flow
+
+        return cast(Flow, from_statsbomb(step))
     elif op == "from_glob":
-        return from_glob(step)
+        from ..flow import Flow
+
+        return cast(Flow, from_glob(step))
     elif op == "from_concat":
-        return from_concat(step)
+        from ..flow import Flow
+
+        return cast(Flow, from_concat(step))
     else:
         raise ValueError(f"Unsupported source op: {step['op']}")
 
 
-def from_folder(step) -> Iterator[dict]:
+def from_folder(step) -> Iterator[Dict[Any, Any]]:
     """
     Create a Flow from a folder of JSON or JSONL files.
 
@@ -72,7 +88,7 @@ def from_folder(step) -> Iterator[dict]:
             yield from from_json({"path": path})
 
 
-def from_json(step):
+def from_json(step) -> Iterator[Dict[Any, Any]]:
     """
     Create a Flow from a JSON file.
 
@@ -92,7 +108,7 @@ def from_json(step):
         yield from data
 
 
-def from_jsonl(step) -> Iterator[dict]:
+def from_jsonl(step) -> Iterator[Dict[Any, Any]]:
     """
     Create a Flow from a JSONL file.
 
@@ -112,7 +128,7 @@ def from_jsonl(step) -> Iterator[dict]:
             yield json_loads(line)
 
 
-def from_statsbomb(step) -> Iterator[dict]:
+def from_statsbomb(step) -> Iterator[Dict[Any, Any]]:
     """
     Create a Flow from a StatsBomb API endpoint.
 
@@ -144,7 +160,7 @@ def from_statsbomb(step) -> Iterator[dict]:
     return iter(data.values())
 
 
-def from_glob(step) -> Iterator[dict]:
+def from_glob(step) -> Iterator[Dict[Any, Any]]:
     """
     Create a Flow from a glob pattern.
 
@@ -178,7 +194,7 @@ def from_glob(step) -> Iterator[dict]:
                     yield data
 
 
-def from_concat(step) -> Iterator[dict]:
+def from_concat(step) -> Iterator[Dict[Any, Any]]:
     """
     Create a Flow from a list of plans.
 

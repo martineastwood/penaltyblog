@@ -1,4 +1,3 @@
-import datetime
 from collections import defaultdict, deque
 from datetime import datetime, timedelta
 from typing import Iterator
@@ -43,7 +42,9 @@ def apply_group_rolling_summary(records: Iterator[dict], step: dict) -> Iterator
     step_size = raw_step if (isinstance(raw_step, int) and raw_step > 0) else 1
     group_keys = step.get("__group_keys") or []
 
-    count_mode, count_window, time_window_seconds, origin, is_datetime = get_time_window_details(window, time_field)
+    count_mode, count_window, time_window_seconds, origin, is_datetime = (
+        get_time_window_details(window, time_field)
+    )
 
     def process_one_group(group_key_tuple, group_records):
         # sort by time_field if time mode, else leave original order

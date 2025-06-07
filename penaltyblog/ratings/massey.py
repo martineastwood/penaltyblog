@@ -67,7 +67,9 @@ class Massey:  # pylint: disable=too-few-public-methods
         fixtures = pd.DataFrame(
             [self.goals_home, self.goals_away, self.teams_home, self.teams_away]
         ).T
-        fixtures.columns = ["goals_home", "goals_away", "team_home", "team_away"]
+        fixtures.columns = pd.Index(
+            ["goals_home", "goals_away", "team_home", "team_away"]
+        )
         fixtures["goals_home"] = fixtures["goals_home"].astype(int)
         fixtures["goals_away"] = fixtures["goals_away"].astype(int)
 
@@ -82,7 +84,7 @@ class Massey:  # pylint: disable=too-few-public-methods
         o = r - d
 
         res = pd.DataFrame([teams, r, o, d]).T
-        res.columns = ["team", "rating", "offence", "defence"]
+        res.columns = pd.Index(["team", "rating", "offence", "defence"])
         res = res.sort_values("rating", ascending=False)
         res = res.reset_index(drop=True)
         return res
