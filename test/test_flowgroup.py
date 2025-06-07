@@ -182,3 +182,193 @@ def test_time_bucket_with_right_label():
     ]
 
     assert result == expected
+
+
+def test_time_bucket_multiple_groups():
+    base_time = datetime(2023, 1, 1, 0, 0, 0)
+    records = [
+        {"team": "A", "ts": base_time + timedelta(seconds=0), "score": 10},
+        {"team": "A", "ts": base_time + timedelta(seconds=20), "score": 20},
+        {"team": "B", "ts": base_time + timedelta(seconds=10), "score": 5},
+        {"team": "B", "ts": base_time + timedelta(seconds=35), "score": 15},
+    ]
+    result = (
+        Flow.from_records(records)
+        .group_by("team")
+        .time_bucket(
+            freq="30s",
+            aggregators={"sum_score": ("sum", "score")},
+            time_field="ts",
+            label="left",
+        )
+        .collect()
+    )
+    expected = [
+        {"team": "A", "bucket": base_time, "sum_score": 30},
+        {"team": "B", "bucket": base_time + timedelta(seconds=10), "sum_score": 20},
+    ]
+    assert sorted(result, key=lambda x: (x["team"], x["bucket"])) == sorted(expected, key=lambda x: (x["team"], x["bucket"]))
+
+
+def test_time_bucket_empty_input():
+    result = (
+        Flow.from_records([])
+        .group_by("team")
+        .time_bucket(
+            freq="30s",
+            aggregators={"sum_score": ("sum", "score")},
+            time_field="ts",
+            label="left",
+        )
+        .collect()
+    )
+    assert result == []
+
+
+def test_time_bucket_all_missing_time_field():
+    records = [
+        {"team": "A", "score": 10},
+        {"team": "A", "score": 20},
+    ]
+    result = (
+        Flow.from_records(records)
+        .group_by("team")
+        .time_bucket(
+            freq="30s",
+            aggregators={"sum_score": ("sum", "score")},
+            time_field="ts",
+            label="left",
+        )
+        .collect()
+    )
+    assert result == []
+
+
+def test_time_bucket_non_uniform_buckets():
+    base_time = datetime(2023, 1, 1, 0, 0, 0)
+    records = [
+        {"team": "A", "ts": base_time + timedelta(seconds=0), "score": 5},
+        {"team": "A", "ts": base_time + timedelta(seconds=5), "score": 10},
+        {"team": "A", "ts": base_time + timedelta(seconds=65), "score": 20},
+    ]
+    result = (
+        Flow.from_records(records)
+        .group_by("team")
+        .time_bucket(
+            freq="60s",
+            aggregators={"sum_score": ("sum", "score")},
+            time_field="ts",
+            label="left",
+        )
+        .collect()
+    )
+    expected = [
+        {"team": "A", "bucket": base_time, "sum_score": 15},
+        {"team": "A", "bucket": base_time + timedelta(seconds=60), "sum_score": 20},
+    ]
+    assert result == expected
+
+
+def test_time_bucket_numeric_time_field():
+    records = [
+        {"team": "A", "ts": 0, "score": 1},
+        {"team": "A", "ts": 15, "score": 2},
+        {"team": "A", "ts": 45, "score": 3},
+    ]
+    result = (
+        Flow.from_records(records)
+        .group_by("team")
+        .time_bucket(
+            freq="30s",
+            aggregators={"sum_score": ("sum", "score")},
+            time_field="ts",
+            label="left",
+        )
+        .collect()
+    )
+    expected = [
+        {"team": "A", "bucket": timedelta(seconds=0), "sum_score": 3},
+        {"team": "A", "bucket": timedelta(seconds=30), "sum_score": 3},
+    ]
+    assert result == expected
+
+
+def test_time_bucket_custom_aggregator():
+    base_time = datetime(2023, 1, 1, 0, 0, 0)
+    records = [
+        {"team": "A", "ts": base_time + timedelta(seconds=0), "score": 10},
+        {"team": "A", "ts": base_time + timedelta(seconds=10), "score": 30},
+    ]
+    result = (
+        Flow.from_records(records)
+        .group_by("team")
+        .time_bucket(
+            freq="30s",
+            aggregators={"max_score": ("max", "score")},
+            time_field="ts",
+            label="left",
+        )
+        .collect()
+    )
+    expected = [
+        {"team": "A", "bucket": base_time, "max_score": 30},
+    ]
+    assert result == expected
+
+def test_time_bucket_with_right_label():
+    base_time = datetime(2023, 1, 1, 0, 0, 0)
+    records = [
+        {"player": "X", "ts": base_time + timedelta(seconds=0), "score": 10},
+        {"player": "X", "ts": base_time + timedelta(seconds=20), "score": 20},
+        {"player": "X", "ts": base_time + timedelta(seconds=40), "score": 30},
+    ]
+
+    result = (
+        Flow.from_records(records)
+        .group_by("player")
+        .time_bucket(
+            freq="30s",
+            aggregators={"sum_score": ("sum", "score")},
+            time_field="ts",
+            label="right",
+        )
+        .collect()
+    )
+
+    expected = [
+        {"player": "X", "bucket": base_time + timedelta(seconds=30), "sum_score": 30},
+        {"player": "X", "bucket": base_time + timedelta(seconds=60), "sum_score": 30},
+    ]
+
+    assert result == expected
+
+    base_time = datetime(2023, 1, 1, 0, 0, 0)
+    records = [
+        {"player": "X", "ts": base_time + timedelta(seconds=0), "score": 10},
+        {"player": "X", "ts": base_time + timedelta(seconds=20), "score": 20},
+        {"player": "X", "ts": base_time + timedelta(seconds=40), "score": 30},
+        {"player": "X", "ts": base_time + timedelta(seconds=50), "score": 10},
+        {"player": "X", "ts": base_time + timedelta(seconds=70), "score": 45},
+        {"player": "X", "ts": base_time + timedelta(seconds=100), "score": 50},
+    ]
+
+    result = (
+        Flow.from_records(records)
+        .group_by("player")
+        .time_bucket(
+            freq="30s",
+            aggregators={"sum_score": ("sum", "score")},
+            time_field="ts",
+            label="left",
+        )
+        .collect()
+    )
+
+    expected = [
+        {"player": "X", "bucket": base_time + timedelta(seconds=0), "sum_score": 30},
+        {"player": "X", "bucket": base_time + timedelta(seconds=30), "sum_score": 40},
+        {"player": "X", "bucket": base_time + timedelta(seconds=60), "sum_score": 45},
+        {"player": "X", "bucket": base_time + timedelta(seconds=90), "sum_score": 50},
+    ]
+
+    assert result == expected
