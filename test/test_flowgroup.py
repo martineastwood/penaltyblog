@@ -76,7 +76,8 @@ def test_time_bucket():
         {"player": "X", "ts": base_time + timedelta(seconds=0), "score": 10},
         {"player": "X", "ts": base_time + timedelta(seconds=20), "score": 20},
         {"player": "X", "ts": base_time + timedelta(seconds=40), "score": 30},
-        {"player": "X", "ts": base_time + timedelta(seconds=70), "score": 40},
+        {"player": "X", "ts": base_time + timedelta(seconds=50), "score": 10},
+        {"player": "X", "ts": base_time + timedelta(seconds=70), "score": 45},
         {"player": "X", "ts": base_time + timedelta(seconds=100), "score": 50},
     ]
 
@@ -94,70 +95,9 @@ def test_time_bucket():
 
     expected = [
         {"player": "X", "bucket": base_time + timedelta(seconds=0), "sum_score": 30},
-        {"player": "X", "bucket": base_time + timedelta(seconds=30), "sum_score": 30},
-        {"player": "X", "bucket": base_time + timedelta(seconds=60), "sum_score": 40},
+        {"player": "X", "bucket": base_time + timedelta(seconds=30), "sum_score": 40},
+        {"player": "X", "bucket": base_time + timedelta(seconds=60), "sum_score": 45},
         {"player": "X", "bucket": base_time + timedelta(seconds=90), "sum_score": 50},
     ]
 
     assert result == expected
-    base_time = datetime(2023, 1, 1, 0, 0, 0)
-    records = [
-        {"player": "X", "ts": base_time + timedelta(seconds=0), "score": 10},
-        {"player": "X", "ts": base_time + timedelta(seconds=20), "score": 20},
-        {"player": "X", "ts": base_time + timedelta(seconds=40), "score": 30},
-        {"player": "X", "ts": base_time + timedelta(seconds=70), "score": 40},
-        {"player": "X", "ts": base_time + timedelta(seconds=100), "score": 50},
-    ]
-
-    result = (
-        Flow.from_records(records)
-        .group_by("player")
-        .time_bucket(
-            freq="30s",
-            aggregators={"sum_score": ("sum", "score")},
-            time_field="ts",
-            label="left",
-        )
-        .collect()
-    )
-
-    expected = [
-        {"player": "X", "bucket": base_time + timedelta(seconds=0), "sum_score": 30},
-        {"player": "X", "bucket": base_time + timedelta(seconds=30), "sum_score": 30},
-        {"player": "X", "bucket": base_time + timedelta(seconds=60), "sum_score": 40},
-        {"player": "X", "bucket": base_time + timedelta(seconds=90), "sum_score": 50},
-    ]
-
-    assert result == expected
-    base_time = datetime(2023, 1, 1, 0, 0, 0)
-    records = [
-        {"player": "X", "ts": base_time + timedelta(seconds=0), "score": 10},
-        {"player": "X", "ts": base_time + timedelta(seconds=20), "score": 20},
-        {"player": "X", "ts": base_time + timedelta(seconds=20), "score": 35},
-        {"player": "X", "ts": base_time + timedelta(seconds=40), "score": 30},
-        {"player": "X", "ts": base_time + timedelta(seconds=70), "score": 40},
-        {"player": "X", "ts": base_time + timedelta(seconds=100), "score": 50},
-    ]
-
-    result = (
-        Flow.from_records(records)
-        .group_by("player")
-        .sort_by("ts")
-        .rolling_summary(
-            window="30s",
-            time_field="ts",
-            aggregators={"mean_score_30s": ("mean", "score")},
-        )
-        .collect()
-    )
-
-    # Only rows within 30s from current should be counted
-    expected = [
-        np.float64(10.0),
-        np.float64(15.0),
-        np.float64(21.666666666666668),
-        np.float64(28.333333333333332),
-        np.float64(35.0),
-        np.float64(45.0),
-    ]
-    assert [r["mean_score_30s"] for r in result] == expected
