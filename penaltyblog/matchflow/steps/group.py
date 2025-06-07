@@ -1,18 +1,20 @@
 from collections import defaultdict, deque
 from datetime import datetime, timedelta
-from typing import Iterator, Union, Optional, Tuple, Any
+from typing import Any, Iterator, Optional, Tuple, Union
 
 from ..aggs_registry import resolve_aggregator
 from .utils import get_field
 
 
-def get_time_window_details(window: Union[int, float, str], time_field: Optional[str]) -> Tuple[bool, Optional[int], Optional[int], Optional[datetime], bool]:
+def get_time_window_details(
+    window: Union[int, float, str], time_field: Optional[str]
+) -> Tuple[bool, Optional[int], Optional[float], Optional[datetime], bool]:
     """
     Determine the mode (count or time) and parse the window size.
     Returns a tuple (count_mode, count_window, time_window_seconds, origin, is_datetime).
     """
     if isinstance(window, (int, float)):
-        return True, int(window), None, None, False
+        return True, int(window), float(window), None, False
     elif isinstance(window, str) and window[-1].lower() in {"s", "m", "h", "d"}:
         time_window_seconds = parse_window_size(window)
         if time_field is None:
@@ -24,7 +26,9 @@ def get_time_window_details(window: Union[int, float, str], time_field: Optional
         )
 
 
-def apply_group_rolling_summary(records: Iterator[dict[str, Any]], step: dict[str, Any]) -> Iterator[dict[str, Any]]:
+def apply_group_rolling_summary(
+    records: Iterator[dict[str, Any]], step: dict[str, Any]
+) -> Iterator[dict[str, Any]]:
     """
     Lazily apply a rolling summary within each group.
 
@@ -46,17 +50,22 @@ def apply_group_rolling_summary(records: Iterator[dict[str, Any]], step: dict[st
         get_time_window_details(window, time_field)
     )
 
-    def process_one_group(group_key_tuple, group_records):
+    def process_one_group(
+        group_key_tuple: tuple[Any, ...], group_records: list[dict[str, Any]]
+    ) -> list[dict[str, Any]]:
         # sort by time_field if time mode, else leave original order
-        if not count_mode:
+        local_origin: Optional[datetime] = None
+        local_is_datetime = False
+
+        if not count_mode and time_field is not None:
             # validate time_field type
             sample = get_field(group_records[0], time_field)
             if isinstance(sample, datetime):
-                origin = sample
-                is_datetime = True
+                local_origin = sample
+                local_is_datetime = True
             elif isinstance(sample, timedelta):
-                origin = timedelta(0)
-                is_datetime = False
+                local_origin = None  # For timedelta, we don't need a datetime origin
+                local_is_datetime = False
             else:
                 raise ValueError(
                     f"Rolling-summary: time_field '{time_field}' is {type(sample).__name__}; "
@@ -66,38 +75,50 @@ def apply_group_rolling_summary(records: Iterator[dict[str, Any]], step: dict[st
                 group_records, key=lambda r: get_field(r, time_field)
             )
         else:
-            origin = None
-            is_datetime = False
+            local_origin = None
+            local_is_datetime = False
 
-        window_deque = deque()
+        window_deque: deque[dict[str, Any]] = deque()
         results = []
 
         for idx, row in enumerate(group_records):
             window_deque.append(row)
 
             # drop old items
-            if count_mode:
+            if count_mode and count_window is not None:
                 while len(window_deque) > count_window:
                     window_deque.popleft()
                 current_window = list(window_deque)
             else:
                 # time‐based eviction
-                t = get_field(row, time_field)
-                now_s = (
-                    (t - origin).total_seconds() if is_datetime else t.total_seconds()
-                )
-                while window_deque:
-                    oldest = window_deque[0]
-                    old_t = get_field(oldest, time_field)
-                    old_s = (
-                        (old_t - origin).total_seconds()
-                        if is_datetime
-                        else old_t.total_seconds()
-                    )
-                    if now_s - old_s > time_window_seconds:
-                        window_deque.popleft()
+                if time_field is not None:
+                    t = get_field(row, time_field)
+                    now_s: float = 0.0
+                    if isinstance(t, datetime) and local_origin is not None:
+                        now_s = (t - local_origin).total_seconds()
+                    elif isinstance(t, timedelta):
+                        now_s = t.total_seconds()
                     else:
-                        break
+                        now_s = float(t) if t is not None else 0.0
+
+                    while window_deque:
+                        oldest = window_deque[0]
+                        old_t = get_field(oldest, time_field)
+                        old_s: float = 0.0
+                        if isinstance(old_t, datetime) and local_origin is not None:
+                            old_s = (old_t - local_origin).total_seconds()
+                        elif isinstance(old_t, timedelta):
+                            old_s = old_t.total_seconds()
+                        else:
+                            old_s = float(old_t) if old_t is not None else 0.0
+
+                        if (
+                            time_window_seconds is not None
+                            and now_s - old_s > time_window_seconds
+                        ):
+                            window_deque.popleft()
+                        else:
+                            break
                 current_window = list(window_deque)
 
             # emit if enough and on step
@@ -147,7 +168,9 @@ def parse_window_size(window_str: str) -> float:
     raise ValueError(f"Unrecognized unit '{unit}' in window '{window_str}'")
 
 
-def apply_group_time_bucket(records: Iterator[dict[str, Any]], step: dict[str, Any]) -> Iterator[dict[str, Any]]:
+def apply_group_time_bucket(
+    records: Iterator[dict[str, Any]], step: dict[str, Any]
+) -> Iterator[dict[str, Any]]:
     """
     For each group (provided as a dict with "__group_key__" & "__group_records__"),
     assign each record into a fixed, non-overlapping time bin.
@@ -165,10 +188,14 @@ def apply_group_time_bucket(records: Iterator[dict[str, Any]], step: dict[str, A
 
     from datetime import datetime, timedelta
 
-    def process_one_group(group_key_tuple, group_records):
+    def process_one_group(
+        group_key_tuple: tuple[Any, ...], group_records: list[dict[str, Any]]
+    ) -> list[dict[str, Any]]:
         # Extract non-null values
-        def _get_time(r):
-            return get_field(r, time_field)
+        def _get_time(r: dict[str, Any]) -> Any:
+            if time_field is not None:
+                return get_field(r, time_field)
+            return None
 
         rows = [r for r in group_records if _get_time(r) is not None]
         if not rows:
@@ -177,14 +204,18 @@ def apply_group_time_bucket(records: Iterator[dict[str, Any]], step: dict[str, A
         # Sample one to inspect type
         sample = _get_time(rows[0])
 
+        # Initialize variables with proper types
+        local_origin: Optional[Union[datetime, timedelta]] = None
+        local_is_datetime = False
+
         # Time-based mode: must be datetime or timedelta
         if not numeric_mode:
             if isinstance(sample, datetime):
-                origin = sample
-                is_datetime = True
+                local_origin = sample
+                local_is_datetime = True
             elif isinstance(sample, timedelta):
-                origin = timedelta(0)
-                is_datetime = False
+                local_origin = timedelta(0)
+                local_is_datetime = False
             else:
                 raise ValueError(
                     f"time_bucket: field '{time_field}' has type {type(sample).__name__}; "
@@ -194,36 +225,46 @@ def apply_group_time_bucket(records: Iterator[dict[str, Any]], step: dict[str, A
             rows.sort(key=_get_time)
         else:
             # numeric mode: we treat values as floats, no origin needed
-            is_datetime = False
-            origin = None
+            local_is_datetime = False
+            local_origin = None
+            # Sort by numeric time field
+            rows.sort(key=_get_time)
 
         # Partition into buckets
         buckets: dict[int, list[dict]] = {}
-        labels: dict[int, datetime | timedelta | float] = {}
+        labels: dict[int, Union[datetime, timedelta, float]] = {}
+
         for r in rows:
             t = _get_time(r)
-            total = (
-                (t - origin).total_seconds()
-                if (not numeric_mode and is_datetime)
-                else (
-                    t.total_seconds()
-                    if (not numeric_mode and isinstance(t, timedelta))
-                    else float(t)
-                )
-            )
-            idx = int(total // bucket_size)
-            buckets.setdefault(idx, []).append(r)
-            if idx not in labels:
-                edge = (idx + (1 if label_side == "right" else 0)) * bucket_size
-                if not numeric_mode:
-                    # datetime label
-                    labels[idx] = (
-                        origin + timedelta(seconds=edge)
-                        if is_datetime
-                        else timedelta(seconds=edge)
-                    )
-                else:
-                    labels[idx] = edge
+            total: float = 0.0
+
+            if (
+                not numeric_mode
+                and local_is_datetime
+                and isinstance(t, datetime)
+                and isinstance(local_origin, datetime)
+            ):
+                total = (t - local_origin).total_seconds()
+            elif not numeric_mode and isinstance(t, timedelta):
+                total = t.total_seconds()
+            else:
+                total = float(t) if t is not None else 0.0
+
+            if bucket_size is not None:
+                idx = int(total // bucket_size)
+                buckets.setdefault(idx, []).append(r)
+
+                if idx not in labels:
+                    edge = (idx + (1 if label_side == "right" else 0)) * bucket_size
+
+                    if not numeric_mode:
+                        # datetime label
+                        if local_is_datetime and isinstance(local_origin, datetime):
+                            labels[idx] = local_origin + timedelta(seconds=edge)
+                        else:
+                            labels[idx] = timedelta(seconds=edge)
+                    else:
+                        labels[idx] = float(edge)  # Ensure numeric labels are float
 
         # Build output
         out = []
@@ -236,16 +277,19 @@ def apply_group_time_bucket(records: Iterator[dict[str, Any]], step: dict[str, A
             out.append(row_out)
         return out
 
-    def runner(all_groups):
+    def runner(all_groups: Iterator[dict[str, Any]]) -> Iterator[dict[str, Any]]:
         for g in all_groups:
             key = g["__group_key__"]
-            recs = g["__group_records__"]
-            yield from process_one_group(key, recs)
+            recs = g.get("__group_records__", [])
+            result = process_one_group(key, recs)
+            yield from result
 
     return runner(records)
 
 
-def apply_group_by(records: Iterator[dict[str, Any]], step: dict[str, Any]) -> Iterator[dict[str, Any]]:
+def apply_group_by(
+    records: Iterator[dict[str, Any]], step: dict[str, Any]
+) -> Iterator[dict[str, Any]]:
     """
     Group records by one or more fields.
 
@@ -272,7 +316,9 @@ def apply_group_by(records: Iterator[dict[str, Any]], step: dict[str, Any]) -> I
         yield {"__group_key__": key, "__group_records__": group_records}
 
 
-def apply_group_summary(records: Iterator[dict[str, Any]], step: dict[str, Any]) -> Iterator[dict[str, Any]]:
+def apply_group_summary(
+    records: Iterator[dict[str, Any]], step: dict[str, Any]
+) -> Iterator[dict[str, Any]]:
     """
     Apply a summary function to each group of records.
 
@@ -303,7 +349,9 @@ def apply_group_summary(records: Iterator[dict[str, Any]], step: dict[str, Any])
         yield output
 
 
-def apply_group_cumulative(records: Iterator[dict[str, Any]], step: dict[str, Any]) -> Iterator[dict[str, Any]]:
+def apply_group_cumulative(
+    records: Iterator[dict[str, Any]], step: dict[str, Any]
+) -> Iterator[dict[str, Any]]:
     """
     Apply a cumulative function to each group of records.
 

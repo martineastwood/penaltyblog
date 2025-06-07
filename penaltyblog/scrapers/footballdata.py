@@ -62,11 +62,24 @@ class FootballData(RequestsScraper):
         return mapped
 
     def _convert_date(self, df):
+        # Check for date format - could be either %d/%m/%Y or %d/%m/%y
+        # Sample the first date to determine format
+        if df.empty:
+            return df
+
+        sample_date = df["Date"].iloc[0] if not df["Date"].empty else ""
+        date_format = "%d/%m/%y" if len(sample_date) <= 8 else "%d/%m/%Y"
+
+        # Convert datetime column if Time exists
         if "Time" in df.columns:
+            time_format = date_format + " %H:%M"
             df["datetime"] = pd.to_datetime(
-                df["Date"] + " " + df["Time"], dayfirst=True
+                df["Date"] + " " + df["Time"], format=time_format, errors="coerce"
             )
-        df["Date"] = pd.to_datetime(df["Date"], dayfirst=True)
+
+        # Convert Date column
+        df["Date"] = pd.to_datetime(df["Date"], format=date_format, errors="coerce")
+
         return df
 
     def get_fixtures(self) -> pd.DataFrame:

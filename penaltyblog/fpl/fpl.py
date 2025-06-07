@@ -211,7 +211,7 @@ def get_rankings(page=1) -> pd.DataFrame:
     return df
 
 
-def get_entry_picks_by_gameweek(entry_id, gameweek=1) -> pd.Series:
+def get_entry_picks_by_gameweek(entry_id, gameweek=1) -> pd.DataFrame:
     """
     Fetches the details for an entry's team on a given week
 

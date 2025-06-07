@@ -263,7 +263,7 @@ class DixonColesGoalModel(BaseGoalsModel):
         score_matrix.shape = (max_goals, max_goals)
 
         return FootballProbabilityGrid(
-            score_matrix, float(lambda_home), float(lambda_away)
+            score_matrix, float(lambda_home.item()), float(lambda_away.item())
         )
 
     def get_params(self) -> ParamsOutput:

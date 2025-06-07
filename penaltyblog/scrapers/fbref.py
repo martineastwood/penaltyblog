@@ -1,3 +1,5 @@
+import io
+
 import pandas as pd
 
 from .base_scrapers import RequestsScraper
@@ -157,7 +159,7 @@ class FBRef(RequestsScraper):
         content = self.get(url)
 
         df = (
-            pd.read_html(content)[0]
+            pd.read_html(io.StringIO(content))[0]
             .drop(["Match Report", "Notes"], axis=1)
             .pipe(self._rename_fixture_columns)
             .pipe(sanitize_columns)
@@ -230,7 +232,7 @@ class FBRef(RequestsScraper):
 
         output = dict()
 
-        dfs = pd.read_html(content)
+        dfs = pd.read_html(io.StringIO(content))
 
         output["squad_for"] = (
             dfs[0]
