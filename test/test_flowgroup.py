@@ -135,7 +135,7 @@ def test_time_bucket_invalid_frequency_string():
             .collect()
         )
     except ValueError as e:
-        assert str(e) == "Invalid freq '5x': use a number for numeric buckets or a string ending in s/m/h/d for time."
+        assert str(e) == "Invalid window '5x': use int for row-count or str ending in s/m/h/d for time."
 
 
 def test_time_bucket_empty_group_after_filtering():

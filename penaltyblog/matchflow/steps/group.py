@@ -13,7 +13,7 @@ def get_time_window_details(window, time_field):
     Returns a tuple (count_mode, count_window, time_window_seconds, origin, is_datetime).
     """
     if isinstance(window, (int, float)):
-        return True, int(window), None, None, False
+        return True, int(window), int(window), None, False
     elif isinstance(window, str) and window[-1].lower() in {"s", "m", "h", "d"}:
         time_window_seconds = parse_window_size(window)
         if time_field is None:
