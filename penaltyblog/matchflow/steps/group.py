@@ -60,10 +60,8 @@ def apply_group_rolling_summary(
             sample = get_field(group_records[0], time_field)
             if isinstance(sample, datetime):
                 local_origin = sample
-                local_is_datetime = True
             elif isinstance(sample, timedelta):
                 local_origin = None  # For timedelta, we don't need a datetime origin
-                local_is_datetime = False
             else:
                 raise ValueError(
                     f"Rolling-summary: time_field '{time_field}' is {type(sample).__name__}; "
