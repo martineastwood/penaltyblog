@@ -70,7 +70,7 @@ def test_row_based_rolling_sum():
     assert values == [1, 3, 5, 7]
 
 
-def test_time_bucket():
+def test_rolling_summary():
     base_time = datetime(2023, 1, 1, 0, 0, 0)
     records = [
         {"player": "X", "ts": base_time + timedelta(seconds=0), "score": 10},
