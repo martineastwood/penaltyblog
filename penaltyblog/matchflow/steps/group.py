@@ -202,10 +202,8 @@ def apply_group_time_bucket(
         if not numeric_mode:
             if isinstance(sample, datetime):
                 local_origin = sample
-                local_is_datetime = True
             elif isinstance(sample, timedelta):
                 local_origin = timedelta(0)
-                local_is_datetime = False
             else:
                 raise ValueError(
                     f"time_bucket: field '{time_field}' has type {type(sample).__name__}; "
@@ -228,7 +226,6 @@ def apply_group_time_bucket(
 
             if (
                 not numeric_mode
-                and local_is_datetime
                 and isinstance(t, datetime)
                 and isinstance(local_origin, datetime)
             ):
