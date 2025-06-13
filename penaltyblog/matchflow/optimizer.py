@@ -279,5 +279,4 @@ class FlowOptimizer:
                         "⚠️  group_rolling_summary used without prior sort — results may be unstable"
                     )
             validated_plan.append(step)
-
         return validated_plan

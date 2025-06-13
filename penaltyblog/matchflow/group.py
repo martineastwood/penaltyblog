@@ -149,9 +149,9 @@ class FlowGroup:
             Flow: A new Flow with a group_rolling_summary step added.
         """
         group_keys = None
-        for step in reversed(self.plan):
-            if step.get("op") == "group_by":
-                group_keys = step.get("keys")
+        for plan_step in reversed(self.plan):
+            if plan_step.get("op") == "group_by":
+                group_keys = plan_step.get("keys")
                 break
 
         return Flow(
@@ -166,7 +166,8 @@ class FlowGroup:
                     "step": step,
                     "__group_keys": group_keys,
                 }
-            ]
+            ],
+            optimize=self.optimize,
         )
 
     def time_bucket(

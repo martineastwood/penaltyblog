@@ -46,8 +46,8 @@ def apply_group_rolling_summary(
     step_size = raw_step if (isinstance(raw_step, int) and raw_step > 0) else 1
     group_keys = step.get("__group_keys") or []
 
-    count_mode, count_window, time_window_seconds, _, _ = (
-        get_time_window_details(window, time_field)
+    count_mode, count_window, time_window_seconds, _, _ = get_time_window_details(
+        window, time_field
     )
 
     def process_one_group(
@@ -70,8 +70,9 @@ def apply_group_rolling_summary(
             group_records = sorted(
                 group_records, key=lambda r: get_field(r, time_field)
             )
-        else:
-            window_deque: deque[dict[str, Any]] = deque()
+
+        # Initialize window_deque regardless of mode
+        window_deque: deque[dict[str, Any]] = deque()
         results = []
 
         for idx, row in enumerate(group_records):

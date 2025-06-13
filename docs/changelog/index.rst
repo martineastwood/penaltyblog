@@ -25,6 +25,7 @@ Package Updates
   - Example: ``Flow.with_schema({"x": int, "ts": parse_datetime})``
 - Added ``.rolling_summary()`` to ``FlowGroup`` for windowed group summaries
   (e.g. rolling 5-minute aggregates per player or team)
+- Added ``.time_bucket()`` to ``FlowGroup`` for time-based binning summaries
 - Added ``.show()`` method to pretty-print results using tabulate
 - ``Flow.collect()`` now supports optional progress bars during execution
 

@@ -531,8 +531,15 @@ class Flow:
         """
         effective_opt = self.optimize if optimize is None else optimize
         raw = self.plan
-        opt_plan = FlowOptimizer(raw).optimize() if effective_opt or compare else None
-        explain_plan(raw, optimized_plan=opt_plan, compare=compare)
+
+        if effective_opt or compare:
+            optimizer = FlowOptimizer(raw)
+            opt_plan = optimizer.optimize()
+            validated_plan = optimizer._validate_rolling_has_sort(opt_plan)
+        else:
+            validated_plan = None
+
+        explain_plan(raw, optimized_plan=validated_plan, compare=compare)
 
     def collect(
         self,
