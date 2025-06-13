@@ -37,7 +37,9 @@ Guide Index
    * - :doc:`grouping_and_aggregating`
      - Summarizing by team, player, period, and more
    * - :doc:`advanced`
-     - Sorting, ranking, joining, pivoting, deduplicating
+     - Sorting, ranking, joining and deduplicating
+   * - :doc:`schema`
+     - Schema inference, casting, and field validation
    * - :doc:`file_io`
      - Working with JSON, JSONL, folders, glob patterns
    * - :doc:`inspection`
@@ -46,6 +48,8 @@ Guide Index
      - Materialization, memory, performance, clean code
    * - :doc:`predicates`
      - Reusable filters like ``where_equals()``, ``and_()``
+   * - :doc:`optimizer`
+     - Smart plan rewrites for faster execution
    * - :doc:`statsbomb`
      - Streaming data directly from the StatsBomb API
 
@@ -92,6 +96,8 @@ Need help? Ask questions, file issues, or suggest improvements any time.
    basic_pipeline
    grouping_and_aggregating
    advanced
+   schema
+   optimizer
    file_io
    inspection
    best_practices
