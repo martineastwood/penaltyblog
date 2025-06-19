@@ -53,13 +53,12 @@ pip install penaltyblog
 
 Learn more about how to utilize `penaltyblog` by exploring the [official documentation](https://penaltyblog.readthedocs.io/en/latest/) and detailed examples:
 
+- [Processing football event data with MatchFlow](https://penaltyblog.readthedocs.io/en/latest/matchflow/index.html)
 - [Scraping football data](https://penaltyblog.readthedocs.io/en/latest/scrapers/index.html)
 - [Predicting football matches and betting markets](https://penaltyblog.readthedocs.io/en/latest/models/index.html)
 - [Estimating implied odds from bookmaker prices](https://penaltyblog.readthedocs.io/en/latest/implied/index.html)
 - [Calculating Massey, Colley, Pi, and Elo ratings](https://penaltyblog.readthedocs.io/en/latest/ratings/index.html)
 - [Calculating metrics such as Ranked Probability Scores](https://penaltyblog.readthedocs.io/en/latest/metrics/index.html)
-- [Processing football event data with MatchFlow](https://penaltyblog.readthedocs.io/en/latest/matchflow/index.html)
-
 
 ## Why Penaltyblog?
 
