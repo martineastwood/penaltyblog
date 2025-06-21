@@ -1,12 +1,15 @@
 from typing import Any, Dict, List, Optional, Tuple, Union
 
+import matplotlib.colors as mcol
 import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
 import plotly.io as pio
 from scipy.stats import gaussian_kde
 
+from ..matchflow.helpers import resolve_path
 from .dimensions import PitchDimensions
+from .flow_support import normalize_path, to_records
 from .theme import Theme
 
 
@@ -92,6 +95,18 @@ class Pitch:
         # Draw
         self._draw_base_pitch()
 
+    def _apply_orientation_raw(
+        self,
+        xs: list[float],
+        ys: list[float],
+    ) -> tuple[list[float], list[float]]:
+        """
+        Swap x and y if the pitch is vertical. For raw lists (no pandas).
+        """
+        if getattr(self, "orientation", "horizontal") == "vertical":
+            return ys, xs
+        return xs, ys
+
     def _rect(self, x0, y0, x1, y1, color) -> dict:
         return dict(type="rect", x0=x0, y0=y0, x1=x1, y1=y1, line=dict(color=color))
 
@@ -130,22 +145,40 @@ class Pitch:
         return df
 
     def _prepare_hover(
-        self, df: pd.DataFrame, x: str, y: str, hover: Optional[str], tooltip_orig: bool
-    ) -> Tuple[pd.DataFrame, Optional[str]]:
-        df2 = self.dim.apply_coordinate_scaling(df.copy(), x=x, y=y)
-        df2 = self._apply_orientation(df2, x=x, y=y)
+        self,
+        data,
+        x: str,
+        y: str,
+        hover: Optional[str],
+        tooltip_original: bool = True,
+    ):
+        # Normalize dot/index paths
+        x, y = normalize_path(x), normalize_path(y)
+        hover = normalize_path(hover) if hover else None
+        fields = [x, y]
+        if hover:
+            fields.append(hover)
 
-        if tooltip_orig and x in df.columns and y in df.columns:
-            xs = df[x].round(1).astype(str)
-            ys = df[y].round(1).astype(str)
-            lbl = (df[hover].astype(str) + " ") if hover else ""
-            df2["hover_text"] = lbl + "(" + xs + ", " + ys + ")"
-            return df2, "hover_text"
-        elif hover:
-            df2["hover_text"] = df[hover].astype(str)
-            return df2, "hover_text"
+        # Convert Flow or DataFrame to records with dot path resolution
+        records = to_records(data, fields)
+
+        # Extract x, y
+        xs = [resolve_path(r, x) for r in records]
+        ys = [resolve_path(r, y) for r in records]
+
+        # Determine hovertext
+        if hover:
+            hover_text = [resolve_path(r, hover, default="") for r in records]
+        elif tooltip_original:
+            hover_text = [str(r) for r in records]
         else:
-            return df2, None
+            hover_text = None
+
+        df_like = {"x": xs, "y": ys}
+        if hover_text:
+            df_like["hover"] = hover_text
+
+        return df_like, "hover" if hover_text else None
 
     def _compute_view_window(self) -> Tuple[float, float, float, float]:
         m = self.AXIS_MARGIN
@@ -457,7 +490,7 @@ class Pitch:
     @_layered("scatter")
     def plot_scatter(
         self,
-        df: pd.DataFrame,
+        data,
         x: str = "x",
         y: str = "y",
         hover: Optional[str] = None,
@@ -465,22 +498,24 @@ class Pitch:
         size: int = 10,
         color: Optional[str] = None,
     ) -> go.Scatter:
-        df2, hv = self._prepare_hover(df, x, y, hover, tooltip_original)
-        mk = dict(size=size, color=color or self.theme.marker_color)
+        df2, hv = self._prepare_hover(data, x, y, hover, tooltip_original)
+
+        marker = dict(size=size, color=color or self.theme.marker_color)
+
         return go.Scatter(
-            x=df2[x],
-            y=df2[y],
+            x=df2["x"],
+            y=df2["y"],
             mode="markers",
-            marker=mk,
+            marker=marker,
             hovertext=(df2[hv] if hv else None),
-            hoverinfo=("text" if hv else "skip"),
+            hoverinfo="text" if hv else "skip",
             showlegend=False,
         )
 
     @_layered("heatmap")
     def plot_heatmap(
         self,
-        df: pd.DataFrame,
+        data,
         x: str = "x",
         y: str = "y",
         bins: Tuple[int, int] = (10, 8),
@@ -488,13 +523,16 @@ class Pitch:
         colorscale: Optional[str] = None,
         opacity: Optional[float] = None,
     ) -> go.Histogram2d:
-        df2 = self.dim.apply_coordinate_scaling(df.copy(), x=x, y=y)
-        df2 = self._apply_orientation(df2, x, y)
+        data_dict, _ = self._prepare_hover(data, x, y, None, False)
+        x_raw = data_dict["x"]
+        y_raw = data_dict["y"]
+        x_scaled, y_scaled = self.dim.apply_coordinate_scaling_raw(x_raw, y_raw)
+        x_oriented, y_oriented = self._apply_orientation_raw(x_scaled, y_scaled)
         cs = colorscale or self.theme.heatmap_colorscale
         op = opacity if opacity is not None else self.theme.heatmap_opacity
         return go.Histogram2d(
-            x=df2[x],
-            y=df2[y],
+            x=x_oriented,
+            y=y_oriented,
             xbins=dict(start=0, end=self.L, size=self.L / bins[0]),
             ybins=dict(start=0, end=self.W, size=self.W / bins[1]),
             colorscale=cs,
@@ -506,7 +544,7 @@ class Pitch:
     @_layered("kde")
     def plot_kde(
         self,
-        df: pd.DataFrame,
+        data,
         x: str = "x",
         y: str = "y",
         grid_size: int = 100,
@@ -514,14 +552,40 @@ class Pitch:
         colorscale: Optional[str] = None,
         opacity: Optional[float] = None,
     ) -> go.Heatmap:
-        df2 = self.dim.apply_coordinate_scaling(df.copy(), x=x, y=y)
-        df2 = self._apply_orientation(df2, x, y)
+        data_dict, _ = self._prepare_hover(data, x, y, None, False)
+        x_raw = data_dict["x"]
+        y_raw = data_dict["y"]
+        x_scaled, y_scaled = self.dim.apply_coordinate_scaling_raw(x_raw, y_raw)
+        x_oriented, y_oriented = self._apply_orientation_raw(x_scaled, y_scaled)
         xs = np.linspace(0, self.L, grid_size)
         ys = np.linspace(0, self.W, grid_size)
         xx, yy = np.meshgrid(xs, ys)
         coords = np.vstack([xx.ravel(), yy.ravel()])
-        vals = np.vstack([df2[x], df2[y]])
-        zz = gaussian_kde(vals)(coords).reshape(grid_size, grid_size)
+        vals = np.vstack([x_oriented, y_oriented])
+
+        try:
+            # Try to compute the KDE
+            zz = gaussian_kde(vals)(coords).reshape(grid_size, grid_size)
+        except np.linalg.LinAlgError:
+            # Fallback for singular covariance matrix
+            # Create a simple heatmap based on point density
+            import warnings
+
+            warnings.warn(
+                "KDE computation failed due to singular covariance matrix. Falling back to simple density heatmap."
+            )
+
+            # Create a 2D histogram as fallback
+            H, xedges, yedges = np.histogram2d(
+                vals[0],
+                vals[1],
+                bins=[grid_size, grid_size],
+                range=[[0, self.L], [0, self.W]],
+            )
+            # Smooth the histogram a bit
+            from scipy.ndimage import gaussian_filter
+
+            zz = gaussian_filter(H, sigma=1.0)
         return go.Heatmap(
             x=xs,
             y=ys,
@@ -534,7 +598,7 @@ class Pitch:
     @_layered("comets")
     def plot_comets(
         self,
-        df: pd.DataFrame,
+        data,
         x: str = "x",
         y: str = "y",
         x_end: str = "x2",
@@ -546,11 +610,21 @@ class Pitch:
         hover: Optional[str] = None,
         tooltip_original: bool = False,
     ) -> List[go.Scatter]:
-        df2, hv = self._prepare_hover(df, x, y, hover, tooltip_original)
-        tmp = df[[x_end, y_end]].copy().rename(columns={x_end: x, y_end: y})
-        tmp = self.dim.apply_coordinate_scaling(tmp, x=x, y=y)
-        tmp = self._apply_orientation(tmp, x=x, y=y)
-        df2[x_end], df2[y_end] = tmp[x], tmp[y]
+        start_dict, hv = self._prepare_hover(data, x, y, hover, tooltip_original)
+        end_dict, _ = self._prepare_hover(data, x_end, y_end, None, False)
+
+        # Prepare raw start coordinates
+        xs0_raw, ys0_raw = start_dict["x"], start_dict["y"]
+        xs0, ys0 = self.dim.apply_coordinate_scaling_raw(xs0_raw, ys0_raw)
+        xs0, ys0 = self._apply_orientation_raw(xs0, ys0)
+
+        # Prepare raw end coordinates
+        xs1_raw, ys1_raw = end_dict["x"], end_dict["y"]
+        xs1, ys1 = self.dim.apply_coordinate_scaling_raw(xs1_raw, ys1_raw)
+        xs1, ys1 = self._apply_orientation_raw(xs1, ys1)
+
+        # Combine start and end coordinates and hover
+        hv_list = start_dict.get(hv) if hv and hv in start_dict else [None] * len(xs0)
         col = color or self.theme.marker_color
 
         def to_rgb(c: str):
@@ -558,15 +632,13 @@ class Pitch:
             if c.startswith(("rgba(", "rgb(")):
                 vals = c[c.find("(") + 1 : c.find(")")].split(",")
                 return tuple(map(int, vals[:3]))
-            import matplotlib.colors as mcol
-
             return tuple(int(255 * x) for x in mcol.to_rgb(c))
 
+        col = color or self.theme.marker_color
         r0, g0, b0 = to_rgb(col)
         traces: List[go.Scatter] = []
-        for _, row in df2.iterrows():
-            x0, y0, x1, y1 = row[x], row[y], row[x_end], row[y_end]
-            txt = row[hv] if hv else None
+        for i, (x0, y0, x1, y1) in enumerate(zip(xs0, ys0, xs1, ys1)):
+            txt = hv_list[i]
             for i in range(segments):
                 t0, t1 = i / segments, (i + 1) / segments
                 xs = [x0 + (x1 - x0) * t0, x0 + (x1 - x0) * t1]
@@ -589,7 +661,7 @@ class Pitch:
     @_layered("arrows")
     def plot_arrows(
         self,
-        df: pd.DataFrame,
+        data,
         x: str = "x",
         y: str = "y",
         x_end: str = "x2",
@@ -601,20 +673,31 @@ class Pitch:
         arrowsize: float = 1.0,
         width: float = 2.0,
     ) -> List[dict]:
-        df2, hv = self._prepare_hover(df, x, y, hover, False)
-        tmp = df[[x_end, y_end]].copy().rename(columns={x_end: x, y_end: y})
-        tmp = self.dim.apply_coordinate_scaling(tmp, x=x, y=y)
-        tmp = self._apply_orientation(tmp, x, y)
-        df2[x_end], df2[y_end] = tmp[x], tmp[y]
+        # Get starting and ending points
+        start_dict, hv = self._prepare_hover(data, x, y, hover, tooltip_original=False)
+        end_dict, _ = self._prepare_hover(
+            data, x_end, y_end, None, tooltip_original=False
+        )
+
+        # Coordinate scaling + orientation
+        xs, ys = self.dim.apply_coordinate_scaling_raw(start_dict["x"], start_dict["y"])
+        xs, ys = self._apply_orientation_raw(xs, ys)
+
+        x2s, y2s = self.dim.apply_coordinate_scaling_raw(end_dict["x"], end_dict["y"])
+        x2s, y2s = self._apply_orientation_raw(x2s, y2s)
+
+        hovertexts = start_dict.get(hv, [None] * len(xs)) if hv else [None] * len(xs)
+
         col = color or self.theme.marker_color
         annots: List[dict] = []
-        for _, row in df2.iterrows():
+
+        for i in range(len(xs)):
             annots.append(
                 dict(
-                    x=row[x_end],
-                    y=row[y_end],
-                    ax=row[x],
-                    ay=row[y],
+                    x=x2s[i],
+                    y=y2s[i],
+                    ax=xs[i],
+                    ay=ys[i],
                     xref="x",
                     yref="y",
                     axref="x",
@@ -625,7 +708,10 @@ class Pitch:
                     arrowwidth=width,
                     arrowcolor=col,
                     opacity=1.0,
-                    hovertext=(str(row[hv]) if hv else None),
+                    hovertext=(
+                        str(hovertexts[i]) if hovertexts[i] is not None else None
+                    ),
                 )
             )
+
         return annots

@@ -151,6 +151,31 @@ class PitchDimensions:
         L = target_length or self.DRAW_LENGTH
         return 9.15 * (L / self.length)
 
+    def apply_coordinate_scaling_raw(
+        self,
+        xs: list[float],
+        ys: list[float],
+    ) -> tuple[list[float], list[float]]:
+        """
+        Scale x and y coordinate lists into the DRAW_LENGTH × DRAW_WIDTH space.
+
+        Mirrors apply_coordinate_scaling(), but operates on plain lists.
+
+        Returns:
+            tuple: (scaled_xs, scaled_ys)
+        """
+        if not self._scale_fn:
+            return xs, ys
+
+        scale_x = lambda x: x * (self.DRAW_LENGTH / self.length)
+        scale_y = lambda y: y * (self.DRAW_WIDTH / self.width)
+
+        # Wyscout & StatsBomb flip the y axis
+        if self._scale_fn in {self._scale_wyscout, self._scale_statsbomb}:
+            scale_y = lambda y: (self.width - y) * (self.DRAW_WIDTH / self.width)
+
+        return [scale_x(x) for x in xs], [scale_y(y) for y in ys]
+
     # ─── private scaling functions ──────────────────────────────────────────
     @staticmethod
     def _scale_default(self, df: pd.DataFrame, x: str, y: str) -> pd.DataFrame:
