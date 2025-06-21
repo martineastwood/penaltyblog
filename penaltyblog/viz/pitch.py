@@ -351,9 +351,82 @@ class Pitch:
 
         self.fig.update_layout(annotations=annots)
 
+    def remove_layer(self, name: str) -> None:
+        """Completely removes a layer from the figure and internal layer storage.
+
+        Args:
+            name: The name of the layer to remove
+
+        Raises:
+            ValueError: If the specified layer does not exist
+        """
+        if name not in self.layers:
+            raise ValueError(f"Layer {name!r} does not exist.")
+
+        # First hide the layer (removes traces and annotations from figure)
+        self.set_layer_visibility(name, visible=False)
+
+        # Then remove the layer from internal storage
+        del self.layers[name]
+
     def show(self) -> None:
         """Display the figure."""
         pio.show(self.fig, config=dict(displaylogo=False))
+
+    def save(
+        self,
+        filename: str,
+        format: Optional[str] = None,
+        scale: float = 1.0,
+        width: Optional[int] = None,
+        height: Optional[int] = None,
+        **kwargs,
+    ) -> None:
+        """Save the figure to a file.
+
+        Args:
+            filename: Path to save the figure to. If format is not specified, it will be inferred from the file extension.
+            format: The format to save as. One of 'png', 'jpg', 'jpeg', 'webp', 'svg', 'pdf', 'eps'.
+                    If not provided, the format is inferred from the filename extension.
+            scale: Scale factor to use when exporting. Defaults to 1.0.
+            width: The width of the exported image in layout pixels. If not provided, uses the current figure width.
+            height: The height of the exported image in layout pixels. If not provided, uses the current figure height.
+            **kwargs: Additional keyword arguments passed to plotly.io.write_image.
+
+        Note:
+            This function requires the kaleido package to be installed.
+            You can install it with: pip install kaleido
+
+        Example:
+            ```python
+            pitch = Pitch()
+            # Add visualizations to the pitch
+            pitch.save('my_pitch.png')  # Save as PNG
+            pitch.save('my_pitch.svg')  # Save as SVG
+            pitch.save('my_pitch.pdf', scale=2.0)  # Save as PDF with 2x resolution
+            ```
+        """
+        # Use provided dimensions or fall back to current figure dimensions
+        w = width if width is not None else self.width
+        h = height if height is not None else self.height
+
+        # If format is not specified, try to infer from filename
+        if format is None:
+            import os
+
+            ext = os.path.splitext(filename)[1].lower().lstrip(".")
+            if ext in ["png", "jpg", "jpeg", "webp", "svg", "pdf", "eps"]:
+                format = ext
+            else:
+                raise ValueError(
+                    f"Could not infer format from filename extension '{ext}'. "
+                    f"Please specify format explicitly."
+                )
+
+        # Save the figure
+        self.fig.write_image(
+            filename, format=format, scale=scale, width=w, height=h, **kwargs
+        )
 
     def set_layer_order(self, order: List[str]) -> None:
         """Reorder plotting layers according to provided sequence."""
