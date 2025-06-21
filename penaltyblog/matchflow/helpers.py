@@ -2,7 +2,8 @@
 Helpers for handling a streaming data pipeline, specifically the Flow class.
 """
 
-import importlib
+__all__ = ["get_field", "resolve_path", "get_index"]
+
 from typing import Any, Callable, Optional
 
 from tabulate import tabulate
