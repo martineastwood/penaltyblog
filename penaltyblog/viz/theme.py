@@ -147,35 +147,35 @@ class Theme:
         return self.styles.get("font_family", self.DEFAULT_FONT_FAMILY)
 
     @property
-    def hover_font_color(self):
+    def hover_font_color(self) -> str:
         return self.styles.get("hover_font_color", "black")
 
     @property
-    def hover_border_color(self):
+    def hover_border_color(self) -> str:
         return self.styles.get("hover_border_color", "#ccc")
 
     @property
-    def hover_font_family(self):
+    def hover_font_family(self) -> str:
         return self.styles.get("hover_font_family", "Arial, sans‐serif")
 
     @property
-    def hover_font_size(self):
+    def hover_font_size(self) -> float:
         return self.styles.get("hover_font_size", 11)
 
     @property
-    def title_margin(self):
+    def title_margin(self) -> float:
         return self.styles.get("title_margin", 50)
 
     @property
-    def subtitle_margin(self):
+    def subtitle_margin(self) -> float:
         return self.styles.get("subtitle_margin", 30)
 
     @property
-    def subnote_margin(self):
+    def subnote_margin(self) -> float:
         return self.styles.get("subnote_margin", 50)
 
     @property
-    def hover_bgcolor(self):
+    def hover_bgcolor(self) -> str:
         return self.styles.get("hover_bgcolor", "rgba(50,50,50,0.8)")
 
     @classmethod

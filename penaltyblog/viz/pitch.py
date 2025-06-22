@@ -1,3 +1,4 @@
+import warnings
 from typing import Any, Dict, List, Optional, Tuple, Union
 
 import matplotlib.colors as mcol
@@ -67,8 +68,8 @@ class Pitch:
         view: 'full'|'left'|'right'|'top'|'bottom' or (x0,x1) or (x0,x1,y0,y1) in native units
         """
         # Public settings
-        self.width = width
-        self.height = height
+        self.width: float = width
+        self.height: float = height
         self.show_axis = show_axis
         self.show_legend = show_legend
         self.show_spots = show_spots
@@ -153,6 +154,7 @@ class Pitch:
         tooltip_original: bool = True,
     ):
         # Normalize dot/index paths
+
         x, y = normalize_path(x), normalize_path(y)
         hover = normalize_path(hover) if hover else None
         fields = [x, y]
@@ -163,12 +165,17 @@ class Pitch:
         records = to_records(data, fields)
 
         # Extract x, y
-        xs = [resolve_path(r, x) for r in records]
-        ys = [resolve_path(r, y) for r in records]
+        xs = [r[x] if x in r else resolve_path(r, x) for r in records]
+        ys = [r[y] if y in r else resolve_path(r, y) for r in records]
 
         # Determine hovertext
         if hover:
-            hover_text = [resolve_path(r, hover, default="") for r in records]
+            hover_text = []
+            for r in records:
+                if hover in r and r[hover] is not None:
+                    hover_text.append(r[hover])
+                else:
+                    hover_text.append(resolve_path(r, hover, default=""))
         elif tooltip_original:
             hover_text = [str(r) for r in records]
         else:
@@ -498,16 +505,19 @@ class Pitch:
         size: int = 10,
         color: Optional[str] = None,
     ) -> go.Scatter:
-        df2, hv = self._prepare_hover(data, x, y, hover, tooltip_original)
+        data_dict, hv = self._prepare_hover(data, x, y, hover, tooltip_original)
+        x_raw, y_raw = data_dict["x"], data_dict["y"]
+        x_scaled, y_scaled = self.dim.apply_coordinate_scaling_raw(x_raw, y_raw)
+        x_plot, y_plot = self._apply_orientation_raw(x_scaled, y_scaled)
 
         marker = dict(size=size, color=color or self.theme.marker_color)
 
         return go.Scatter(
-            x=df2["x"],
-            y=df2["y"],
+            x=x_plot,
+            y=y_plot,
             mode="markers",
             marker=marker,
-            hovertext=(df2[hv] if hv else None),
+            hovertext=(data_dict[hv] if hv else None),
             hoverinfo="text" if hv else "skip",
             showlegend=False,
         )
@@ -564,19 +574,13 @@ class Pitch:
         vals = np.vstack([x_oriented, y_oriented])
 
         try:
-            # Try to compute the KDE
             zz = gaussian_kde(vals)(coords).reshape(grid_size, grid_size)
         except np.linalg.LinAlgError:
-            # Fallback for singular covariance matrix
-            # Create a simple heatmap based on point density
-            import warnings
-
             warnings.warn(
                 "KDE computation failed due to singular covariance matrix. Falling back to simple density heatmap."
             )
 
-            # Create a 2D histogram as fallback
-            H, xedges, yedges = np.histogram2d(
+            H, _, _ = np.histogram2d(
                 vals[0],
                 vals[1],
                 bins=[grid_size, grid_size],
