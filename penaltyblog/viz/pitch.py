@@ -50,7 +50,7 @@ class Pitch:
         provider: Union[str, PitchDimensions] = "statsbomb",
         width: int = 800,
         height: int = 600,
-        theme: str = "minimal",
+        theme: Union[str, Theme] = "minimal",
         orientation: str = "horizontal",
         view: Union[
             str, Tuple[float, float], Tuple[float, float, float, float]
@@ -80,7 +80,7 @@ class Pitch:
         self.subnote = subnote
 
         # Theme + dimensions
-        self.theme = Theme(theme)
+        self.theme = theme if isinstance(theme, Theme) else Theme(theme)
         self.dim = (
             PitchDimensions.from_provider(provider)
             if isinstance(provider, str)
@@ -234,12 +234,20 @@ class Pitch:
     def _draw_base_pitch(self) -> None:
         lc = self.theme.line_color
         shapes: List[Dict[str, Any]] = []
+        # 1) get your provider‐scaled shapes
         scaled = self.dim.scaled_shapes(target_length=self.L, target_width=self.W)
 
-        # pitch outline
-        shapes.append(self._rect(0, 0, self.L, self.W, lc))
+        # helper to apply your existing raw‐swap orientation
+        def orient(x: float, y: float) -> Tuple[float, float]:
+            xs, ys = self._apply_orientation_raw([x], [y])
+            return xs[0], ys[0]
 
-        # boxes + halfway
+        # ── Pitch outline ─────────────────────────────────────────────────────────
+        x0_o, y0_o = orient(0, 0)
+        x1_o, y1_o = orient(self.L, self.W)
+        shapes.append(self._rect(x0_o, y0_o, x1_o, y1_o, lc))
+
+        # ── Boxes + halfway line ──────────────────────────────────────────────────
         for key in (
             "halfway_line",
             "penalty_area_left",
@@ -248,24 +256,28 @@ class Pitch:
             "six_yard_right",
         ):
             if b := scaled.get(key):
-                shapes.append(self._rect(b["x0"], b["y0"], b["x1"], b["y1"], lc))
+                x0_o, y0_o = orient(b["x0"], b["y0"])
+                x1_o, y1_o = orient(b["x1"], b["y1"])
+                shapes.append(self._rect(x0_o, y0_o, x1_o, y1_o, lc))
 
-        # center circle
+        # ── Center circle ─────────────────────────────────────────────────────────
         if c := scaled.get("center_circle"):
-            shapes.append(self._circle(c["x"], c["y"], c["r"], lc))
+            cx_o, cy_o = orient(c["x"], c["y"])
+            r_o = c["r"]  # radius already scaled horizontally
+            shapes.append(self._circle(cx_o, cy_o, r_o, lc))
 
-        # apply view window
+        # ── Apply view window & margins ───────────────────────────────────────────
         x0, x1, y0, y1 = self._compute_view_window()
+        top_margin = self.theme.title_margin if self.title else 0
+        top_margin += self.theme.subtitle_margin if self.subtitle else 0
+        bottom_margin = self.theme.subnote_margin if self.subnote else 0
+        self._y_domain_height = (y1 - y0) / max(y1 - y0, x1 - x0)
+
         self.fig.update_layout(
             shapes=shapes,
             width=self.width,
             height=self.height,
-            margin=dict(
-                l=0,
-                r=0,
-                t=self.theme.title_margin + (self.theme.subtitle_margin or 0),
-                b=self.theme.subnote_margin or 0,
-            ),
+            margin=dict(l=0, r=0, t=top_margin, b=bottom_margin),
             plot_bgcolor=self.theme.pitch_color,
             paper_bgcolor=self.theme.pitch_color,
             showlegend=self.show_legend,
@@ -301,6 +313,7 @@ class Pitch:
             visible=self.show_axis,
         )
 
+        # ── The rest of your drawing ───────────────────────────────────────────────
         self._draw_penalty_arcs()
         if self.show_spots:
             self._draw_spots()
@@ -309,25 +322,41 @@ class Pitch:
         lc = self.theme.line_color
         raw = self.dim.shapes
         scaled = self.dim.scaled_shapes(target_length=self.L, target_width=self.W)
+        # official 9.15m radius, scaled
         r = 9.15 * (self.L / self.dim.length)
 
         def draw(spot_key: str, area_key: str, left: bool):
-            s, a = scaled[spot_key], scaled[area_key]
-            dx = (a["x1"] - s["x"]) if left else (s["x"] - a["x0"])
-            θ = np.degrees(np.arccos(dx / r))
-            angs = (
-                np.linspace(-θ, +θ, 50) if left else np.linspace(180 - θ, 180 + θ, 50)
-            )
+            # ── 1) Get raw (horizontal) spot + boundary coords
+            s = scaled[spot_key]
+            a = scaled[area_key]
+            s_x_raw, s_y_raw = s["x"], s["y"]
+            b_x_raw = a["x1"] if left else a["x0"]
+            b_y_raw = s_y_raw  # same y-level as the spot
+
+            # ── 2) Apply orientation swap
+            sx_list, sy_list = self._apply_orientation_raw([s_x_raw], [s_y_raw])
+            bx_list, by_list = self._apply_orientation_raw([b_x_raw], [b_y_raw])
+            sx, sy = sx_list[0], sy_list[0]
+            bx, by = bx_list[0], by_list[0]
+
+            # ── 3) Compute dx & angle spread in oriented coords
+            dx = (bx - sx) if left else (sx - bx)
+            theta = np.degrees(np.arccos(dx / r))
+
+            # ── 4) Build angle array & sample points
+            if left:
+                angs = np.linspace(-theta, +theta, 50)
+            else:
+                angs = np.linspace(180 - theta, 180 + theta, 50)
             th = np.radians(angs)
-            xs = s["x"] + r * np.cos(th)
-            ys = s["y"] + r * np.sin(th)
 
-            df_arc = pd.DataFrame({"x": xs, "y": ys})
-            df_arc = self._apply_orientation(df_arc, x="x", y="y")
+            xs = sx + r * np.cos(th)
+            ys = sy + r * np.sin(th)
 
+            # ── 5) Draw as a line trace
             trace = go.Scatter(
-                x=df_arc["x"],
-                y=df_arc["y"],
+                x=xs,
+                y=ys,
                 mode="lines",
                 line=dict(color=lc),
                 hoverinfo="skip",
@@ -335,10 +364,12 @@ class Pitch:
             )
             self._add_layer("arcs", trace)
 
+        # Left‐side arc
         if "penalty_spot_left" in raw and "penalty_area_left" in raw:
-            draw("penalty_spot_left", "penalty_area_left", True)
+            draw("penalty_spot_left", "penalty_area_left", left=True)
+        # Right‐side arc
         if "penalty_spot_right" in raw and "penalty_area_right" in raw:
-            draw("penalty_spot_right", "penalty_area_right", False)
+            draw("penalty_spot_right", "penalty_area_right", left=False)
 
     def _draw_spots(self) -> None:
         lc = self.theme.line_color
@@ -540,6 +571,12 @@ class Pitch:
         x_oriented, y_oriented = self._apply_orientation_raw(x_scaled, y_scaled)
         cs = colorscale or self.theme.heatmap_colorscale
         op = opacity if opacity is not None else self.theme.heatmap_opacity
+        cb = dict(
+            lenmode="fraction",
+            len=self._y_domain_height,
+            yanchor="middle",
+            y=0.5,
+        )
         return go.Histogram2d(
             x=x_oriented,
             y=y_oriented,
@@ -549,6 +586,7 @@ class Pitch:
             opacity=op,
             showscale=show_colorbar,
             hovertemplate="x: %{x:.1f}<br>y: %{y:.1f}<br>z: %{z}<extra></extra>",
+            colorbar=cb,
         )
 
     @_layered("kde")
@@ -609,7 +647,7 @@ class Pitch:
         y_end: str = "y2",
         color: Optional[str] = None,
         width: int = 6,
-        segments: int = 12,
+        segments: int = 24,
         fade: bool = True,
         hover: Optional[str] = None,
         tooltip_original: bool = False,

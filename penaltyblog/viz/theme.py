@@ -179,8 +179,10 @@ class Theme:
         return self.styles.get("hover_bgcolor", "rgba(50,50,50,0.8)")
 
     @classmethod
-    def from_dict(cls, style_dict: dict) -> "Theme":
+    def from_dict(cls, style_dict: dict, base: str = "minimal") -> "Theme":
         """Create a custom theme on the fly from your own style dict."""
+        base_styles = cls.PRESETS.get(base, {})
+        merged = {**base_styles, **style_dict}
         t = cls()
-        t.styles = style_dict
+        t.styles = merged
         return t
