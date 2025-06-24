@@ -8,6 +8,15 @@ Version Numbering
 see `semver.org <http://semver.org/>`_
 
 
+v1.4.1 (2025-06-24)
+^^^^^^^^^^^^^^^^^^^^
+
+Package Updates
+---------------
+
+- Fixed bug in `Flow.cache` executor logic
+
+
 v1.4.0 (2025-06-19)
 ^^^^^^^^^^^^^^^^^^^^
 
