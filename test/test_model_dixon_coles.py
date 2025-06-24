@@ -3,6 +3,7 @@ import pytest
 import penaltyblog as pb
 
 
+@pytest.mark.local
 def test_dc_model(fixtures):
     df = fixtures
 
@@ -23,6 +24,7 @@ def test_dc_model(fixtures):
     assert 0.4 < probs.both_teams_to_score < 0.7
 
 
+@pytest.mark.local
 def test_unfitted_raises_error(fixtures):
     df = fixtures
 
@@ -37,6 +39,7 @@ def test_unfitted_raises_error(fixtures):
         clf.get_params()
 
 
+@pytest.mark.local
 def test_unfitted_repr(fixtures):
     df = fixtures
     clf = pb.models.DixonColesGoalModel(
