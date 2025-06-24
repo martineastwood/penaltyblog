@@ -90,6 +90,8 @@ class FlowExecutor:
                 return FlowExecutor(flow.plan).execute()
             elif op == "fused":
                 gen = transform.apply_fused(gen, step)
+            elif op == "from_materialized":
+                gen = iter(step["records"])
             else:
                 raise ValueError(f"Unknown plan op: {op}")
 
