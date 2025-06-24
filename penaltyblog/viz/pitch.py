@@ -96,13 +96,33 @@ class Pitch:
         # Draw
         self._draw_base_pitch()
 
+    def _apply_orientation(
+        self,
+        df: pd.DataFrame,
+        x: str = "x",
+        y: str = "y",
+    ) -> pd.DataFrame:
+        """
+        Same as `_apply_orientation_raw`, but works in-place on a DataFrame.
+        """
+        if self.orientation == "vertical":
+            df = df.copy()
+            df[[x, y]] = df[[y, x]]  # swap the two columns
+        return df
+
     def _apply_orientation_raw(
         self,
         xs: list[float],
         ys: list[float],
     ) -> tuple[list[float], list[float]]:
         """
-        Swap x and y if the pitch is vertical. For raw lists (no pandas).
+        Convert *lists* of x- and y-coordinates from the “native” horizontal
+        system to the plotting system.
+
+        Horizontal  (default) → leave as-is
+        Vertical               → 90 ° rotation *anti-clockwise*
+                                 x' = y
+                                 y' = x
         """
         if getattr(self, "orientation", "horizontal") == "vertical":
             return ys, xs
@@ -187,49 +207,56 @@ class Pitch:
 
         return df_like, "hover" if hover_text else None
 
-    def _compute_view_window(self) -> Tuple[float, float, float, float]:
+    # ────────────────────────────────────────────────────────────────────
+    def _compute_view_window(self) -> tuple[float, float, float, float]:
+        """
+        Return axis limits (x0, x1, y0, y1) for the requested `view`,
+        fully respecting vertical or horizontal orientation.
+        """
         m = self.AXIS_MARGIN
 
-        # Named views
+        # ── Pre-defined keyword views ───────────────────────────────────
         if isinstance(self.view, str):
-            L, W = self.L, self.W
+            # Effective extents once orientation is applied
+            if self.orientation == "vertical":
+                Lx, Ly = self.W, self.L  # x-span, y-span after rotation
+            else:
+                Lx, Ly = self.L, self.W
+
             halves = {
-                "full": (-m, L + m, -m, W + m),
-                "left": (-m, L / 2 + m, -m, W + m),
-                "right": (L / 2 - m, L + m, -m, W + m),
-                "bottom": (-m, L + m, -m, W / 2 + m),
-                "top": (-m, L + m, W / 2 - m, W + m),
+                "full": (-m, Lx + m, -m, Ly + m),
+                "left": (-m, Lx / 2 + m, -m, Ly + m),
+                "right": (Lx / 2 - m, Lx + m, -m, Ly + m),
+                "bottom": (-m, Lx + m, -m, Ly / 2 + m),
+                "top": (-m, Lx + m, Ly / 2 - m, Ly + m),
             }
             if self.view not in halves:
                 raise ValueError(f"Unknown view: {self.view!r}")
-            x0, x1, y0, y1 = halves[self.view]
+            return halves[self.view]
 
-        # Custom slice (2-tuple): x0,x1 in native, full Y
-        elif isinstance(self.view, tuple) and len(self.view) == 2:
-            orig_x0, orig_x1 = self.view
-            orig_y0, orig_y1 = 0, self.dim.width
+        # ── Numeric custom slices ───────────────────────────────────────
+        # 2-tuple  → (x0,x1) with full height
+        # 4-tuple  → (x0,x1,y0,y1)
+        if isinstance(self.view, tuple) and len(self.view) in {2, 4}:
+            if len(self.view) == 2:
+                orig = (*self.view, 0.0, self.dim.width)
+            else:
+                orig = self.view  # type: ignore[assignment]
 
+            orig_x0, orig_x1, orig_y0, orig_y1 = orig
             df_c = pd.DataFrame({"x": [orig_x0, orig_x1], "y": [orig_y0, orig_y1]})
             df_c = self.dim.apply_coordinate_scaling(df_c, x="x", y="y")
             df_c = self._apply_orientation(df_c, x="x", y="y")
             xs, ys = df_c["x"], df_c["y"]
-            x0, x1 = xs.min() - m, xs.max() + m
-            y0, y1 = ys.min() - m, ys.max() + m
 
-        # Custom slice (4-tuple): x0,x1,y0,y1 in native
-        elif isinstance(self.view, tuple) and len(self.view) == 4:
-            orig_x0, orig_x1, orig_y0, orig_y1 = self.view
-            df_c = pd.DataFrame({"x": [orig_x0, orig_x1], "y": [orig_y0, orig_y1]})
-            df_c = self.dim.apply_coordinate_scaling(df_c, x="x", y="y")
-            df_c = self._apply_orientation(df_c, x="x", y="y")
-            xs, ys = df_c["x"], df_c["y"]
-            x0, x1 = xs.min() - m, xs.max() + m
-            y0, y1 = ys.min() - m, ys.max() + m
+            return (
+                xs.min() - m,
+                xs.max() + m,
+                ys.min() - m,
+                ys.max() + m,
+            )
 
-        else:
-            raise ValueError(f"`view` must be str or 2-/4-tuple, got {self.view!r}")
-
-        return x0, x1, y0, y1
+        raise ValueError(f"`view` must be str or 2-/4-tuple, got {self.view!r}")
 
     def _draw_base_pitch(self) -> None:
         lc = self.theme.line_color
@@ -318,58 +345,71 @@ class Pitch:
         if self.show_spots:
             self._draw_spots()
 
+    # pitch.py ───────────────────────────────────────────────────────────────
     def _draw_penalty_arcs(self) -> None:
+        """
+        Draw the two 9.15 m arcs at the edge of each penalty area
+        (according to IFAB Law 1).
+
+        Works for both horizontal and vertical pitch orientations.
+        """
         lc = self.theme.line_color
-        raw = self.dim.shapes
         scaled = self.dim.scaled_shapes(target_length=self.L, target_width=self.W)
-        # official 9.15m radius, scaled
+
+        # official radius (already scaled on the length axis)
         r = 9.15 * (self.L / self.dim.length)
 
-        def draw(spot_key: str, area_key: str, left: bool):
-            # ── 1) Get raw (horizontal) spot + boundary coords
-            s = scaled[spot_key]
-            a = scaled[area_key]
-            s_x_raw, s_y_raw = s["x"], s["y"]
-            b_x_raw = a["x1"] if left else a["x0"]
-            b_y_raw = s_y_raw  # same y-level as the spot
+        # ------------------------------------------------------------------
+        def build_arc(spot_key: str, area_key: str, is_left_goal: bool) -> None:
+            """
+            spot_key  : "penalty_spot_left" / "penalty_spot_right"
+            area_key  : "penalty_area_left" / "penalty_area_right"
+            is_left_goal : True if the goal is on the *left* end in raw coords
+            """
+            spot = scaled[spot_key]
+            area = scaled[area_key]
 
-            # ── 2) Apply orientation swap
-            sx_list, sy_list = self._apply_orientation_raw([s_x_raw], [s_y_raw])
-            bx_list, by_list = self._apply_orientation_raw([b_x_raw], [b_y_raw])
-            sx, sy = sx_list[0], sy_list[0]
-            bx, by = bx_list[0], by_list[0]
+            sx_raw, sy_raw = spot["x"], spot["y"]
 
-            # ── 3) Compute dx & angle spread in oriented coords
-            dx = (bx - sx) if left else (sx - bx)
-            theta = np.degrees(np.arccos(dx / r))
+            # boundary of the penalty area nearest the goal line
+            bx_raw = area["x1"] if is_left_goal else area["x0"]
+            by_raw = sy_raw  # same y as the spot
 
-            # ── 4) Build angle array & sample points
-            if left:
-                angs = np.linspace(-theta, +theta, 50)
-            else:
-                angs = np.linspace(180 - theta, 180 + theta, 50)
+            # horizontal geometry -------------------------------------------------
+            dx = abs(bx_raw - sx_raw)
+            theta = np.degrees(np.arccos(dx / r))  # half-angle span
+
+            if is_left_goal:  # open towards the right
+                angs = np.linspace(-theta, +theta, 60)
+            else:  # open towards the left
+                angs = np.linspace(180 - theta, 180 + theta, 60)
+
             th = np.radians(angs)
+            xs_h = sx_raw + r * np.cos(th)
+            ys_h = sy_raw + r * np.sin(th)
 
-            xs = sx + r * np.cos(th)
-            ys = sy + r * np.sin(th)
+            # rotate/swap into current orientation --------------------------------
+            xs, ys = self._apply_orientation_raw(xs_h, ys_h)
 
-            # ── 5) Draw as a line trace
-            trace = go.Scatter(
-                x=xs,
-                y=ys,
-                mode="lines",
-                line=dict(color=lc),
-                hoverinfo="skip",
-                showlegend=False,
+            # add to figure -------------------------------------------------------
+            self._add_layer(
+                "arcs",
+                go.Scatter(
+                    x=xs,
+                    y=ys,
+                    mode="lines",
+                    line=dict(color=lc),
+                    hoverinfo="skip",
+                    showlegend=False,
+                ),
             )
-            self._add_layer("arcs", trace)
 
-        # Left‐side arc
-        if "penalty_spot_left" in raw and "penalty_area_left" in raw:
-            draw("penalty_spot_left", "penalty_area_left", left=True)
-        # Right‐side arc
-        if "penalty_spot_right" in raw and "penalty_area_right" in raw:
-            draw("penalty_spot_right", "penalty_area_right", left=False)
+        # ------------------------------------------------------------------
+        if {"penalty_spot_left", "penalty_area_left"} <= scaled.keys():
+            build_arc("penalty_spot_left", "penalty_area_left", is_left_goal=True)
+
+        if {"penalty_spot_right", "penalty_area_right"} <= scaled.keys():
+            build_arc("penalty_spot_right", "penalty_area_right", is_left_goal=False)
 
     def _draw_spots(self) -> None:
         lc = self.theme.line_color
