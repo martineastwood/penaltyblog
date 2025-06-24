@@ -1,6 +1,9 @@
+import pytest
+
 import penaltyblog as pb
 
 
+@pytest.mark.local
 def test_backtest_simple():
     df = pb.scrapers.FootballData("ENG Premier League", "2019-2020").get_fixtures()
 
@@ -21,6 +24,7 @@ def test_backtest_simple():
     assert isinstance(res, dict)
 
 
+@pytest.mark.local
 def test_backtest_trainer():
     df = pb.scrapers.FootballData("ENG Premier League", "2019-2020").get_fixtures()
 
