@@ -3,6 +3,7 @@ import pytest
 import penaltyblog as pb
 
 
+@pytest.mark.local
 def test_poisson_model(fixtures):
     df = fixtures
 
@@ -22,6 +23,7 @@ def test_poisson_model(fixtures):
     assert 0.3 < probs.asian_handicap("home", 1.5) < 0.4
 
 
+@pytest.mark.local
 def test_unfitted_raises_error(fixtures):
     df = fixtures
     clf = pb.models.NegativeBinomialGoalModel(
@@ -35,6 +37,7 @@ def test_unfitted_raises_error(fixtures):
         clf.get_params()
 
 
+@pytest.mark.local
 def test_unfitted_repr(fixtures):
     df = fixtures
     clf = pb.models.NegativeBinomialGoalModel(
