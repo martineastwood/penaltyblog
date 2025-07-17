@@ -4,7 +4,12 @@ from scipy.stats import poisson
 
 
 def goal_expectancy(
-    home: float, draw: float, away: float, dc_adj: bool = True, rho: float = 0.001
+    home: float,
+    draw: float,
+    away: float,
+    dc_adj: bool = True,
+    rho: float = 0.001,
+    minimizer_options: dict = None,
 ) -> dict:
     """
     Estimates the bookmaker's goal expectencies for the home team and away team based on the
@@ -22,6 +27,8 @@ def goal_expectancy(
         Whether to apply the Dixon and Coles adjustment
     rho : float
         The value for rho within the Dixon and Coles adjustment if dc_adj is True
+    minimizer_options : dict, optional
+        Dictionary of options to pass to scipy.optimize.minimize (e.g., maxiter, ftol, disp). Default is None.
 
     Returns
     ----------
@@ -29,12 +36,10 @@ def goal_expectancy(
     the mean squared error between actual probabilities and estimated probabilities,
     and whether the minimizer returned as successful or not
     """
-    # set up the basic options for the solver so we give up
-    # after 1000 attempts and don't log to screen
-    options = {
-        "maxiter": 1000,
-        "disp": False,
-    }
+    # Set up the basic options for the solver so we give up after 1000 attempts and don't log to screen
+    options = {"maxiter": 1000, "disp": False}
+    if minimizer_options is not None:
+        options.update(minimizer_options)
 
     res = minimize(
         fun=_mse,

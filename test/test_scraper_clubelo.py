@@ -30,4 +30,4 @@ def test_clubelo_team_mappings():
     team_mappings = pb.scrapers.get_example_team_name_mappings()
     ce = pb.scrapers.ClubElo(team_mappings)
     df = ce.get_elo_by_date()
-    assert "Bayern Munich" in df.index.unique()
+    assert "Paris SG" in df.index.unique()

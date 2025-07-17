@@ -13,6 +13,34 @@ def test_dc_model(fixtures):
     clf.fit()
     params = clf.get_params()
     assert params["attack_Man City"] > 1.0
+
+    probs = clf.predict("Liverpool", "Wolves")
+    assert type(probs) == pb.models.FootballProbabilityGrid
+    assert type(probs.home_draw_away) == list
+    assert len(probs.home_draw_away) == 3
+
+
+@pytest.mark.local
+def test_dixon_coles_minimizer_options(fixtures):
+    df = fixtures
+    clf = pb.models.DixonColesGoalModel(
+        df["goals_home"], df["goals_away"], df["team_home"], df["team_away"]
+    )
+    # With very low maxiter, expect ValueError due to iteration limit
+    import pytest
+
+    with pytest.raises(ValueError) as excinfo:
+        clf.fit(minimizer_options={"maxiter": 2, "disp": False})
+    assert "Iteration limit reached" in str(excinfo.value)
+
+    df = fixtures
+
+    clf = pb.models.DixonColesGoalModel(
+        df["goals_home"], df["goals_away"], df["team_home"], df["team_away"]
+    )
+    clf.fit()
+    params = clf.get_params()
+    assert params["attack_Man City"] > 1.0
     assert 0.2 < params["home_advantage"] < 0.3
 
     probs = clf.predict("Liverpool", "Wolves")

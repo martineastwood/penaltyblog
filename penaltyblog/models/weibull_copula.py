@@ -147,9 +147,14 @@ class WeibullCopulaGoalsModel(BaseGoalsModel):
             self.max_goals,
         )
 
-    def fit(self):
+    def fit(self, minimizer_options: dict = None):
         """
         Fits the Weibull Copula model to the data.
+
+        Parameters
+        ----------
+        minimizer_options : dict, optional
+            Dictionary of options to pass to scipy.optimize.minimize (e.g., maxiter, ftol, disp). Default is None.
         """
         # create bounds
         bnds = []
@@ -166,6 +171,10 @@ class WeibullCopulaGoalsModel(BaseGoalsModel):
         # kappa in [-5,10]
         bnds.append((-5, 5))
 
+        options = {"maxiter": 1000, "disp": False}
+        if minimizer_options is not None:
+            options.update(minimizer_options)
+
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore", category=RuntimeWarning)
 
@@ -173,7 +182,7 @@ class WeibullCopulaGoalsModel(BaseGoalsModel):
                 self._neg_log_likelihood,
                 x0=self._params,
                 bounds=bnds,
-                options={"maxiter": 1000, "disp": False},
+                options=options,
             )
 
         if not self._res.success:

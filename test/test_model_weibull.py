@@ -12,6 +12,53 @@ def test_poisson_model(fixtures):
     )
     clf.fit()
     params = clf.get_params()
+    assert params["attack_Man City"] > 1.0
+
+
+@pytest.mark.local
+def test_weibull_minimizer_options(fixtures):
+    # Test that minimizer fails with low iterations
+    df = fixtures
+    clf = pb.models.WeibullCopulaGoalsModel(
+        df["goals_home"], df["goals_away"], df["team_home"], df["team_away"]
+    )
+
+    # Check that minimizer fails with low iterations
+    with pytest.raises(ValueError) as excinfo:
+        clf.fit(minimizer_options={"maxiter": 2, "disp": False})
+
+    # Check for multiple possible error messages
+    msg = str(excinfo.value)
+    assert (
+        "Iteration limit reached" in msg
+        or "STOP: TOTAL NO. of ITERATIONS" in msg
+        or "Optimization failed with message: STOP: TOTAL NO. of ITERATIONS" in msg
+    )
+
+    # Test successful fit and predictions
+    clf = pb.models.WeibullCopulaGoalsModel(
+        df["goals_home"], df["goals_away"], df["team_home"], df["team_away"]
+    )
+    clf.fit()
+
+    # Check parameters
+    params = clf.get_params()
+    assert 0.65 < params["attack_Man City"] < 2.0
+    assert 0.1 < params["home_advantage"] < 0.4
+
+    # Check predictions
+    probs = clf.predict("Liverpool", "Wolves")
+    assert type(probs) == pb.models.FootballProbabilityGrid
+    assert type(probs.home_draw_away) == list
+    assert len(probs.home_draw_away) == 3
+    assert 0.3 < probs.total_goals("over", 1.5) < 0.9
+    assert 0.2 < probs.asian_handicap("home", 1.5) < 0.5
+
+    clf = pb.models.WeibullCopulaGoalsModel(
+        df["goals_home"], df["goals_away"], df["team_home"], df["team_away"]
+    )
+    clf.fit()
+    params = clf.get_params()
     assert 0.65 < params["attack_Man City"] < 2.0
     assert 0.1 < params["home_advantage"] < 0.4
 

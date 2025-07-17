@@ -12,6 +12,29 @@ def test_poisson_model(fixtures):
     )
     clf.fit()
     params = clf.get_params()
+    assert params["attack_Man City"] > 1.0
+
+
+@pytest.mark.local
+def test_bivariate_minimizer_options(fixtures):
+    df = fixtures
+    clf = pb.models.BivariatePoissonGoalModel(
+        df["goals_home"], df["goals_away"], df["team_home"], df["team_away"]
+    )
+    # With very low maxiter, expect ValueError due to iteration limit
+    import pytest
+
+    with pytest.raises(ValueError) as excinfo:
+        clf.fit(minimizer_options={"maxiter": 2, "disp": False})
+    assert "Iteration limit reached" in str(excinfo.value)
+
+    df = fixtures
+
+    clf = pb.models.BivariatePoissonGoalModel(
+        df["goals_home"], df["goals_away"], df["team_home"], df["team_away"]
+    )
+    clf.fit()
+    params = clf.get_params()
     assert 0.65 < params["attack_Man City"] < 2.0
     assert 0.1 < params["home_advantage"] < 0.4
 

@@ -155,8 +155,19 @@ class PoissonGoalsModel(BaseGoalsModel):
         )
         return -total_llk
 
-    def fit(self):
+    def fit(self, minimizer_options: dict = None):
+        """
+        Fit the Poisson model using scipy.optimize.minimize.
+
+        Parameters
+        ----------
+        minimizer_options : dict, optional
+            Dictionary of options to pass to scipy.optimize.minimize (e.g., maxiter, ftol, disp). Default is None.
+        """
         options = {"maxiter": 1000, "disp": False}
+        if minimizer_options is not None:
+            options.update(minimizer_options)
+
         constraints = [
             {"type": "eq", "fun": lambda x: sum(x[: self.n_teams]) - self.n_teams}
         ]

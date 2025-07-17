@@ -163,15 +163,22 @@ class DixonColesGoalModel(BaseGoalsModel):
             rho,
         )
 
-    def fit(self):
+    def fit(self, minimizer_options: dict = None):
         """
         Fits the model to the data and calculates the team strengths,
         home advantage and intercept. Must be called before `predict` can be used
+
+        Parameters
+        ----------
+        minimizer_options : dict, optional
+            Dictionary of options to pass to scipy.optimize.minimize (e.g., maxiter, ftol, disp). Default is None.
         """
         options = {
             "maxiter": 1000,
             "disp": False,
         }
+        if minimizer_options is not None:
+            options.update(minimizer_options)
 
         constraints = [
             {
