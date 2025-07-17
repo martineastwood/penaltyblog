@@ -15,6 +15,15 @@ class PitchDimensions:
         shapes: Optional[Dict[str, Dict[str, float]]] = None,
         _scale_fn: Optional[Callable] = None,
     ):
+        """
+        Initialize a PitchDimensions instance.
+
+        Args:
+            length: The length of the pitch in native units.
+            width: The width of the pitch in native units.
+            shapes: A dictionary of shapes to be used in the pitch.
+            _scale_fn: A function to scale the shapes.
+        """
         self.length = length
         self.width = width
         self.shapes = shapes or {}
@@ -25,14 +34,35 @@ class PitchDimensions:
 
     # ─── accessors for draw size ────────────────────────────────────────────
     def get_draw_length(self) -> float:
+        """
+        Returns the draw length of the pitch.
+
+        Returns:
+            float: The draw length of the pitch.
+        """
         return self.DRAW_LENGTH
 
     def get_draw_width(self) -> float:
+        """
+        Returns the draw width of the pitch.
+
+        Returns:
+            float: The draw width of the pitch.
+        """
         return self.DRAW_WIDTH
 
     # ─── factory for known providers ────────────────────────────────────────
     @classmethod
     def from_provider(cls, provider: str) -> "PitchDimensions":
+        """
+        Returns a PitchDimensions instance for a known provider.
+
+        Args:
+            provider: The provider to use.
+
+        Returns:
+            PitchDimensions: A PitchDimensions instance for the provider.
+        """
         p = provider.lower()
         if p == "statsbomb":
             return cls(
@@ -94,6 +124,15 @@ class PitchDimensions:
         """
         Returns a new DataFrame with x,y scaled into the
         DRAW_LENGTH×DRAW_WIDTH plotting coords.
+
+        Args:
+            df: The DataFrame to scale.
+            x: The column name for the x coordinate.
+            y: The column name for the y coordinate.
+
+        Returns:
+            pd.DataFrame: A new DataFrame with x,y scaled into the
+            DRAW_LENGTH×DRAW_WIDTH plotting coords.
         """
         if not self._scale_fn:
             return df.copy()
@@ -107,6 +146,14 @@ class PitchDimensions:
         """
         Returns `self.shapes` with every number mapped into the
         DRAW_LENGTH×DRAW_WIDTH plotting space (or an override).
+
+        Args:
+            target_length: The target length of the pitch.
+            target_width: The target width of the pitch.
+
+        Returns:
+            Dict[str, Dict[str, float]]: A dictionary of shapes with every number mapped into the
+            DRAW_LENGTH×DRAW_WIDTH plotting space (or an override).
         """
 
         L = target_length or self.DRAW_LENGTH
@@ -146,7 +193,13 @@ class PitchDimensions:
 
     def arc_radius(self, target_length: Optional[float] = None) -> float:
         """
-        “official” 9.15 m semi-circle radius, scaled into plot units.
+        Returns the arc radius of the pitch.
+
+        Args:
+            target_length: The target length of the pitch.
+
+        Returns:
+            float: The arc radius of the pitch.
         """
         L = target_length or self.DRAW_LENGTH
         return 9.15 * (L / self.length)
@@ -179,25 +232,81 @@ class PitchDimensions:
     # ─── private scaling functions ──────────────────────────────────────────
     @staticmethod
     def _scale_default(self, df: pd.DataFrame, x: str, y: str) -> pd.DataFrame:
+        """
+        Scales x and y coordinates using a simple linear scaling.
+
+        Args:
+            self: The PitchDimensions instance.
+            df: The DataFrame to scale.
+            x: The column name for the x coordinate.
+            y: The column name for the y coordinate.
+
+        Returns:
+            pd.DataFrame: The scaled DataFrame.
+        """
         df[x] = df[x] * (self.DRAW_LENGTH / self.length)
         df[y] = df[y] * (self.DRAW_WIDTH / self.width)
         return df
 
     @staticmethod
     def _scale_wyscout(self, df: pd.DataFrame, x: str, y: str) -> pd.DataFrame:
+        """
+        Scales x and y coordinates using Wyscout's coordinate system.
+
+        Wyscout's coordinates have the origin at the top-left corner of the pitch,
+        so we need to flip the y axis.
+
+        Args:
+            self: The PitchDimensions instance.
+            df: The DataFrame to scale.
+            x: The column name for the x coordinate.
+            y: The column name for the y coordinate.
+
+        Returns:
+            pd.DataFrame: The scaled DataFrame.
+        """
         df[x] = df[x] * (self.DRAW_LENGTH / self.length)
         df[y] = (self.width - df[y]) * (self.DRAW_WIDTH / self.width)
         return df
 
     @staticmethod
     def _scale_statsbomb(self, df: pd.DataFrame, x: str, y: str) -> pd.DataFrame:
-        # same flip as Wyscout
+        """
+        Scales x and y coordinates using StatsBomb's coordinate system.
+
+        StatsBomb's coordinates have the origin at the top-left corner of the
+        pitch, so we need to flip the y axis.
+
+        Args:
+            self: The PitchDimensions instance.
+            df: The DataFrame to scale.
+            x: The column name for the x coordinate.
+            y: The column name for the y coordinate.
+
+        Returns:
+            pd.DataFrame: The scaled DataFrame.
+        """
         df[x] = df[x] * (self.DRAW_LENGTH / self.length)
         df[y] = (self.width - df[y]) * (self.DRAW_WIDTH / self.width)
         return df
 
     @staticmethod
     def _scale_opta(self, df: pd.DataFrame, x: str, y: str) -> pd.DataFrame:
+        """
+        Scales x and y coordinates using Opta's coordinate system.
+
+        Opta's coordinates have the origin at the center of the pitch, so we
+        don't need to flip the y axis like we do with Wyscout and StatsBomb.
+
+        Args:
+            self: The PitchDimensions instance.
+            df: The DataFrame to scale.
+            x: The column name for the x coordinate.
+            y: The column name for the y coordinate.
+
+        Returns:
+            pd.DataFrame: The scaled DataFrame.
+        """
         df[x] = df[x] * (self.DRAW_LENGTH / self.length)
         df[y] = df[y] * (self.DRAW_WIDTH / self.width)
         return df

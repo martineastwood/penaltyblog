@@ -13,3 +13,4 @@ API Reference
    models
    ratings
    scrapers
+   viz

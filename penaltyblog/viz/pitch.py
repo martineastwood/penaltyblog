@@ -48,8 +48,8 @@ class Pitch:
     def __init__(
         self,
         provider: Union[str, PitchDimensions] = "statsbomb",
-        width: int = 800,
-        height: int = 600,
+        width: int = 600,
+        height: int = 500,
         theme: Union[str, Theme] = "minimal",
         orientation: str = "horizontal",
         view: Union[
@@ -63,9 +63,56 @@ class Pitch:
         show_spots: bool = True,
     ):
         """
-        provider: 'statsbomb'|'wyscout'|'opta'|'metrica' or a PitchDimensions instance
-        orientation: 'horizontal' or 'vertical'
-        view: 'full'|'left'|'right'|'top'|'bottom' or (x0,x1) or (x0,x1,y0,y1) in native units
+        Initialize a Pitch instance.
+
+        Parameters
+        ----------
+        provider : str or PitchDimensions, optional
+            The pitch dimensions provider. Can be a string for a built-in
+            provider (e.g. "statsbomb", "wyscout", etc.), or a custom
+            PitchDimensions instance.
+        width : int, optional
+            The width of the visualization in pixels.
+        height : int, optional
+            The height of the visualization in pixels.
+        theme : str or Theme, optional
+            The visual theme for the pitch. Can be a string for a built-in
+            theme (e.g. "minimal", "classic", etc.), or a custom Theme
+            instance.
+        orientation : str, optional
+            The orientation of the pitch. Either "horizontal" or "vertical".
+        view : str or tuple of floats, optional
+            The view mode for the pitch. Can be one of the following:
+
+            - "full": Show the full pitch.
+            - "left": Show the left half of the pitch.
+            - "right": Show the right half of the pitch.
+            - "top": Show the top half of the pitch (if orientation is
+              "vertical").
+            - "bottom": Show the bottom half of the pitch (if orientation is
+              "vertical").
+            - (x0, x1): Show the portion of the pitch between x0 and x1.
+            - (x0, x1, y0, y1): Show the portion of the pitch between x0 and x1
+              (horizontally) and y0 and y1 (vertically).
+        title : str or None, optional
+            The title of the visualization.
+        subtitle : str or None, optional
+            The subtitle of the visualization.
+        subnote : str or None, optional
+            The subnote of the visualization.
+        show_axis : bool, optional
+            Whether to show axis labels.
+        show_legend : bool, optional
+            Whether to show a legend.
+        show_spots : bool, optional
+            Whether to show penalty spots.
+
+        Attributes
+        ----------
+        layers : dict
+            A dictionary mapping layer names to lists of traces.
+        fig : go.Figure
+            The underlying Plotly figure.
         """
         # Public settings
         self.width: float = width
@@ -102,9 +149,6 @@ class Pitch:
         x: str = "x",
         y: str = "y",
     ) -> pd.DataFrame:
-        """
-        Same as `_apply_orientation_raw`, but works in-place on a DataFrame.
-        """
         if self.orientation == "vertical":
             df = df.copy()
             df[[x, y]] = df[[y, x]]  # swap the two columns
@@ -259,6 +303,11 @@ class Pitch:
         raise ValueError(f"`view` must be str or 2-/4-tuple, got {self.view!r}")
 
     def _draw_base_pitch(self) -> None:
+        """
+        Draws the base pitch using the theme's styling parameters. The pitch is
+        drawn using the theme's line color and line width, and the dimensions
+        are calculated based on the theme's provider and the plot's dimensions.
+        """
         lc = self.theme.line_color
         shapes: List[Dict[str, Any]] = []
         # 1) get your provider‐scaled shapes
@@ -310,7 +359,9 @@ class Pitch:
             showlegend=self.show_legend,
             font=dict(family=self.theme.font_family, color=lc),
             title=(
-                dict(text=self.title, x=0.5, xanchor="center") if self.title else None
+                dict(text="<b>" + self.title + "</b>", x=0.5, xanchor="center")
+                if self.title
+                else None
             ),
             hoverlabel=dict(
                 bgcolor=self.theme.hover_bgcolor,
@@ -345,13 +396,15 @@ class Pitch:
         if self.show_spots:
             self._draw_spots()
 
+        self._draw_titles_and_notes()
+
     # pitch.py ───────────────────────────────────────────────────────────────
     def _draw_penalty_arcs(self) -> None:
         """
-        Draw the two 9.15 m arcs at the edge of each penalty area
-        (according to IFAB Law 1).
-
-        Works for both horizontal and vertical pitch orientations.
+        Draws the penalty arcs for both left and right penalty areas on the pitch.
+        This method calculates the arc based on the scaled dimensions of the pitch
+        and adds it to the plot as a line. The arcs are oriented correctly based on
+        the current pitch orientation.
         """
         lc = self.theme.line_color
         scaled = self.dim.scaled_shapes(target_length=self.L, target_width=self.W)
@@ -373,7 +426,6 @@ class Pitch:
 
             # boundary of the penalty area nearest the goal line
             bx_raw = area["x1"] if is_left_goal else area["x0"]
-            by_raw = sy_raw  # same y as the spot
 
             # horizontal geometry -------------------------------------------------
             dx = abs(bx_raw - sx_raw)
@@ -430,7 +482,13 @@ class Pitch:
                 self._add_layer("spots", trace)
 
     def set_layer_visibility(self, layer: str, visible: bool = True) -> None:
-        """Sets visibility for all items in a named layer."""
+        """
+        Set the visibility of a layer of traces and annotations.
+
+        Args:
+            layer: The name of the layer to show or hide
+            visible: Whether to show (True) or hide (False) the layer. Defaults to True.
+        """
         if layer not in self.layers:
             raise ValueError(f"Layer {layer!r} does not exist.")
 
@@ -481,7 +539,12 @@ class Pitch:
         del self.layers[name]
 
     def show(self) -> None:
-        """Display the figure."""
+        """
+        Render the Pitch figure in a Jupyter notebook or as an HTML file.
+
+        This method uses Plotly's built-in `pio.show()` function to display the
+        figure. All keyword arguments are passed through to `pio.show()`.
+        """
         pio.show(self.fig, config=dict(displaylogo=False))
 
     def save(
@@ -540,7 +603,12 @@ class Pitch:
         )
 
     def set_layer_order(self, order: List[str]) -> None:
-        """Reorder plotting layers according to provided sequence."""
+        """
+        Reorder plotting layers according to provided sequence.
+
+        Args:
+            order: List of layer names in the desired order.
+        """
         missing = [l for l in order if l not in self.layers]
         if missing:
             raise ValueError(f"Layers not found: {missing}")
@@ -565,6 +633,58 @@ class Pitch:
                     annots.append(item)
         self.fig.update_layout(annotations=annots)
 
+    def _draw_titles_and_notes(self) -> None:
+        """
+        Draws the title, subtitle, and subnote annotations on the plot using the
+        theme's styling parameters. The positions are calculated based on the theme's
+        margin settings and the plot's dimensions.
+        """
+        annotations = list(self.fig.layout.annotations or [])
+
+        top_y = 1 + (self.theme.title_margin or 0) / self.height
+        sub_y = top_y - (self.theme.subtitle_margin or 20) / self.height
+        note_y = 0 - (self.theme.subnote_margin or 20) / self.height
+
+        if self.subtitle:
+            annotations.append(
+                dict(
+                    text=self.subtitle,
+                    x=0.5,
+                    y=sub_y,
+                    xref="paper",
+                    yref="paper",
+                    xanchor="center",
+                    yanchor="top",
+                    showarrow=False,
+                    font=dict(
+                        size=self.theme.subtitle_font_size or 14,
+                        family=self.theme.font_family,
+                        color=self.theme.line_color,
+                    ),
+                )
+            )
+
+        if self.subnote:
+            annotations.append(
+                dict(
+                    text=self.subnote,
+                    x=0.5,
+                    y=note_y,
+                    xref="paper",
+                    yref="paper",
+                    xanchor="center",
+                    yanchor="bottom",
+                    showarrow=False,
+                    font=dict(
+                        size=self.theme.subnote_font_size or 12,
+                        family=self.theme.font_family,
+                        color=self.theme.line_color,
+                    ),
+                )
+            )
+
+        self.fig.update_layout(annotations=annotations)
+
     @_layered("scatter")
     def plot_scatter(
         self,
@@ -576,6 +696,24 @@ class Pitch:
         size: int = 10,
         color: Optional[str] = None,
     ) -> go.Scatter:
+        """
+        Plot a scatter of points on the pitch.
+
+        Args:
+            data: Data to plot. Must contain columns for x and y coordinates.
+            x: The column name for x coordinates. Defaults to "x".
+            y: The column name for y coordinates. Defaults to "y".
+            hover: The column name for hover text. If not specified, will display
+                the original data row as hover text if `tooltip_original` is True.
+            tooltip_original: If True (default), show original data row as hover
+                text if `hover` is not specified. Otherwise, show no hover text.
+            size: The size of the markers. Defaults to 10.
+            color: The color of the markers. If not specified, uses the theme's
+                marker color.
+
+        Returns:
+            A Scatter trace that has been added to the Pitch figure.
+        """
         data_dict, hv = self._prepare_hover(data, x, y, hover, tooltip_original)
         x_raw, y_raw = data_dict["x"], data_dict["y"]
         x_scaled, y_scaled = self.dim.apply_coordinate_scaling_raw(x_raw, y_raw)
@@ -604,6 +742,23 @@ class Pitch:
         colorscale: Optional[str] = None,
         opacity: Optional[float] = None,
     ) -> go.Histogram2d:
+        """
+        Plot a heatmap on the pitch.
+
+        Args:
+            data: Data to plot. Must contain columns for x and y coordinates.
+            x: The column name for x coordinates. Defaults to "x".
+            y: The column name for y coordinates. Defaults to "y".
+            bins: Tuple of bin counts for x and y dimensions. Defaults to (10, 8).
+            show_colorbar: Whether to show the colorbar. Defaults to False.
+            colorscale: The colorscale to use. If not specified, uses the theme's
+                heatmap colorscale.
+            opacity: The opacity of the heatmap. If not specified, uses the theme's
+                heatmap opacity.
+
+        Returns:
+            A Histogram2d trace that has been added to the Pitch figure.
+        """
         data_dict, _ = self._prepare_hover(data, x, y, None, False)
         x_raw = data_dict["x"]
         y_raw = data_dict["y"]
@@ -640,6 +795,23 @@ class Pitch:
         colorscale: Optional[str] = None,
         opacity: Optional[float] = None,
     ) -> go.Heatmap:
+        """
+        Plot a kernel density estimate (KDE) on the pitch.
+
+        Args:
+            data: Data to plot. Must contain columns for x and y coordinates.
+            x: The column name for x coordinates. Defaults to "x".
+            y: The column name for y coordinates. Defaults to "y".
+            grid_size: The number of points to use for the grid. Defaults to 100.
+            show_colorbar: Whether to show the colorbar. Defaults to False.
+            colorscale: The colorscale to use. If not specified, uses the theme's
+                heatmap colorscale.
+            opacity: The opacity of the KDE. If not specified, uses the theme's
+                heatmap opacity.
+
+        Returns:
+            A Heatmap trace that has been added to the Pitch figure.
+        """
         data_dict, _ = self._prepare_hover(data, x, y, None, False)
         x_raw = data_dict["x"]
         y_raw = data_dict["y"]
@@ -692,6 +864,28 @@ class Pitch:
         hover: Optional[str] = None,
         tooltip_original: bool = False,
     ) -> List[go.Scatter]:
+        """
+        Plot a comet trace on the pitch.
+
+        Args:
+            data: Data to plot. Must contain columns for x, y, x2, and y2 coordinates.
+            x: The column name for x coordinates. Defaults to "x".
+            y: The column name for y coordinates. Defaults to "y".
+            x_end: The column name for x2 coordinates. Defaults to "x2".
+            y_end: The column name for y2 coordinates. Defaults to "y2".
+            color: The color of the comet trace. If not specified, uses the theme's
+                comet color.
+            width: The width of the comet trace. Defaults to 6.
+            segments: The number of segments to use for the comet trace. Defaults to 24.
+            fade: Whether to fade the comet trace. Defaults to True.
+            hover: The column name for hover text. If not specified, will display
+                the original data row as hover text if `tooltip_original` is True.
+            tooltip_original: If True (default), show original data row as hover
+                text if `hover` is not specified. Otherwise, show no hover text.
+
+        Returns:
+            A list of Scatter traces that have been added to the Pitch figure.
+        """
         start_dict, hv = self._prepare_hover(data, x, y, hover, tooltip_original)
         end_dict, _ = self._prepare_hover(data, x_end, y_end, None, False)
 
@@ -755,6 +949,39 @@ class Pitch:
         arrowsize: float = 1.0,
         width: float = 2.0,
     ) -> List[dict]:
+        """
+        Plot arrows on the pitch to represent directional movement from a
+        starting point (x, y) to an ending point (x2, y2).
+
+        Parameters
+        ----------
+        data : DataFrame or similar
+            The data containing start and end coordinates for the arrows.
+        x : str, optional
+            The column name for the starting x-coordinates, by default "x".
+        y : str, optional
+            The column name for the starting y-coordinates, by default "y".
+        x_end : str, optional
+            The column name for the ending x-coordinates, by default "x2".
+        y_end : str, optional
+            The column name for the ending y-coordinates, by default "y2".
+        hover : str, optional
+            The column name for the hover text to be displayed, by default None.
+        color : str, optional
+            The color of the arrows, by default None which uses the theme's marker color.
+        arrowhead : int, optional
+            The style of the arrowhead, by default 2.
+        arrowsize : float, optional
+            The size of the arrowhead, by default 1.0.
+        width : float, optional
+            The width of the arrow line, by default 2.0.
+
+        Returns
+        -------
+        List[dict]
+            A list of dictionaries representing the arrow annotations.
+        """
+
         # Get starting and ending points
         start_dict, hv = self._prepare_hover(data, x, y, hover, tooltip_original=False)
         end_dict, _ = self._prepare_hover(

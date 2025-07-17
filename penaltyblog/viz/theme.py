@@ -21,6 +21,8 @@ class Theme:
             "title_margin": 50,
             "subtitle_margin": 30,
             "subnote_margin": 50,
+            "subtitle_font_size": 16,
+            "subnote_font_size": 14,
         },
         "night": {
             "pitch_color": "#0f1e2e",  # deep navy
@@ -40,6 +42,8 @@ class Theme:
             "title_margin": 50,
             "subtitle_margin": 30,
             "subnote_margin": 50,
+            "subtitle_font_size": 16,
+            "subnote_font_size": 14,
         },
         "retro": {
             "pitch_color": "#f4ecd8",  # cream
@@ -59,6 +63,8 @@ class Theme:
             "title_margin": 50,
             "subtitle_margin": 30,
             "subnote_margin": 50,
+            "subtitle_font_size": 16,
+            "subnote_font_size": 14,
         },
         "minimal": {
             "pitch_color": "#ffffff",  # white
@@ -78,6 +84,8 @@ class Theme:
             "title_margin": 50,
             "subtitle_margin": 30,
             "subnote_margin": 50,
+            "subtitle_font_size": 16,
+            "subnote_font_size": 14,
         },
         "turf": {
             "pitch_color": "#7a9c72",  # rich turf green
@@ -97,6 +105,8 @@ class Theme:
             "title_margin": 50,
             "subtitle_margin": 30,
             "subnote_margin": 50,
+            "subtitle_font_size": 16,
+            "subnote_font_size": 14,
         },
     }
 
@@ -104,6 +114,18 @@ class Theme:
     DEFAULT_FONT_FAMILY = "Helvetica Neue, Arial, sans-serif"
 
     def __init__(self, name: str = "minimal"):
+        """
+        Initialize a Theme from a preset name.
+
+        Parameters
+        ----------
+        name : str, optional
+            The name of the theme preset to use. If not provided, defaults to "minimal".
+
+        Notes
+        -----
+        If the theme name is not recognized, the class will fall back to "minimal".
+        """
         self.name = name
         # look up the preset (or fall back to "classic")
         self.styles = self.PRESETS.get(name, self.PRESETS["minimal"])
@@ -111,68 +133,220 @@ class Theme:
     # ––– Simple accessors for your plot code –––––––––––––––––––––––––––––––––
     @property
     def pitch_color(self) -> str:
+        """
+        The color of the pitch background.
+
+        Returns
+        -------
+        str
+            The hex color code for the pitch background.
+        """
         return self.styles["pitch_color"]
 
     @property
     def line_color(self) -> str:
+        """
+        The color of the pitch lines.
+
+        Returns
+        -------
+        str
+            The hex color code for the pitch lines.
+        """
         return self.styles["line_color"]
 
     @property
     def marker_color(self) -> str:
+        """
+        The color of the pitch markers.
+
+        Returns
+        -------
+        str
+            The hex color code for the pitch markers.
+        """
         return self.styles["marker_color"]
 
     @property
     def heatmap_colorscale(self) -> str:
+        """
+        The color scale used for heatmaps.
+
+        Returns
+        -------
+        str
+            The name of the color scale used for heatmaps.
+        """
         return self.styles["heatmap_colorscale"]
 
     @property
     def heatmap_opacity(self) -> float:
+        """
+        The opacity of the heatmap.
+
+        Returns
+        -------
+        float
+            The opacity of the heatmap.
+        """
         return self.styles["heatmap_opacity"]
 
     @property
     def line_width(self) -> float:
+        """
+        The width of the pitch lines.
+
+        Returns
+        -------
+        float
+            The width of the pitch lines.
+        """
         return self.styles["line_width"]
 
     @property
     def marker_size(self) -> float:
+        """
+        The size of the pitch markers.
+
+        Returns
+        -------
+        float
+            The size of the pitch markers.
+        """
         return self.styles["marker_size"]
 
     @property
     def spot_size(self) -> float:
+        """
+        The size of the pitch spots.
+
+        Returns
+        -------
+        float
+            The size of the pitch spots.
+        """
         return self.styles["spot_size"]
 
     @property
     def font_family(self) -> str:
+        """
+        The font family used for text.
+
+        Returns
+        -------
+        str
+            The font family used for text.
+        """
         # if the theme forgot to specify it, use our default fallback
         return self.styles.get("font_family", self.DEFAULT_FONT_FAMILY)
 
     @property
     def hover_font_color(self) -> str:
+        """
+        The color of the hover font.
+
+        Returns
+        -------
+        str
+            The color of the hover font.
+        """
         return self.styles.get("hover_font_color", "black")
 
     @property
     def hover_border_color(self) -> str:
+        """
+        The color of the border of the hover box.
+
+        Returns
+        -------
+        str
+            The color of the border of the hover box.
+        """
         return self.styles.get("hover_border_color", "#ccc")
 
     @property
     def hover_font_family(self) -> str:
+        """
+        The font family used for hover text.
+
+        Returns
+        -------
+        str
+            The font family used for hover text.
+        """
         return self.styles.get("hover_font_family", "Arial, sans‐serif")
 
     @property
     def hover_font_size(self) -> float:
+        """
+        The font size of the hover text.
+
+        Returns
+        -------
+        float
+            The font size of the hover text.
+        """
         return self.styles.get("hover_font_size", 11)
 
     @property
     def title_margin(self) -> float:
+        """
+        The margin for the title.
+
+        Returns
+        -------
+        float
+            The margin for the title.
+        """
         return self.styles.get("title_margin", 50)
 
     @property
     def subtitle_margin(self) -> float:
+        """
+        The margin for the subtitle.
+
+        Returns
+        -------
+        float
+            The margin for the subtitle.
+        """
         return self.styles.get("subtitle_margin", 30)
 
     @property
     def subnote_margin(self) -> float:
+        """
+        The margin for the subnote.
+
+        Returns
+        -------
+        float
+            The margin for the subnote.
+        """
         return self.styles.get("subnote_margin", 50)
+
+    @property
+    def subtitle_font_size(self) -> float:
+        """
+        The font size for the subtitle.
+
+        Returns
+        -------
+        float
+            The font size for the subtitle.
+        """
+        return self.styles.get("subtitle_font_size", 16)
+
+    @property
+    def subnote_font_size(self) -> float:
+        """
+        The font size for the subnote.
+
+        Returns
+        -------
+        float
+            The font size for the subnote.
+        """
+        return self.styles.get("subnote_font_size", 14)
 
     @property
     def hover_bgcolor(self) -> str:
@@ -180,7 +354,21 @@ class Theme:
 
     @classmethod
     def from_dict(cls, style_dict: dict, base: str = "minimal") -> "Theme":
-        """Create a custom theme on the fly from your own style dict."""
+        """
+        Create a Theme instance from a dictionary of style settings.
+
+        Parameters
+        ----------
+        style_dict : dict
+            A dictionary containing style settings.
+        base : str, optional
+            The name of a preset theme to use as a base, by default "minimal".
+
+        Returns
+        -------
+        Theme
+            A Theme instance with the specified style settings.
+        """
         base_styles = cls.PRESETS.get(base, {})
         merged = {**base_styles, **style_dict}
         t = cls()
