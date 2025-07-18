@@ -23,6 +23,7 @@ from .helpers import explain_plan, set_path, show_tabular
 from .optimizer import FlowOptimizer
 from .plotting import plot_flow_plan
 from .predicates_helpers import and_
+from .query import parse_query_expr
 from .steps.utils import flatten_dict, get_field, schema
 
 PlanNode = Dict[str, Any]
@@ -713,6 +714,22 @@ class Flow:
         The function should return a new Flow, typically using this one as input.
         """
         return self._next({"op": "pipe", "func": func})
+
+    def query(self, expr: str) -> "Flow":
+        """
+        Filter rows using query string
+
+        Args:
+            expr (str): Query string
+
+        Returns:
+            Flow: A new Flow with the filtered records.
+
+        Example:
+            flow.query("age > 30 and name == 'Phil Foden'")
+        """
+        predicate = parse_query_expr(expr)
+        return self.filter(predicate)
 
     def plot_plan(self, compare: bool = False):
         """
