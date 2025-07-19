@@ -21,6 +21,7 @@ from .predicates_helpers import (
     where_not_in,
     where_startswith,
 )
+from .steps.utils import get_field
 
 
 def parse_query_expr(expr: str, local_vars: dict[str, Any]) -> Callable:
@@ -45,6 +46,29 @@ def parse_query_expr(expr: str, local_vars: dict[str, Any]) -> Callable:
     scoped_vars = {f"__query_var_{k}": v for k, v in local_vars.items()}
 
     return _convert_ast(tree.body, local_vars=scoped_vars)
+
+
+def _parse_field_expr(node: ast.AST) -> tuple[str, Callable | None]:
+    """
+    Parses a node that can be a field or a simple method call on a field.
+    Returns (field_name, transform_function).
+    Transform function is None if no transformation is applied.
+    """
+    if isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute):
+        method = node.func.attr
+        if method in ("lower", "upper"):
+            if node.args or node.keywords:
+                raise ValueError(
+                    f"Method '{method}' should have no arguments in a query."
+                )
+
+            field = _extract_field(node.func.value)
+            transform = str.lower if method == "lower" else str.upper
+            return field, transform
+
+    # Not a supported method call, assume it's just a field.
+    field = _extract_field(node)
+    return field, None
 
 
 def _convert_ast(node, local_vars: Dict[str, Any] = None):
@@ -100,20 +124,21 @@ def _convert_ast(node, local_vars: Dict[str, Any] = None):
                 return where_exists(field)
             raise ValueError("Only 'is not None' comparisons are supported")
 
-        # For other comparisons, figure out which side is the field and which is the literal
+        # For other comparisons, figure out which side is a field expression
+        # and which is a literal value.
         try:
-            field = _extract_field(left)
+            field, transform = _parse_field_expr(left)
             value = _eval_literal(right, local_vars)
             op_to_use = op
         except ValueError:
-            # Left side is not a field, so right side must be.
+            # Left side is not a field expression, so right side must be.
             # This means we have `literal op field`. We need to convert to `field op' literal`.
             if isinstance(op, (ast.In, ast.NotIn)):
                 raise ValueError(
                     "Field must be on the left for 'in' and 'not in' operators"
                 )
 
-            field = _extract_field(right)
+            field, transform = _parse_field_expr(right)
             value = _eval_literal(left, local_vars)
 
             if isinstance(op, ast.Gt):
@@ -126,6 +151,35 @@ def _convert_ast(node, local_vars: Dict[str, Any] = None):
                 op_to_use = ast.GtE()
             else:
                 op_to_use = op
+
+        if transform:
+
+            def predicate(record: dict) -> bool:
+                field_val = get_field(record, field)
+                if not isinstance(field_val, str):
+                    return False  # Method calls only work on strings
+
+                transformed_val = transform(field_val)
+
+                if isinstance(op_to_use, ast.Eq):
+                    return transformed_val == value
+                if isinstance(op_to_use, ast.NotEq):
+                    return transformed_val != value
+                if isinstance(op_to_use, ast.Gt):
+                    return transformed_val > value
+                if isinstance(op_to_use, ast.GtE):
+                    return transformed_val >= value
+                if isinstance(op_to_use, ast.Lt):
+                    return transformed_val < value
+                if isinstance(op_to_use, ast.LtE):
+                    return transformed_val <= value
+                if isinstance(op_to_use, ast.In):
+                    return transformed_val in value
+                if isinstance(op_to_use, ast.NotIn):
+                    return transformed_val not in value
+                raise ValueError(f"Unsupported comparison: {ast.dump(op_to_use)}")
+
+            return predicate
 
         if isinstance(op_to_use, ast.Eq):
             return where_equals(field, value)
@@ -150,18 +204,28 @@ def _convert_ast(node, local_vars: Dict[str, Any] = None):
         return not_(_convert_ast(node.operand))
 
     elif isinstance(node, ast.Call):
-        field = _extract_field(node.func.value)
-        method = node.func.attr
-        args = [_eval_literal(arg, local_vars) for arg in node.args]
+        if isinstance(node.func, ast.Attribute):  # Method call: `field.method()`
+            field = _extract_field(node.func.value)
+            method = node.func.attr
+            args = [_eval_literal(arg, local_vars) for arg in node.args]
 
-        if method == "contains":
-            return where_contains(field, *args)
-        elif method == "startswith":
-            return where_startswith(field, *args)
-        elif method == "endswith":
-            return where_endswith(field, *args)
+            if method == "contains":
+                return where_contains(field, *args)
+            elif method == "startswith":
+                return where_startswith(field, *args)
+            elif method == "endswith":
+                return where_endswith(field, *args)
+            elif method in ("lower", "upper"):
+                raise ValueError(
+                    f"Method '{method}' cannot be used as a predicate. "
+                    f'Use it in a comparison, e.g., \'field.{method}() == "some_value".'
+                )
+            else:
+                raise ValueError(f"Unsupported method call: {method}")
         else:
-            raise ValueError(f"Unsupported method call: {method}")
+            # A function call like `my_func(...)`. We don't support user-defined funcs
+            # in queries that return booleans, and `datetime()` etc are literals.
+            raise ValueError(f"Unsupported query expression: {ast.dump(node)}")
 
     else:
         raise ValueError(f"Unsupported query expression: {ast.dump(node)}")

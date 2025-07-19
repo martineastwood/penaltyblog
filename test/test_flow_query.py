@@ -107,6 +107,48 @@ def test_query_endswith():
     assert {r["name"] for r in rows} == {"Alice", "Charlie"}
 
 
+def test_query_lower_equals():
+    f = make_flow().query("name.lower() == 'alice'")
+    rows = f.collect()
+    assert len(rows) == 2
+    assert all(r["name"] == "Alice" for r in rows)
+
+
+def test_query_upper_not_equals():
+    f = make_flow().query("name.upper() != 'BOB'")
+    rows = f.collect()
+    assert len(rows) == 3
+    assert all(r["name"] != "Bob" for r in rows)
+
+
+def test_query_lower_in_list():
+    f = make_flow().query("name.lower() in ['alice', 'charlie']")
+    rows = f.collect()
+    assert {r["name"] for r in rows} == {"Alice", "Charlie"}
+
+
+def test_query_upper_not_in_list():
+    f = make_flow().query("name.upper() not in ['ALICE', 'CHARLIE']")
+    rows = f.collect()
+    assert {r["name"] for r in rows} == {"Bob"}
+
+
+def test_query_case_transform_on_non_string():
+    # This should not raise an error, but simply not match
+    f = make_flow().query("age.lower() == 'something'")
+    assert f.is_empty()
+
+
+def test_query_case_transform_unsupported_comparison():
+    with pytest.raises(ValueError, match="Unsupported field expression"):
+        make_flow().query("name.lower() is 'alice'").collect()
+
+
+def test_query_case_transform_as_predicate():
+    with pytest.raises(ValueError, match="cannot be used as a predicate"):
+        make_flow().query("name.lower()").collect()
+
+
 def test_query_is_null():
     f = make_flow().query("score is None")
     rows = f.collect()
