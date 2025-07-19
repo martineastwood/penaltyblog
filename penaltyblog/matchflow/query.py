@@ -54,6 +54,17 @@ def _parse_field_expr(node: ast.AST) -> tuple[str, Callable | None]:
     Returns (field_name, transform_function).
     Transform function is None if no transformation is applied.
     """
+    # len(field)
+    if (
+        isinstance(node, ast.Call)
+        and isinstance(node.func, ast.Name)
+        and node.func.id == "len"
+    ):
+        if len(node.args) != 1:
+            raise ValueError("len() expects exactly one argument.")
+        field = _extract_field(node.args[0])
+        return field, len
+
     if isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute):
         method = node.func.attr
         if method in ("lower", "upper"):
@@ -124,15 +135,11 @@ def _convert_ast(node, local_vars: Dict[str, Any] = None):
                 return where_exists(field)
             raise ValueError("Only 'is not None' comparisons are supported")
 
-        # For other comparisons, figure out which side is a field expression
-        # and which is a literal value.
         try:
             field, transform = _parse_field_expr(left)
             value = _eval_literal(right, local_vars)
             op_to_use = op
         except ValueError:
-            # Left side is not a field expression, so right side must be.
-            # This means we have `literal op field`. We need to convert to `field op' literal`.
             if isinstance(op, (ast.In, ast.NotIn)):
                 raise ValueError(
                     "Field must be on the left for 'in' and 'not in' operators"
@@ -156,10 +163,13 @@ def _convert_ast(node, local_vars: Dict[str, Any] = None):
 
             def predicate(record: dict) -> bool:
                 field_val = get_field(record, field)
-                if not isinstance(field_val, str):
-                    return False  # Method calls only work on strings
+                if not hasattr(field_val, "__len__"):
+                    return False
 
-                transformed_val = transform(field_val)
+                try:
+                    transformed_val = transform(field_val)
+                except TypeError:
+                    return False
 
                 if isinstance(op_to_use, ast.Eq):
                     return transformed_val == value
@@ -204,7 +214,7 @@ def _convert_ast(node, local_vars: Dict[str, Any] = None):
         return not_(_convert_ast(node.operand))
 
     elif isinstance(node, ast.Call):
-        if isinstance(node.func, ast.Attribute):  # Method call: `field.method()`
+        if isinstance(node.func, ast.Attribute):
             field = _extract_field(node.func.value)
             method = node.func.attr
             args = [_eval_literal(arg, local_vars) for arg in node.args]
@@ -223,8 +233,6 @@ def _convert_ast(node, local_vars: Dict[str, Any] = None):
             else:
                 raise ValueError(f"Unsupported method call: {method}")
         else:
-            # A function call like `my_func(...)`. We don't support user-defined funcs
-            # in queries that return booleans, and `datetime()` etc are literals.
             raise ValueError(f"Unsupported query expression: {ast.dump(node)}")
 
     else:
@@ -282,7 +290,6 @@ def _eval_literal(node, local_vars=None):
     elif isinstance(node, ast.Tuple):
         return tuple(_eval_literal(elt, local_vars) for elt in node.elts)
     elif isinstance(node, ast.Call):
-        # Handle datetime/date function calls (literal values, not method calls)
         if isinstance(node.func, ast.Name):
             func_name = node.func.id
             args = [_eval_literal(arg, local_vars) for arg in node.args]

@@ -67,8 +67,30 @@ def test_query_invalid_syntax():
 
 
 def test_query_unsupported_expr():
-    with pytest.raises(ValueError):
-        make_flow().query("len(name) > 3")
+    with pytest.raises(ValueError, match="Unsupported field expression"):
+        make_flow().query("unsupported_func(name) > 3").collect()
+
+
+def test_query_len_string():
+    f = make_flow().query("len(name) > 3")
+    rows = f.collect()
+    assert {r["name"] for r in rows} == {"Alice", "Charlie"}
+
+
+def test_query_len_list():
+    data = [
+        {"id": 1, "tags": ["A", "B"]},
+        {"id": 2, "tags": ["A", "B", "C"]},
+        {"id": 3, "tags": ["A"]},
+    ]
+    f = Flow.from_records(data).query("len(tags) >= 2")
+    rows = f.collect()
+    assert {r["id"] for r in rows} == {1, 2}
+
+
+def test_query_len_on_non_len_field():
+    f = make_flow().query("len(age) > 3")
+    assert f.is_empty()
 
 
 def test_query_chained_comparisons():
