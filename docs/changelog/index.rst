@@ -8,6 +8,22 @@ Version Numbering
 see `semver.org <http://semver.org/>`_
 
 
+v1.5.0 (2025-07-xx)
+^^^^^^^^^^^^^^^^^^^^
+
+Package Updates
+---------------
+
+- Initial release of plotting library
+- Added query string filtering with support for boolean expressions and field comparisons
+- GoalsModel ``.fit`` function now takes an optional dictionary of arguments to pass to scipy's optimiser
+
+Documentation Improvements
+----------------------------
+
+- Added Pitch documentation
+- Updated Flow documentation with ``.query`` examples
+
 v1.4.1 (2025-06-24)
 ^^^^^^^^^^^^^^^^^^^^
 

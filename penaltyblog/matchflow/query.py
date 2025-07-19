@@ -1,5 +1,6 @@
 import ast
-import warnings
+import re
+from typing import Any, Callable, Dict
 
 from .predicates_helpers import (
     and_,
@@ -19,26 +20,35 @@ from .predicates_helpers import (
 )
 
 
-def parse_query_expr(expr: str):
+def parse_query_expr(expr: str, local_vars: dict[str, Any]) -> Callable:
     """
-    Parse a simple boolean expression like "age > 30 and city == 'London'"
-    into a Predicate.
+    Parses a query string with @var references into a predicate.
 
     Args:
-        expr (str): The boolean expression to parse.
+        expr (str): The query string to parse.
+        local_vars (dict[str, Any]): The local variables to use for variable resolution.
     Returns:
-        Predicate: The parsed Predicate.
+        Callable: The parsed predicate.
     Raises:
         ValueError: If the expression is invalid.
     """
+    # Replace @foo with __query_var_foo to make it valid Python
+    rewritten = re.sub(r"@([a-zA-Z_][a-zA-Z0-9_]*)", r"__query_var_\1", expr)
+
+    # 2. Parse safely with ast
     try:
-        tree = ast.parse(expr, mode="eval")
-        return _convert_ast(tree.body)
+        tree = ast.parse(rewritten, mode="eval")
     except SyntaxError as e:
         raise ValueError(f"Invalid query syntax: {e}")
 
+    # 3. Rewrite local_vars to match __query_var_* keys
+    scoped_vars = {f"__query_var_{k}": v for k, v in local_vars.items()}
 
-def _convert_ast(node):
+    # 4. Convert to predicate
+    return _convert_ast(tree.body, local_vars=scoped_vars)
+
+
+def _convert_ast(node, local_vars: Dict[str, Any] = None):
     """
     Convert an AST node into a Predicate.
 
@@ -49,9 +59,10 @@ def _convert_ast(node):
     Raises:
         ValueError: If the node is not a boolean operation or comparison.
     """
+    local_vars = local_vars or {}
     if isinstance(node, ast.BoolOp):
         op = node.op
-        values = [_convert_ast(v) for v in node.values]
+        values = [_convert_ast(v, local_vars) for v in node.values]
         if isinstance(op, ast.And):
             return and_(*values)
         elif isinstance(op, ast.Or):
@@ -84,7 +95,7 @@ def _convert_ast(node):
                 raise ValueError("Only 'is not None' comparisons are supported")
 
         # Evaluate right-hand literal
-        value = _eval_literal(right)
+        value = _eval_literal(right, local_vars)
 
         if isinstance(op, ast.Eq):
             return where_equals(field, value)
@@ -111,7 +122,7 @@ def _convert_ast(node):
     elif isinstance(node, ast.Call):
         field = _extract_field(node.func.value)
         method = node.func.attr
-        args = [_eval_literal(arg) for arg in node.args]
+        args = [_eval_literal(arg, local_vars) for arg in node.args]
 
         if method == "contains":
             return where_contains(field, *args)
@@ -146,32 +157,37 @@ def _extract_field(node):
     raise ValueError(f"Unsupported field expression: {ast.dump(node)}")
 
 
-def _eval_literal(node):
+def _eval_literal(node, local_vars=None):
     """
-    Evaluate a literal AST node.
+    Evaluate a literal AST node, possibly resolving variables from `local_vars`.
 
     Args:
         node (ast.AST): The AST node to evaluate.
+        local_vars (dict, optional): A mapping of variable names to values (used for @var support).
+
     Returns:
         Any: The evaluated value.
+
     Raises:
-        ValueError: If the node is not a constant, list, or tuple.
+        ValueError: If the node is unsupported or a variable is undefined.
     """
-    if isinstance(node, ast.Constant):
+    local_vars = local_vars or {}
+
+    if isinstance(node, ast.Constant):  # Python 3.8+
         return node.value
-    # Handle ast.List
+    elif isinstance(
+        node, ast.Name
+    ):  # Variable (e.g. @threshold → __query_var_threshold)
+        if node.id in local_vars:
+            return local_vars[node.id]
+        raise ValueError(f"Unknown variable: {node.id}")
     elif isinstance(node, ast.List):
-        return [_eval_literal(elt) for elt in node.elts]
-    # Handle ast.Tuple
+        return [_eval_literal(elt, local_vars) for elt in node.elts]
     elif isinstance(node, ast.Tuple):
-        return tuple(_eval_literal(elt) for elt in node.elts)
-    elif hasattr(ast, "Str") and isinstance(node, ast.Str):
-        with warnings.catch_warnings():
-            warnings.filterwarnings("ignore", category=DeprecationWarning)
-            return node.s
-    elif hasattr(ast, "Num") and isinstance(node, ast.Num):
-        with warnings.catch_warnings():
-            warnings.filterwarnings("ignore", category=DeprecationWarning)
-            return node.n
+        return tuple(_eval_literal(elt, local_vars) for elt in node.elts)
+    elif hasattr(ast, "Str") and isinstance(node, ast.Str):  # Legacy
+        return node.s
+    elif hasattr(ast, "Num") and isinstance(node, ast.Num):  # Legacy
+        return node.n
     else:
         raise ValueError(f"Unsupported literal: {ast.dump(node)}")

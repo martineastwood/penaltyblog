@@ -2,6 +2,7 @@
 Flow class for handling a streaming data pipeline.
 """
 
+import inspect
 import itertools
 import json
 from pprint import pprint
@@ -715,20 +716,26 @@ class Flow:
         """
         return self._next({"op": "pipe", "func": func})
 
-    def query(self, expr: str) -> "Flow":
+    def query(self, expr: str):
         """
         Filter rows using query string
 
         Args:
             expr (str): Query string
+            local_vars (dict[str, Any], optional): Local variables to use in the query
 
         Returns:
             Flow: A new Flow with the filtered records.
 
         Example:
             flow.query("age > 30 and name == 'Phil Foden'")
+            player = "Mohamed Salah"
+            flow.query("type.name == 'Shot' and player.name == @player")
         """
-        predicate = parse_query_expr(expr)
+        frame = inspect.currentframe().f_back
+        local_vars = frame.f_locals if frame else {}
+
+        predicate = parse_query_expr(expr, local_vars=local_vars)
         return self.filter(predicate)
 
     def plot_plan(self, compare: bool = False):
