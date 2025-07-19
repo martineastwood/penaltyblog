@@ -1,5 +1,6 @@
 import ast
 import re
+from datetime import date, datetime
 from typing import Any, Callable, Dict
 
 from .predicates_helpers import (
@@ -32,19 +33,15 @@ def parse_query_expr(expr: str, local_vars: dict[str, Any]) -> Callable:
     Raises:
         ValueError: If the expression is invalid.
     """
-    # Replace @foo with __query_var_foo to make it valid Python
     rewritten = re.sub(r"@([a-zA-Z_][a-zA-Z0-9_]*)", r"__query_var_\1", expr)
 
-    # 2. Parse safely with ast
     try:
         tree = ast.parse(rewritten, mode="eval")
     except SyntaxError as e:
         raise ValueError(f"Invalid query syntax: {e}")
 
-    # 3. Rewrite local_vars to match __query_var_* keys
     scoped_vars = {f"__query_var_{k}": v for k, v in local_vars.items()}
 
-    # 4. Convert to predicate
     return _convert_ast(tree.body, local_vars=scoped_vars)
 
 
@@ -173,11 +170,9 @@ def _eval_literal(node, local_vars=None):
     """
     local_vars = local_vars or {}
 
-    if isinstance(node, ast.Constant):  # Python 3.8+
+    if isinstance(node, ast.Constant):
         return node.value
-    elif isinstance(
-        node, ast.Name
-    ):  # Variable (e.g. @threshold → __query_var_threshold)
+    elif isinstance(node, ast.Name):
         if node.id in local_vars:
             return local_vars[node.id]
         raise ValueError(f"Unknown variable: {node.id}")
@@ -185,9 +180,23 @@ def _eval_literal(node, local_vars=None):
         return [_eval_literal(elt, local_vars) for elt in node.elts]
     elif isinstance(node, ast.Tuple):
         return tuple(_eval_literal(elt, local_vars) for elt in node.elts)
-    elif hasattr(ast, "Str") and isinstance(node, ast.Str):  # Legacy
+    elif isinstance(node, ast.Call):
+        # Handle datetime/date function calls (literal values, not method calls)
+        if isinstance(node.func, ast.Name):
+            func_name = node.func.id
+            args = [_eval_literal(arg, local_vars) for arg in node.args]
+
+            if func_name == "datetime":
+                return datetime(*args)
+            elif func_name == "date":
+                return date(*args)
+            else:
+                raise ValueError(f"Unsupported function call: {func_name}")
+        else:
+            raise ValueError(f"Unsupported function call: {ast.dump(node.func)}")
+    elif hasattr(ast, "Str") and isinstance(node, ast.Str):
         return node.s
-    elif hasattr(ast, "Num") and isinstance(node, ast.Num):  # Legacy
+    elif hasattr(ast, "Num") and isinstance(node, ast.Num):
         return node.n
     else:
         raise ValueError(f"Unsupported literal: {ast.dump(node)}")

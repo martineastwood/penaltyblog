@@ -722,15 +722,25 @@ class Flow:
 
         Args:
             expr (str): Query string
-            local_vars (dict[str, Any], optional): Local variables to use in the query
 
         Returns:
             Flow: A new Flow with the filtered records.
 
-        Example:
+        Examples:
+            # Basic comparisons
             flow.query("age > 30 and name == 'Phil Foden'")
+
+            # Using variables with @
             player = "Mohamed Salah"
             flow.query("type.name == 'Shot' and player.name == @player")
+
+            # Date filtering
+            flow.query("date > datetime(2024, 1, 1)")
+            cutoff_date = datetime(2024, 6, 15)
+            flow.query("match_date >= @cutoff_date")
+
+            # String operations
+            flow.query("name.contains('son') and status == 'active'")
         """
         frame = inspect.currentframe().f_back
         local_vars = frame.f_locals if frame else {}

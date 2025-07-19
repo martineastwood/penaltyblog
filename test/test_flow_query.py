@@ -1,3 +1,5 @@
+from datetime import date, datetime
+
 import pytest
 
 from penaltyblog.matchflow.flow import Flow
@@ -102,3 +104,92 @@ def test_query_is_not_null():
     f = make_flow().query("score is not None")
     rows = f.collect()
     assert all(r["score"] is not None for r in rows)
+
+
+# === DATE FILTERING TESTS ===
+
+DATE_RECORDS = [
+    {"id": 1, "event": "Event A", "date": datetime(2024, 1, 15), "value": 100},
+    {"id": 2, "event": "Event B", "date": datetime(2024, 6, 20), "value": 200},
+    {"id": 3, "event": "Event C", "date": datetime(2024, 12, 5), "value": 300},
+    {"id": 4, "event": "Event D", "date": date(2024, 3, 10), "value": 150},
+    {"id": 5, "event": "Event E", "date": None, "value": 50},
+]
+
+
+def make_date_flow():
+    return Flow.from_records(DATE_RECORDS)
+
+
+def test_query_datetime_literal_greater_than():
+    """Test filtering with datetime() literal"""
+    f = make_date_flow().query("date > datetime(2024, 6, 1)")
+    rows = f.collect()
+    assert len(rows) == 2
+    assert {r["id"] for r in rows} == {2, 3}
+
+
+def test_query_date_literal_greater_than():
+    """Test filtering with date() literal"""
+    f = make_date_flow().query("date > date(2024, 3, 1)")
+    rows = f.collect()
+    assert len(rows) == 3
+    assert {r["id"] for r in rows} == {2, 3, 4}
+
+
+def test_query_date_variable():
+    """Test filtering with date variable using @syntax"""
+    cutoff_date = datetime(2024, 5, 1)
+    # Call query directly in this scope where cutoff_date is defined
+    rows = make_date_flow().query("date >= @cutoff_date").collect()
+    assert len(rows) == 2
+    assert {r["id"] for r in rows} == {2, 3}
+
+
+def test_query_date_and_numeric_combined():
+    """Test combining date and numeric filters"""
+    f = make_date_flow().query("date > datetime(2024, 1, 1) and value > 150")
+    rows = f.collect()
+    # Only Event B (id=2) and Event C (id=3) match both conditions
+    # Event A: value=100 (not > 150), Event D: value=150 (not > 150)
+    assert len(rows) == 2
+    assert {r["id"] for r in rows} == {2, 3}
+
+
+def test_query_date_null_handling():
+    """Test that null dates are handled properly"""
+    f = make_date_flow().query("date is not None")
+    rows = f.collect()
+    assert len(rows) == 4
+    assert all(r["date"] is not None for r in rows)
+
+
+def test_query_date_less_than():
+    """Test date less than comparison"""
+    f = make_date_flow().query("date < datetime(2024, 6, 1)")
+    rows = f.collect()
+    assert len(rows) == 2
+    assert {r["id"] for r in rows} == {1, 4}
+
+
+def test_query_date_equals():
+    """Test exact date matching"""
+    f = make_date_flow().query("date == date(2024, 3, 10)")
+    rows = f.collect()
+    assert len(rows) == 1
+    assert rows[0]["id"] == 4
+
+
+def test_query_datetime_vs_date_comparison():
+    """Test that datetime and date objects can be compared"""
+    # This should work: comparing datetime field with date literal
+    f = make_date_flow().query("date >= date(2024, 6, 1)")
+    rows = f.collect()
+    assert len(rows) == 2
+    assert {r["id"] for r in rows} == {2, 3}
+
+
+def test_query_date_type_mismatch_error():
+    """Test that incompatible type comparisons raise helpful errors"""
+    with pytest.raises(TypeError, match="Cannot compare.*date.*with.*str"):
+        make_date_flow().query("date > 'not-a-date'").collect()
