@@ -19,6 +19,7 @@ from .predicates_helpers import (
     where_lte,
     where_not_equals,
     where_not_in,
+    where_regex_match,
     where_startswith,
 )
 from .steps.utils import get_field
@@ -225,10 +226,18 @@ def _convert_ast(node, local_vars: Dict[str, Any] = None):
                 return where_startswith(field, *args)
             elif method == "endswith":
                 return where_endswith(field, *args)
+            elif method == "regex" or method == "match":
+                if not args:
+                    raise ValueError(
+                        f"Method '{method}()' requires at least one argument (pattern)"
+                    )
+                pattern = args[0]
+                flags = args[1] if len(args) > 1 else 0
+                return where_regex_match(field, pattern, flags)
             elif method in ("lower", "upper"):
                 raise ValueError(
                     f"Method '{method}' cannot be used as a predicate. "
-                    f'Use it in a comparison, e.g., \'field.{method}() == "some_value".'
+                    f"Use it in a comparison, e.g., 'field.{method}() == \"some_value\"'."
                 )
             else:
                 raise ValueError(f"Unsupported method call: {method}")
@@ -302,6 +311,13 @@ def _eval_literal(node, local_vars=None):
                 raise ValueError(f"Unsupported function call: {func_name}")
         else:
             raise ValueError(f"Unsupported function call: {ast.dump(node.func)}")
+    elif isinstance(node, ast.Attribute):
+        # Handle attribute references like re.IGNORECASE
+        if isinstance(node.value, ast.Name) and node.value.id in local_vars:
+            obj = local_vars[node.value.id]
+            if hasattr(obj, node.attr):
+                return getattr(obj, node.attr)
+        raise ValueError(f"Unknown attribute: {ast.dump(node)}")
     elif hasattr(ast, "Str") and isinstance(node, ast.Str):
         return node.s
     elif hasattr(ast, "Num") and isinstance(node, ast.Num):

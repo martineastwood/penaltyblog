@@ -1,5 +1,6 @@
+import re
 from datetime import date, datetime
-from typing import Any, List
+from typing import Any, List, Union
 
 from .predicates import AndPredicate, FieldPredicate, NotPredicate, OrPredicate
 
@@ -167,6 +168,38 @@ def where_lte(field: str, threshold):
         return v_normalized <= threshold_normalized
 
     return FieldPredicate(field, compare)
+
+
+# === Regex matching ===
+def where_regex_match(field: str, pattern: str, flags: Union[int, re.RegexFlag] = 0):
+    """
+    Create a predicate that tests if a field matches a regex pattern.
+
+    Args:
+        field (str): The field to check.
+        pattern (str): The regex pattern to match against.
+        flags (int or re.RegexFlag, optional): Regex flags (e.g., re.IGNORECASE).
+
+    Returns:
+        FieldPredicate: A predicate that tests if the field matches the pattern.
+    """
+    try:
+        # Compile the pattern once for efficiency
+        compiled_pattern = re.compile(pattern, flags)
+    except re.error as e:
+        raise ValueError(f"Invalid regex pattern '{pattern}': {e}")
+
+    def test(v):
+        if v is None:
+            return False
+        try:
+            # Convert to string if not already
+            v_str = str(v) if not isinstance(v, str) else v
+            return bool(compiled_pattern.search(v_str))
+        except (TypeError, ValueError):
+            return False
+
+    return FieldPredicate(field, test)
 
 
 # === Combinators ===

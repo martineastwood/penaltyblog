@@ -228,8 +228,6 @@ def test_query_date_and_numeric_combined():
     """Test combining date and numeric filters"""
     f = make_date_flow().query("date > datetime(2024, 1, 1) and value > 150")
     rows = f.collect()
-    # Only Event B (id=2) and Event C (id=3) match both conditions
-    # Event A: value=100 (not > 150), Event D: value=150 (not > 150)
     assert len(rows) == 2
     assert {r["id"] for r in rows} == {2, 3}
 
@@ -260,7 +258,6 @@ def test_query_date_equals():
 
 def test_query_datetime_vs_date_comparison():
     """Test that datetime and date objects can be compared"""
-    # This should work: comparing datetime field with date literal
     f = make_date_flow().query("date >= date(2024, 6, 1)")
     rows = f.collect()
     assert len(rows) == 2
@@ -271,3 +268,64 @@ def test_query_date_type_mismatch_error():
     """Test that incompatible type comparisons raise helpful errors"""
     with pytest.raises(TypeError, match="Cannot compare.*date.*with.*str"):
         make_date_flow().query("date > 'not-a-date'").collect()
+
+
+# === REGEX TESTS ===
+
+
+def test_query_regex_basic():
+    """Test basic regex matching"""
+    f = make_flow().query("name.regex('li')")  # Contains 'li'
+    rows = f.collect()
+    assert {r["name"] for r in rows} == {"Alice", "Charlie"}
+
+
+def test_query_regex_pattern():
+    """Test regex pattern matching"""
+    f = make_flow().query("name.regex('^A.*e$')")  # Starts with A, ends with e
+    rows = f.collect()
+    assert {r["name"] for r in rows} == {"Alice"}
+
+
+def test_query_regex_match_alias():
+    """Test .match() as an alias for .regex()"""
+    f = make_flow().query("name.match('B.*')")  # Starts with B
+    rows = f.collect()
+    assert {r["name"] for r in rows} == {"Bob"}
+
+
+def test_query_regex_with_flags():
+    """Test regex with flags (case insensitive)"""
+    # Using 2 which is the value of re.IGNORECASE
+    f = make_flow().query(
+        "name.regex('alice', 2)"
+    )  # Case insensitive (2 = re.IGNORECASE)
+    rows = f.collect()
+    assert {r["name"] for r in rows} == {"Alice"}
+
+
+def test_query_regex_on_non_string():
+    """Test regex on non-string field (should convert to string)"""
+    f = make_flow().query("age.regex('3')")  # Age contains digit 3
+    rows = f.collect()
+    assert {r["age"] for r in rows} == {30, 35}
+
+
+def test_query_regex_on_null():
+    """Test regex on null value (should not match)"""
+    f = make_flow().query("score.regex('.*')")  # Any pattern on score
+    rows = f.collect()
+    assert len(rows) == 3  # Should not match the record with score=None
+    assert all(r["score"] is not None for r in rows)
+
+
+def test_query_regex_invalid_pattern():
+    """Test invalid regex pattern raises ValueError"""
+    with pytest.raises(ValueError, match="Invalid regex pattern"):
+        make_flow().query("name.regex('[')").collect()  # Unbalanced bracket
+
+
+def test_query_regex_no_args():
+    """Test regex with no arguments raises ValueError"""
+    with pytest.raises(ValueError, match="requires at least one argument"):
+        make_flow().query("name.regex()").collect()

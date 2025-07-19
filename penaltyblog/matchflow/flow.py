@@ -741,6 +741,10 @@ class Flow:
 
             # String operations
             flow.query("name.contains('son') and status == 'active'")
+
+            # Regular expression matching
+            flow.query("name.regex('^[A-Z][a-z]+$')")  # Names starting with capital letter
+            flow.query("name.match('\\d{4}', 0)")  # Contains 4 digits in a row
         """
         frame = inspect.currentframe().f_back
         local_vars = frame.f_locals if frame else {}
