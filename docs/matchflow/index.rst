@@ -106,5 +106,5 @@ Need help? Ask questions, file issues, or suggest improvements any time.
    inspection
    best_practices
    predicates
-   statsbomb
    query
+   statsbomb
