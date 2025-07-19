@@ -16,6 +16,7 @@ You can:
 - Join datasets, explode lists, split arrays, pivot rows
 - Work with nested data without flattening too early
 - Chain steps fluently, materialize only when ready
+- Filtering using string expressions, like ``"age > 30 and team == @team_name"``
 
 All transformations are **lazy**; nothing runs until you ask for results with ``.collect()``, ``.to_pandas()``, ``.to_jsonl()`` etc.
 
@@ -48,10 +49,13 @@ Guide Index
      - Materialization, memory, performance, clean code
    * - :doc:`predicates`
      - Reusable filters like ``where_equals()``, ``and_()``
+   * - :doc:`query`
+     - Filtering using string expressions, like ``"age > 30 and team == @team_name"``
    * - :doc:`optimizer`
      - Smart plan rewrites for faster execution
    * - :doc:`statsbomb`
      - Streaming data directly from the StatsBomb API
+
 
 Example
 -------
@@ -103,3 +107,4 @@ Need help? Ask questions, file issues, or suggest improvements any time.
    best_practices
    predicates
    statsbomb
+   query

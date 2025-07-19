@@ -55,7 +55,6 @@ def _parse_field_expr(node: ast.AST) -> tuple[str, Callable | None]:
     Returns (field_name, transform_function).
     Transform function is None if no transformation is applied.
     """
-    # len(field)
     if (
         isinstance(node, ast.Call)
         and isinstance(node.func, ast.Name)
