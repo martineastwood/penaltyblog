@@ -68,50 +68,81 @@ def _convert_ast(node, local_vars: Dict[str, Any] = None):
             raise ValueError(f"Unsupported boolean op: {ast.dump(op)}")
 
     elif isinstance(node, ast.Compare):
+        # Handle chained comparisons by breaking them into a series of `and`ed comparisons
+        if len(node.ops) > 1:
+            predicates = []
+            all_parts = [node.left] + node.comparators
+            for i, op in enumerate(node.ops):
+                left_node = all_parts[i]
+                right_node = all_parts[i + 1]
+                sub_compare_node = ast.Compare(
+                    left=left_node, ops=[op], comparators=[right_node]
+                )
+                predicates.append(_convert_ast(sub_compare_node, local_vars))
+            return and_(*predicates)
+
+        # Logic for simple (non-chained) comparisons
         left = node.left
-        field = _extract_field(left)
-        ops = node.ops
-        comparators = node.comparators
-
-        if len(ops) > 1:
-            raise ValueError("Chained comparisons not supported")
-
-        op = ops[0]
-        right = comparators[0]
+        op = node.ops[0]
+        right = node.comparators[0]
 
         # Special case: field is None / is not None
         if isinstance(op, ast.Is):
+            field = _extract_field(left)
             if isinstance(right, ast.Constant) and right.value is None:
                 return where_is_null(field)
-            else:
-                raise ValueError("Only 'is None' comparisons are supported")
-        elif isinstance(op, ast.IsNot):
+            raise ValueError("Only 'is None' comparisons are supported")
+        if isinstance(op, ast.IsNot):
+            field = _extract_field(left)
             if isinstance(right, ast.Constant) and right.value is None:
                 return where_exists(field)
+            raise ValueError("Only 'is not None' comparisons are supported")
+
+        # For other comparisons, figure out which side is the field and which is the literal
+        try:
+            field = _extract_field(left)
+            value = _eval_literal(right, local_vars)
+            op_to_use = op
+        except ValueError:
+            # Left side is not a field, so right side must be.
+            # This means we have `literal op field`. We need to convert to `field op' literal`.
+            if isinstance(op, (ast.In, ast.NotIn)):
+                raise ValueError(
+                    "Field must be on the left for 'in' and 'not in' operators"
+                )
+
+            field = _extract_field(right)
+            value = _eval_literal(left, local_vars)
+
+            if isinstance(op, ast.Gt):
+                op_to_use = ast.Lt()
+            elif isinstance(op, ast.GtE):
+                op_to_use = ast.LtE()
+            elif isinstance(op, ast.Lt):
+                op_to_use = ast.Gt()
+            elif isinstance(op, ast.LtE):
+                op_to_use = ast.GtE()
             else:
-                raise ValueError("Only 'is not None' comparisons are supported")
+                op_to_use = op
 
-        # Evaluate right-hand literal
-        value = _eval_literal(right, local_vars)
-
-        if isinstance(op, ast.Eq):
+        if isinstance(op_to_use, ast.Eq):
             return where_equals(field, value)
-        elif isinstance(op, ast.NotEq):
+        if isinstance(op_to_use, ast.NotEq):
             return where_not_equals(field, value)
-        elif isinstance(op, ast.Gt):
+        if isinstance(op_to_use, ast.Gt):
             return where_gt(field, value)
-        elif isinstance(op, ast.GtE):
+        if isinstance(op_to_use, ast.GtE):
             return where_gte(field, value)
-        elif isinstance(op, ast.Lt):
+        if isinstance(op_to_use, ast.Lt):
             return where_lt(field, value)
-        elif isinstance(op, ast.LtE):
+        if isinstance(op_to_use, ast.LtE):
             return where_lte(field, value)
-        elif isinstance(op, ast.In):
+        if isinstance(op_to_use, ast.In):
             return where_in(field, value)
-        elif isinstance(op, ast.NotIn):
+        if isinstance(op_to_use, ast.NotIn):
             return where_not_in(field, value)
-        else:
-            raise ValueError(f"Unsupported comparison: {ast.dump(op)}")
+
+        raise ValueError(f"Unsupported comparison: {ast.dump(op)}")
 
     elif isinstance(node, ast.UnaryOp) and isinstance(node.op, ast.Not):
         return not_(_convert_ast(node.operand))

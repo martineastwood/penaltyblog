@@ -50,8 +50,8 @@ class TestPitchInitialization:
 
     def test_default_initialization(self, default_pitch):
         """Test that Pitch initializes with default parameters."""
-        assert default_pitch.width == 800
-        assert default_pitch.height == 600
+        assert default_pitch.width == 600
+        assert default_pitch.height == 500
         assert default_pitch.orientation == "horizontal"
         assert default_pitch.view == "full"
         assert default_pitch.show_axis is False

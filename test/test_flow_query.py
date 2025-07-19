@@ -71,9 +71,11 @@ def test_query_unsupported_expr():
         make_flow().query("len(name) > 3")
 
 
-def test_query_chained_comparisons_disallowed():
-    with pytest.raises(ValueError):
-        make_flow().query("20 < age < 40")
+def test_query_chained_comparisons():
+    f = make_flow().query("20 < age < 40")
+    rows = f.collect()
+    assert len(rows) == 3
+    assert {r["id"] for r in rows} == {1, 2, 3}
 
 
 def test_query_dot_notation():
