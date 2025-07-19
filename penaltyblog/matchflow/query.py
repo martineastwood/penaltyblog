@@ -8,6 +8,7 @@ from .predicates_helpers import (
     not_,
     or_,
     where_contains,
+    where_endswith,
     where_equals,
     where_exists,
     where_gt,
@@ -18,6 +19,7 @@ from .predicates_helpers import (
     where_lte,
     where_not_equals,
     where_not_in,
+    where_startswith,
 )
 
 
@@ -154,6 +156,10 @@ def _convert_ast(node, local_vars: Dict[str, Any] = None):
 
         if method == "contains":
             return where_contains(field, *args)
+        elif method == "startswith":
+            return where_startswith(field, *args)
+        elif method == "endswith":
+            return where_endswith(field, *args)
         else:
             raise ValueError(f"Unsupported method call: {method}")
 

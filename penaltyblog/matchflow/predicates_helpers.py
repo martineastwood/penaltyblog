@@ -109,6 +109,18 @@ def where_contains(field: str, substring: str):
     )
 
 
+def where_startswith(field: str, prefix: str):
+    return FieldPredicate(
+        field, lambda v: (str(v) if v is not None else "").startswith(prefix)
+    )
+
+
+def where_endswith(field: str, suffix: str):
+    return FieldPredicate(
+        field, lambda v: (str(v) if v is not None else "").endswith(suffix)
+    )
+
+
 def where_exists(field: str):
     return FieldPredicate(field, lambda v: v is not None)
 

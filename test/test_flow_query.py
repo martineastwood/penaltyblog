@@ -90,9 +90,21 @@ def test_query_dot_notation():
 
 
 def test_query_contains():
-    f = make_flow().query("name.contains('Ali')")
+    f = make_flow().query("name.contains('li')")
     rows = f.collect()
-    assert all("Ali" in r["name"] for r in rows)
+    assert {r["name"] for r in rows} == {"Alice", "Charlie"}
+
+
+def test_query_startswith():
+    f = make_flow().query("name.startswith('A')")
+    rows = f.collect()
+    assert {r["name"] for r in rows} == {"Alice"}
+
+
+def test_query_endswith():
+    f = make_flow().query("name.endswith('e')")
+    rows = f.collect()
+    assert {r["name"] for r in rows} == {"Alice", "Charlie"}
 
 
 def test_query_is_null():
