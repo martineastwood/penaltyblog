@@ -163,7 +163,7 @@ class NegativeBinomialGoalModel(BaseGoalsModel):
             dispersion,
         )
 
-    def fit(self, minimizer_options: dict = None):
+    def fit(self, minimizer_options: dict = None, method: str = None):
         """
         Fits the Negative Binomial model to the data.
 
@@ -171,6 +171,9 @@ class NegativeBinomialGoalModel(BaseGoalsModel):
         ----------
         minimizer_options : dict, optional
             Dictionary of options to pass to scipy.optimize.minimize (e.g., maxiter, ftol, disp). Default is None.
+
+        method : str, optional
+            The method to use for optimization. Defaults to scipy's default method if left as None.
         """
         options = {"maxiter": 1000, "disp": False}
         if minimizer_options is not None:
@@ -188,6 +191,7 @@ class NegativeBinomialGoalModel(BaseGoalsModel):
                 bounds=bounds,
                 constraints=constraints,
                 options=options,
+                method=method,
                 # jac=self._gradient,
             )
 

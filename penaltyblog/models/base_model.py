@@ -126,7 +126,7 @@ class BaseGoalsModel(ABC):
             return pickle.load(f)
 
     @abstractmethod
-    def fit(self):
+    def fit(self, minimizer_options: dict = None, method: str = None):
         """
         Fits the model to the data.
 
