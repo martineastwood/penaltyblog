@@ -6,7 +6,6 @@ import numpy as np
 
 from penaltyblog.models.custom_types import (
     GoalInput,
-    ParamsOutput,
     TeamInput,
     WeightInput,
 )
@@ -72,11 +71,6 @@ class BaseGoalsModel(ABC):
             )
         if (self.goals_home < 0).any() or (self.goals_away < 0).any():
             raise ValueError("Goal counts must be non-negative.")
-
-        if len(self.weights) != n_matches:
-            raise ValueError(
-                "Weights array must have the same length as the number of matches."
-            )
 
         if self.teams_home.size == 0 or self.teams_away.size == 0:
             raise ValueError("Team arrays must not be empty.")
@@ -159,7 +153,7 @@ class BaseGoalsModel(ABC):
         Returns
         -------
         dict
-            A dictionary containing attack, defense, home advantage, and correlation parameters.
+            A dictionary of the fitted model parameters.
 
         Raises
         ------

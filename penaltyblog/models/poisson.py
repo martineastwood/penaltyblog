@@ -131,9 +131,9 @@ class PoissonGoalsModel(BaseGoalsModel):
             self.goals_away,
         )
 
-    def _fit(self, params):
+    def _loss_function(self, params):
         """
-        Internal method using Cython for speed.
+        The loss function to be minimized.
         """
         # Get params
         attack = np.asarray(params[: self.n_teams], dtype=np.double, order="C")
@@ -179,7 +179,7 @@ class PoissonGoalsModel(BaseGoalsModel):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             self._res = minimize(
-                self._fit,
+                self._loss_function,
                 self._params,
                 constraints=constraints,
                 bounds=bounds,
@@ -187,6 +187,9 @@ class PoissonGoalsModel(BaseGoalsModel):
                 method=method,
                 # jac=self._gradient,
             )
+
+        if not self._res.success:
+            raise ValueError(f"Optimization failed with message: {self._res.message}")
 
         self._params = self._res["x"]
         self.n_params = len(self._params)

@@ -22,8 +22,6 @@ def test_bivariate_minimizer_options(fixtures):
         df["goals_home"], df["goals_away"], df["team_home"], df["team_away"]
     )
     # With very low maxiter, expect ValueError due to iteration limit
-    import pytest
-
     with pytest.raises(ValueError) as excinfo:
         clf.fit(minimizer_options={"maxiter": 2, "disp": False})
     assert "Iteration limit reached" in str(excinfo.value)

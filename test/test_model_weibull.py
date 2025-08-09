@@ -26,14 +26,7 @@ def test_weibull_minimizer_options(fixtures):
     # Check that minimizer fails with low iterations
     with pytest.raises(ValueError) as excinfo:
         clf.fit(minimizer_options={"maxiter": 2, "disp": False})
-
-    # Check for multiple possible error messages
-    msg = str(excinfo.value)
-    assert (
-        "Iteration limit reached" in msg
-        or "STOP: TOTAL NO. of ITERATIONS" in msg
-        or "Optimization failed with message: STOP: TOTAL NO. of ITERATIONS" in msg
-    )
+    assert "Iteration limit reached" in str(excinfo.value)
 
     # Test successful fit and predictions
     clf = pb.models.WeibullCopulaGoalsModel(
