@@ -44,7 +44,7 @@ for pyx_path in rps_pyx:
 
 setup(
     name="penaltyblog",
-    version="1.1.0",
+    version="1.5.0",
     description="Library from http://pena.lt/y/blog for scraping and modelling football (soccer) data",
     packages=find_packages(
         include=["penaltyblog", "penaltyblog.*"],
@@ -55,14 +55,21 @@ setup(
         "beautifulsoup4",
         "cssselect",
         "cython",
-        "lxml",
         "html5lib",
         "ipywidgets",
+        "kaleido",
+        "lxml",
+        "matplotlib",
+        "networkx",
         "numpy",
+        "orjson",
         "pandas",
+        "plotly",
         "PuLP",
         "requests",
         "scipy",
+        "statsbombpy",
+        "tabulate",
         "tqdm",
     ],
 )

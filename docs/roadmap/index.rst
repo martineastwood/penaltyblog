@@ -19,9 +19,9 @@ MatchFlow
 - ☐ Docs: Writing custom helpers tutorial
 - ☐ Docs: More ``Flow`` recipes
 - ☐ Add plugin interface to make it easy to add in other data providers
-- ☐ Progress bars
-- ☐ Custom query DSL for natural quering - ``flow.query("player.name == 'Kevin de Bruyne'")``
-- ☐ Optimization of internal DAG plan
+- ☑ Progress bars
+- ☑ Custom query DSL for natural quering - ``flow.query("player.name == 'Kevin de Bruyne'")``
+- ☑ Optimization of internal DAG plan
 
 **Joins & I/O Enhancements**
 
@@ -31,14 +31,14 @@ MatchFlow
 
 **Rolling & Windowed Aggregates**
 
-- ☐ ``.rolling(...)`` and ``.expanding(...)`` on grouped flows
+- ☑ ``.rolling(...)`` and ``.expanding(...)`` on grouped flows
 - ☐ Support for **rolling summary** fields like moving average xG
 
 Plotting
 """"""""
 
-- ☐ Publish penaltyblog **plotting** library
-- ☐ Native support for **plotting Flow pipelines**
+- ☑ Publish penaltyblog **plotting** library
+- ☑ Native support for **plotting Flow pipelines**
 
 Models
 """""""""

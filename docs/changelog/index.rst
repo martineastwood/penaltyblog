@@ -15,8 +15,8 @@ Package Updates
 ---------------
 
 - Initial release of plotting library
-- `Flow` now supports it's own query language, with support for boolean expressions and field comparisons via ``.query``
-- All GoalsModel ``.fit`` functions now takes an optional dictionary of arguments to pass to scipy's optimiser
+- `Flow` now has it's own query language, with support for boolean expressions and field comparisons via ``.query``
+- All GoalsModel ``.fit`` functions now take an optional dictionary of arguments to pass to scipy's optimiser
 - All GoalsModels now fit using an optional gradient, which reduces the fit time by approx 5x
 
 Documentation Improvements
