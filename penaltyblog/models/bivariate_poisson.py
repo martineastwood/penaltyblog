@@ -12,6 +12,7 @@ from penaltyblog.models.football_probability_grid import (
     FootballProbabilityGrid,
 )
 
+from .gradients import bivariate_poisson_gradient
 from .loss import compute_bivariate_poisson_loss
 from .probabilities import compute_bivariate_poisson_probabilities
 
@@ -121,7 +122,30 @@ class BivariatePoissonGoalModel(BaseGoalsModel):
             correlation,
         )
 
-    def fit(self, minimizer_options: dict = None):
+    def _gradient(self, params: NDArray) -> NDArray:
+        """
+        Compute the gradient of the negative log-likelihood.
+        """
+        attack = np.asarray(params[: self.n_teams], dtype=np.double, order="C")
+        defence = np.asarray(
+            params[self.n_teams : 2 * self.n_teams], dtype=np.double, order="C"
+        )
+        hfa = params[-2]
+        correlation = params[-1]
+
+        return bivariate_poisson_gradient(
+            attack,
+            defence,
+            hfa,
+            correlation,
+            self.home_idx.astype(np.int64),
+            self.away_idx.astype(np.int64),
+            self.goals_home.astype(np.int64),
+            self.goals_away.astype(np.int64),
+            self.weights,
+        )
+
+    def fit(self, minimizer_options: dict = None, use_gradient: bool = True):
         """
         Fits the Bivariate Poisson model to the data.
 
@@ -129,11 +153,15 @@ class BivariatePoissonGoalModel(BaseGoalsModel):
         ----------
         minimizer_options : dict, optional
             Dictionary of options to pass to scipy.optimize.minimize (e.g., maxiter, ftol, disp). Default is None.
+        use_gradient : bool, optional
+            Whether to use analytical gradients for optimization. Default is True.
         """
         constraints = [
             {"type": "eq", "fun": lambda x: sum(x[: self.n_teams]) - self.n_teams}
         ]
         bnds = [(-3, 3)] * (2 * self.n_teams) + [(-2, 2), (-3, 3)]
+
+        gradient_func = self._gradient if use_gradient else None
 
         self._fit(
             self._loss_function,
@@ -141,6 +169,7 @@ class BivariatePoissonGoalModel(BaseGoalsModel):
             constraints,
             bnds,
             minimizer_options,
+            gradient_func,
         )
 
     def _compute_probabilities(
