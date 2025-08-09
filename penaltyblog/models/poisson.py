@@ -1,12 +1,8 @@
-import warnings
-
 import numpy as np
-from scipy.optimize import minimize
 
 from penaltyblog.models.base_model import BaseGoalsModel
 from penaltyblog.models.custom_types import (
     GoalInput,
-    ParamsOutput,
     TeamInput,
     WeightInput,
 )
