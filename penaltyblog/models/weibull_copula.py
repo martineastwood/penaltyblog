@@ -11,6 +11,7 @@ from penaltyblog.models.football_probability_grid import (
     FootballProbabilityGrid,
 )
 
+from .gradients import weibull_copula_gradient
 from .loss import compute_weibull_copula_loss
 from .probabilities import compute_weibull_copula_probabilities
 
@@ -150,7 +151,32 @@ class WeibullCopulaGoalsModel(BaseGoalsModel):
             self.max_goals,
         )
 
-    def fit(self, minimizer_options: dict = None):
+    def _gradient_function(self, params: NDArray) -> NDArray:
+        """Compute the gradient of the negative log-likelihood."""
+        # Extract parameters
+        attack = np.asarray(params[: self.n_teams], dtype=np.double, order="C")
+        defence = np.asarray(
+            params[self.n_teams : 2 * self.n_teams], dtype=np.double, order="C"
+        )
+        hfa = params[-3]
+        shape = params[-2]
+        kappa = params[-1]
+
+        return weibull_copula_gradient(
+            attack,
+            defence,
+            hfa,
+            shape,
+            kappa,
+            self.home_idx.astype(np.int64),
+            self.away_idx.astype(np.int64),
+            self.goals_home.astype(np.int64),
+            self.goals_away.astype(np.int64),
+            self.weights,
+            self.max_goals,
+        )
+
+    def fit(self, minimizer_options: dict = None, use_gradient: bool = True):
         """
         Fits the Weibull Copula model to the data.
 
@@ -158,6 +184,8 @@ class WeibullCopulaGoalsModel(BaseGoalsModel):
         ----------
         minimizer_options : dict, optional
             Dictionary of options to pass to scipy.optimize.minimize (e.g., maxiter, ftol, disp). Default is None.
+        use_gradient : bool, optional
+            Whether to use analytical gradients for optimization. Default is True.
 
         """
         # create bounds
@@ -179,12 +207,15 @@ class WeibullCopulaGoalsModel(BaseGoalsModel):
             {"type": "eq", "fun": lambda x: sum(x[: self.n_teams]) - self.n_teams}
         ]
 
+        gradient_func = self._gradient_function if use_gradient else None
+
         self._fit(
             self._loss_function,
             self._params,
             constraints,
             bnds,
             minimizer_options,
+            gradient_func,
         )
 
     def _compute_probabilities(

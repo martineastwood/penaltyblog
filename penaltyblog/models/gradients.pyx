@@ -6,6 +6,13 @@ from libc.math cimport exp, log
 
 import scipy.special
 
+from .utils cimport (
+    cdf_from_pmf,
+    compute_pxy,
+    precompute_alpha_table,
+    weibull_count_pmf,
+)
+
 
 # Inline wrapper for the Python psi (digamma) function.
 cdef inline double my_psi(double x):
@@ -398,3 +405,148 @@ def bivariate_poisson_gradient(
         grad_correlation += grad_lambda3 * lambda3
 
     return np.concatenate([grad_attack, grad_defence, [grad_hfa, grad_correlation]])
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
+@cython.nonecheck(False)
+@cython.initializedcheck(False)
+def weibull_copula_gradient(
+    cnp.ndarray[double, ndim=1] attack,
+    cnp.ndarray[double, ndim=1] defence,
+    double hfa,
+    double shape,
+    double kappa,
+    cnp.ndarray[long, ndim=1] home_idx,
+    cnp.ndarray[long, ndim=1] away_idx,
+    cnp.ndarray[long, ndim=1] goals_home,
+    cnp.ndarray[long, ndim=1] goals_away,
+    cnp.ndarray[double, ndim=1] weights,
+    int max_goals
+):
+    """
+    Compute the gradient of the negative log-likelihood for the Weibull Copula model.
+
+    This model uses Weibull count distributions for marginals coupled with a Frank copula.
+    The gradient computation involves:
+    1. Computing Weibull PMFs and their derivatives w.r.t. lambda and shape
+    2. Computing Frank copula derivatives w.r.t. kappa and marginal CDFs
+    3. Applying chain rule for all parameters
+    """
+    cdef int n_teams = attack.shape[0]
+    cdef int n_games = home_idx.shape[0]
+
+    # Allocate gradient arrays
+    cdef cnp.ndarray[double, ndim=1] grad_attack = np.zeros(n_teams, dtype=np.float64)
+    cdef cnp.ndarray[double, ndim=1] grad_defence = np.zeros(n_teams, dtype=np.float64)
+    cdef double grad_hfa = 0.0
+    cdef double grad_shape = 0.0
+    cdef double grad_kappa = 0.0
+
+    cdef int i, h, a, x_i, y_i
+    cdef double lambda_home, lambda_away, w
+    cdef double p_xy, grad_lambda_h, grad_lambda_a
+    cdef double grad_p_xy_lambda_h, grad_p_xy_lambda_a, grad_p_xy_shape, grad_p_xy_kappa
+    cdef double eps = 1e-6
+    cdef double lambda_home_plus, lambda_away_plus, shape_plus, p_xy_plus
+    cdef double grad_factor
+    cdef list pmf_home, pmf_away, cdf_home, cdf_away
+    cdef list pmf_home_plus, pmf_away_plus, cdf_home_plus, cdf_away_plus
+    cdef list alpha_table_plus
+
+    # Precompute alpha table for Weibull distribution
+    if shape <= 0:
+        # Return large gradients to push away from invalid region
+        grad_shape = 1e6
+        return np.concatenate([grad_attack, grad_defence, [grad_hfa, grad_shape, grad_kappa]])
+
+    cdef list alpha_table = precompute_alpha_table(shape, max_goals)
+    if alpha_table is None:
+        grad_shape = 1e6
+        return np.concatenate([grad_attack, grad_defence, [grad_hfa, grad_shape, grad_kappa]])
+
+    for i in range(n_games):
+        h = home_idx[i]
+        a = away_idx[i]
+        x_i = goals_home[i]
+        y_i = goals_away[i]
+        w = weights[i]
+
+        # Compute expected goals
+        lambda_home = exp(hfa + attack[h] + defence[a])
+        lambda_away = exp(attack[a] + defence[h])
+
+        # Compute Weibull PMFs and CDFs
+        pmf_home = weibull_count_pmf(lambda_home, alpha_table, max_goals)
+        pmf_away = weibull_count_pmf(lambda_away, alpha_table, max_goals)
+        cdf_home = cdf_from_pmf(pmf_home)
+        cdf_away = cdf_from_pmf(pmf_away)
+
+        # Compute joint probability for observed outcome
+        p_xy = compute_pxy(x_i, y_i, cdf_home, cdf_away, max_goals, kappa)
+        if p_xy < 1e-10:
+            p_xy = 1e-10
+
+        # Compute gradients of p_xy w.r.t. parameters using finite differences
+        # This is a numerical approximation due to the complexity of the Weibull-Frank copula
+
+        # Gradient w.r.t. lambda_home
+        lambda_home_plus = lambda_home + eps
+        pmf_home_plus = weibull_count_pmf(lambda_home_plus, alpha_table, max_goals)
+        cdf_home_plus = cdf_from_pmf(pmf_home_plus)
+        p_xy_plus = compute_pxy(x_i, y_i, cdf_home_plus, cdf_away, max_goals, kappa)
+        if p_xy_plus < 1e-10:
+            p_xy_plus = 1e-10
+        grad_p_xy_lambda_h = (p_xy_plus - p_xy) / eps
+
+        # Gradient w.r.t. lambda_away
+        lambda_away_plus = lambda_away + eps
+        pmf_away_plus = weibull_count_pmf(lambda_away_plus, alpha_table, max_goals)
+        cdf_away_plus = cdf_from_pmf(pmf_away_plus)
+        p_xy_plus = compute_pxy(x_i, y_i, cdf_home, cdf_away_plus, max_goals, kappa)
+        if p_xy_plus < 1e-10:
+            p_xy_plus = 1e-10
+        grad_p_xy_lambda_a = (p_xy_plus - p_xy) / eps
+
+        # Gradient w.r.t. kappa
+        p_xy_plus = compute_pxy(x_i, y_i, cdf_home, cdf_away, max_goals, kappa + eps)
+        if p_xy_plus < 1e-10:
+            p_xy_plus = 1e-10
+        grad_p_xy_kappa = (p_xy_plus - p_xy) / eps
+
+        # Gradient w.r.t. shape (more complex - affects alpha table)
+        shape_plus = shape + eps
+        if shape_plus > 0:
+            alpha_table_plus = precompute_alpha_table(shape_plus, max_goals)
+            if alpha_table_plus is not None:
+                pmf_home_plus = weibull_count_pmf(lambda_home, alpha_table_plus, max_goals)
+                pmf_away_plus = weibull_count_pmf(lambda_away, alpha_table_plus, max_goals)
+                cdf_home_plus = cdf_from_pmf(pmf_home_plus)
+                cdf_away_plus = cdf_from_pmf(pmf_away_plus)
+                p_xy_plus = compute_pxy(x_i, y_i, cdf_home_plus, cdf_away_plus, max_goals, kappa)
+                if p_xy_plus < 1e-10:
+                    p_xy_plus = 1e-10
+                grad_p_xy_shape = (p_xy_plus - p_xy) / eps
+            else:
+                grad_p_xy_shape = 0.0
+        else:
+            grad_p_xy_shape = 0.0
+
+        # Apply chain rule: d(-log L)/dp_xy = -1/p_xy
+        # Then d(-log L)/d(param) = d(-log L)/dp_xy * dp_xy/d(param)
+        grad_factor = -w / p_xy
+
+        # Update parameter gradients using chain rule
+        # d(lambda)/d(param) = lambda for attack, defence, hfa parameters
+        grad_attack[h] += grad_factor * grad_p_xy_lambda_h * lambda_home
+        grad_attack[a] += grad_factor * grad_p_xy_lambda_a * lambda_away
+        grad_defence[a] += grad_factor * grad_p_xy_lambda_h * lambda_home
+        grad_defence[h] += grad_factor * grad_p_xy_lambda_a * lambda_away
+        grad_hfa += grad_factor * grad_p_xy_lambda_h * lambda_home
+
+        # Direct gradients for shape and kappa
+        grad_shape += grad_factor * grad_p_xy_shape
+        grad_kappa += grad_factor * grad_p_xy_kappa
+
+    return np.concatenate([grad_attack, grad_defence, [grad_hfa, grad_shape, grad_kappa]])
