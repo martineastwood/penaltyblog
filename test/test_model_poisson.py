@@ -176,6 +176,45 @@ def test_gradient_function_correctness(fixtures):
 
 
 @pytest.mark.local
+def test_poisson_gradient_numerical_consistency(fixtures):
+    """Test that analytical gradient matches numerical gradient using scipy.optimize.check_grad."""
+    from scipy.optimize import check_grad
+
+    df = fixtures
+
+    clf = pb.models.PoissonGoalsModel(
+        df["goals_home"], df["goals_away"], df["team_home"], df["team_away"]
+    )
+
+    # Test gradient at initial parameters
+    initial_params = clf._params.copy()
+
+    # Use scipy's check_grad function to compare analytical vs numerical gradients
+    gradient_error = check_grad(
+        clf._loss_function,  # Function to differentiate
+        clf._gradient,  # Analytical gradient function
+        initial_params,  # Point at which to check
+        epsilon=1e-7,  # Step size for numerical differentiation
+    )
+
+    # check_grad returns the 2-norm of the difference between gradients
+    # For Poisson models, gradients should be simple and very accurate
+    assert gradient_error < 1e-4, f"Gradient error {gradient_error:.2e} is too large"
+
+    # Test at a different point with reasonable parameter values
+    test_params = initial_params.copy()
+    test_params[0] = 1.5  # Set first attack parameter to reasonable value
+
+    gradient_error_mid = check_grad(
+        clf._loss_function, clf._gradient, test_params, epsilon=1e-7
+    )
+
+    assert (
+        gradient_error_mid < 1e-4
+    ), f"Gradient error at test point {gradient_error_mid:.2e} is too large"
+
+
+@pytest.mark.local
 def test_default_gradient_behavior(fixtures):
     """Test that gradient is enabled by default."""
     df = fixtures

@@ -115,6 +115,8 @@ class NegativeBinomialGoalModel(BaseGoalsModel):
         hfa = params[-2]  # Home field advantage
         dispersion = params[-1]  # Dispersion parameter
 
+        # Note: negative_binomial_gradient computes the gradient of the negative log-likelihood,
+        # which is correct for minimization (unlike Poisson/Dixon-Coles which compute LL gradient)
         grad = negative_binomial_gradient(
             attack,
             defence,
@@ -127,7 +129,8 @@ class NegativeBinomialGoalModel(BaseGoalsModel):
             self.weights,
         )
 
-        return np.clip(grad, 1e-5, 100)
+        # Remove excessive clipping that can interfere with optimization
+        return grad
 
     def _loss_function(self, params: np.ndarray) -> float:
         """
@@ -166,7 +169,12 @@ class NegativeBinomialGoalModel(BaseGoalsModel):
             dispersion,
         )
 
-    def fit(self, minimizer_options: dict = None):
+    def fit(
+        self,
+        minimizer_options: dict = None,
+        method: str = None,
+        use_gradient: bool = True,
+    ):
         """
         Fits the Negative Binomial model to the data.
 
@@ -174,11 +182,21 @@ class NegativeBinomialGoalModel(BaseGoalsModel):
         ----------
         minimizer_options : dict, optional
             Dictionary of options to pass to scipy.optimize.minimize (e.g., maxiter, ftol, disp). Default is None.
+
+        method : str, optional
+            The method to use for optimization. Defaults to scipy's default method if left as None.
+
+        use_gradient : bool, optional
+            Whether to use the analytical gradient during optimization. Default is True.
+            Setting to False will use numerical gradients instead, which may be slower but sometimes more stable.
         """
         bounds = [(-2, 2)] * self.n_teams * 2 + [(-4, 4), (1e-5, 1000)]
         constraints = [
             {"type": "eq", "fun": lambda x: sum(x[: self.n_teams]) - self.n_teams}
         ]
+
+        # Use gradient if requested and available
+        jac = self._gradient if use_gradient else None
 
         self._fit(
             self._loss_function,
@@ -186,6 +204,7 @@ class NegativeBinomialGoalModel(BaseGoalsModel):
             constraints,
             bounds,
             minimizer_options,
+            jac,
         )
 
     def _compute_probabilities(

@@ -32,3 +32,14 @@ def negative_binomial_gradient(
     goals_away: NDArray[np.int64],
     weights: NDArray[np.float64],
 ) -> NDArray[np.float64]: ...
+def zero_inflated_poisson_gradient(
+    attack: NDArray[np.float64],
+    defence: NDArray[np.float64],
+    hfa: float,
+    zero_inflation: float,
+    home_idx: NDArray[np.int64],
+    away_idx: NDArray[np.int64],
+    goals_home: NDArray[np.int64],
+    goals_away: NDArray[np.int64],
+    weights: NDArray[np.float64],
+) -> NDArray[np.float64]: ...

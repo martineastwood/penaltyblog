@@ -134,6 +134,83 @@ cdef double neg_binom_logpmf(int k, double r, double p):
 @cython.cdivision(True)
 @cython.nonecheck(False)
 @cython.initializedcheck(False)
+def zero_inflated_poisson_gradient(
+    cnp.ndarray[double, ndim=1] attack,
+    cnp.ndarray[double, ndim=1] defence,
+    double hfa,
+    double zero_inflation,
+    cnp.ndarray[long, ndim=1] home_idx,
+    cnp.ndarray[long, ndim=1] away_idx,
+    cnp.ndarray[long, ndim=1] goals_home,
+    cnp.ndarray[long, ndim=1] goals_away,
+    cnp.ndarray[double, ndim=1] weights
+):
+    cdef int n_teams = attack.shape[0]
+    cdef int n_games = home_idx.shape[0]
+
+    # Allocate gradient arrays
+    cdef cnp.ndarray[double, ndim=1] grad_attack = np.zeros(n_teams, dtype=np.float64)
+    cdef cnp.ndarray[double, ndim=1] grad_defence = np.zeros(n_teams, dtype=np.float64)
+    cdef double grad_hfa = 0.0
+    cdef double grad_phi = 0.0
+
+    cdef int i, h, a
+    cdef long k_home, k_away
+    cdef double w
+    cdef double lambda_home, lambda_away
+    cdef double grad_lambda_h_contrib, grad_lambda_a_contrib
+    cdef double denom_h, denom_a
+
+    # phi is zero_inflation
+    cdef double phi = zero_inflation
+    if phi <= 1e-5:
+        phi = 1e-5
+    if phi >= 1 - 1e-5:
+        phi = 1 - 1e-5
+
+    for i in range(n_games):
+        h = home_idx[i]
+        a = away_idx[i]
+        k_home = goals_home[i]
+        k_away = goals_away[i]
+        w = weights[i]
+
+        lambda_home = exp(attack[h] + defence[a] + hfa)
+        lambda_away = exp(attack[a] + defence[h])
+
+        # Home goal contribution to gradient
+        if k_home == 0:
+            denom_h = phi + (1 - phi) * exp(-lambda_home)
+            grad_lambda_h_contrib = (1 - phi) * exp(-lambda_home) * lambda_home / denom_h
+            grad_phi += -(1 - exp(-lambda_home)) / denom_h * w
+        else:
+            grad_lambda_h_contrib = lambda_home - k_home
+            grad_phi += 1.0 / (1 - phi) * w
+
+        grad_attack[h] += grad_lambda_h_contrib * w
+        grad_defence[a] += grad_lambda_h_contrib * w
+        grad_hfa += grad_lambda_h_contrib * w
+
+        # Away goal contribution to gradient
+        if k_away == 0:
+            denom_a = phi + (1 - phi) * exp(-lambda_away)
+            grad_lambda_a_contrib = (1 - phi) * exp(-lambda_away) * lambda_away / denom_a
+            grad_phi += -(1 - exp(-lambda_away)) / denom_a * w
+        else:
+            grad_lambda_a_contrib = lambda_away - k_away
+            grad_phi += 1.0 / (1 - phi) * w
+
+        grad_attack[a] += grad_lambda_a_contrib * w
+        grad_defence[h] += grad_lambda_a_contrib * w
+
+    return np.concatenate([grad_attack, grad_defence, [grad_hfa, grad_phi]])
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
+@cython.nonecheck(False)
+@cython.initializedcheck(False)
 def negative_binomial_gradient(
     cnp.ndarray[double, ndim=1] attack,
     cnp.ndarray[double, ndim=1] defence,

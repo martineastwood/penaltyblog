@@ -16,6 +16,7 @@ from penaltyblog.models.football_probability_grid import (
     FootballProbabilityGrid,
 )
 
+from .gradients import zero_inflated_poisson_gradient
 from .loss import compute_zero_inflated_poisson_loss
 from .probabilities import compute_zero_inflated_poisson_probabilities
 
@@ -125,7 +126,32 @@ class ZeroInflatedPoissonGoalsModel(BaseGoalsModel):
             zero_inflation,
         )
 
-    def fit(self, minimizer_options: dict = None):
+    def _gradient(self, params: np.ndarray) -> np.ndarray:
+        attack = np.asarray(params[: self.n_teams], dtype=np.double, order="C")
+        defence = np.asarray(
+            params[self.n_teams : 2 * self.n_teams], dtype=np.double, order="C"
+        )
+        hfa = params[-2]
+        zero_inflation = params[-1]
+
+        return zero_inflated_poisson_gradient(
+            attack,
+            defence,
+            hfa,
+            zero_inflation,
+            self.home_idx,
+            self.away_idx,
+            self.goals_home,
+            self.goals_away,
+            self.weights,
+        )
+
+    def fit(
+        self,
+        minimizer_options: dict = None,
+        method: str = None,
+        use_gradient: bool = True,
+    ):
         """
         Fit the Zero-Inflated Poisson model using scipy.optimize.minimize.
 
@@ -134,11 +160,22 @@ class ZeroInflatedPoissonGoalsModel(BaseGoalsModel):
         minimizer_options : dict, optional
             Dictionary of options to pass to scipy.optimize.minimize (e.g., maxiter, ftol, disp). Default is None.
 
+        method : str, optional
+            The method to use for optimization. Defaults to scipy's default method if left as None.
+
+        use_gradient : bool, optional
+            Whether to use the analytical gradient during optimization. Default is True.
+            Setting to False will use numerical gradients instead, which may be slower but sometimes more stable.
         """
         constraints = [
             {"type": "eq", "fun": lambda x: sum(x[: self.n_teams]) - self.n_teams}
         ]
-        bounds = [(-3, 3)] * self.n_teams * 2 + [(0, 3)] + [(0, 1)]
+        # Zero inflation parameter should be unbounded since it's on probability scale (not logit)
+        # Based on the loss function, it appears to use direct probability, so keep bounds [0, 1]
+        bounds = [(-3, 3)] * self.n_teams * 2 + [(0, 3)] + [(1e-6, 1 - 1e-6)]
+
+        # Use gradient if requested and available
+        jac = self._gradient if use_gradient else None
 
         self._fit(
             self._loss_function,
@@ -146,6 +183,7 @@ class ZeroInflatedPoissonGoalsModel(BaseGoalsModel):
             constraints,
             bounds,
             minimizer_options,
+            jac,
         )
 
     def _compute_probabilities(
