@@ -186,10 +186,6 @@ def negative_binomial_gradient(
         grad_attack[a] += grad_away
         grad_defence[h] += grad_away
 
-        # For dispersion, the derivative for one observation is:
-        #   ∂(-ℓ)/∂dispersion = -ψ(k+dispersion) + ψ(dispersion)
-        #                        - ln(dispersion/(dispersion+lambda)) - 1
-        #                        + (dispersion+k)/(dispersion+lambda)
         term_disp_home = - my_psi(k_home + dispersion) + my_psi(dispersion) \
                          - log(dispersion / (dispersion + lambda_home)) - 1.0 \
                          + (dispersion + k_home) / (dispersion + lambda_home)

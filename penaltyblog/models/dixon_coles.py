@@ -116,8 +116,12 @@ class DixonColesGoalModel(BaseGoalsModel):
 
         return "\n".join(lines)
 
-    def __str__(self):
-        return self.__repr__()
+    def _get_param_names(self) -> list[str]:
+        return (
+            [f"attack_{t}" for t in self.teams]
+            + [f"defence_{t}" for t in self.teams]
+            + ["home_advantage", "rho"]
+        )
 
     def _gradient(self, params):
         attack = np.asarray(params[: self.n_teams], dtype=np.double, order="C")
@@ -127,7 +131,9 @@ class DixonColesGoalModel(BaseGoalsModel):
         hfa = params[-2]  # Home field advantage
         rho = params[-1]  # Dixon-Coles rho adjustment
 
-        return dixon_coles_gradient(
+        # Note: dixon_coles_gradient computes the gradient of the log-likelihood,
+        # but we're minimizing the negative log-likelihood, so we negate the gradient
+        return -dixon_coles_gradient(
             attack,
             defence,
             hfa,
@@ -163,7 +169,7 @@ class DixonColesGoalModel(BaseGoalsModel):
             rho,
         )
 
-    def fit(self, minimizer_options: dict = None, method: str = None):
+    def fit(self, minimizer_options: dict = None, use_gradient: bool = True):
         """
         Fits the model to the data and calculates the team strengths,
         home advantage and intercept. Must be called before `predict` can be used
@@ -173,16 +179,10 @@ class DixonColesGoalModel(BaseGoalsModel):
         minimizer_options : dict, optional
             Dictionary of options to pass to scipy.optimize.minimize (e.g., maxiter, ftol, disp). Default is None.
 
-        method : str, optional
-            The method to use for optimization. Defaults to scipy's default method if left as None.
+        use_gradient : bool, optional
+            Whether to use the analytical gradient during optimization. Default is True.
+            Setting to False will use numerical gradients instead, which may be slower but sometimes more stable.
         """
-        options = {
-            "maxiter": 1000,
-            "disp": False,
-        }
-        if minimizer_options is not None:
-            options.update(minimizer_options)
-
         constraints = [
             {
                 "type": "eq",
@@ -192,58 +192,21 @@ class DixonColesGoalModel(BaseGoalsModel):
 
         bounds = [(-3, 3)] * self.n_teams * 2 + [(0, 2), (-2, 2)]
 
-        with warnings.catch_warnings():
-            warnings.filterwarnings("ignore")
-            self._res = minimize(
-                self._loss_function,
-                self._params,
-                constraints=constraints,
-                bounds=bounds,
-                options=options,
-                method=method,
-                # jac=self._gradient,
-            )
+        # Use gradient if requested and available
+        jac = self._gradient if use_gradient else None
 
-        if not self._res.success:
-            raise ValueError(f"Optimization failed with message: {self._res.message}")
+        self._fit(
+            self._loss_function,
+            self._params,
+            constraints,
+            bounds,
+            minimizer_options,
+            jac,
+        )
 
-        self._params = self._res["x"]
-        self.n_params = len(self._params)
-        self.loglikelihood = self._res["fun"] * -1
-        self.aic = -2 * (self.loglikelihood) + 2 * self.n_params
-        self.fitted = True
-
-    def predict(
-        self, home_team: str, away_team: str, max_goals: int = 15
+    def _compute_probabilities(
+        self, home_idx: int, away_idx: int, max_goals: int
     ) -> FootballProbabilityGrid:
-        """
-        Predicts the probability of each scoreline for a given home and away team
-
-        Parameters
-        ----------
-        home_team : str
-            The name of the home team
-        away_team : str
-            The name of the away team
-        max_goals : int, optional
-            The maximum number of goals to consider, by default 15
-
-        Returns
-        -------
-        FootballProbabilityGrid
-            A FootballProbabilityGrid object containing the probabilities of each scoreline
-        """
-        if not self.fitted:
-            raise ValueError(
-                "Model's parameters have not been fit yet. Please call `fit()` first."
-            )
-
-        if home_team not in self.teams or away_team not in self.teams:
-            raise ValueError("Both teams must have been in the training data.")
-
-        home_idx = self.team_to_idx[home_team]
-        away_idx = self.team_to_idx[away_team]
-
         home_attack = self._params[home_idx]
         away_attack = self._params[away_idx]
         home_defense = self._params[home_idx + self.n_teams]
@@ -276,30 +239,3 @@ class DixonColesGoalModel(BaseGoalsModel):
         return FootballProbabilityGrid(
             score_matrix, float(lambda_home.item()), float(lambda_away.item())
         )
-
-    def get_params(self) -> ParamsOutput:
-        """
-        Returns the model's fitted parameters as a dictionary
-
-        Returns
-        -------
-        dict
-            A dict containing the model's parameters
-        """
-        if not self.fitted:
-            raise ValueError(
-                "Model's parameters have not been fit yet, please call the `fit()` function first"
-            )
-
-        assert self.n_params is not None
-        assert self._res is not None
-
-        params = dict(
-            zip(
-                ["attack_" + team for team in self.teams]
-                + ["defence_" + team for team in self.teams]
-                + ["home_advantage", "rho"],
-                self._params,
-            )
-        )
-        return params

@@ -1,8 +1,10 @@
 import pickle
+import warnings
 from abc import ABC, abstractmethod
 from typing import Any, Dict, Optional
 
 import numpy as np
+from scipy.optimize import minimize
 
 from penaltyblog.models.custom_types import (
     GoalInput,
@@ -119,8 +121,50 @@ class BaseGoalsModel(ABC):
         with open(filepath, "rb") as f:
             return pickle.load(f)
 
+    def _fit(
+        self,
+        loss_function,
+        params,
+        constraints,
+        bounds,
+        minimizer_options,
+        jac=None,
+    ):
+        """
+        Internal method to fit the model using scipy.optimize.minimize.
+
+        Parameters
+        ----------
+        jac : callable, optional
+            Gradient function. If provided, it will be passed to scipy.optimize.minimize
+            to potentially speed up optimization.
+        """
+        options = {"maxiter": 1000, "disp": False}
+        if minimizer_options is not None:
+            options.update(minimizer_options)
+
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            self._res = minimize(
+                loss_function,
+                params,
+                jac=jac,
+                constraints=constraints,
+                bounds=bounds,
+                options=options,
+            )
+
+        if not self._res.success:
+            raise ValueError(f"Optimization failed with message: {self._res.message}")
+
+        self._params = self._res["x"]
+        self.n_params = len(self._params)
+        self.loglikelihood = self._res["fun"] * -1
+        self.aic = -2 * (self.loglikelihood) + 2 * self.n_params
+        self.fitted = True
+
     @abstractmethod
-    def fit(self, minimizer_options: dict = None, method: str = None):
+    def fit(self, minimizer_options: dict = None):
         """
         Fits the model to the data.
 
@@ -128,21 +172,45 @@ class BaseGoalsModel(ABC):
         """
         raise NotImplementedError("Subclasses must implement this method.")
 
-    @abstractmethod
-    def predict(self, home_team: str, away_team: str, max_goals: int = 15):
+    def _predict(self, home_team: str, away_team: str) -> tuple[int, int]:
         """
-        Predicts the probability of each scoreline for a given match.
+        Internal method to perform pre-prediction checks.
+        """
+        if not self.fitted:
+            raise ValueError("Model is not yet fitted. Call `.fit()` first.")
 
-        Must be implemented by the subclass.
-        """
+        if home_team not in self.teams or away_team not in self.teams:
+            raise ValueError("Both teams must have been in the training data.")
+
+        home_idx = self.team_to_idx[home_team]
+        away_idx = self.team_to_idx[away_team]
+
+        return home_idx, away_idx
+
+    def predict(self, home_team: str, away_team: str, max_goals: int = 15):
+        home_idx, away_idx = self._predict(home_team, away_team)
+        return self._compute_probabilities(home_idx, away_idx, max_goals)
+
+    @abstractmethod
+    def _compute_probabilities(self, home_idx: int, away_idx: int, max_goals: int):
         raise NotImplementedError("Subclasses must implement this method.")
 
     @abstractmethod
+    def _get_param_names(self) -> list[str]:
+        """
+        Returns the names of the fitted parameters.
+        """
+        raise NotImplementedError("Subclasses must implement this method.")
+
     def get_params(self) -> Dict[str, Any]:
         """
         Returns the fitted parameters of the model.
         """
-        raise NotImplementedError("Subclasses must implement this method.")
+        if not self.fitted:
+            raise ValueError("Model is not yet fitted. Call `.fit()` first.")
+
+        param_names = self._get_param_names()
+        return dict(zip(param_names, self._params))
 
     @property
     def params(self) -> Dict[str, Any]:

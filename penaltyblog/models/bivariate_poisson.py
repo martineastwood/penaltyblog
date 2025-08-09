@@ -124,7 +124,7 @@ class BivariatePoissonGoalModel(BaseGoalsModel):
             correlation,
         )
 
-    def fit(self, minimizer_options: dict = None, method: str = None):
+    def fit(self, minimizer_options: dict = None):
         """
         Fits the Bivariate Poisson model to the data.
 
@@ -132,67 +132,23 @@ class BivariatePoissonGoalModel(BaseGoalsModel):
         ----------
         minimizer_options : dict, optional
             Dictionary of options to pass to scipy.optimize.minimize (e.g., maxiter, ftol, disp). Default is None.
-
-        method : str, optional
-            The method to use for optimization. Defaults to scipy's default method if left as None.
         """
-        options = {"maxiter": 1000, "disp": False}
-        if minimizer_options is not None:
-            options.update(minimizer_options)
         constraints = [
             {"type": "eq", "fun": lambda x: sum(x[: self.n_teams]) - self.n_teams}
         ]
         bnds = [(-3, 3)] * (2 * self.n_teams) + [(-2, 2), (-3, 3)]
 
-        with warnings.catch_warnings():
-            warnings.filterwarnings("ignore")
-            self._res = minimize(
-                self._loss_function,
-                self._params,
-                constraints=constraints,
-                bounds=bnds,
-                options=options,
-                method=method,
-            )
+        self._fit(
+            self._loss_function,
+            self._params,
+            constraints,
+            bnds,
+            minimizer_options,
+        )
 
-        if not self._res.success:
-            raise ValueError(f"Optimization failed with message: {self._res.message}")
-
-        self._params = self._res["x"]
-        self.n_params = len(self._params)
-        self.loglikelihood = self._res["fun"] * -1
-        self.aic = -2 * (self.loglikelihood) + 2 * self.n_params
-        self.fitted = True
-
-    def predict(
-        self, home_team: str, away_team: str, max_goals: int = 10
+    def _compute_probabilities(
+        self, home_idx: int, away_idx: int, max_goals: int
     ) -> FootballProbabilityGrid:
-        """
-        Predicts the probability of each scoreline for a given home and away team.
-
-        Parameters
-        ----------
-        home_team : str
-            The name of the home team
-        away_team : str
-            The name of the away team
-        max_goals : int, optional
-            The maximum number of goals to consider, by default 10
-
-        Returns
-        -------
-        FootballProbabilityGrid
-            A FootballProbabilityGrid object containing the probability of each scoreline
-        """
-        if not self.fitted:
-            raise ValueError("Model is not yet fitted. Call `.fit()` first.")
-
-        if home_team not in self.teams or away_team not in self.teams:
-            raise ValueError("Both teams must have been in the training data.")
-
-        home_idx = self.team_to_idx[home_team]
-        away_idx = self.team_to_idx[away_team]
-
         home_attack = self._params[home_idx]
         away_attack = self._params[away_idx]
         home_defense = self._params[home_idx + self.n_teams]
@@ -226,22 +182,17 @@ class BivariatePoissonGoalModel(BaseGoalsModel):
             score_matrix, float(lambda_home[0]), float(lambda_away[0])
         )
 
-    def get_params(self) -> ParamsOutput:
-        """
-        Return the fitted parameters in a dictionary.
-        """
-        if not self.fitted:
-            raise ValueError("Model is not yet fitted. Call `.fit()` first.")
-
-        # Construct dictionary
-        param_names = (
+    def _get_param_names(self) -> list[str]:
+        return (
             [f"attack_{t}" for t in self.teams]
             + [f"defense_{t}" for t in self.teams]
             + ["home_advantage", "correlation_log"]
         )
-        vals = list(self._params)
-        result = dict(zip(param_names, vals))
 
-        # Also show lambda3 explicitly
-        result["lambda3"] = np.exp(result["correlation_log"])
-        return result
+    def get_params(self) -> ParamsOutput:
+        """
+        Return the fitted parameters in a dictionary.
+        """
+        params = super().get_params()
+        params["lambda3"] = np.exp(params["correlation_log"])
+        return params

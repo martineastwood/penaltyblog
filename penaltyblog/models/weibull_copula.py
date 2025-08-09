@@ -123,7 +123,14 @@ class WeibullCopulaGoalsModel(BaseGoalsModel):
 
         return "\n".join(lines)
 
-    def _neg_log_likelihood(self, params: NDArray) -> float:
+    def _get_param_names(self) -> list[str]:
+        return (
+            [f"attack_{t}" for t in self.teams]
+            + [f"defense_{t}" for t in self.teams]
+            + ["home_advantage", "shape", "kappa"]
+        )
+
+    def _loss_function(self, params: NDArray) -> float:
         # Get params
         attack = np.asarray(params[: self.n_teams], dtype=np.double, order="C")
         defence = np.asarray(
@@ -147,7 +154,7 @@ class WeibullCopulaGoalsModel(BaseGoalsModel):
             self.max_goals,
         )
 
-    def fit(self, minimizer_options: dict = None, method: str = None):
+    def fit(self, minimizer_options: dict = None):
         """
         Fits the Weibull Copula model to the data.
 
@@ -156,8 +163,6 @@ class WeibullCopulaGoalsModel(BaseGoalsModel):
         minimizer_options : dict, optional
             Dictionary of options to pass to scipy.optimize.minimize (e.g., maxiter, ftol, disp). Default is None.
 
-        method : str, optional
-            The method to use for optimization. Defaults to scipy's default method if left as None.
         """
         # create bounds
         bnds = []
@@ -178,62 +183,17 @@ class WeibullCopulaGoalsModel(BaseGoalsModel):
             {"type": "eq", "fun": lambda x: sum(x[: self.n_teams]) - self.n_teams}
         ]
 
-        options = {"maxiter": 1000, "disp": False}
-        if minimizer_options is not None:
-            options.update(minimizer_options)
+        self._fit(
+            self._loss_function,
+            self._params,
+            constraints,
+            bnds,
+            minimizer_options,
+        )
 
-        with warnings.catch_warnings():
-            warnings.filterwarnings("ignore", category=RuntimeWarning)
-
-            self._res = minimize(
-                self._neg_log_likelihood,
-                x0=self._params,
-                bounds=bnds,
-                constraints=constraints,
-                options=options,
-                method=method,
-            )
-
-        if not self._res.success:
-            raise ValueError(f"Optimization failed with message: {self._res.message}")
-
-        self._params = self._res.x
-        self.n_params = len(self._params)
-        self.loglikelihood = -self._res.fun
-        self.aic = -2 * self.loglikelihood + 2 * self.n_params
-        self.fitted = True
-
-    def predict(
-        self, home_team: str, away_team: str, max_goals: int = 15
+    def _compute_probabilities(
+        self, home_idx: int, away_idx: int, max_goals: int
     ) -> FootballProbabilityGrid:
-        """
-        Predicts the probability of each market for a given home and away team.
-
-        Parameters
-        ----------
-        home_team : str
-            The name of the home team
-        away_team : str
-            The name of the away team
-        max_goals : int, optional
-            The maximum number of goals to consider, by default 15
-
-        Returns
-        -------
-        FootballProbabilityGrid
-            A FootballProbabilityGrid object containing the probability of each scoreline
-        """
-        if not self.fitted:
-            raise ValueError(
-                "Model's parameters have not been fit yet. Please call `fit()` first."
-            )
-
-        if home_team not in self.teams or away_team not in self.teams:
-            raise ValueError("Both teams must have been in the training data.")
-
-        home_idx = self.team_to_idx[home_team]
-        away_idx = self.team_to_idx[away_team]
-
         home_attack = self._params[home_idx]
         away_attack = self._params[away_idx]
         home_defense = self._params[home_idx + self.n_teams]
@@ -268,41 +228,3 @@ class WeibullCopulaGoalsModel(BaseGoalsModel):
         return FootballProbabilityGrid(
             score_matrix, float(lambda_home[0]), float(lambda_away[0])
         )
-
-    def get_params(self) -> ParamsOutput:
-        """
-        Return the fitted parameters in a dictionary.
-        """
-        if not self.fitted:
-            raise ValueError("Model is not yet fitted. Call `.fit()` first.")
-
-        assert self.n_params is not None
-
-        # Construct dictionary
-        param_names = (
-            [f"attack_{t}" for t in self.teams]
-            + [f"defense_{t}" for t in self.teams]
-            + ["home_advantage", "shape", "kappa"]
-        )
-        vals = list(self._params)
-        result = dict(zip(param_names, vals))
-
-        return result
-
-    @property
-    def params(self) -> dict:
-        """
-        Property to retrieve the fitted model parameters.
-        Same as `get_params()`, but allows attribute-like access.
-
-        Returns
-        -------
-        dict
-            A dictionary containing attack, defense, home advantage, and correlation parameters.
-
-        Raises
-        ------
-        ValueError
-            If the model has not been fitted yet.
-        """
-        return self.get_params()
