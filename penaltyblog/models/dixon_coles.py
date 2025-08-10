@@ -200,7 +200,7 @@ class DixonColesGoalModel(BaseGoalsModel):
         )
 
     def _compute_probabilities(
-        self, home_idx: int, away_idx: int, max_goals: int
+        self, home_idx: int, away_idx: int, max_goals: int, normalize: bool = False
     ) -> FootballProbabilityGrid:
         home_attack = self._params[home_idx]
         away_attack = self._params[away_idx]
@@ -232,5 +232,8 @@ class DixonColesGoalModel(BaseGoalsModel):
         score_matrix.shape = (max_goals, max_goals)
 
         return FootballProbabilityGrid(
-            score_matrix, float(lambda_home.item()), float(lambda_away.item())
+            score_matrix,
+            float(lambda_home.item()),
+            float(lambda_away.item()),
+            normalize=normalize,
         )

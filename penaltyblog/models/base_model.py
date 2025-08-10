@@ -187,12 +187,20 @@ class BaseGoalsModel(ABC):
 
         return home_idx, away_idx
 
-    def predict(self, home_team: str, away_team: str, max_goals: int = 15):
+    def predict(
+        self,
+        home_team: str,
+        away_team: str,
+        max_goals: int = 15,
+        normalize: bool = False,
+    ):
         home_idx, away_idx = self._predict(home_team, away_team)
-        return self._compute_probabilities(home_idx, away_idx, max_goals)
+        return self._compute_probabilities(home_idx, away_idx, max_goals, normalize)
 
     @abstractmethod
-    def _compute_probabilities(self, home_idx: int, away_idx: int, max_goals: int):
+    def _compute_probabilities(
+        self, home_idx: int, away_idx: int, max_goals: int, normalize: bool = False
+    ):
         raise NotImplementedError("Subclasses must implement this method.")
 
     @abstractmethod

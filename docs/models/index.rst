@@ -12,6 +12,7 @@ For users interested in understanding the underlying theory of these models, lin
    :caption: Examples:
 
    overview
+   football_prob_grid
    poisson
    bivariate_poisson
    zero_inflated_poisson

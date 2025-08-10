@@ -17,13 +17,15 @@ Package Updates
 - Initial release of plotting library
 - `Flow` now has it's own query language, with support for boolean expressions and field comparisons via ``.query``
 - All GoalsModel ``.fit`` functions now take an optional dictionary of arguments to pass to scipy's optimiser
-- All GoalsModels now fit using an optional gradient, which reduces the fit time by approx 5x
+- All GoalsModels now fit using an optional gradient, which reduces the fit time by approx 5-10x
+- Updated `FootballProbabilityGrid` to include more betting markets and handle fractional Asian handicaps
 
 Documentation Improvements
 ----------------------------
 
 - Added Pitch documentation
 - Updated Flow documentation with ``.query`` examples
+- Added overview of the Goals Models
 - Updated the Goals Models examples following the addition of the gradients
 
 v1.4.1 (2025-06-24)

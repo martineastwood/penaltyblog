@@ -208,7 +208,7 @@ class NegativeBinomialGoalModel(BaseGoalsModel):
         )
 
     def _compute_probabilities(
-        self, home_idx: int, away_idx: int, max_goals: int
+        self, home_idx: int, away_idx: int, max_goals: int, normalize: bool = False
     ) -> FootballProbabilityGrid:
         home_attack = self._params[home_idx]
         away_attack = self._params[away_idx]
@@ -240,5 +240,8 @@ class NegativeBinomialGoalModel(BaseGoalsModel):
         score_matrix.shape = (max_goals, max_goals)
 
         return FootballProbabilityGrid(
-            score_matrix, float(lambda_home[0]), float(lambda_away[0])
+            score_matrix,
+            float(lambda_home[0]),
+            float(lambda_away[0]),
+            normalize=normalize,
         )
