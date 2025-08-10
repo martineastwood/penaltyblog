@@ -1,4 +1,4 @@
-Predictive Models
+Goal Models
 ========================
 
 This section provides powerful statistical models for predicting the outcomes of football (soccer) matches.
@@ -11,6 +11,7 @@ For users interested in understanding the underlying theory of these models, lin
    :maxdepth: 1
    :caption: Examples:
 
+   overview
    poisson
    bivariate_poisson
    zero_inflated_poisson
