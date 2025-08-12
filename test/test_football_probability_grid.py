@@ -148,7 +148,7 @@ class TestCoreMarkets:
         """Test both teams to score (BTTS) market."""
         fpg = pb.models.FootballProbabilityGrid(normalized_grid, 1.5, 1.2)
 
-        btts = fpg.both_teams_to_score
+        btts = fpg.btts_yes
         btts_no = fpg.btts_no
 
         # Check types and values
@@ -173,7 +173,7 @@ class TestCoreMarkets:
 
         # BTTS occurs when both home and away > 0
         # BTTS scores: (1,1), (1,2), (2,1), (2,2) = 0.1 + 0.05 + 0.05 + 0.1 = 0.3
-        assert np.isclose(fpg.both_teams_to_score, 0.3, atol=1e-10)
+        assert np.isclose(fpg.btts_yes, 0.3, atol=1e-10)
         assert np.isclose(fpg.btts_no, 0.7, atol=1e-10)
 
 
@@ -598,7 +598,7 @@ def test_grid():
     assert isinstance(fpg.home_win, (float, np.float64))
     assert isinstance(fpg.draw, (float, np.float64))
     assert isinstance(fpg.away_win, (float, np.float64))
-    assert isinstance(fpg.both_teams_to_score, (float, np.float64))
+    assert isinstance(fpg.btts_yes, (float, np.float64))
     assert isinstance(fpg.home_draw_away, list)
     assert isinstance(fpg.total_goals("over", 1.5), (float, np.float64))
     assert isinstance(fpg.total_goals("under", 1.5), (float, np.float64))
