@@ -48,7 +48,7 @@ class FootballProbabilityGrid:
     goal_matrix: NDArray
     home_goal_expectation: float
     away_goal_expectation: float
-    normalize: bool = False
+    normalize: bool = True
 
     # Internal numeric tolerance
     _tolerance: float = 1e-9
@@ -119,14 +119,14 @@ class FootballProbabilityGrid:
     # Both Teams To Score and complements
     # ---------------------------------------------------------------------
     @property
-    def both_teams_to_score(self) -> float:
+    def btts_yes(self) -> float:
         """Probability that both teams score (H > 0 and A > 0)."""
         return self._sum_mask("btts", (self._I > 0) & (self._J > 0))
 
     @property
     def btts_no(self) -> float:
         """Probability that NOT both teams score (at least one team scores 0)."""
-        return 1.0 - self.both_teams_to_score
+        return 1.0 - self.btts_yes
 
     # ---------------------------------------------------------------------
     # Convenience markets often used by analysts

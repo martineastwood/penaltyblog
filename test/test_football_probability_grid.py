@@ -52,7 +52,7 @@ class TestFootballProbabilityGridInitialization:
         assert isinstance(fpg.grid, np.ndarray)
         assert fpg.home_goal_expectation == 1.5
         assert fpg.away_goal_expectation == 1.2
-        assert fpg.normalize is False  # default value
+        assert fpg.normalize is True  # default value
 
     def test_normalization_enabled(self, unnormalized_grid):
         """Test initialization with normalization enabled."""
@@ -282,7 +282,7 @@ class TestTotalsMarkets:
                 [0.1, 0.05, 0.1],  # Total goals: 2, 3, 4
             ]
         )
-        fpg = pb.models.FootballProbabilityGrid(matrix, 1.5, 1.2)
+        fpg = pb.models.FootballProbabilityGrid(matrix, 1.5, 1.2, normalize=False)
 
         # Manual calculation for totals(2.0):
         # Under 2 (total < 2): (0,0)=0, (0,1)=1 -> 0.1 + 0.2 = 0.3

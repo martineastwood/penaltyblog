@@ -14,19 +14,42 @@ v1.5.0 (2025-07-xx)
 Package Updates
 ---------------
 
-- Initial release of plotting library
-- `Flow` now has it's own query language, with support for boolean expressions and field comparisons via ``.query``
-- All GoalsModel ``.fit`` functions now take an optional dictionary of arguments to pass to scipy's optimiser
-- All GoalsModels now fit using an optional gradient, which reduces the fit time by approx 5-10x
-- Updated `FootballProbabilityGrid` to include more betting markets and handle fractional Asian handicaps
+- ``Pitch``
+
+  - Initial release of interactive ``Pitch`` plotting library
+
+- ``MatchFlow``
+
+  - ``Flow`` now has it's own query language, with support for boolean expressions and field comparisons via ``.query``
+
+- ``Goals Models``
+
+  - All Goals Model's ``.fit`` functions now take an optional dictionary of arguments to pass to scipy's optimiser
+  - All GoalsModels now fit using an optional gradient (defaults to True), which improves the fit time by approx 5-10x
+
+- ``FootballProbabilityGrid``
+
+  - Updated class to include more betting markets
+  - Now supports fractional Asian handicaps and totals
+  - Optionally normalizes probabilities to sum to 1 (default: True)
+  - Calculations now use vectorized numpy operations for improved performance
+  - Caching of results for repeated queries to improve efficiency
+
+- ``Goal Expectancy``
+
+  - Added support for removing overrounding from input probabilities
+  - Improved handling of edge cases in probability distributions
+  - Altered to using probabilities rather than odds
+  - Added more diagnostic output for debugging
+  - Optionally normalizes probabilities to sum to 1
 
 Documentation Improvements
 ----------------------------
 
 - Added Pitch documentation
 - Updated Flow documentation with ``.query`` examples
-- Added overview of the Goals Models
-- Updated the Goals Models examples following the addition of the gradients
+- Completely rewritten documentation for Goals Models and goal expectancy
+- Removed obsolete examples
 
 v1.4.1 (2025-06-24)
 ^^^^^^^^^^^^^^^^^^^^

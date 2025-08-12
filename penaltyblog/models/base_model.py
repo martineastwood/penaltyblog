@@ -15,13 +15,20 @@ from penaltyblog.models.custom_types import (
 
 class BaseGoalsModel(ABC):
     """
-    Base class for football prediction models.
+    Base class for football (soccer) goals prediction models.
 
-    Provides common functionality for football prediction models, including:
-      - Input validation
-      - Team setup (unique team list and mapping)
-      - Model persistence (save/load)
-      - Abstract methods for fit and predict
+    This abstract base class provides:
+      - Input validation and conversion to NumPy arrays
+      - Automatic team indexing for efficient lookups
+      - Optional weighting of historical matches
+      - Save/load persistence methods
+      - A common interface for fitting and predicting
+      - AIC and log-likelihood calculation after fitting
+
+    Subclasses must implement:
+      - `fit()`
+      - `_compute_probabilities()`
+      - `_get_param_names()`
     """
 
     def __init__(
@@ -32,7 +39,27 @@ class BaseGoalsModel(ABC):
         teams_away: TeamInput,
         weights: WeightInput = None,
     ):
-        # Convert inputs to numpy arrays
+        """
+        Initialise the BaseGoalsModel with match data.
+
+        Parameters
+        ----------
+        goals_home : GoalInput
+            Goals scored by the home team in each match.
+        goals_away : GoalInput
+            Goals scored by the away team in each match.
+        teams_home : TeamInput
+            Names of home teams for each match.
+        teams_away : TeamInput
+            Names of away teams for each match.
+        weights : WeightInput, optional
+            Match weights (e.g., from time decay). If None, all matches are weighted equally.
+
+        Raises
+        ------
+        ValueError
+            If the weight array length does not match the number of matches.
+        """
         self.goals_home = np.asarray(goals_home, dtype=np.int64, order="C")
         self.goals_away = np.asarray(goals_away, dtype=np.int64, order="C")
         self.teams_home = np.asarray(teams_home, dtype=str, order="C")
@@ -40,7 +67,6 @@ class BaseGoalsModel(ABC):
 
         n_matches = len(self.goals_home)
 
-        # Process weights: if None, create an array of 1s; else, validate its length
         if weights is None:
             self.weights = np.ones(n_matches, dtype=np.double, order="C")
         else:
@@ -53,7 +79,6 @@ class BaseGoalsModel(ABC):
         self._validate_inputs(n_matches)
         self._setup_teams()
 
-        # Common attributes for fitted state
         self.fitted: bool = False
         self.aic: Optional[float] = None
         self._res: Optional[Any] = None
@@ -61,7 +86,20 @@ class BaseGoalsModel(ABC):
         self.loglikelihood: Optional[float] = None
 
     def _validate_inputs(self, n_matches: int):
-        """Validates that all inputs have consistent dimensions and values."""
+        """
+        Validate that input arrays have consistent lengths and valid values.
+
+        Parameters
+        ----------
+        n_matches : int
+            Number of matches provided.
+
+        Raises
+        ------
+        ValueError
+            If input lengths are inconsistent, goal counts are negative,
+            or team arrays are empty.
+        """
         if not (
             len(self.goals_away)
             == len(self.teams_home)
@@ -73,12 +111,18 @@ class BaseGoalsModel(ABC):
             )
         if (self.goals_home < 0).any() or (self.goals_away < 0).any():
             raise ValueError("Goal counts must be non-negative.")
-
         if self.teams_home.size == 0 or self.teams_away.size == 0:
             raise ValueError("Team arrays must not be empty.")
 
     def _setup_teams(self):
-        """Set up unique teams and mappings for fast lookup."""
+        """
+        Build team lookup structures.
+
+        Creates:
+          - A sorted list of unique teams
+          - Mapping from team names to integer indices
+          - Arrays of home/away indices for each match
+        """
         self.teams = np.sort(
             np.unique(np.concatenate([self.teams_home, self.teams_away]))
         )
@@ -93,12 +137,12 @@ class BaseGoalsModel(ABC):
 
     def save(self, filepath: str):
         """
-        Saves the model to a file using pickle.
+        Save the fitted model to disk via pickle.
 
         Parameters
         ----------
         filepath : str
-            The path to the file where the model will be saved.
+            File path to save to.
         """
         with open(filepath, "wb") as f:
             pickle.dump(self, f)
@@ -106,17 +150,17 @@ class BaseGoalsModel(ABC):
     @classmethod
     def load(cls, filepath: str) -> Any:
         """
-        Loads a model from a file.
+        Load a model from a pickle file.
 
         Parameters
         ----------
         filepath : str
-            The path to the file from which the model will be loaded.
+            File path to load from.
 
         Returns
         -------
         Any
-            An instance of the model.
+            Loaded model instance.
         """
         with open(filepath, "rb") as f:
             return pickle.load(f)
@@ -131,13 +175,33 @@ class BaseGoalsModel(ABC):
         jac=None,
     ):
         """
-        Internal method to fit the model using scipy.optimize.minimize.
+        Optimise model parameters using `scipy.optimize.minimize`.
+
+        Also sets:
+          - `self.fitted`
+          - `self.aic`
+          - `self.loglikelihood`
+          - `self._params`
 
         Parameters
         ----------
+        loss_function : callable
+            Function to minimise (e.g., negative log-likelihood).
+        params : np.ndarray
+            Initial parameter guess.
+        constraints : dict or sequence of dict
+            Optimisation constraints.
+        bounds : sequence
+            Parameter bounds.
+        minimizer_options : dict
+            Extra arguments passed to the optimiser.
         jac : callable, optional
-            Gradient function. If provided, it will be passed to scipy.optimize.minimize
-            to potentially speed up optimization.
+            Gradient (Jacobian) function. If provided, may speed optimisation.
+
+        Raises
+        ------
+        ValueError
+            If optimisation fails.
         """
         options = {"maxiter": 1000, "disp": False}
         if minimizer_options is not None:
@@ -160,21 +224,43 @@ class BaseGoalsModel(ABC):
         self._params = self._res["x"]
         self.n_params = len(self._params)
         self.loglikelihood = self._res["fun"] * -1
-        self.aic = -2 * (self.loglikelihood) + 2 * self.n_params
+        self.aic = -2 * self.loglikelihood + 2 * self.n_params
         self.fitted = True
 
     @abstractmethod
     def fit(self, minimizer_options: dict = None):
         """
-        Fits the model to the data.
+        Fit the model to training data.
 
-        Must be implemented by the subclass.
+        Parameters
+        ----------
+        minimizer_options : dict, optional
+            Options to pass to the optimiser.
+
+        Must be implemented by subclasses.
         """
         raise NotImplementedError("Subclasses must implement this method.")
 
     def _predict(self, home_team: str, away_team: str) -> tuple[int, int]:
         """
-        Internal method to perform pre-prediction checks.
+        Perform checks before predicting and return team indices.
+
+        Parameters
+        ----------
+        home_team : str
+            Home team name.
+        away_team : str
+            Away team name.
+
+        Returns
+        -------
+        tuple[int, int]
+            Indices of home and away teams.
+
+        Raises
+        ------
+        ValueError
+            If model is not fitted or teams were not seen in training.
         """
         if not self.fitted:
             raise ValueError("Model is not yet fitted. Call `.fit()` first.")
@@ -184,7 +270,6 @@ class BaseGoalsModel(ABC):
 
         home_idx = self.team_to_idx[home_team]
         away_idx = self.team_to_idx[away_team]
-
         return home_idx, away_idx
 
     def predict(
@@ -192,27 +277,63 @@ class BaseGoalsModel(ABC):
         home_team: str,
         away_team: str,
         max_goals: int = 15,
-        normalize: bool = False,
+        normalize: bool = True,
     ):
+        """
+        Predict outcome probabilities for a given fixture.
+
+        Parameters
+        ----------
+        home_team : str
+            Home team name.
+        away_team : str
+            Away team name.
+        max_goals : int, default 15
+            Maximum goals per team to consider.
+        normalize : bool, default True
+            Whether to normalise the probability grid.
+
+        Returns
+        -------
+        FootballProbabilityGrid
+            Probability grid object for the match.
+        """
         home_idx, away_idx = self._predict(home_team, away_team)
         return self._compute_probabilities(home_idx, away_idx, max_goals, normalize)
 
     @abstractmethod
     def _compute_probabilities(
-        self, home_idx: int, away_idx: int, max_goals: int, normalize: bool = False
+        self, home_idx: int, away_idx: int, max_goals: int, normalize: bool = True
     ):
+        """
+        Compute the probability grid for a fixture.
+
+        Must be implemented by subclasses.
+        """
         raise NotImplementedError("Subclasses must implement this method.")
 
     @abstractmethod
     def _get_param_names(self) -> list[str]:
         """
-        Returns the names of the fitted parameters.
+        Return the parameter names for this model.
+
+        Must be implemented by subclasses.
         """
         raise NotImplementedError("Subclasses must implement this method.")
 
     def get_params(self) -> Dict[str, Any]:
         """
-        Returns the fitted parameters of the model.
+        Get the fitted model parameters as a dictionary.
+
+        Returns
+        -------
+        dict
+            Parameter names mapped to fitted values.
+
+        Raises
+        ------
+        ValueError
+            If the model is not fitted.
         """
         if not self.fitted:
             raise ValueError("Model is not yet fitted. Call `.fit()` first.")
@@ -223,17 +344,18 @@ class BaseGoalsModel(ABC):
     @property
     def params(self) -> Dict[str, Any]:
         """
-        Property to retrieve the fitted model parameters.
-        Same as `get_params()`, but allows attribute-like access.
+        Fitted parameters as a property.
+
+        Equivalent to `.get_params()`.
 
         Returns
         -------
         dict
-            A dictionary of the fitted model parameters.
+            Parameter names mapped to fitted values.
 
         Raises
         ------
         ValueError
-            If the model has not been fitted yet.
+            If the model is not fitted.
         """
         return self.get_params()

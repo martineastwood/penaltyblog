@@ -13,13 +13,7 @@ For users interested in understanding the underlying theory of these models, lin
 
    overview
    football_prob_grid
-   poisson
-   bivariate_poisson
-   zero_inflated_poisson
-   dixon_coles
-   negative_binomial
-   weibull_copula
-   time_weighting
+   example
    goal_expectancy
 
 
