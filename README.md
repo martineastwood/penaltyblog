@@ -68,7 +68,7 @@ It combines advanced statistical models, efficient implementations (via **Cython
 
 Built by [Martin Eastwood](https://pena.lt/y/about), who has worked with football clubs, governing bodies, and player agencies worldwide, `penaltyblog` is the foundation for football analytics.
 
-Whether you're a club analyst, independent researcher, or just data-curious, `penaltyblog` gives you the tools to go from data to insight — fast, flexibly, and with confidence.
+Whether you're a club analyst, independent researcher, or just data-curious, `penaltyblog` gives you the tools to go from data to insight - fast, flexibly, and with confidence.
 
 ## Support & Collaboration
 
