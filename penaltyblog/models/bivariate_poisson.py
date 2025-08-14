@@ -138,10 +138,10 @@ class BivariatePoissonGoalModel(BaseGoalsModel):
             defence,
             hfa,
             correlation,
-            self.home_idx.astype(np.int64),
-            self.away_idx.astype(np.int64),
-            self.goals_home.astype(np.int64),
-            self.goals_away.astype(np.int64),
+            self.home_idx,
+            self.away_idx,
+            self.goals_home,
+            self.goals_away,
             self.weights,
         )
 

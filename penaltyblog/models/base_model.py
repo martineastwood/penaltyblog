@@ -60,8 +60,8 @@ class BaseGoalsModel(ABC):
         ValueError
             If the weight array length does not match the number of matches.
         """
-        self.goals_home = np.asarray(goals_home, dtype=np.int64, order="C")
-        self.goals_away = np.asarray(goals_away, dtype=np.int64, order="C")
+        self.goals_home = np.asarray(goals_home, dtype=np.int_, order="C")
+        self.goals_away = np.asarray(goals_away, dtype=np.int_, order="C")
         self.teams_home = np.asarray(teams_home, dtype=str, order="C")
         self.teams_away = np.asarray(teams_away, dtype=str, order="C")
 
@@ -129,10 +129,10 @@ class BaseGoalsModel(ABC):
         self.n_teams = len(self.teams)
         self.team_to_idx = {team: i for i, team in enumerate(self.teams)}
         self.home_idx = np.array(
-            [self.team_to_idx[t] for t in self.teams_home], dtype=np.int64, order="C"
+            [self.team_to_idx[t] for t in self.teams_home], dtype=np.int_, order="C"
         )
         self.away_idx = np.array(
-            [self.team_to_idx[t] for t in self.teams_away], dtype=np.int64, order="C"
+            [self.team_to_idx[t] for t in self.teams_away], dtype=np.int_, order="C"
         )
 
     def save(self, filepath: str):
