@@ -1,4 +1,5 @@
 import pickle
+import platform
 import warnings
 from abc import ABC, abstractmethod
 from typing import Any, Dict, Optional
@@ -11,6 +12,20 @@ from penaltyblog.models.custom_types import (
     TeamInput,
     WeightInput,
 )
+
+
+# Platform-specific integer type for Cython compatibility
+def _get_cython_long_dtype():
+    """
+    Get the correct NumPy dtype that matches Cython's 'long' type.
+
+    On Windows, Cython's 'long' is 32-bit (int32).
+    On Unix/Linux/macOS, Cython's 'long' is 64-bit (int64).
+    """
+    if platform.system() == "Windows":
+        return np.int32
+    else:
+        return np.int64
 
 
 class BaseGoalsModel(ABC):
@@ -60,8 +75,10 @@ class BaseGoalsModel(ABC):
         ValueError
             If the weight array length does not match the number of matches.
         """
-        self.goals_home = np.asarray(goals_home, dtype=np.int_, order="C")
-        self.goals_away = np.asarray(goals_away, dtype=np.int_, order="C")
+        # Use platform-specific integer type for Cython compatibility
+        cython_long_dtype = _get_cython_long_dtype()
+        self.goals_home = np.asarray(goals_home, dtype=cython_long_dtype, order="C")
+        self.goals_away = np.asarray(goals_away, dtype=cython_long_dtype, order="C")
         self.teams_home = np.asarray(teams_home, dtype=str, order="C")
         self.teams_away = np.asarray(teams_away, dtype=str, order="C")
 
@@ -128,11 +145,17 @@ class BaseGoalsModel(ABC):
         )
         self.n_teams = len(self.teams)
         self.team_to_idx = {team: i for i, team in enumerate(self.teams)}
+        # Use platform-specific integer type for Cython compatibility
+        cython_long_dtype = _get_cython_long_dtype()
         self.home_idx = np.array(
-            [self.team_to_idx[t] for t in self.teams_home], dtype=np.int_, order="C"
+            [self.team_to_idx[t] for t in self.teams_home],
+            dtype=cython_long_dtype,
+            order="C",
         )
         self.away_idx = np.array(
-            [self.team_to_idx[t] for t in self.teams_away], dtype=np.int_, order="C"
+            [self.team_to_idx[t] for t in self.teams_away],
+            dtype=cython_long_dtype,
+            order="C",
         )
 
     def save(self, filepath: str):
