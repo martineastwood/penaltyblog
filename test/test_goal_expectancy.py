@@ -181,35 +181,35 @@ class TestGoalExpectancyDeoverround:
         original_sum = home + draw + away
         assert original_sum > 1.0  # Verify overround exists
 
-        # Test with deoverround=True
+        # Test with remove_overround=True
         result = pb.models.goal_expectancy(
-            home, draw, away, deoverround=True, dc_adj=False
+            home, draw, away, remove_overround=True, dc_adj=False
         )
         assert result["success"] is True
 
-        # Test with deoverround=False (should still work but may have higher error)
+        # Test with remove_overround=False (should still work but may have higher error)
         result_no_deoverround = pb.models.goal_expectancy(
-            home, draw, away, deoverround=False, dc_adj=False
+            home, draw, away, remove_overround=False, dc_adj=False
         )
         assert result_no_deoverround["success"] is True
 
-        # Deoverround should generally give better fit
+        # Remove overround should generally give better fit
         assert result["error"] <= result_no_deoverround["error"]
 
     def test_deoverround_zero_sum_error(self):
-        """Test that zero-sum probabilities with deoverround=True raise error."""
+        """Test that zero-sum probabilities with remove_overround=True raise error."""
         with pytest.raises(
-            ValueError, match="Sum of probabilities must be > 0 to deoverround"
+            ValueError, match="Sum of probabilities must be > 0 to remove_overround"
         ):
-            pb.models.goal_expectancy(0.0, 0.0, 0.0, deoverround=True)
+            pb.models.goal_expectancy(0.0, 0.0, 0.0, remove_overround=True)
 
     def test_deoverround_preserves_ratios(self, unnormalized_probs):
-        """Test that deoverround preserves relative probability ratios."""
+        """Test that remove_overround preserves relative probability ratios."""
         home, draw, away = unnormalized_probs
         original_ratio = home / away
 
         result = pb.models.goal_expectancy(
-            home, draw, away, deoverround=True, dc_adj=False, return_details=True
+            home, draw, away, remove_overround=True, dc_adj=False, return_details=True
         )
 
         predicted_home, predicted_draw, predicted_away = result["predicted"]
