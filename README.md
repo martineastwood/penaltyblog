@@ -40,6 +40,7 @@
 - 🏆 **Rank Teams:** Evaluate team strengths with sophisticated methods including Elo, Massey, Colley, and Pi ratings.
 - 📈 **Decode Bookmaker Odds:** Accurately extract implied probabilities by removing bookmaker margins (overrounds).
 - 🎯 **Fantasy Football Optimisation:** Mathematically optimize your fantasy football squad to maximize performance.
+- 🎨 **Visualize with Style:** Create publication-ready pitch visualizations and data flow diagrams with customizable themes, supporting multiple data providers and flexible layouts.
 
 Take your football analytics and betting strategy to the next level with **penaltyblog** 🚀
 
