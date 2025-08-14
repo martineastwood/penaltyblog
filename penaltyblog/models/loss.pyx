@@ -25,11 +25,11 @@ from .utils cimport (
 @cython.cdivision(True)
 @cython.nonecheck(False)
 @cython.initializedcheck(False)
-def poisson_loss_function(np.int64_t[:] goals_home,
-                          np.int64_t[:] goals_away,
+def poisson_loss_function(long[:] goals_home,
+                          long[:] goals_away,
                           np.float64_t[:] weights,
-                          np.int64_t[:] home_indices,
-                          np.int64_t[:] away_indices,
+                          long[:] home_indices,
+                          long[:] away_indices,
                           np.float64_t[:] attack,
                           np.float64_t[:] defence,
                           double hfa) -> double:
@@ -79,11 +79,11 @@ def poisson_loss_function(np.int64_t[:] goals_home,
 @cython.cdivision(True)
 @cython.nonecheck(False)
 @cython.initializedcheck(False)
-cpdef double dixon_coles_loss_function(np.int64_t[:] goals_home,
-                                         np.int64_t[:] goals_away,
+cpdef double dixon_coles_loss_function(long[:] goals_home,
+                                         long[:] goals_away,
                                          np.float64_t[:] weights,
-                                         np.int64_t[:] home_indices,
-                                         np.int64_t[:] away_indices,
+                                         long[:] home_indices,
+                                         long[:] away_indices,
                                          np.float64_t[:] attack,
                                          np.float64_t[:] defence,
                                          double hfa,
@@ -144,11 +144,11 @@ cpdef double dixon_coles_loss_function(np.int64_t[:] goals_home,
 @cython.cdivision(True)
 @cython.nonecheck(False)
 @cython.initializedcheck(False)
-cpdef double compute_negative_binomial_loss(np.int64_t[:] goals_home,
-                                         np.int64_t[:] goals_away,
+cpdef double compute_negative_binomial_loss(long[:] goals_home,
+                                         long[:] goals_away,
                                          np.float64_t[:] weights,
-                                         np.int64_t[:] home_indices,
-                                         np.int64_t[:] away_indices,
+                                         long[:] home_indices,
+                                         long[:] away_indices,
                                          np.float64_t[:] attack,
                                          np.float64_t[:] defence,
                                          double hfa,
@@ -207,11 +207,11 @@ cpdef double compute_negative_binomial_loss(np.int64_t[:] goals_home,
 @cython.cdivision(True)
 @cython.nonecheck(False)
 @cython.initializedcheck(False)
-cpdef double compute_zero_inflated_poisson_loss(np.int64_t[:] goals_home,
-                                         np.int64_t[:] goals_away,
+cpdef double compute_zero_inflated_poisson_loss(long[:] goals_home,
+                                         long[:] goals_away,
                                          np.float64_t[:] weights,
-                                         np.int64_t[:] home_indices,
-                                         np.int64_t[:] away_indices,
+                                         long[:] home_indices,
+                                         long[:] away_indices,
                                          np.float64_t[:] attack,
                                          np.float64_t[:] defence,
                                          double hfa,
@@ -269,11 +269,11 @@ cpdef double compute_zero_inflated_poisson_loss(np.int64_t[:] goals_home,
 @cython.cdivision(True)
 @cython.nonecheck(False)
 @cython.initializedcheck(False)
-cpdef double compute_bivariate_poisson_loss(np.int64_t[:] goals_home,
-                                         np.int64_t[:] goals_away,
+cpdef double compute_bivariate_poisson_loss(long[:] goals_home,
+                                         long[:] goals_away,
                                          np.float64_t[:] weights,
-                                         np.int64_t[:] home_indices,
-                                         np.int64_t[:] away_indices,
+                                         long[:] home_indices,
+                                         long[:] away_indices,
                                          np.float64_t[:] attack,
                                          np.float64_t[:] defence,
                                          double hfa,
@@ -356,11 +356,11 @@ cpdef double compute_bivariate_poisson_loss(np.int64_t[:] goals_home,
 @cython.cdivision(True)
 @cython.nonecheck(False)
 @cython.initializedcheck(False)
-cpdef double compute_weibull_copula_loss(np.int64_t[:] goals_home,
-                                         np.int64_t[:] goals_away,
+cpdef double compute_weibull_copula_loss(long[:] goals_home,
+                                         long[:] goals_away,
                                          np.float64_t[:] weights,
-                                         np.int64_t[:] home_indices,
-                                         np.int64_t[:] away_indices,
+                                         long[:] home_indices,
+                                         long[:] away_indices,
                                          np.float64_t[:] attack,
                                          np.float64_t[:] defence,
                                          double hfa,

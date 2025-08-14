@@ -33,7 +33,7 @@ cdef inline double zip_poisson_pmf(int k, double lam, double zi):
         return (1 - zi) * poisson_pmf(k, lam)
 
 
-cdef inline int compute_max_goal(np.int64_t[:] goalsHome, np.int64_t[:] goalsAway, int nMatches):
+cdef inline int compute_max_goal(long[:] goalsHome, long[:] goalsAway, int nMatches):
     cdef int i, max_val = 0, temp
     for i in range(nMatches):
         temp = goalsHome[i]
