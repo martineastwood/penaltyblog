@@ -7,6 +7,13 @@ Version Numbering
 ``penaltyblog`` follows the SemVer versioning guidelines. For more information,
 see `semver.org <http://semver.org/>`_
 
+v1.5.1 (2025-08-20)
+^^^^^^^^^^^^^^^^^^^^
+
+Package Updates
+---------------
+
+- Restricted ``scipy`` to version ``<=1.15.3`` due to breaking changes in the ``minimize`` function introduced in ``1.16+``, which affect model compatibility.
 
 v1.5.0 (2025-08-15)
 ^^^^^^^^^^^^^^^^^^^^

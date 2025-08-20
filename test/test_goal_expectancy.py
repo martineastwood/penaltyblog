@@ -117,34 +117,34 @@ class TestGoalExpectancyInputValidation:
     def test_negative_probabilities(self):
         """Test that negative probabilities raise ValueError."""
         with pytest.raises(
-            ValueError, match="home/draw/away must be probabilities in \[0, 1\]"
+            ValueError, match=r"home/draw/away must be probabilities in \[0, 1\]"
         ):
             pb.models.goal_expectancy(-0.1, 0.5, 0.5)
 
         with pytest.raises(
-            ValueError, match="home/draw/away must be probabilities in \[0, 1\]"
+            ValueError, match=r"home/draw/away must be probabilities in \[0, 1\]"
         ):
             pb.models.goal_expectancy(0.3, -0.2, 0.9)
 
         with pytest.raises(
-            ValueError, match="home/draw/away must be probabilities in \[0, 1\]"
+            ValueError, match=r"home/draw/away must be probabilities in \[0, 1\]"
         ):
             pb.models.goal_expectancy(0.3, 0.2, -0.1)
 
     def test_probabilities_greater_than_one(self):
         """Test that probabilities > 1 raise ValueError."""
         with pytest.raises(
-            ValueError, match="home/draw/away must be probabilities in \[0, 1\]"
+            ValueError, match=r"home/draw/away must be probabilities in \[0, 1\]"
         ):
             pb.models.goal_expectancy(1.1, 0.3, 0.2)
 
         with pytest.raises(
-            ValueError, match="home/draw/away must be probabilities in \[0, 1\]"
+            ValueError, match=r"home/draw/away must be probabilities in \[0, 1\]"
         ):
             pb.models.goal_expectancy(0.3, 1.5, 0.2)
 
         with pytest.raises(
-            ValueError, match="home/draw/away must be probabilities in \[0, 1\]"
+            ValueError, match=r"home/draw/away must be probabilities in \[0, 1\]"
         ):
             pb.models.goal_expectancy(0.3, 0.2, 1.2)
 
@@ -188,9 +188,11 @@ class TestGoalExpectancyDeoverround:
         assert result["success"] is True
 
         # Test with remove_overround=False (should still work but may have higher error)
-        result_no_deoverround = pb.models.goal_expectancy(
-            home, draw, away, remove_overround=False, dc_adj=False
-        )
+        # This should trigger a warning about probabilities not summing to 1.0
+        with pytest.warns(UserWarning, match="Input probabilities do not sum to 1.0"):
+            result_no_deoverround = pb.models.goal_expectancy(
+                home, draw, away, remove_overround=False, dc_adj=False
+            )
         assert result_no_deoverround["success"] is True
 
         # Remove overround should generally give better fit
