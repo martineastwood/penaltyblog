@@ -1,6 +1,6 @@
 [project]
 name = "penaltyblog"
-version = "1.5.0"
+version = "1.5.1"
 description = "Football (soccer) Data & Modelling Made Easy"
 authors = [{ name = "Martin Eastwood", email = "martin.eastwood@gmx.com" }]
 readme = "README.md"
