@@ -5,6 +5,8 @@ from typing import TYPE_CHECKING, Any, Dict, Iterator, cast
 if TYPE_CHECKING:
     from ..flow import Flow
 
+import fsspec
+
 try:
     import orjson as _json_lib_orjson
 
@@ -26,6 +28,36 @@ except ImportError:
 
     def json_loads(b):
         return _json_lib_std.loads(b.decode("utf-8"))
+
+
+def _handle_missing_dependency(path: str) -> None:
+    """
+    Check if required cloud storage dependencies are installed and provide helpful error messages.
+
+    Args:
+        path (str): The path being accessed
+
+    Raises:
+        ImportError: If required dependency is missing
+    """
+    protocol_mapping = {
+        "s3://": "s3fs",
+        "gs://": "gcsfs",
+        "gcs://": "gcsfs",
+        "azure://": "adlfs",
+        "abfs://": "adlfs",
+        "abfss://": "adlfs",
+    }
+
+    for protocol, package in protocol_mapping.items():
+        if path.startswith(protocol):
+            try:
+                __import__(package)
+            except ImportError:
+                raise ImportError(
+                    f"To access {protocol} paths, install {package}: pip install {package}"
+                ) from None
+            break
 
 
 def dispatch(step) -> "Flow":
@@ -68,24 +100,43 @@ def from_folder(step) -> Iterator[Dict[Any, Any]]:
     Create a Flow from a folder of JSON or JSONL files.
 
     Args:
-        step (dict): A dictionary containing the path to the folder.
+        step (dict): A dictionary containing:
+            - path (str): The path to the folder containing the records.
+            - storage_options (dict, optional): Additional options for cloud storage backends.
+                For S3: {"key": "access_key", "secret": "secret_key", "endpoint_url": "url"}
+                For GCS: {"token": "path/to/token.json"}
+                For Azure: {"account_name": "name", "account_key": "key"}
 
     Returns:
         Iterator[dict]: A new Flow streaming matching files.
     """
     folder = step["path"]
+    storage_options = step.get("storage_options", {})
     file_exts = (".json", ".jsonl")  # now explicitly includes .jsonl
 
-    for filename in os.listdir(folder):
-        if not filename.endswith(file_exts):
+    # Check dependencies for cloud storage
+    _handle_missing_dependency(folder)
+
+    # Use fsspec to list files in the directory
+    fs = fsspec.filesystem(
+        fsspec.utils.infer_storage_options(folder, **storage_options)["protocol"],
+        **storage_options,
+    )
+
+    for filename in fs.ls(folder, detail=False):
+        basename = os.path.basename(filename)
+        if not basename.endswith(file_exts):
             continue
 
-        path = os.path.join(folder, filename)
+        # Create child steps with storage_options passed through
+        child_step = {"path": filename}
+        if storage_options:
+            child_step["storage_options"] = storage_options
 
-        if filename.endswith(".jsonl"):
-            yield from from_jsonl({"path": path})
-        elif filename.endswith(".json"):
-            yield from from_json({"path": path})
+        if basename.endswith(".jsonl"):
+            yield from from_jsonl(child_step)
+        elif basename.endswith(".json"):
+            yield from from_json(child_step)
 
 
 def from_json(step) -> Iterator[Dict[Any, Any]]:
@@ -93,19 +144,32 @@ def from_json(step) -> Iterator[Dict[Any, Any]]:
     Create a Flow from a JSON file.
 
     Args:
-        step (dict): A dictionary containing the path to the JSON file.
+        step (dict): A dictionary containing:
+            - path (str): The path to the JSON file.
+            - storage_options (dict, optional): Additional options for cloud storage backends.
+                For S3: {"key": "access_key", "secret": "secret_key", "endpoint_url": "url"}
+                For GCS: {"token": "path/to/token.json"}
+                For Azure: {"account_name": "name", "account_key": "key"}
 
     Returns:
         Iterator[dict]: A new Flow streaming matching files.
     """
     path = step["path"]
+    storage_options = step.get("storage_options", {})
+
+    # Check dependencies for cloud storage
+    _handle_missing_dependency(path)
+
     mode = "rb" if BINARY else "r"
 
-    with open(path, mode) as f:
+    with fsspec.open(path, mode, **storage_options) as f:
         data = json_load(f)
-        if not isinstance(data, list):
-            raise ValueError("Expected top-level list in JSON file")
-        yield from data
+        if isinstance(data, list):
+            yield from data
+        elif isinstance(data, dict):
+            yield data
+        else:
+            raise ValueError("JSON file must contain either a list or a single dict")
 
 
 def from_jsonl(step) -> Iterator[Dict[Any, Any]]:
@@ -113,15 +177,25 @@ def from_jsonl(step) -> Iterator[Dict[Any, Any]]:
     Create a Flow from a JSONL file.
 
     Args:
-        step (dict): A dictionary containing the path to the JSONL file.
+        step (dict): A dictionary containing:
+            - path (str): The path to the JSONL file.
+            - storage_options (dict, optional): Additional options for cloud storage backends.
+                For S3: {"key": "access_key", "secret": "secret_key", "endpoint_url": "url"}
+                For GCS: {"token": "path/to/token.json"}
+                For Azure: {"account_name": "name", "account_key": "key"}
 
     Returns:
         Iterator[dict]: A new Flow streaming matching files.
     """
     path = step["path"]
+    storage_options = step.get("storage_options", {})
+
+    # Check dependencies for cloud storage
+    _handle_missing_dependency(path)
+
     mode = "rb" if BINARY else "r"
 
-    with open(path, mode) as f:
+    with fsspec.open(path, mode, **storage_options) as f:
         for line in f:
             if not line.strip():
                 continue
@@ -165,33 +239,42 @@ def from_glob(step) -> Iterator[Dict[Any, Any]]:
     Create a Flow from a glob pattern.
 
     Args:
-        step (dict): A dictionary containing the pattern for the glob.
+        step (dict): A dictionary containing:
+            - pattern (str): Glob pattern (e.g., "data/**/*.json").
+            - storage_options (dict, optional): Additional options for cloud storage backends.
+                For S3: {"key": "access_key", "secret": "secret_key", "endpoint_url": "url"}
+                For GCS: {"token": "path/to/token.json"}
+                For Azure: {"account_name": "name", "account_key": "key"}
 
     Returns:
         Iterator[dict]: A new Flow streaming matching files.
     """
     pattern = step["pattern"]
-    for path in glob.glob(pattern, recursive=True):
-        if not os.path.isfile(path):
+    storage_options = step.get("storage_options", {})
+
+    # Check dependencies for cloud storage
+    _handle_missing_dependency(pattern)
+
+    # Use fsspec glob
+    fs = fsspec.filesystem(
+        fsspec.utils.infer_storage_options(pattern, **storage_options)["protocol"],
+        **storage_options,
+    )
+
+    for path in fs.glob(pattern):
+        # Check if it's a file (not a directory)
+        if fs.isdir(path):
             continue
 
-        if path.endswith(".jsonl"):
-            with open(
-                path, "rb" if BINARY else "r", encoding=None if BINARY else "utf-8"
-            ) as f:
-                for line in f:
-                    yield json_loads(line if BINARY else line.encode("utf-8"))
+        # Create child steps with storage_options passed through
+        child_step = {"path": path}
+        if storage_options:
+            child_step["storage_options"] = storage_options
 
+        if path.endswith(".jsonl"):
+            yield from from_jsonl(child_step)
         elif path.endswith(".json"):
-            with open(
-                path, "rb" if BINARY else "r", encoding=None if BINARY else "utf-8"
-            ) as f:
-                data = json_load(f)
-                if isinstance(data, list):
-                    for r in data:
-                        yield r
-                elif isinstance(data, dict):
-                    yield data
+            yield from from_json(child_step)
 
 
 def from_concat(step) -> Iterator[Dict[Any, Any]]:

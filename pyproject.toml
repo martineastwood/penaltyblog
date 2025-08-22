@@ -24,6 +24,7 @@ dependencies = [
     "beautifulsoup4",
     "cssselect",
     "cython",
+    "fsspec",
     "html5lib",
     "ipywidgets",
     "kaleido",
@@ -90,6 +91,10 @@ dev = [
     "setuptools>=75.6.0",
     "types-requests>=2.28.11",
 ]
+s3 = ["s3fs"]
+gcs = ["gcsfs"]
+azure = ["adlfs"]
+cloud = ["s3fs", "gcsfs", "adlfs"]
 
 [tool.coverage.paths]
 source = ["penaltyblog", "*/site-packages"]

@@ -51,50 +51,98 @@ class Flow:
         return Flow(self.plan + [op], optimize=self.optimize)
 
     @staticmethod
-    def from_folder(path: str, optimize: bool = False) -> "Flow":
+    def from_folder(
+        path: str,
+        optimize: bool = False,
+        storage_options: Optional[Dict[str, Any]] = None,
+    ) -> "Flow":
         """
         Create a Flow from a folder of records.
         Args:
             path (str): The path to the folder containing the records.
+            optimize (bool): Whether to optimize the flow.
+            storage_options (dict, optional): Additional options for cloud storage backends.
+                For S3: {"key": "access_key", "secret": "secret_key", "endpoint_url": "url"}
+                For GCS: {"token": "path/to/token.json"}
+                For Azure: {"account_name": "name", "account_key": "key"}
         Returns:
             Flow: A new Flow pointing to the records.
         """
-        return Flow(plan=[{"op": "from_folder", "path": path}], optimize=optimize)
+        plan_step = {"op": "from_folder", "path": path}
+        if storage_options:
+            plan_step["storage_options"] = storage_options
+        return Flow(plan=[plan_step], optimize=optimize)
 
     @staticmethod
-    def from_json(path: str, optimize: bool = False) -> "Flow":
+    def from_json(
+        path: str,
+        optimize: bool = False,
+        storage_options: Optional[Dict[str, Any]] = None,
+    ) -> "Flow":
         """Lazily load a list of records from a JSON file.
 
         Args:
             path (str): The path to the JSON file.
+            optimize (bool): Whether to optimize the flow.
+            storage_options (dict, optional): Additional options for cloud storage backends.
+                For S3: {"key": "access_key", "secret": "secret_key", "endpoint_url": "url"}
+                For GCS: {"token": "path/to/token.json"}
+                For Azure: {"account_name": "name", "account_key": "key"}
         Returns:
             Flow: A new Flow pointing to the records.
         """
-        return Flow(plan=[{"op": "from_json", "path": path}], optimize=optimize)
+        plan_step = {"op": "from_json", "path": path}
+        if storage_options:
+            plan_step["storage_options"] = storage_options
+        return Flow(plan=[plan_step], optimize=optimize)
 
     @staticmethod
-    def from_jsonl(path: str, optimize: bool = False) -> "Flow":
+    def from_jsonl(
+        path: str,
+        optimize: bool = False,
+        storage_options: Optional[Dict[str, Any]] = None,
+    ) -> "Flow":
         """Lazily load records from a JSONL file.
 
         Args:
             path (str): The path to the JSONL file.
+            optimize (bool): Whether to optimize the flow.
+            storage_options (dict, optional): Additional options for cloud storage backends.
+                For S3: {"key": "access_key", "secret": "secret_key", "endpoint_url": "url"}
+                For GCS: {"token": "path/to/token.json"}
+                For Azure: {"account_name": "name", "account_key": "key"}
         Returns:
             Flow: A new Flow pointing to the records.
         """
-        return Flow(plan=[{"op": "from_jsonl", "path": path}], optimize=optimize)
+        plan_step = {"op": "from_jsonl", "path": path}
+        if storage_options:
+            plan_step["storage_options"] = storage_options
+        return Flow(plan=[plan_step], optimize=optimize)
 
     @staticmethod
-    def from_glob(pattern: str, optimize: bool = False) -> "Flow":
+    def from_glob(
+        pattern: str,
+        optimize: bool = False,
+        storage_options: Optional[Dict[str, Any]] = None,
+    ) -> "Flow":
         """
         Create a Flow from a glob pattern.
 
         Args:
             pattern (str): Glob pattern (e.g., "data/**/*.json").
+            optimize (bool): Whether to optimize the flow.
+            storage_options (dict, optional): Additional options for cloud storage backends.
+                For S3: {"key": "access_key", "secret": "secret_key", "endpoint_url": "url"}
+                For GCS: {"token": "path/to/token.json"}
+                For Azure: {"account_name": "name", "account_key": "key"}
 
         Returns:
             Flow: A new Flow streaming matching files.
         """
-        return Flow(plan=[{"op": "from_glob", "pattern": pattern}], optimize=optimize)
+        plan_step = {"op": "from_glob", "pattern": pattern}
+        if storage_options:
+            plan_step["storage_options"] = storage_options
+        return Flow(plan=[plan_step], optimize=optimize)
 
     @staticmethod
     def from_records(records: List[dict], optimize: bool = False) -> "Flow":
