@@ -1,191 +1,234 @@
 """
-Implied Probabilities
-
-Calculates the implied probabilities for a given set of odds.
+This module provides improved functions for calculating implied odds using
+type-safe dataclasses instead of dictionaries.
 """
 
-from typing import Any, Dict, List
+from typing import List, Optional, Union
 
 import numpy as np
 import numpy.typing as npt
 from scipy import optimize
 
+from .models import (
+    ImpliedMethod,
+    ImpliedProbabilities,
+    OddsFormat,
+    OddsInput,
+)
 
-def multiplicative(odds: List[float]) -> Dict[str, Any]:
+
+def calculate_implied(
+    odds: Union[List[float], List[str], OddsInput],
+    method: Union[str, ImpliedMethod] = ImpliedMethod.MULTIPLICATIVE,
+    odds_format: Union[str, OddsFormat] = OddsFormat.DECIMAL,
+    market_names: Optional[List[str]] = None,
+) -> ImpliedProbabilities:
+    """
+    Calculate implied probabilities from odds using the specified method.
+
+    Parameters
+    ----------
+    odds : List[float] or List[str] or OddsInput
+        The odds to convert to probabilities. Can be a list of values
+        or an OddsInput object for more control.
+    method : str or ImpliedMethod
+        The method to use for calculating implied probabilities.
+    odds_format : str or OddsFormat
+        The format of the provided odds.
+    market_names : List[str], optional
+        Names for each market outcome.
+
+    Returns
+    -------
+    ImpliedProbabilities
+        Type-safe container with the calculated probabilities.
+
+    Examples
+    --------
+    >>> import penaltyblog as pb
+    >>> odds = [2.7, 2.3, 4.4]  # 1X2 market: Home, Draw, Away
+    >>> result = pb.implied.calculate_implied(odds)
+    >>> result.probabilities
+    [0.35873804, 0.42112726, 0.2201347]
+    >>> result.method
+    ImpliedMethod.MULTIPLICATIVE
+    >>> result.margin
+    0.1362
+
+    Using different odds formats:
+    >>> american_odds = [+170, +130, +340]  # American odds
+    >>> pb.implied.calculate_implied(
+    ...     american_odds,
+    ...     odds_format=OddsFormat.AMERICAN
+    ... )
+
+    >>> fractional_odds = ['7/4', '13/10', '7/2']  # Fractional odds
+    >>> pb.implied.calculate_implied(
+    ...     fractional_odds,
+    ...     odds_format=OddsFormat.FRACTIONAL
+    ... )
+    """
+    # Convert method to enum if string
+    if isinstance(method, str):
+        try:
+            method = ImpliedMethod(method)
+        except ValueError:
+            raise ValueError(f"Unknown method: {method}")
+
+    # Handle odds input
+    if isinstance(odds, OddsInput):
+        decimal_odds = odds.to_decimal()
+        names = odds.market_names
+    else:
+        # Convert odds format to enum if string
+        if isinstance(odds_format, str):
+            try:
+                odds_format = OddsFormat(odds_format)
+            except ValueError:
+                raise ValueError(f"Unknown odds format: {odds_format}")
+
+        # Create OddsInput and convert to decimal
+        odds_input = OddsInput(odds, odds_format, market_names)
+        decimal_odds = odds_input.to_decimal()
+        names = market_names
+
+    # Call the appropriate method
+    if method == ImpliedMethod.MULTIPLICATIVE:
+        return _multiplicative(decimal_odds, names)
+    elif method == ImpliedMethod.ADDITIVE:
+        return _additive(decimal_odds, names)
+    elif method == ImpliedMethod.POWER:
+        return _power(decimal_odds, names)
+    elif method == ImpliedMethod.SHIN:
+        return _shin(decimal_odds, names)
+    elif method == ImpliedMethod.DIFFERENTIAL_MARGIN_WEIGHTING:
+        return _differential_margin_weighting(decimal_odds, names)
+    elif method == ImpliedMethod.ODDS_RATIO:
+        return _odds_ratio(decimal_odds, names)
+    elif method == ImpliedMethod.LOGARITHMIC:
+        return _logarithmic(decimal_odds, names)
+    elif method == ImpliedMethod.MAXIMUM_ENTROPY:
+        return _maximum_entropy(decimal_odds, names)
+    elif method == ImpliedMethod.LEAST_SQUARES:
+        return _least_squares(decimal_odds, names)
+    else:
+        raise ValueError(f"Unsupported method: {method}")
+
+
+# Implementation of underlying methods with improved return types
+def _multiplicative(
+    odds: List[float],
+    market_names: Optional[List[str]] = None,
+) -> ImpliedProbabilities:
     """
     The multiplicative method computes the implied probabilities by
-    dividing the inverted odds by their sum to normalize them
-
-    Parameters
-    ----------
-    odds : list
-        list of odds
-
-    Returns
-    ----------
-    dict
-        contains implied probabilities and method used
-
-    Examples
-    ----------
-    >>> import penaltyblog as pb
-    >>> odds = [2.7, 2.3, 4.4]
-    >>> pb.implied.multiplicative(odds)
+    dividing the inverted odds by their sum to normalize them.
     """
     odds_arr = np.array(odds, dtype=np.float64)
     inv_odds = 1.0 / odds_arr
-    normalized = (inv_odds / np.sum(inv_odds)).tolist()
     margin = float(np.sum(inv_odds) - 1)
-    result = {
-        "implied_probabilities": normalized,
-        "method": "multiplicative",
-        "margin": margin,
-    }
-    return result
+    normalized = (inv_odds / np.sum(inv_odds)).tolist()
+
+    return ImpliedProbabilities(
+        probabilities=normalized,
+        method=ImpliedMethod.MULTIPLICATIVE,
+        margin=margin,
+        market_names=market_names,
+    )
 
 
-def additive(odds: List[float]) -> Dict[str, Any]:
+def _additive(
+    odds: List[float],
+    market_names: Optional[List[str]] = None,
+) -> ImpliedProbabilities:
     """
     The additive method removes an equal proportion from each
-    odd to get the implied probabilities
-
-    Parameters
-    ----------
-    odds : list
-        list of odds
-
-    Returns
-    ----------
-    dict
-        contains implied probabilities and method used
-
-    Examples
-    ----------
-    >>> import penaltyblog as pb
-    >>> odds = [2.7, 2.3, 4.4]
-    >>> pb.implied.additive(odds)
+    odd to get the implied probabilities.
     """
     odds_arr = np.array(odds, dtype=np.float64)
     inv_odds = 1.0 / odds_arr
-    normalized = (inv_odds + 1 / len(inv_odds) * (1 - np.sum(inv_odds))).tolist()
     margin = float(np.sum(inv_odds) - 1)
-    result = {
-        "implied_probabilities": normalized,
-        "method": "additive",
-        "margin": margin,
-    }
-    return result
+    normalized = (inv_odds + 1 / len(inv_odds) * (1 - np.sum(inv_odds))).tolist()
+
+    return ImpliedProbabilities(
+        probabilities=normalized,
+        method=ImpliedMethod.ADDITIVE,
+        margin=margin,
+        market_names=market_names,
+    )
 
 
-def power(odds: List[float]) -> Dict[str, Any]:
+def _power(
+    odds: List[float],
+    market_names: Optional[List[str]] = None,
+) -> ImpliedProbabilities:
     """
     The power method computes the implied probabilities by solving for the
-    power coefficient that normalizes the inverse of the odds to sum to 1.0
-
-    Parameters
-    ----------
-    odds : list
-        list of odds
-
-    Returns
-    ----------
-    dict
-        contains implied probabilities, k and method used
-
-    Examples
-    ----------
-    >>> import penaltyblog as pb
-    >>> odds = [2.7, 2.3, 4.4]
-    >>> pb.implied.power(odds)
+    power coefficient that normalizes the inverse of the odds to sum to 1.0.
     """
     odds_arr = np.array(odds, dtype=np.float64)
     inv_odds = 1.0 / odds_arr
     margin = float(np.sum(inv_odds) - 1)
 
-    def _power(k: float, inv_odds: np.ndarray) -> np.ndarray:
+    def _power_func(k: float, inv_odds: np.ndarray) -> np.ndarray:
         implied = inv_odds**k
         return implied
 
     def _power_error(k: float, inv_odds: np.ndarray) -> float:
-        implied = _power(k, inv_odds)
+        implied = _power_func(k, inv_odds)
         return float(1 - np.sum(implied))
 
-    res = float(optimize.ridder(_power_error, 0, 100, args=(inv_odds,)))
-    normalized = _power(res, inv_odds).tolist()
-    result = {
-        "implied_probabilities": normalized,
-        "method": "power",
-        "k": res,
-        "margin": margin,
-    }
-    return result
+    k = float(optimize.ridder(_power_error, 0, 100, args=(inv_odds,)))
+    normalized = _power_func(k, inv_odds).tolist()
+
+    return ImpliedProbabilities(
+        probabilities=normalized,
+        method=ImpliedMethod.POWER,
+        margin=margin,
+        market_names=market_names,
+        method_params={"k": k},
+    )
 
 
-def shin(odds: List[float]) -> Dict[str, Any]:
+def _shin(
+    odds: List[float],
+    market_names: Optional[List[str]] = None,
+) -> ImpliedProbabilities:
     """
-    Computes the implied probabilities via the Shin (1992, 1993) method
-
-    Parameters
-    ----------
-    odds : list
-        list of odds
-
-    Returns
-    ----------
-    dict
-        contains implied probabilities, z and method used
-
-    Examples
-    ----------
-    >>> import penaltyblog as pb
-    >>> odds = [2.7, 2.3, 4.4]
-    >>> pb.implied.shin(odds)
+    Computes the implied probabilities via the Shin (1992, 1993) method.
     """
     odds_arr = np.array(odds, dtype=np.float64)
     inv_odds = 1.0 / odds_arr
     margin = float(np.sum(inv_odds) - 1)
 
-    def _shin_error(z: float, inv_odds: np.ndarray) -> float:
-        implied = _shin(z, inv_odds)
-        return float(1 - np.sum(implied))
-
-    def _shin(z: float, inv_odds: np.ndarray) -> np.ndarray:
+    def _shin_func(z: float, inv_odds: np.ndarray) -> np.ndarray:
         implied = (
             (z**2 + 4 * (1 - z) * inv_odds**2 / np.sum(inv_odds)) ** 0.5 - z
         ) / (2 - 2 * z)
         return implied
 
-    res = float(optimize.ridder(_shin_error, 0, 100, args=(inv_odds,)))
-    normalized = _shin(res, inv_odds).tolist()
-    result = {
-        "implied_probabilities": normalized,
-        "method": "shin",
-        "z": res,
-        "margin": margin,
-    }
-    return result
+    def _shin_error(z: float, inv_odds: np.ndarray) -> float:
+        implied = _shin_func(z, inv_odds)
+        return float(1 - np.sum(implied))
+
+    z = float(optimize.ridder(_shin_error, 0, 100, args=(inv_odds,)))
+    normalized = _shin_func(z, inv_odds).tolist()
+
+    return ImpliedProbabilities(
+        probabilities=normalized,
+        method=ImpliedMethod.SHIN,
+        margin=margin,
+        market_names=market_names,
+        method_params={"z": z},
+    )
 
 
-def differential_margin_weighting(odds: List[float]) -> Dict[str, Any]:
+def _differential_margin_weighting(
+    odds: List[float],
+    market_names: Optional[List[str]] = None,
+) -> ImpliedProbabilities:
     """
-    Based on Jospeh Buchdahl's wisdom of the crowds -
-    https://www.football-data.co.uk/The_Wisdom_of_the_Crowd.pdf
-
-    Parameters
-    ----------
-    odds : list
-        list of odds
-
-    Returns
-    ----------
-    dict
-        contains implied probabilities, z and method used
-
-    Examples
-    ----------
-    >>> import penaltyblog as pb
-    >>> odds = [2.7, 2.3, 4.4]
-    >>> pb.implied.differential_margin_weighting(odds)
+    Based on Jospeh Buchdahl's wisdom of the crowds.
     """
     odds_arr = np.array(odds, dtype=np.float64)
     inv_odds: npt.NDArray[np.float64] = 1.0 / odds_arr
@@ -194,54 +237,178 @@ def differential_margin_weighting(odds: List[float]) -> Dict[str, Any]:
     fair_odds: npt.NDArray[np.float64] = (n_odds * odds_arr) / (
         n_odds - (margin * odds_arr)
     )
-    implied_probs = (1 / fair_odds).tolist()
-    result = {
-        "implied_probabilities": implied_probs,
-        "method": "differential_margin_weighting",
-        "margin": margin,
-    }
-    return result
+    normalized = (1 / fair_odds).tolist()
+
+    return ImpliedProbabilities(
+        probabilities=normalized,
+        method=ImpliedMethod.DIFFERENTIAL_MARGIN_WEIGHTING,
+        margin=margin,
+        market_names=market_names,
+    )
 
 
-def odds_ratio(odds: List[float]) -> Dict[str, Any]:
+def _odds_ratio(
+    odds: List[float],
+    market_names: Optional[List[str]] = None,
+) -> ImpliedProbabilities:
     """
     Keith Cheung's odds ratio method, as discussed in
-    Jospeh Buchdahl's wisdom of the crowds
-
-    Parameters
-    ----------
-    odds : list
-        list of odds
-
-    Returns
-    ----------
-    dict
-        contains implied probabilities, z and method used
-
-    Examples
-    ----------
-    >>> import penaltyblog as pb
-    >>> odds = [2.7, 2.3, 4.4]
-    >>> pb.implied.odds_ratio(odds)
+    Jospeh Buchdahl's wisdom of the crowds.
     """
     odds_arr = np.array(odds, dtype=np.float64)
     inv_odds: npt.NDArray[np.float64] = 1.0 / odds_arr
     margin: float = float(np.sum(inv_odds) - 1)
 
-    def _or_error(c: float, inv_odds: npt.NDArray[np.float64]) -> float:
-        implied = _or(c, inv_odds)
-        return float(1 - np.sum(implied))
-
-    def _or(c: float, inv_odds: npt.NDArray[np.float64]) -> npt.NDArray[np.float64]:
+    def _or_func(
+        c: float, inv_odds: npt.NDArray[np.float64]
+    ) -> npt.NDArray[np.float64]:
         y = inv_odds / (c + inv_odds - (c * inv_odds))
         return y
 
-    res = float(optimize.ridder(_or_error, 0, 100, args=(inv_odds,)))
-    normalized = _or(res, inv_odds).tolist()
-    result = {
-        "implied_probabilities": normalized,
-        "method": "odds_ratio",
-        "c": res,
-        "margin": margin,
-    }
-    return result
+    def _or_error(c: float, inv_odds: npt.NDArray[np.float64]) -> float:
+        implied = _or_func(c, inv_odds)
+        return float(1 - np.sum(implied))
+
+    c = float(optimize.ridder(_or_error, 0, 100, args=(inv_odds,)))
+    normalized = _or_func(c, inv_odds).tolist()
+
+    return ImpliedProbabilities(
+        probabilities=normalized,
+        method=ImpliedMethod.ODDS_RATIO,
+        margin=margin,
+        market_names=market_names,
+        method_params={"c": c},
+    )
+
+
+def _logarithmic(
+    odds: List[float],
+    market_names: Optional[List[str]] = None,
+) -> ImpliedProbabilities:
+    """
+    Logarithmic method for overround removal (Jullien & Salanié, 2000).
+
+    Adjusts the logarithm of odds proportionally, which is more robust
+    for extreme probabilities than linear methods.
+
+    The method works by:
+    1. Converting odds to log-odds: log(p/(1-p))
+    2. Adjusting log-odds by a constant factor
+    3. Converting back to probabilities
+    4. Normalizing to sum to 1.0
+    """
+    odds_arr = np.array(odds, dtype=np.float64)
+    inv_odds = 1.0 / odds_arr
+    margin = float(np.sum(inv_odds) - 1)
+
+    # Convert to log-odds (logit)
+    probs = inv_odds
+
+    # Avoid division by zero for probabilities very close to 1
+    probs_safe = np.clip(probs, 1e-15, 1 - 1e-15)
+    log_odds = np.log(probs_safe / (1 - probs_safe))
+
+    # Find the adjustment factor that makes probabilities sum to 1
+    def _log_odds_error(alpha: float, log_odds: np.ndarray) -> float:
+        adjusted_log_odds = alpha * log_odds
+        # Convert back to probabilities using sigmoid function
+        adjusted_probs = 1 / (1 + np.exp(-adjusted_log_odds))
+        return float(1 - np.sum(adjusted_probs))
+
+    # Find alpha that normalizes probabilities
+    alpha = float(optimize.brentq(_log_odds_error, 0.1, 10.0, args=(log_odds,)))
+
+    # Apply adjustment and convert back to probabilities
+    adjusted_log_odds = alpha * log_odds
+    normalized = (1 / (1 + np.exp(-adjusted_log_odds))).tolist()
+
+    return ImpliedProbabilities(
+        probabilities=normalized,
+        method=ImpliedMethod.LOGARITHMIC,
+        margin=margin,
+        market_names=market_names,
+        method_params={"alpha": alpha},
+    )
+
+
+def _maximum_entropy(
+    odds: List[float],
+    market_names: Optional[List[str]] = None,
+) -> ImpliedProbabilities:
+    """
+    Maximum entropy method for overround removal.
+
+    Uses Shannon's maximum entropy principle to find the probability
+    distribution that:
+    1. Sums to 1.0
+    2. Is "closest" to the original odds in terms of relative entropy
+    3. Maximizes entropy subject to the normalization constraint
+
+    This is equivalent to finding probabilities that minimize the
+    Kullback-Leibler divergence from the original (unnormalized) probabilities.
+    """
+    odds_arr = np.array(odds, dtype=np.float64)
+    inv_odds = 1.0 / odds_arr
+    margin = float(np.sum(inv_odds) - 1)
+
+    # Original (unnormalized) probabilities
+    q = inv_odds
+    normalized = (q / np.sum(q)).tolist()
+
+    # Calculate entropy of the result
+    p = np.array(normalized)
+    entropy = -np.sum(p * np.log(p + 1e-15))  # Add small constant to avoid log(0)
+
+    return ImpliedProbabilities(
+        probabilities=normalized,
+        method=ImpliedMethod.MAXIMUM_ENTROPY,
+        margin=margin,
+        market_names=market_names,
+        method_params={"entropy": float(entropy)},
+    )
+
+
+def _least_squares(
+    odds: List[float],
+    market_names: Optional[List[str]] = None,
+) -> ImpliedProbabilities:
+    """
+    Least squares method for overround removal (Fingleton & Waldron, 1999).
+
+    Finds probabilities that minimize the sum of squared deviations
+    from the original (unnormalized) probabilities, subject to the
+    constraint that probabilities sum to 1.0.
+
+    This is a constrained optimization problem:
+    min Σ(p_i - q_i)² subject to Σp_i = 1
+
+    The solution can be found analytically using Lagrange multipliers.
+    """
+    odds_arr = np.array(odds, dtype=np.float64)
+    inv_odds = 1.0 / odds_arr
+    margin = float(np.sum(inv_odds) - 1)
+
+    # Original (unnormalized) probabilities
+    q = inv_odds
+    n = len(q)
+
+    lambda_val = 2 * margin / n
+    normalized = (q - lambda_val / 2).tolist()
+
+    # Verify the solution sums to 1 (it should by construction)
+    total = sum(normalized)
+    if not np.isclose(total, 1.0, atol=1e-10):
+        # Fallback to simple normalization if numerical issues
+        normalized = (np.array(normalized) / total).tolist()
+
+    # Calculate sum of squared deviations from original
+    p = np.array(normalized)
+    sse = float(np.sum((p - q) ** 2))
+
+    return ImpliedProbabilities(
+        probabilities=normalized,
+        method=ImpliedMethod.LEAST_SQUARES,
+        margin=margin,
+        market_names=market_names,
+        method_params={"lambda": lambda_val, "sum_squared_error": sse},
+    )
