@@ -7,6 +7,22 @@ Version Numbering
 ``penaltyblog`` follows the SemVer versioning guidelines. For more information,
 see `semver.org <http://semver.org/>`_
 
+v1.6.0 (2025-xx-xx)
+^^^^^^^^^^^^^^^^^^^^
+
+Package Updates
+---------------
+
+- ``Matchflow`` can now load data from cloud storage (e.g. S3, GCS, Azure Blob Storage) using `fsspec`
+- Updated ``implied`` submodule to add new overround removal methods:
+  - Logarithmic Method
+  - Maximum Entropy Method
+  - Least Squares Method
+- Refactored implied odds API for improved clarity and extensibility
+- Renamed ``kelly`` submodule to ``betting``
+- Added ``multiple_criterion`` function for calculating Kelly Criterion for multiple outcomes
+- Added ``arbitrage_hedge`` function to calculate hedge bet sizes
+
 v1.5.1 (2025-08-20)
 ^^^^^^^^^^^^^^^^^^^^
 
