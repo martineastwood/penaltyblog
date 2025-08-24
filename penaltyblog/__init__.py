@@ -1,8 +1,8 @@
 from . import (
     backtest,
+    betting,
     fpl,
     implied,
-    kelly,
     matchflow,
     metrics,
     models,
