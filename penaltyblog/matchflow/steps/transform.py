@@ -12,7 +12,7 @@ from .utils import (
 )
 
 if TYPE_CHECKING:
-    from .flow import Flow
+    from ..flow import Flow
 
 
 def apply_filter(records, step) -> "Flow":

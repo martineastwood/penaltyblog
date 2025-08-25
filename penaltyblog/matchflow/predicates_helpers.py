@@ -1,6 +1,6 @@
 import re
 from datetime import date, datetime
-from typing import Any, List, Union
+from typing import Any, Union
 
 from .predicates import AndPredicate, FieldPredicate, NotPredicate, OrPredicate
 

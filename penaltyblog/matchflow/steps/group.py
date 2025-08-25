@@ -11,7 +11,18 @@ def get_time_window_details(
 ) -> Tuple[bool, Optional[int], Optional[float], Optional[datetime], bool]:
     """
     Determine the mode (count or time) and parse the window size.
-    Returns a tuple (count_mode, count_window, time_window_seconds, origin, is_datetime).
+
+    Parameters
+    ----------
+    window : int, float, or str
+        Window size as integer/float (row count) or string (e.g. '5m', '1h').
+    time_field : str or None
+        Name of the time field, required for time-based windows.
+
+    Returns
+    -------
+    tuple
+        (count_mode: bool, count_window: Optional[int], time_window_seconds: Optional[float], origin: Optional[datetime], is_datetime: bool)
     """
     if isinstance(window, (int, float)):
         return True, int(window), float(window), None, False
@@ -37,6 +48,18 @@ def apply_group_rolling_summary(
       - Time mode:  `window` is str ending in s/m/h/d → last T seconds
 
     In time mode, `time_field` must be datetime or timedelta.
+
+    Parameters
+    ----------
+    records : Iterator[dict]
+        Iterator of records, each a dict.
+    step : dict
+        Step configuration dict, must include 'window', 'aggregators', and optionally 'time_field', 'min_periods', 'step', '__group_keys'.
+
+    Returns
+    -------
+    Iterator[dict]
+        Iterator of records with rolling summary fields attached.
     """
     window = step["window"]
     aggregators = step["aggregators"]
@@ -141,8 +164,22 @@ def apply_group_rolling_summary(
 
 def parse_window_size(window_str: str) -> float:
     """
-    Parse a window size string like '5m','10m','1h','30s','1d' → seconds (float).
-    Supported suffixes: 's', 'm', 'h', 'd'.
+    Parse a window size string like '5m', '10m', '1h', '30s', '1d' to seconds (float).
+
+    Parameters
+    ----------
+    window_str : str
+        Window size string, must end with 's', 'm', 'h', or 'd'.
+
+    Returns
+    -------
+    float
+        Window size in seconds.
+
+    Raises
+    ------
+    ValueError
+        If the string cannot be parsed or has an unrecognized unit.
     """
     if not isinstance(window_str, str):
         raise ValueError(f"Expected string for freq, got {type(window_str).__name__}")
@@ -166,11 +203,23 @@ def apply_group_time_bucket(
     records: Iterator[dict[str, Any]], step: dict[str, Any]
 ) -> Iterator[dict[str, Any]]:
     """
-    For each group (provided as a dict with "__group_key__" & "__group_records__"),
-    assign each record into a fixed, non-overlapping time bin.
+    Assign each record in a group to a fixed, non-overlapping time bin.
+
     Two modes:
-    - String freq with suffix (e.g. "5m", "1h"): requires datetime or timedelta time_field.
-    - Numeric freq (int/float): buckets numeric values directly.
+      - String freq with suffix (e.g. '5m', '1h'): requires datetime or timedelta time_field.
+      - Numeric freq (int/float): buckets numeric values directly.
+
+    Parameters
+    ----------
+    records : Iterator[dict]
+        Iterator of group dicts, each with '__group_key__' and '__group_records__'.
+    step : dict
+        Step configuration dict, must include 'freq', 'aggregators', 'time_field', and optionally 'label', 'bucket_name', '__group_keys'.
+
+    Returns
+    -------
+    Iterator[dict]
+        Iterator of records with bucket assignments and aggregated fields.
     """
     freq = step["freq"]
     aggregators = step["aggregators"]
@@ -279,12 +328,17 @@ def apply_group_by(
     """
     Group records by one or more fields.
 
-    Args:
-        records (list[dict]): The records to group.
-        step (dict): The step to apply.
+    Parameters
+    ----------
+    records : Iterator[dict]
+        Iterator of records to group.
+    step : dict
+        Step configuration dict, must include 'keys'.
 
-    Returns:
-        list[dict]: The grouped records.
+    Returns
+    -------
+    Iterator[dict]
+        Iterator of group dicts, each with '__group_key__' and '__group_records__'.
     """
     keys = step["keys"]
     compiled = step.get("_compiled_keys")
@@ -308,12 +362,17 @@ def apply_group_summary(
     """
     Apply a summary function to each group of records.
 
-    Args:
-        records (list[dict]): The records to group.
-        step (dict): The step to apply.
+    Parameters
+    ----------
+    records : Iterator[dict]
+        Iterator of group dicts, each with '__group_key__' and '__group_records__'.
+    step : dict
+        Step configuration dict, must include 'agg' and optionally 'group_keys'.
 
-    Returns:
-        list[dict]: The grouped records.
+    Returns
+    -------
+    Iterator[dict]
+        Iterator of summary dicts for each group.
     """
     agg_func = step["agg"]
     group_keys = step.get("group_keys")  # get actual group key names if available
@@ -339,14 +398,19 @@ def apply_group_cumulative(
     records: Iterator[dict[str, Any]], step: dict[str, Any]
 ) -> Iterator[dict[str, Any]]:
     """
-    Apply a cumulative function to each group of records.
+    Apply a cumulative sum to a field for each group of records.
 
-    Args:
-        records (list[dict]): The records to group.
-        step (dict): The step to apply.
+    Parameters
+    ----------
+    records : Iterator[dict]
+        Iterator of group dicts, each with '__group_key__' and '__group_records__'.
+    step : dict
+        Step configuration dict, must include 'field' and 'alias'.
 
-    Returns:
-        list[dict]: The grouped records.
+    Returns
+    -------
+    Iterator[dict]
+        Iterator of records with cumulative field attached.
     """
     field = step["field"]
     alias = step["alias"]
