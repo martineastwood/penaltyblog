@@ -121,8 +121,22 @@ def _multiplicative(
     market_names: Optional[List[str]] = None,
 ) -> ImpliedProbabilities:
     """
+    Calculate implied probabilities using the multiplicative method.
+
     The multiplicative method computes the implied probabilities by
     dividing the inverted odds by their sum to normalize them.
+
+    Parameters
+    ----------
+    odds : List[float]
+        List of decimal odds for each outcome
+    market_names : List[str], optional
+        Names for each market outcome
+
+    Returns
+    -------
+    ImpliedProbabilities
+        Object containing the calculated probabilities and method metadata
     """
     odds_arr = np.array(odds, dtype=np.float64)
     inv_odds = 1.0 / odds_arr
@@ -142,8 +156,22 @@ def _additive(
     market_names: Optional[List[str]] = None,
 ) -> ImpliedProbabilities:
     """
+    Calculate implied probabilities using the additive method.
+
     The additive method removes an equal proportion from each
     odd to get the implied probabilities.
+
+    Parameters
+    ----------
+    odds : List[float]
+        List of decimal odds for each outcome
+    market_names : List[str], optional
+        Names for each market outcome
+
+    Returns
+    -------
+    ImpliedProbabilities
+        Object containing the calculated probabilities and method metadata
     """
     odds_arr = np.array(odds, dtype=np.float64)
     inv_odds = 1.0 / odds_arr
@@ -163,8 +191,23 @@ def _power(
     market_names: Optional[List[str]] = None,
 ) -> ImpliedProbabilities:
     """
+    Calculate implied probabilities using the power method.
+
     The power method computes the implied probabilities by solving for the
     power coefficient that normalizes the inverse of the odds to sum to 1.0.
+
+    Parameters
+    ----------
+    odds : List[float]
+        List of decimal odds for each outcome
+    market_names : List[str], optional
+        Names for each market outcome
+
+    Returns
+    -------
+    ImpliedProbabilities
+        Object containing the calculated probabilities, method metadata,
+        and the power coefficient 'k' in method_params
     """
     odds_arr = np.array(odds, dtype=np.float64)
     inv_odds = 1.0 / odds_arr
@@ -195,7 +238,23 @@ def _shin(
     market_names: Optional[List[str]] = None,
 ) -> ImpliedProbabilities:
     """
-    Computes the implied probabilities via the Shin (1992, 1993) method.
+    Calculate implied probabilities using Shin's method (1992, 1993).
+
+    Shin's method models the bookmaker's overround as being proportional to
+    the sum of the square roots of the implied probabilities.
+
+    Parameters
+    ----------
+    odds : List[float]
+        List of decimal odds for each outcome
+    market_names : List[str], optional
+        Names for each market outcome
+
+    Returns
+    -------
+    ImpliedProbabilities
+        Object containing the calculated probabilities, method metadata,
+        and the Shin 'z' parameter in method_params
     """
     odds_arr = np.array(odds, dtype=np.float64)
     inv_odds = 1.0 / odds_arr
@@ -228,7 +287,22 @@ def _differential_margin_weighting(
     market_names: Optional[List[str]] = None,
 ) -> ImpliedProbabilities:
     """
-    Based on Jospeh Buchdahl's wisdom of the crowds.
+    Calculate implied probabilities using differential margin weighting.
+
+    This method is based on Joseph Buchdahl's wisdom of the crowds approach,
+    which distributes the overround proportionally to the odds.
+
+    Parameters
+    ----------
+    odds : List[float]
+        List of decimal odds for each outcome
+    market_names : List[str], optional
+        Names for each market outcome
+
+    Returns
+    -------
+    ImpliedProbabilities
+        Object containing the calculated probabilities and method metadata
     """
     odds_arr = np.array(odds, dtype=np.float64)
     inv_odds: npt.NDArray[np.float64] = 1.0 / odds_arr
@@ -252,8 +326,24 @@ def _odds_ratio(
     market_names: Optional[List[str]] = None,
 ) -> ImpliedProbabilities:
     """
-    Keith Cheung's odds ratio method, as discussed in
-    Jospeh Buchdahl's wisdom of the crowds.
+    Calculate implied probabilities using Keith Cheung's odds ratio method.
+
+    This method is discussed in Joseph Buchdahl's wisdom of the crowds.
+    It models the relationship between true and implied probabilities
+    using an odds ratio transformation.
+
+    Parameters
+    ----------
+    odds : List[float]
+        List of decimal odds for each outcome
+    market_names : List[str], optional
+        Names for each market outcome
+
+    Returns
+    -------
+    ImpliedProbabilities
+        Object containing the calculated probabilities, method metadata,
+        and the odds ratio parameter 'c' in method_params
     """
     odds_arr = np.array(odds, dtype=np.float64)
     inv_odds: npt.NDArray[np.float64] = 1.0 / odds_arr
