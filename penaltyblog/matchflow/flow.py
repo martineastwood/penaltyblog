@@ -491,35 +491,78 @@ class Flow:
     def join(
         self,
         other: "Flow",
-        on: str | list[str],
-        how: str = "left",
-        suffix: str = "_right",
+        on: Union[str, List[str], None] = None,
+        left_on: Union[str, List[str], None] = None,
+        right_on: Union[str, List[str], None] = None,
+        how: Literal["left", "right", "outer", "inner", "anti"] = "left",
+        lsuffix: str = "",
+        rsuffix: str = "_right",
+        type_coercion: Literal["strict", "auto", "string"] = "strict",
     ) -> "Flow":
         """
         Join with another Flow.
 
         Args:
             other (Flow): The right-hand flow to join with.
-            on (str or list[str]): Field(s) to join on.
-            how (str): 'left' (default) or 'inner'.
-            suffix (str): Suffix for conflicting right-side keys.
+            on (str, list[str], or None): Field(s) to join on when key names are the same.
+            left_on (str, list[str], or None): Left-side field(s) to join on.
+            right_on (str, list[str], or None): Right-side field(s) to join on.
+            how (str): Type of join - 'left', 'right', 'outer', 'inner', or 'anti'.
+            lsuffix (str): Suffix for conflicting left-side keys.
+            rsuffix (str): Suffix for conflicting right-side keys.
+            type_coercion (str): How to handle type differences in join keys:
+                - 'strict': Exact type matching (default, preserves current behavior)
+                - 'auto': Smart coercion (1 matches '1' matches 1.0)
+                - 'string': Convert all join keys to strings for comparison
 
         Returns:
             Flow: A new Flow representing the join.
         """
-        how = how.lower()
-        if how not in {"left", "inner"}:
-            raise ValueError("Only 'left' and 'inner' joins are supported currently.")
+        # Validation logic
+        if on is not None and (left_on is not None or right_on is not None):
+            raise ValueError(
+                "Cannot specify both 'on' and 'left_on'/'right_on' parameters"
+            )
 
-        return self._next(
-            {
-                "op": "join",
-                "on": [on] if isinstance(on, str) else on,
-                "right_plan": other.plan,
-                "how": how,
-                "suffix": suffix,
-            }
-        )
+        if on is None and (left_on is None or right_on is None):
+            raise ValueError(
+                "Either 'on' must be provided, or both 'left_on' and 'right_on' must be provided"
+            )
+
+        if left_on is not None and right_on is not None:
+            # Normalize to lists for comparison
+            left_keys = [left_on] if isinstance(left_on, str) else left_on
+            right_keys = [right_on] if isinstance(right_on, str) else right_on
+            if len(left_keys) != len(right_keys):
+                raise ValueError(
+                    "'left_on' and 'right_on' must have the same number of keys"
+                )
+
+        how = how.lower()
+        if how not in {"left", "right", "outer", "inner", "anti"}:
+            raise ValueError(
+                f"Unsupported join type: {how}. Must be one of 'left', 'right', 'outer', 'inner', 'anti'"
+            )
+
+        # Prepare step parameters
+        step_params = {
+            "op": "join",
+            "right_plan": other.plan,
+            "how": how,
+            "lsuffix": lsuffix,
+            "rsuffix": rsuffix,
+            "type_coercion": type_coercion,
+        }
+
+        if on is not None:
+            step_params["on"] = [on] if isinstance(on, str) else on
+        else:
+            step_params["left_on"] = [left_on] if isinstance(left_on, str) else left_on
+            step_params["right_on"] = (
+                [right_on] if isinstance(right_on, str) else right_on
+            )
+
+        return self._next(step_params)
 
     def split_array(self, field: str, into: list[str]) -> "Flow":
         """

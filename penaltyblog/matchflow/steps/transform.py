@@ -1,4 +1,5 @@
 import copy
+import itertools
 import random
 from collections import OrderedDict, defaultdict
 from typing import TYPE_CHECKING, Any
@@ -13,6 +14,55 @@ from .utils import (
 
 if TYPE_CHECKING:
     from ..flow import Flow
+
+
+def _coerce_join_key(value, strategy="strict"):
+    """
+    Coerce a join key value for consistent comparison across data types.
+
+    Args:
+        value: The join key value to coerce
+        strategy: Coercion strategy - 'strict', 'auto', or 'string'
+
+    Returns:
+        Coerced value for comparison
+    """
+    if value is None:
+        return None
+
+    if strategy == "strict":
+        return value
+    elif strategy == "string":
+        return str(value)
+    elif strategy == "auto":
+        # Smart coercion - numeric values get consistent string representation
+        if isinstance(value, (int, float)):
+            # Convert to string for consistent comparison
+            if isinstance(value, float) and value.is_integer():
+                # 1.0 -> "1" to match with int 1
+                return str(int(value))
+            else:
+                return str(value)
+        elif isinstance(value, str):
+            # Try to convert numeric strings for consistency
+            try:
+                # Check if it's a valid integer
+                if value.lstrip("-").isdigit():
+                    return str(int(value))
+                # Check if it's a valid float
+                float_val = float(value)
+                if float_val.is_integer():
+                    return str(int(float_val))
+                else:
+                    return str(float_val)
+            except ValueError:
+                # Not a number, return as-is
+                return value
+        else:
+            # Other types converted to string
+            return str(value)
+    else:
+        raise ValueError(f"Unknown coercion strategy: {strategy}")
 
 
 def apply_filter(records, step) -> "Flow":
@@ -339,7 +389,220 @@ def apply_explode(records: "Flow", step: dict) -> "Flow":
 
 def apply_join(records: "Flow", step: dict) -> "Flow":
     """
-    Join records based on a list of keys.
+    Join records based on a list of keys. Dispatcher function that selects the appropriate join strategy.
+
+    Args:
+        records (Flow): A Flow of records to join.
+        step (dict): A dictionary containing the keys to join by.
+
+    Returns:
+        Flow: A new Flow with joined records.
+    """
+    # Future logic to select strategy will go here.
+    # For now, always use hash join.
+    return _apply_hash_join(records, step)
+
+
+def _apply_sort_merge_join(records: "Flow", step: dict) -> "Flow":
+    """
+    Sort-merge join implementation for memory-efficient joins on pre-sorted data.
+
+    Args:
+        records (Flow): A Flow of records to join (assumed to be sorted on join keys).
+        step (dict): A dictionary containing the keys to join by.
+
+    Returns:
+        Flow: A new Flow with joined records.
+    """
+    from ..executor import FlowExecutor
+
+    # Extract parameters
+    on = step.get("on")
+    left_on = step.get("left_on")
+    right_on = step.get("right_on")
+    lsuffix = step.get("lsuffix", "")
+    rsuffix = step.get("rsuffix", "_right")
+    how = step.get("how", "left")
+    type_coercion = step.get("type_coercion", "strict")
+
+    # Determine join keys
+    if on is not None:
+        left_keys = right_keys = on
+    else:
+        left_keys = left_on
+        right_keys = right_on
+
+    # Compile join keys
+    compiled_left = step.get("_compiled_left")
+    compiled_right = step.get("_compiled_right")
+
+    if not compiled_left:
+        compiled_left = [k.split(".") for k in left_keys]
+        step["_compiled_left"] = compiled_left
+
+    if not compiled_right:
+        compiled_right = [k.split(".") for k in right_keys]
+        step["_compiled_right"] = compiled_right
+
+    # Get left and right iterators
+    left_iter = records
+    right_iter = FlowExecutor(step["right_plan"]).execute()
+
+    # Key extraction functions
+    def left_key(record):
+        return tuple(
+            _coerce_join_key(get_field(record, k), type_coercion) for k in compiled_left
+        )
+
+    def right_key(record):
+        return tuple(
+            _coerce_join_key(get_field(record, k), type_coercion)
+            for k in compiled_right
+        )
+
+    # Helper function to merge records with suffix handling
+    def merge_records(left_rec, right_rec, is_left_primary=True):
+        if is_left_primary:
+            merged = dict(left_rec)
+            for rk, rv in right_rec.items():
+                if rk in right_keys:
+                    continue
+                if rk in merged:
+                    if rsuffix:
+                        merged[rk + rsuffix] = rv
+                else:
+                    merged[rk] = rv
+
+            # Apply lsuffix if needed
+            if lsuffix:
+                for lk in list(merged.keys()):
+                    if lk in left_rec and lk not in left_keys and lk in right_rec:
+                        if lk + lsuffix not in merged:
+                            merged[lk + lsuffix] = merged.pop(lk)
+        else:
+            # Right is primary (for right joins)
+            merged = dict(right_rec)
+            for lk, lv in left_rec.items():
+                if lk in left_keys:
+                    continue
+                if lk in merged:
+                    if lsuffix:
+                        merged[lk + lsuffix] = lv
+                else:
+                    merged[lk] = lv
+
+        return merged
+
+    # Create null record for unmatched sides
+    def create_null_left(right_rec, sample_left=None):
+        result = dict(right_rec)
+        if sample_left:
+            for lk in sample_left.keys():
+                if lk not in right_keys:
+                    field_name = lk + lsuffix if (lsuffix and lk in result) else lk
+                    if field_name not in result:
+                        result[field_name] = None
+        return result
+
+    def create_null_right(left_rec, sample_right=None):
+        result = dict(left_rec)
+        if sample_right:
+            for rk in sample_right.keys():
+                if rk not in left_keys:
+                    field_name = rk + rsuffix if (rsuffix and rk in result) else rk
+                    if field_name not in result:
+                        result[field_name] = None
+        return result
+
+    # Group by key using itertools.groupby
+    left_grouped = itertools.groupby(left_iter, key=left_key)
+    right_grouped = itertools.groupby(right_iter, key=right_key)
+
+    # Convert to iterators we can peek at
+    try:
+        left_key_val, left_group = next(left_grouped)
+        left_group = list(left_group)  # Materialize group
+        left_has_data = True
+    except StopIteration:
+        left_has_data = False
+        left_key_val = None
+        left_group = []
+
+    try:
+        right_key_val, right_group = next(right_grouped)
+        right_group = list(right_group)  # Materialize group
+        right_has_data = True
+    except StopIteration:
+        right_has_data = False
+        right_key_val = None
+        right_group = []
+
+    sample_left = left_group[0] if left_group else None
+    sample_right = right_group[0] if right_group else None
+
+    # Main sort-merge loop
+    while left_has_data or right_has_data:
+        if not right_has_data or (left_has_data and left_key_val < right_key_val):
+            # Left key is smaller or no more right data
+            if how in ["left", "outer"]:
+                for left_rec in left_group:
+                    yield create_null_right(left_rec, sample_right)
+            elif how == "anti":
+                for left_rec in left_group:
+                    yield dict(left_rec)
+
+            # Advance left
+            try:
+                left_key_val, left_group = next(left_grouped)
+                left_group = list(left_group)
+            except StopIteration:
+                left_has_data = False
+
+        elif not left_has_data or (right_has_data and right_key_val < left_key_val):
+            # Right key is smaller or no more left data
+            if how in ["right", "outer"]:
+                for right_rec in right_group:
+                    yield create_null_left(right_rec, sample_left)
+
+            # Advance right
+            try:
+                right_key_val, right_group = next(right_grouped)
+                right_group = list(right_group)
+            except StopIteration:
+                right_has_data = False
+
+        else:
+            # Keys match
+            if how != "anti":
+                # Create cartesian product of matching groups
+                for left_rec in left_group:
+                    for right_rec in right_group:
+                        if how == "right":
+                            yield merge_records(
+                                left_rec, right_rec, is_left_primary=False
+                            )
+                        else:
+                            yield merge_records(
+                                left_rec, right_rec, is_left_primary=True
+                            )
+
+            # Advance both
+            try:
+                left_key_val, left_group = next(left_grouped)
+                left_group = list(left_group)
+            except StopIteration:
+                left_has_data = False
+
+            try:
+                right_key_val, right_group = next(right_grouped)
+                right_group = list(right_group)
+            except StopIteration:
+                right_has_data = False
+
+
+def _apply_hash_join(records: "Flow", step: dict) -> "Flow":
+    """
+    Hash join implementation for joining records.
 
     Args:
         records (Flow): A Flow of records to join.
@@ -350,41 +613,179 @@ def apply_join(records: "Flow", step: dict) -> "Flow":
     """
     from ..executor import FlowExecutor
 
-    on = step["on"]
-    suffix = step.get("suffix", "_right")
+    # Extract parameters
+    on = step.get("on")
+    left_on = step.get("left_on")
+    right_on = step.get("right_on")
+    lsuffix = step.get("lsuffix", "")
+    rsuffix = step.get("rsuffix", "_right")
     how = step.get("how", "left")
+    type_coercion = step.get("type_coercion", "strict")
 
-    compiled = step.get("_compiled_on")
-    if not compiled:
-        compiled = [k.split(".") for k in on]
-        step["_compiled_on"] = compiled
+    # Determine join keys
+    if on is not None:
+        left_keys = right_keys = on
+    else:
+        left_keys = left_on
+        right_keys = right_on
 
+    # Compile join keys
+    compiled_left = step.get("_compiled_left")
+    compiled_right = step.get("_compiled_right")
+
+    if not compiled_left:
+        compiled_left = [k.split(".") for k in left_keys]
+        step["_compiled_left"] = compiled_left
+
+    if not compiled_right:
+        compiled_right = [k.split(".") for k in right_keys]
+        step["_compiled_right"] = compiled_right
+
+    # Execute right plan and build index
     right_records = list(FlowExecutor(step["right_plan"]).execute())
-
     right_index: dict[tuple[Any, ...], list[dict]] = {}
+
     for r in right_records:
-        key = tuple(get_field(r, k) for k in compiled)
+        key = tuple(
+            _coerce_join_key(get_field(r, k), type_coercion) for k in compiled_right
+        )
         right_index.setdefault(key, []).append(r)
 
+    # Handle right join by swapping
+    if how == "right":
+        # Swap left and right, then do a left join
+        def right_join_generator():
+            # Build left index
+            left_records = list(records)
+            left_index: dict[tuple[Any, ...], list[dict]] = {}
+
+            for l in left_records:
+                key = tuple(
+                    _coerce_join_key(get_field(l, k), type_coercion)
+                    for k in compiled_left
+                )
+                left_index.setdefault(key, []).append(l)
+
+            # Process right records as primary
+            for right in right_records:
+                key = tuple(
+                    _coerce_join_key(get_field(right, k), type_coercion)
+                    for k in compiled_right
+                )
+                matches = left_index.get(key)
+
+                if not matches:
+                    # No left match - yield right with nulls for left fields
+                    joined = dict(right)
+
+                    # Add null values for left-only fields
+                    for left_rec in (
+                        left_records[:1] if left_records else [{}]
+                    ):  # Use first left record as template
+                        for lk in left_rec.keys():
+                            if lk not in right_keys:
+                                left_name = (
+                                    lk + lsuffix if (lsuffix and lk in joined) else lk
+                                )
+                                if left_name not in joined:
+                                    joined[left_name] = None
+                        break
+                    yield joined
+                else:
+                    for left in matches:
+                        joined = dict(right)
+                        for lk, lv in left.items():
+                            if lk in right_keys:
+                                continue
+                            if lk in joined:
+                                joined[lk + lsuffix] = lv
+                            else:
+                                joined[lk] = lv
+                        yield joined
+
+        yield from right_join_generator()
+        return
+
+    # Track matched right keys for outer join
+    matched_right_keys = set() if how == "outer" else None
+
+    # Process left records
     for left in records:
-        key = tuple(get_field(left, k) for k in compiled)
+        key = tuple(
+            _coerce_join_key(get_field(left, k), type_coercion) for k in compiled_left
+        )
         matches = right_index.get(key)
 
         if not matches:
-            if how == "left":
+            # No right match
+            if how in ["left", "outer"]:
                 yield dict(left)
+            elif how == "anti":
+                yield dict(left)
+            # For inner join, skip unmatched left records
             continue
 
+        # Has matches
+        if how == "anti":
+            # Anti join - skip records that have matches
+            continue
+
+        # Mark this key as matched for outer join
+        if matched_right_keys is not None:
+            matched_right_keys.add(key)
+
+        # Join matched records
         for right in matches:
             joined = dict(left)
             for rk, rv in right.items():
-                if rk in on:
+                if rk in right_keys:
                     continue
                 if rk in joined:
-                    joined[rk + suffix] = rv
+                    # Handle suffix collision
+                    if rsuffix:
+                        joined[rk + rsuffix] = rv
+                    else:
+                        # If no rsuffix, left value takes precedence
+                        pass
                 else:
                     joined[rk] = rv
+
+            # Apply lsuffix to overlapping left fields if needed
+            if lsuffix:
+                for lk in list(joined.keys()):
+                    if lk in left and lk not in left_keys:
+                        # Check if this left field conflicts with a right field
+                        if any(lk in r for r in matches):
+                            # Rename left field with lsuffix
+                            if lk + lsuffix not in joined:
+                                joined[lk + lsuffix] = joined.pop(lk)
+
             yield joined
+
+    # Handle outer join - emit unmatched right records
+    if how == "outer":
+        for key, right_group in right_index.items():
+            if key not in matched_right_keys:
+                for right in right_group:
+                    # Create record with right data and null left fields
+                    joined = dict(right)
+
+                    # Add null values for left-only fields
+                    left_sample = (
+                        next(iter(records), None)
+                        if hasattr(records, "__iter__")
+                        else None
+                    )
+                    if left_sample:
+                        for lk in left_sample.keys():
+                            if lk not in left_keys:
+                                left_name = (
+                                    lk + lsuffix if (lsuffix and lk in joined) else lk
+                                )
+                                if left_name not in joined:
+                                    joined[left_name] = None
+
+                    yield joined
 
 
 def apply_split_array(records: "Flow", step: dict) -> "Flow":

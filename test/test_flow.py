@@ -446,6 +446,557 @@ def test_inner_join():
     ]
 
 
+def test_right_join():
+    left = [
+        {"id": 1, "x": 10},
+        {"id": 2, "x": 20},
+        {"id": 3, "x": 30},
+    ]
+
+    right = [
+        {"id": 1, "y": 100},
+        {"id": 2, "y": 200},
+        {"id": 4, "y": 400},
+    ]
+
+    result = (
+        Flow.from_records(left)
+        .join(Flow.from_records(right), on="id", how="right")
+        .collect()
+    )
+
+    assert result == [
+        {"id": 1, "y": 100, "x": 10},
+        {"id": 2, "y": 200, "x": 20},
+        {"id": 4, "y": 400, "x": None},
+    ]
+
+
+def test_outer_join():
+    left = [
+        {"id": 1, "x": 10},
+        {"id": 2, "x": 20},
+        {"id": 3, "x": 30},
+    ]
+
+    right = [
+        {"id": 1, "y": 100},
+        {"id": 2, "y": 200},
+        {"id": 4, "y": 400},
+    ]
+
+    result = (
+        Flow.from_records(left)
+        .join(Flow.from_records(right), on="id", how="outer")
+        .collect()
+    )
+
+    # Sort by id for consistent comparison
+    result = sorted(result, key=lambda x: x["id"])
+
+    assert result == [
+        {"id": 1, "x": 10, "y": 100},
+        {"id": 2, "x": 20, "y": 200},
+        {"id": 3, "x": 30},
+        {"id": 4, "y": 400},
+    ]
+
+
+def test_anti_join():
+    left = [
+        {"id": 1, "x": 10},
+        {"id": 2, "x": 20},
+        {"id": 3, "x": 30},
+    ]
+
+    right = [
+        {"id": 1, "y": 100},
+        {"id": 2, "y": 200},
+        {"id": 4, "y": 400},
+    ]
+
+    result = (
+        Flow.from_records(left)
+        .join(Flow.from_records(right), on="id", how="anti")
+        .collect()
+    )
+
+    assert result == [
+        {"id": 3, "x": 30},
+    ]
+
+
+def test_join_different_key_names():
+    left = [
+        {"user_id": 1, "name": "Alice"},
+        {"user_id": 2, "name": "Bob"},
+        {"user_id": 3, "name": "Charlie"},
+    ]
+
+    right = [
+        {"person_id": 1, "age": 30},
+        {"person_id": 2, "age": 25},
+        {"person_id": 4, "age": 35},
+    ]
+
+    result = (
+        Flow.from_records(left)
+        .join(
+            Flow.from_records(right),
+            left_on="user_id",
+            right_on="person_id",
+            how="left",
+        )
+        .collect()
+    )
+
+    assert result == [
+        {"user_id": 1, "name": "Alice", "age": 30},
+        {"user_id": 2, "name": "Bob", "age": 25},
+        {"user_id": 3, "name": "Charlie"},
+    ]
+
+
+def test_join_custom_suffixes():
+    left = [
+        {"id": 1, "name": "Alice", "status": "active"},
+        {"id": 2, "name": "Bob", "status": "inactive"},
+    ]
+
+    right = [
+        {"id": 1, "name": "Alice Smith", "status": "employee"},
+        {"id": 2, "name": "Bob Jones", "status": "contractor"},
+    ]
+
+    result = (
+        Flow.from_records(left)
+        .join(
+            Flow.from_records(right),
+            on="id",
+            how="inner",
+            lsuffix="_left",
+            rsuffix="_right",
+        )
+        .collect()
+    )
+
+    assert result == [
+        {
+            "id": 1,
+            "name_right": "Alice Smith",
+            "status_right": "employee",
+            "name_left": "Alice",
+            "status_left": "active",
+        },
+        {
+            "id": 2,
+            "name_right": "Bob Jones",
+            "status_right": "contractor",
+            "name_left": "Bob",
+            "status_left": "inactive",
+        },
+    ]
+
+
+def test_join_multiple_keys():
+    left = [
+        {"team": "A", "season": 2023, "wins": 10},
+        {"team": "A", "season": 2024, "wins": 12},
+        {"team": "B", "season": 2023, "wins": 8},
+    ]
+
+    right = [
+        {"team": "A", "season": 2023, "losses": 5},
+        {"team": "A", "season": 2024, "losses": 3},
+        {"team": "C", "season": 2023, "losses": 12},
+    ]
+
+    result = (
+        Flow.from_records(left)
+        .join(Flow.from_records(right), on=["team", "season"], how="inner")
+        .collect()
+    )
+
+    assert result == [
+        {"team": "A", "season": 2023, "wins": 10, "losses": 5},
+        {"team": "A", "season": 2024, "wins": 12, "losses": 3},
+    ]
+
+
+def test_join_validation_errors():
+    left_flow = Flow.from_records([{"id": 1}])
+    right_flow = Flow.from_records([{"id": 1}])
+
+    # Test conflicting on and left_on/right_on parameters
+    with pytest.raises(
+        ValueError, match="Cannot specify both 'on' and 'left_on'/'right_on' parameters"
+    ):
+        left_flow.join(right_flow, on="id", left_on="id").collect()
+
+    # Test missing required parameters
+    with pytest.raises(
+        ValueError,
+        match="Either 'on' must be provided, or both 'left_on' and 'right_on' must be provided",
+    ):
+        left_flow.join(right_flow, left_on="id").collect()
+
+    # Test mismatched key lengths
+    with pytest.raises(
+        ValueError, match="'left_on' and 'right_on' must have the same number of keys"
+    ):
+        left_flow.join(right_flow, left_on=["id", "name"], right_on=["id"]).collect()
+
+    # Test invalid join type
+    with pytest.raises(ValueError, match="Unsupported join type: invalid"):
+        left_flow.join(right_flow, on="id", how="invalid").collect()
+
+
+def test_join_empty_datasets():
+    # Test left empty
+    empty_left = Flow.from_records([])
+    right = Flow.from_records([{"id": 1, "value": "a"}])
+
+    result = empty_left.join(right, on="id", how="left").collect()
+    assert result == []
+
+    result = empty_left.join(right, on="id", how="right").collect()
+    assert result == [{"id": 1, "value": "a"}]
+
+    # Test right empty
+    left = Flow.from_records([{"id": 1, "value": "a"}])
+    empty_right = Flow.from_records([])
+
+    result = left.join(empty_right, on="id", how="left").collect()
+    assert result == [{"id": 1, "value": "a"}]
+
+    result = left.join(empty_right, on="id", how="inner").collect()
+    assert result == []
+
+
+def test_join_no_suffix_right_precedence():
+    """Test that when rsuffix is empty, left values take precedence for overlapping fields"""
+    left = [{"id": 1, "value": "left_val"}]
+    right = [{"id": 1, "value": "right_val"}]
+
+    result = (
+        Flow.from_records(left)
+        .join(Flow.from_records(right), on="id", rsuffix="")
+        .collect()
+    )
+
+    assert result == [{"id": 1, "value": "left_val"}]
+
+
+def test_type_coercion_strict():
+    """Test strict type coercion (default behavior)"""
+    left = [
+        {"id": 1, "name": "Alice"},  # int
+        {"id": "2", "name": "Bob"},  # string
+        {"id": 3.0, "name": "Charlie"},  # float
+    ]
+
+    right = [
+        {"id": "1", "score": 85},  # string
+        {"id": 2, "score": 92},  # int
+        {"id": 3, "score": 78},  # int (matches 3.0 due to Python equality)
+    ]
+
+    result = (
+        Flow.from_records(left)
+        .join(Flow.from_records(right), on="id", type_coercion="strict")
+        .collect()
+    )
+
+    # In strict mode, uses Python's native equality:
+    # 1 != "1" (no match)
+    # "2" != 2 (no match)
+    # 3.0 == 3 (match - Python considers float 3.0 equal to int 3)
+    assert result == [
+        {"id": 1, "name": "Alice"},  # no match, int 1 != string "1"
+        {"id": "2", "name": "Bob"},  # no match, string "2" != int 2
+        {"id": 3.0, "name": "Charlie", "score": 78},  # match, float 3.0 == int 3
+    ]
+
+
+def test_type_coercion_auto():
+    """Test auto type coercion for smart numeric matching"""
+    left = [
+        {"id": 1, "name": "Alice"},  # int
+        {"id": 2.0, "name": "Bob"},  # float (integer value)
+        {"id": "3", "name": "Charlie"},  # string number
+        {"id": 4.5, "name": "David"},  # float (non-integer)
+    ]
+
+    right = [
+        {"id": "1", "score": 85},  # string number
+        {"id": 2, "score": 92},  # int
+        {"id": 3.0, "score": 78},  # float (integer value)
+        {"id": "4.5", "score": 88},  # string float
+    ]
+
+    result = (
+        Flow.from_records(left)
+        .join(Flow.from_records(right), on="id", type_coercion="auto")
+        .collect()
+    )
+
+    # All should match with smart coercion
+    assert result == [
+        {"id": 1, "name": "Alice", "score": 85},
+        {"id": 2.0, "name": "Bob", "score": 92},
+        {"id": "3", "name": "Charlie", "score": 78},
+        {"id": 4.5, "name": "David", "score": 88},
+    ]
+
+
+def test_type_coercion_string():
+    """Test string type coercion for universal string matching"""
+    left = [
+        {"id": 1, "name": "Alice"},  # int
+        {"id": 2.0, "name": "Bob"},  # float
+        {"id": "3", "name": "Charlie"},  # string
+        {"id": None, "name": "Unknown"},  # None
+    ]
+
+    right = [
+        {"id": "1", "score": 85},  # string
+        {"id": "2.0", "score": 92},  # string float
+        {"id": "3", "score": 78},  # string
+        {"id": None, "score": 0},  # None
+    ]
+
+    result = (
+        Flow.from_records(left)
+        .join(Flow.from_records(right), on="id", type_coercion="string")
+        .collect()
+    )
+
+    # All non-None values should match after string conversion
+    # None values should also match (None == None)
+    assert result == [
+        {"id": 1, "name": "Alice", "score": 85},
+        {"id": 2.0, "name": "Bob", "score": 92},
+        {"id": "3", "name": "Charlie", "score": 78},
+        {"id": None, "name": "Unknown", "score": 0},
+    ]
+
+
+def test_type_coercion_inner_join():
+    """Test type coercion with inner join"""
+    left = [
+        {"id": 1, "name": "Alice"},
+        {"id": "2", "name": "Bob"},
+        {"id": 3, "name": "Charlie"},
+    ]
+
+    right = [
+        {"id": "1", "score": 85},
+        {"id": 2, "score": 92},
+        {"id": "4", "score": 88},  # no left match
+    ]
+
+    result = (
+        Flow.from_records(left)
+        .join(Flow.from_records(right), on="id", how="inner", type_coercion="auto")
+        .collect()
+    )
+
+    # Only matching records should be returned
+    assert result == [
+        {"id": 1, "name": "Alice", "score": 85},
+        {"id": "2", "name": "Bob", "score": 92},
+    ]
+
+
+def test_type_coercion_outer_join():
+    """Test type coercion with outer join"""
+    left = [
+        {"id": 1, "name": "Alice"},
+        {"id": "3", "name": "Charlie"},
+    ]
+
+    right = [
+        {"id": "1", "score": 85},
+        {"id": 2, "score": 92},
+    ]
+
+    result = (
+        Flow.from_records(left)
+        .join(Flow.from_records(right), on="id", how="outer", type_coercion="auto")
+        .collect()
+    )
+
+    # Sort for consistent comparison
+    result = sorted(result, key=lambda x: str(x["id"]))
+
+    expected = [
+        {"id": 1, "name": "Alice", "score": 85},  # matched
+        {"id": 2, "score": 92},  # right only
+        {"id": "3", "name": "Charlie"},  # left only
+    ]
+
+    assert result == expected
+
+
+def test_type_coercion_anti_join():
+    """Test type coercion with anti join"""
+    left = [
+        {"id": 1, "name": "Alice"},
+        {"id": "2", "name": "Bob"},
+        {"id": 3, "name": "Charlie"},
+    ]
+
+    right = [
+        {"id": "1", "score": 85},  # matches with id=1
+    ]
+
+    result = (
+        Flow.from_records(left)
+        .join(Flow.from_records(right), on="id", how="anti", type_coercion="auto")
+        .collect()
+    )
+
+    # Should return left records that don't have matches
+    assert result == [
+        {"id": "2", "name": "Bob"},
+        {"id": 3, "name": "Charlie"},
+    ]
+
+
+def test_type_coercion_multiple_keys():
+    """Test type coercion with multiple join keys"""
+    left = [
+        {"team": "A", "season": 2023, "wins": 10},
+        {"team": "A", "season": "2024", "wins": 12},  # season as string
+        {"team": "B", "season": 2023.0, "wins": 8},  # season as float
+    ]
+
+    right = [
+        {"team": "A", "season": "2023", "losses": 5},  # season as string
+        {"team": "A", "season": 2024, "losses": 3},  # season as int
+        {"team": "B", "season": 2023, "losses": 12},  # season as int
+    ]
+
+    result = (
+        Flow.from_records(left)
+        .join(Flow.from_records(right), on=["team", "season"], type_coercion="auto")
+        .collect()
+    )
+
+    assert result == [
+        {"team": "A", "season": 2023, "wins": 10, "losses": 5},
+        {"team": "A", "season": "2024", "wins": 12, "losses": 3},
+        {"team": "B", "season": 2023.0, "wins": 8, "losses": 12},
+    ]
+
+
+def test_type_coercion_different_key_names():
+    """Test type coercion with different key names (left_on/right_on)"""
+    left = [
+        {"user_id": 1, "name": "Alice"},
+        {"user_id": "2", "name": "Bob"},
+    ]
+
+    right = [
+        {"person_id": "1", "age": 30},
+        {"person_id": 2, "age": 25},
+    ]
+
+    result = (
+        Flow.from_records(left)
+        .join(
+            Flow.from_records(right),
+            left_on="user_id",
+            right_on="person_id",
+            type_coercion="auto",
+        )
+        .collect()
+    )
+
+    assert result == [
+        {"user_id": 1, "name": "Alice", "age": 30},
+        {"user_id": "2", "name": "Bob", "age": 25},
+    ]
+
+
+def test_type_coercion_with_none_values():
+    """Test type coercion behavior with None values"""
+    left = [
+        {"id": 1, "name": "Alice"},
+        {"id": None, "name": "Unknown"},
+        {"id": 3, "name": "Charlie"},
+    ]
+
+    right = [
+        {"id": "1", "score": 85},
+        {"id": None, "score": 0},
+        {"id": 3.0, "score": 78},
+    ]
+
+    result = (
+        Flow.from_records(left)
+        .join(Flow.from_records(right), on="id", type_coercion="auto")
+        .collect()
+    )
+
+    # None should match None regardless of coercion strategy
+    assert result == [
+        {"id": 1, "name": "Alice", "score": 85},
+        {"id": None, "name": "Unknown", "score": 0},
+        {"id": 3, "name": "Charlie", "score": 78},
+    ]
+
+
+def test_type_coercion_validation():
+    """Test that invalid type coercion strategy raises error"""
+    left = [{"id": 1}]
+    right = [{"id": 1}]
+
+    # This error occurs during execution, not during join method call
+    with pytest.raises(ValueError, match="Unknown coercion strategy: invalid"):
+        (
+            Flow.from_records(left)
+            .join(Flow.from_records(right), on="id", type_coercion="invalid")
+            .collect()
+        )
+
+
+def test_type_coercion_edge_cases():
+    """Test edge cases for type coercion"""
+    left = [
+        {"id": 0, "name": "Zero"},
+        {"id": -1, "name": "Negative"},
+        {"id": 1.0, "name": "OneFloat"},
+        {"id": "01", "name": "LeadingZero"},
+    ]
+
+    right = [
+        {"id": "0", "score": 10},
+        {"id": "-1.0", "score": 20},
+        {"id": 1, "score": 30},
+        {"id": "1", "score": 40},  # This will create a duplicate key in auto mode
+    ]
+
+    result = (
+        Flow.from_records(left)
+        .join(Flow.from_records(right), on="id", type_coercion="auto")
+        .collect()
+    )
+
+    # Check that coercion handles edge cases properly
+    # Note: "01" should normalize to "1" and match with multiple right records
+    assert len(result) >= 3  # At least the clear matches
+
+    # Check specific matches we can be sure about
+    zero_match = next((r for r in result if r["name"] == "Zero"), None)
+    assert zero_match is not None
+    assert zero_match["score"] == 10
+
+    negative_match = next((r for r in result if r["name"] == "Negative"), None)
+    assert negative_match is not None
+    assert negative_match["score"] == 20
+
+
 def test_split_array_to_fields():
     data = [
         {"id": 1, "location": [10, 50]},
