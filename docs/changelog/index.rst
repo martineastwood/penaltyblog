@@ -14,6 +14,9 @@ Package Updates
 ---------------
 
 - ``Matchflow`` can now load data from cloud storage (e.g. S3, GCS, Azure Blob Storage) using `fsspec`
+- ``Matchflow`` now supports advanced join key type coercion strategies:
+  - Automatic type inference and conversion for join keys
+  - Customizable type coercion functions for complex scenarios
 - Updated ``implied`` submodule to add new overround removal methods:
   - Logarithmic Method
   - Maximum Entropy Method
