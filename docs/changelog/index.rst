@@ -14,11 +14,11 @@ Package Updates
 ---------------
 
 - ``Matchflow`` can now load data from cloud storage (e.g. S3, GCS, Azure Blob Storage) using `fsspec`
-- ``Matchflow`` now supports advanced join key type coercion strategies:
+- ``Matchflow`` now supports multiple join strategies:
+  - left, right, outer, inner and anti joins
   - Automatic type inference and conversion for join keys
-  - Customizable type coercion functions for complex scenarios
-- Updated ``implied`` submodule to add logarithmic overround removal method
-- Updated ``implied`` submodule API to return structured results
+  - Customizable type coercion functions for complex join key scenarios
+- Updated ``implied`` submodule to add logarithmic overround removal method and return structured results
 - Renamed ``kelly`` submodule to ``betting``
 - Added ``multiple_criterion`` function for calculating Kelly Criterion for multiple outcomes
 - Added ``arbitrage_hedge`` function to calculate hedge bet sizes

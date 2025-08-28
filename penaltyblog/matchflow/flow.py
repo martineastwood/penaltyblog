@@ -494,7 +494,7 @@ class Flow:
         on: Union[str, List[str], None] = None,
         left_on: Union[str, List[str], None] = None,
         right_on: Union[str, List[str], None] = None,
-        how: Literal["left", "right", "outer", "inner", "anti"] = "left",
+        how: Literal["left", "right", "outer", "inner", "anti"] = "inner",
         lsuffix: str = "",
         rsuffix: str = "_right",
         type_coercion: Literal["strict", "auto", "string"] = "strict",
