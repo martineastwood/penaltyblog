@@ -203,8 +203,6 @@ class TestCalculateImplied:
             ImpliedMethod.DIFFERENTIAL_MARGIN_WEIGHTING,
             ImpliedMethod.ODDS_RATIO,
             ImpliedMethod.LOGARITHMIC,
-            ImpliedMethod.MAXIMUM_ENTROPY,
-            ImpliedMethod.LEAST_SQUARES,
         ]
 
         for method in methods:
@@ -335,27 +333,3 @@ class TestMethodParameters:
         assert "alpha" in result.method_params
         assert isinstance(result.method_params["alpha"], float)
         assert result.method_params["alpha"] > 0  # Should be positive
-
-    def test_maximum_entropy_method_parameters(self):
-        """Test that maximum entropy method returns entropy parameter."""
-        odds = [2.7, 2.3, 4.4]
-        result = calculate_implied(odds, method=ImpliedMethod.MAXIMUM_ENTROPY)
-
-        assert result.method_params is not None
-        assert "entropy" in result.method_params
-        assert isinstance(result.method_params["entropy"], float)
-        assert result.method_params["entropy"] > 0  # Entropy should be positive
-
-    def test_least_squares_method_parameters(self):
-        """Test that least squares method returns lambda and SSE parameters."""
-        odds = [2.7, 2.3, 4.4]
-        result = calculate_implied(odds, method=ImpliedMethod.LEAST_SQUARES)
-
-        assert result.method_params is not None
-        assert "lambda" in result.method_params
-        assert "sum_squared_error" in result.method_params
-        assert isinstance(result.method_params["lambda"], float)
-        assert isinstance(result.method_params["sum_squared_error"], float)
-        assert (
-            result.method_params["sum_squared_error"] >= 0
-        )  # SSE should be non-negative

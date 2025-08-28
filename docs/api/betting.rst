@@ -1,7 +1,7 @@
-Kelly Criterion
+Betting
 ==================
 
-.. automodule:: penaltyblog.kelly
+.. automodule:: penaltyblog.betting
    :members:
    :undoc-members:
    :show-inheritance:

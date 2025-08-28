@@ -50,27 +50,27 @@ def test_backtest_trainer():
 
         pred = model.predict(fixture["team_home"], fixture["team_away"])
 
-        kc = pb.betting.criterion(fixture["b365_h"], pred.home_win, 0.3)
-        if kc > 0:
+        kc_home = pb.betting.kelly_criterion(fixture["b365_h"], pred.home_win, 0.3)
+        if kc_home.stake > 0:
             account.place_bet(
                 fixture["b365_h"],
-                account.current_bankroll * kc,
+                account.current_bankroll * kc_home.stake,
                 1 if ctx.fixture["ftr"] == "H" else 0,
             )
 
-        kc = pb.betting.criterion(fixture["b365_a"], pred.away_win, 0.3)
-        if kc > 0:
+        kc_away = pb.betting.kelly_criterion(fixture["b365_a"], pred.away_win, 0.3)
+        if kc_away.stake > 0:
             account.place_bet(
                 fixture["b365_a"],
-                account.current_bankroll * kc,
+                account.current_bankroll * kc_away.stake,
                 1 if ctx.fixture["ftr"] == "A" else 0,
             )
 
-        kc = pb.betting.criterion(fixture["b365_d"], pred.draw, 0.3)
-        if kc > 0:
+        kc_draw = pb.betting.kelly_criterion(fixture["b365_d"], pred.draw, 0.3)
+        if kc_draw.stake > 0:
             account.place_bet(
                 fixture["b365_d"],
-                account.current_bankroll * kc,
+                account.current_bankroll * kc_draw.stake,
                 1 if ctx.fixture["ftr"] == "D" else 0,
             )
 
