@@ -27,8 +27,6 @@ class ImpliedMethod(Enum):
     DIFFERENTIAL_MARGIN_WEIGHTING = "differential_margin_weighting"
     ODDS_RATIO = "odds_ratio"
     LOGARITHMIC = "logarithmic"
-    MAXIMUM_ENTROPY = "maximum_entropy"
-    LEAST_SQUARES = "least_squares"
 
 
 @dataclass(frozen=True)

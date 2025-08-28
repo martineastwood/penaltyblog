@@ -107,10 +107,6 @@ def calculate_implied(
         return _odds_ratio(decimal_odds, names)
     elif method == ImpliedMethod.LOGARITHMIC:
         return _logarithmic(decimal_odds, names)
-    elif method == ImpliedMethod.MAXIMUM_ENTROPY:
-        return _maximum_entropy(decimal_odds, names)
-    elif method == ImpliedMethod.LEAST_SQUARES:
-        return _least_squares(decimal_odds, names)
     else:
         raise ValueError(f"Unsupported method: {method}")
 
@@ -406,7 +402,7 @@ def _logarithmic(
         return float(1 - np.sum(adjusted_probs))
 
     # Find alpha that normalizes probabilities
-    alpha = float(optimize.brentq(_log_odds_error, 0.1, 10.0, args=(log_odds,)))
+    alpha = float(optimize.brentq(_log_odds_error, 0.1, 100.0, args=(log_odds,)))
 
     # Apply adjustment and convert back to probabilities
     adjusted_log_odds = alpha * log_odds
@@ -418,87 +414,4 @@ def _logarithmic(
         margin=margin,
         market_names=market_names,
         method_params={"alpha": alpha},
-    )
-
-
-def _maximum_entropy(
-    odds: List[float],
-    market_names: Optional[List[str]] = None,
-) -> ImpliedProbabilities:
-    """
-    Maximum entropy method for overround removal.
-
-    Uses Shannon's maximum entropy principle to find the probability
-    distribution that:
-    1. Sums to 1.0
-    2. Is "closest" to the original odds in terms of relative entropy
-    3. Maximizes entropy subject to the normalization constraint
-
-    This is equivalent to finding probabilities that minimize the
-    Kullback-Leibler divergence from the original (unnormalized) probabilities.
-    """
-    odds_arr = np.array(odds, dtype=np.float64)
-    inv_odds = 1.0 / odds_arr
-    margin = float(np.sum(inv_odds) - 1)
-
-    # Original (unnormalized) probabilities
-    q = inv_odds
-    normalized = (q / np.sum(q)).tolist()
-
-    # Calculate entropy of the result
-    p = np.array(normalized)
-    entropy = -np.sum(p * np.log(p + 1e-15))  # Add small constant to avoid log(0)
-
-    return ImpliedProbabilities(
-        probabilities=normalized,
-        method=ImpliedMethod.MAXIMUM_ENTROPY,
-        margin=margin,
-        market_names=market_names,
-        method_params={"entropy": float(entropy)},
-    )
-
-
-def _least_squares(
-    odds: List[float],
-    market_names: Optional[List[str]] = None,
-) -> ImpliedProbabilities:
-    """
-    Least squares method for overround removal (Fingleton & Waldron, 1999).
-
-    Finds probabilities that minimize the sum of squared deviations
-    from the original (unnormalized) probabilities, subject to the
-    constraint that probabilities sum to 1.0.
-
-    This is a constrained optimization problem:
-    min Σ(p_i - q_i)² subject to Σp_i = 1
-
-    The solution can be found analytically using Lagrange multipliers.
-    """
-    odds_arr = np.array(odds, dtype=np.float64)
-    inv_odds = 1.0 / odds_arr
-    margin = float(np.sum(inv_odds) - 1)
-
-    # Original (unnormalized) probabilities
-    q = inv_odds
-    n = len(q)
-
-    lambda_val = 2 * margin / n
-    normalized = (q - lambda_val / 2).tolist()
-
-    # Verify the solution sums to 1 (it should by construction)
-    total = sum(normalized)
-    if not np.isclose(total, 1.0, atol=1e-10):
-        # Fallback to simple normalization if numerical issues
-        normalized = (np.array(normalized) / total).tolist()
-
-    # Calculate sum of squared deviations from original
-    p = np.array(normalized)
-    sse = float(np.sum((p - q) ** 2))
-
-    return ImpliedProbabilities(
-        probabilities=normalized,
-        method=ImpliedMethod.LEAST_SQUARES,
-        margin=margin,
-        market_names=market_names,
-        method_params={"lambda": lambda_val, "sum_squared_error": sse},
     )
