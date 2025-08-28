@@ -9,4 +9,5 @@ optimal bet sizes using the Kelly Criterion.
    :maxdepth: 1
    :caption: Examples:
 
-   betting
+   arbitrage
+   bet_size

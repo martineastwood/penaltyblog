@@ -2,7 +2,7 @@ import math
 from dataclasses import dataclass
 from typing import List, Optional, Tuple
 
-from scipy.optimize import OptimizeResult, linprog
+from scipy.optimize import linprog
 
 
 @dataclass
