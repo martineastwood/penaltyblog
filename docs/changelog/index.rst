@@ -17,14 +17,19 @@ Package Updates
 - ``Matchflow`` now supports advanced join key type coercion strategies:
   - Automatic type inference and conversion for join keys
   - Customizable type coercion functions for complex scenarios
-- Updated ``implied`` submodule to add new overround removal methods:
-  - Logarithmic Method
-  - Maximum Entropy Method
-  - Least Squares Method
-- Refactored implied odds API for improved clarity and extensibility
+- Updated ``implied`` submodule to add logarithmic overround removal method
+- Updated ``implied`` submodule API to return structured results
 - Renamed ``kelly`` submodule to ``betting``
 - Added ``multiple_criterion`` function for calculating Kelly Criterion for multiple outcomes
 - Added ``arbitrage_hedge`` function to calculate hedge bet sizes
+- Updated all betting utility functions to return structured output
+
+Documentation Improvements
+----------------------------
+
+- Updated ``Matchflow`` documentation
+- Updated ``implied`` documentation
+- Updated ``betting`` documentation
 
 v1.5.1 (2025-08-20)
 ^^^^^^^^^^^^^^^^^^^^
