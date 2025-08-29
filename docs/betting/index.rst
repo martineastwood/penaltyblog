@@ -1,4 +1,4 @@
-Beting Utilities
+Betting Utilities
 ==========================
 
 This submodule provides a collection of tools for bet sizing and portfolio management.
@@ -9,5 +9,7 @@ optimal bet sizes using the Kelly Criterion.
    :maxdepth: 1
    :caption: Examples:
 
-   arbitrage
+   arbitrage_hedging
+   arbitrage_opportunities
    bet_size
+   value_bets
