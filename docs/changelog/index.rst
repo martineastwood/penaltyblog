@@ -15,14 +15,20 @@ Package Updates
 
 - ``Matchflow`` can now load data from cloud storage (e.g. S3, GCS, Azure Blob Storage) using `fsspec`
 - ``Matchflow`` now supports multiple join strategies:
+
   - left, right, outer, inner and anti joins
   - Automatic type inference and conversion for join keys
   - Customizable type coercion functions for complex join key scenarios
+
 - Updated ``implied`` submodule to add logarithmic overround removal method and return structured results
 - Renamed ``kelly`` submodule to ``betting``
-- Added ``multiple_criterion`` function for calculating Kelly Criterion for multiple outcomes
-- Added ``arbitrage_hedge`` function to calculate hedge bet sizes
-- Updated all betting utility functions to return structured output
+
+  - Added ``multiple_criterion`` function for calculating Kelly Criterion for multiple outcomes
+  - Added ``arbitrage_hedge`` function to calculate hedge bet sizes
+  - Added ``arbitrage_opportunities`` function to identify arbitrage opportunities across bookmakers
+  - Added ``value_bets`` function to identify value bets based on model probabilities
+  - Added ``odds_conversion`` function to convert between different odds formats (decimal, fractional, American)
+  - Updated all betting utility functions to return structured output
 
 Documentation Improvements
 ----------------------------
