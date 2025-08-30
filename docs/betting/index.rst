@@ -13,3 +13,4 @@ optimal bet sizes using the Kelly Criterion.
    arbitrage_opportunities
    bet_size
    value_bets
+   odds_conversion
