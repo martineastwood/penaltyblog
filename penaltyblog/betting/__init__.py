@@ -6,6 +6,7 @@ Functions for bet sizing, Kelly Criterion, arbitrage, value betting, and other b
 
 from .arbitrage import arbitrage_hedge  # noqa
 from .kelly import kelly_criterion, multiple_kelly_criterion  # noqa
+from .odds import convert_odds  # noqa
 from .value_bets import (  # noqa
     ArbitrageResult,
     MultipleValueBetResult,
@@ -25,4 +26,5 @@ __all__ = [
     "ValueBetResult",
     "MultipleValueBetResult",
     "ArbitrageResult",
+    "convert_odds",
 ]
