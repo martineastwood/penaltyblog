@@ -1,3 +1,4 @@
+from .bayesian import EmceeDixonColesModel
 from .bivariate_poisson import BivariatePoissonGoalModel  # noqa
 from .dixon_coles import DixonColesGoalModel  # noqa
 from .football_probability_grid import FootballProbabilityGrid  # noqa
@@ -19,4 +20,5 @@ __all__ = [
     "WeibullCopulaGoalsModel",
     "ZeroInflatedPoissonGoalsModel",
     "dixon_coles_weights",
+    "EmceeDixonColesModel",
 ]
