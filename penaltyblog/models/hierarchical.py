@@ -5,7 +5,6 @@ import numpy as np
 from scipy.optimize import minimize
 from scipy.stats import expon, norm
 
-# --- Assumed Imports from your package ---
 from .base_model import BaseGoalsModel
 from .football_probability_grid import FootballProbabilityGrid
 from .loss import dixon_coles_loss_function
@@ -99,7 +98,7 @@ def hierarchical_log_probability(
     return log_prior_prob - neg_log_likelihood
 
 
-class HierarchicalDixonColesModel(BaseGoalsModel):
+class BayesianHierarchicalModel(BaseGoalsModel):
     """
     A hierarchical Bayesian Dixon-Coles model fitted in parallel with emcee.
 

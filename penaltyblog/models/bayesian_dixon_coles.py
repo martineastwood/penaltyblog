@@ -63,7 +63,6 @@ def log_probability(
     log_prior_prob = attack_priors + defense_priors + hfa_prior + rho_prior
 
     # --- Log Likelihood (with NaN check) ---
-    # Note: your loss function returns the NEGATIVE log-likelihood
     neg_log_likelihood = dixon_coles_loss_function(
         goals_home, goals_away, weights, home_idx, away_idx, attack, defense, hfa, rho
     )

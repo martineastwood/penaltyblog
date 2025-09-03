@@ -3,7 +3,7 @@ from .bivariate_poisson import BivariatePoissonGoalModel  # noqa
 from .dixon_coles import DixonColesGoalModel  # noqa
 from .football_probability_grid import FootballProbabilityGrid  # noqa
 from .goal_expectancy import goal_expectancy  # noqa
-from .hierarchical import HierarchicalDixonColesModel  # noqa
+from .hierarchical import BayesianHierarchicalModel  # noqa
 from .negative_binomial import NegativeBinomialGoalModel  # noqa
 from .poisson import PoissonGoalsModel  # noqa
 from .utils import dixon_coles_weights  # noqa
@@ -22,5 +22,5 @@ __all__ = [
     "ZeroInflatedPoissonGoalsModel",
     "dixon_coles_weights",
     "BayesianDixonColesModel",
-    "HierarchicalDixonColesModel",
+    "BayesianHierarchicalModel",
 ]

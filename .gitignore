@@ -155,12 +155,8 @@ scratch.py
 codecov
 docs/y
 
-.windsurfrules
-.windsurf
-/.windsurf
+GEMINI.md
 /benchmarks
-.clinerules
-.aider*
 chatgpt_combined_output.txt
 copy_files.py
 roadmap.md
