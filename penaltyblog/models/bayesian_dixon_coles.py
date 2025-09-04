@@ -21,25 +21,67 @@ def log_probability(
     params, home_idx, away_idx, goals_home, goals_away, weights, n_teams
 ):
     """
-    Calculates the log posterior probability for a given set of parameters.
+    Compute the log posterior probability for the Dixon-Coles model.
 
-    This is the target function for the MCMC sampler. It is defined at the
-    top level so it can be pickled for multiprocessing. The log posterior is
-    the sum of the log prior and the log likelihood.
+    This function evaluates the log posterior probability (log prior + log likelihood)
+    for a given parameter vector. It serves as the target function for MCMC sampling
+    and is defined at module level to enable multiprocessing with emcee.
 
-    Args:
-        params (np.ndarray): A single array containing all model parameters
-            (attack, defense, hfa, rho).
-        home_idx (np.ndarray): Integer indices for the home teams.
-        away_idx (np.ndarray): Integer indices for the away teams.
-        goals_home (np.ndarray): Goals scored by the home teams.
-        goals_away (np.ndarray): Goals scored by the away teams.
-        weights (np.ndarray): Weight for each match.
-        n_teams (int): The total number of unique teams.
+    Mathematical Details:
+    --------------------
+    log p(θ|data) = log p(data|θ) + log p(θ) + constant
+
+    Where:
+    - p(data|θ) is the Dixon-Coles likelihood
+    - p(θ) combines priors on all parameters
+    - θ = [attack, defense, hfa, rho] is the parameter vector
+
+    Prior Specifications:
+    --------------------
+    - attack_i ~ N(0, 1) for i = 1,...,n_teams
+    - defense_i ~ N(0, 1) for i = 1,...,n_teams
+    - hfa ~ N(0.25, 0.5²)
+    - rho ~ N(0, 0.5²)
+
+    Parameter Bounds:
+    ----------------
+    - attack, defense ∈ [-5, 5] (prevents extreme values)
+    - rho ∈ (-1, 1) (correlation constraint)
+    - No bounds on hfa (can be negative for away advantage)
+
+    Parameters:
+    -----------
+    params : array-like
+        Parameter vector of length (2*n_teams + 2) containing:
+        - params[0:n_teams]: attack strengths
+        - params[n_teams:2*n_teams]: defense strengths
+        - params[2*n_teams]: home field advantage
+        - params[2*n_teams+1]: Dixon-Coles correlation parameter
+    home_idx : array-like
+        Integer indices of home teams for each match
+    away_idx : array-like
+        Integer indices of away teams for each match
+    goals_home : array-like
+        Goals scored by home teams
+    goals_away : array-like
+        Goals scored by away teams
+    weights : array-like
+        Match weights (for temporal discounting)
+    n_teams : int
+        Total number of unique teams
 
     Returns:
-        float: The log posterior probability. Returns -inf if parameters
-               are outside the defined bounds or if the likelihood is not finite.
+    --------
+    float
+        Log posterior probability. Returns -np.inf if parameters violate
+        bounds or if likelihood computation fails.
+
+    Notes:
+    ------
+    - Function must be pickle-able for multiprocessing
+    - Includes automatic bounds checking with hard rejection
+    - Uses regularizing priors to prevent overfitting
+    - Robust to numerical issues in likelihood computation
     """
     # Unpack params
     attack = params[:n_teams]
@@ -76,22 +118,96 @@ def log_probability(
 
 class BayesianDixonColesModel(BaseGoalsModel):
     """
-    A regularized Bayesian Dixon-Coles model fitted in parallel with the emcee MCMC sampler.
+    A Bayesian implementation of the Dixon-Coles model for football match prediction.
 
-    This model estimates team strengths (attack and defense) and other parameters
-    (home-field advantage, goal correlation) by sampling from the posterior
-    distribution using MCMC. This provides a robust estimation of uncertainty
-    in the parameters.
+    This model extends the classic Dixon-Coles framework with full Bayesian inference
+    using MCMC sampling. It estimates team attack and defense strengths, home field
+    advantage, and goal correlation while providing uncertainty quantification through
+    posterior distributions.
+
+    Mathematical Model:
+    ------------------
+    The model assumes goals follow independent Poisson distributions with rates:
+
+    λ_home = exp(attack_home - defense_away + hfa)
+    λ_away = exp(attack_away - defense_home)
+
+    Where:
+    - attack_i ~ N(0, 1) are team attack strengths
+    - defense_i ~ N(0, 1) are team defense strengths
+    - hfa ~ N(0.25, 0.5²) is home field advantage
+    - rho ~ N(0, 0.5²) is the Dixon-Coles correlation parameter
+
+    The Dixon-Coles correlation adjusts for the dependent structure in low-scoring
+    games (0-0, 0-1, 1-0, 1-1 results) where the assumption of independence between
+    home and away goals may not hold.
+
+    Bayesian Framework:
+    ------------------
+    The model uses:
+    - Conjugate normal priors on team strengths for regularization
+    - MCMC sampling via emcee for posterior inference
+    - Parallel computation for efficient sampling
+    - Posterior predictive distributions for match predictions
+
+    Parameters:
+    -----------
+    goals_home : array-like
+        Number of goals scored by home teams in each match
+    goals_away : array-like
+        Number of goals scored by away teams in each match
+    teams_home : array-like
+        Home team identifiers for each match
+    teams_away : array-like
+        Away team identifiers for each match
+    weights : array-like, optional
+        Match weights for temporal discounting (default: None, all weights = 1)
 
     Attributes:
-        goals_home (np.ndarray): Goals scored by the home teams for each match.
-        goals_away (np.ndarray): Goals scored by the away teams for each match.
-        teams_home (np.ndarray): Names of the home teams.
-        teams_away (np.ndarray): Names of the away teams.
-        weights (np.ndarray, optional): Weight for each match. Defaults to 1.
-        sampler (emcee.EnsembleSampler): The MCMC sampler instance.
-        chain (np.ndarray): The flattened, burned, and thinned MCMC chain of
-            posterior samples.
+    -----------
+    n_teams : int
+        Number of unique teams in the dataset
+    teams : array
+        Sorted array of unique team identifiers
+    sampler : emcee.EnsembleSampler
+        MCMC sampler object (after fitting)
+    chain : ndarray
+        Posterior samples from MCMC (shape: [n_samples, n_parameters])
+    fitted : bool
+        Whether the model has been fitted with MCMC
+
+    Examples:
+    ---------
+    >>> # Basic usage
+    >>> model = BayesianDixonColesModel(
+    ...     goals_home=[2, 1, 0, 3],
+    ...     goals_away=[1, 1, 2, 0],
+    ...     teams_home=['Arsenal', 'Chelsea', 'Liverpool', 'ManCity'],
+    ...     teams_away=['Tottenham', 'Arsenal', 'Chelsea', 'Liverpool']
+    ... )
+    >>> model.fit(n_walkers=100, n_steps=2000, n_burn=500)
+    >>> probs = model.predict_match('Arsenal', 'Chelsea')
+    >>> print(f"Arsenal win probability: {probs.home_win_prob:.3f}")
+
+    >>> # With temporal weighting
+    >>> recent_weights = np.exp(-0.01 * np.arange(len(goals_home))[::-1])
+    >>> model = BayesianDixonColesModel(
+    ...     goals_home, goals_away, teams_home, teams_away,
+    ...     weights=recent_weights
+    ... )
+
+    Notes:
+    ------
+    - Computational complexity scales as O(n_teams²) parameters
+    - MCMC sampling can be computationally intensive for large datasets
+    - Uses multiprocessing for parallel chain evaluation
+    - Provides full uncertainty quantification unlike MLE approaches
+    - Regularization through priors prevents overfitting
+
+    References:
+    -----------
+    Dixon, M.J. and Coles, S.G. (1997) "Modelling Association Football Scores
+    and Inefficiencies in the Football Betting Market"
     """
 
     def __init__(
@@ -103,15 +219,40 @@ class BayesianDixonColesModel(BaseGoalsModel):
         weights=None,
     ):
         """
-        Initializes the BayesianDixonColesModel with match data.
+        Initialize the Bayesian Dixon-Coles model with match data.
 
-        Args:
-            goals_home (np.ndarray): Goals scored by the home teams.
-            goals_away (np.ndarray): Goals scored by the away teams.
-            teams_home (np.ndarray): The home team for each match.
-            teams_away (np.ndarray): The away team for each match.
-            weights (np.ndarray, optional): The weight for each match.
-                Defaults to None, which assigns a weight of 1 to each match.
+        Sets up the model structure, processes team identifiers, and initializes
+        parameter vectors with sensible defaults. The model parameters will be
+        estimated during the fitting process via MCMC sampling.
+
+        Parameters:
+        -----------
+        goals_home : array-like
+            Goals scored by home teams in each match. Must be non-negative integers.
+        goals_away : array-like
+            Goals scored by away teams in each match. Must be non-negative integers.
+        teams_home : array-like
+            Home team identifiers for each match. Can be strings or any hashable type.
+        teams_away : array-like
+            Away team identifiers for each match. Can be strings or any hashable type.
+        weights : array-like, optional
+            Weights for each match, typically used for temporal discounting where
+            more recent matches have higher weights. Must be positive values.
+            If None (default), all matches receive equal weight of 1.0.
+
+        Raises:
+        -------
+        ValueError
+            If input arrays have mismatched lengths or contain invalid values
+
+        Notes:
+        -----
+        - All input arrays must have the same length (number of matches)
+        - Team identifiers are automatically mapped to integer indices
+        - Initial parameter values are set to reasonable defaults:
+          * Attack/defense strengths: 0.0 (average)
+          * Home field advantage: 0.25 (typical value)
+          * Correlation parameter: -0.1 (slight negative correlation)
         """
         super().__init__(goals_home, goals_away, teams_home, teams_away, weights)
 
@@ -142,13 +283,34 @@ class BayesianDixonColesModel(BaseGoalsModel):
 
     def _unpack_params(self, params):
         """
-        Unpacks the flat parameter vector into a dictionary.
+        Unpack the flat parameter vector into named components.
 
-        Args:
-            params (np.ndarray): The flat parameter vector.
+        Converts the 1D parameter array used by the MCMC sampler into a structured
+        dictionary for easier access to individual model components.
+
+        Parameters:
+        -----------
+        params : array-like
+            Flat parameter vector of length (2*n_teams + 2) containing:
+            - params[0:n_teams]: attack strengths for all teams
+            - params[n_teams:2*n_teams]: defense strengths for all teams
+            - params[2*n_teams]: home field advantage (hfa)
+            - params[2*n_teams+1]: Dixon-Coles correlation parameter (rho)
 
         Returns:
-            dict: A dictionary of named parameters.
+        --------
+        dict
+            Dictionary with keys:
+            - 'attack': array of attack strengths (length n_teams)
+            - 'defense': array of defense strengths (length n_teams)
+            - 'hfa': scalar home field advantage
+            - 'rho': scalar Dixon-Coles correlation parameter
+
+        Notes:
+        ------
+        This method is primarily used internally during MCMC sampling and
+        prediction to convert between the flat representation needed for
+        optimization and the structured representation needed for computation.
         """
         nt = self.n_teams
         return {
@@ -160,23 +322,74 @@ class BayesianDixonColesModel(BaseGoalsModel):
 
     def fit(self, n_walkers=None, n_steps=2000, n_burn=1000, initial_params=None):
         """
-        Fit the model using the emcee MCMC sampler in parallel.
+        Fit the Bayesian Dixon-Coles model using MCMC sampling.
 
-        This method runs an MCMC simulation to sample from the posterior
-        distribution of the model parameters. It begins by finding a good
-        starting point via optimization (Maximum A Posteriori) and then
-        initializes a set of "walkers" to explore the parameter space.
+        This method performs full Bayesian inference by sampling from the posterior
+        distribution of model parameters using the emcee affine-invariant ensemble
+        sampler. The process includes automatic initialization via MAP estimation,
+        parallel chain evaluation, and post-processing of samples.
 
-        Args:
-            n_walkers (int, optional): The number of MCMC walkers. If None,
-                defaults to twice the number of dimensions.
-            n_steps (int, optional): The number of steps for each walker to
-                take. Defaults to 2000.
-            n_burn (int, optional): The number of "burn-in" steps to discard
-                from the beginning of the chain. Defaults to 1000.
-            initial_params (np.ndarray, optional): A specific starting point
-                for the parameters. If None, a starting point is found via
-                optimization. Defaults to None.
+        Algorithm Overview:
+        ------------------
+        1. Initialize walkers around MAP estimate (if initial_params=None)
+        2. Run MCMC chains in parallel using multiprocessing
+        3. Discard burn-in samples and thin the remaining chain
+        4. Store flattened posterior samples for prediction
+
+        Parameters:
+        -----------
+        n_walkers : int, optional
+            Number of MCMC walkers (chains) to run in parallel. Should be at least
+            2 times the number of parameters for good mixing. If None, defaults to
+            2 * (2*n_teams + 2). Recommended: 50-200 for most applications.
+        n_steps : int, optional
+            Total number of MCMC steps per walker. More steps provide better
+            convergence and more precise posterior estimates. Default: 2000.
+            Recommended: 1000-5000 depending on model complexity.
+        n_burn : int, optional
+            Number of initial samples to discard as burn-in. These samples allow
+            chains to reach the target distribution from their starting positions.
+            Should be sufficient for convergence (typically 25-50% of n_steps).
+            Default: 1000.
+        initial_params : array-like, optional
+            Starting parameter values for MCMC chains. If provided, must have shape
+            (2*n_teams + 2,). If None, automatically finds good starting point via
+            MAP estimation using L-BFGS-B optimization. Default: None.
+
+        Raises:
+        -------
+        ValueError
+            If n_walkers < 2*n_parameters or if optimization fails to find valid
+            starting parameters
+        RuntimeError
+            If MCMC sampling encounters numerical issues or fails to converge
+
+        Notes:
+        ------
+        - Uses multiprocessing for parallel evaluation of log-probability
+        - Chains are automatically thinned by factor of 15 to reduce storage
+        - Progress display can be controlled via emcee parameters
+        - Sets self.fitted = True upon successful completion
+        - Convergence diagnostics should be checked after fitting
+
+        Performance Tips:
+        ----------------
+        - For large datasets: reduce n_steps and increase n_walkers
+        - For small datasets: increase n_steps for better mixing
+        - Monitor acceptance rates (should be 20-50%)
+        - Use convergence diagnostics (R-hat, effective sample size)
+
+        Examples:
+        ---------
+        >>> # Quick fit for exploration
+        >>> model.fit(n_walkers=50, n_steps=1000, n_burn=300)
+
+        >>> # Production fit with good convergence
+        >>> model.fit(n_walkers=100, n_steps=3000, n_burn=1000)
+
+        >>> # Custom initialization
+        >>> custom_params = np.concatenate([attack_init, defense_init, [0.3, -0.05]])
+        >>> model.fit(initial_params=custom_params)
         """
         ndim = len(self._params)
 

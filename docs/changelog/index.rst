@@ -30,6 +30,9 @@ Package Updates
   - Added ``odds_conversion`` function to convert between different odds formats (decimal, fractional, American)
   - Updated all betting utility functions to return structured output
 
+  - Added ``BayesianHierarchicalModel`` for hierarchical Bayesian modeling of team strengths
+  - Added ``BayesianDixonColesModel`` for Bayesian modeling of team strengths
+
 Documentation Improvements
 ----------------------------
 

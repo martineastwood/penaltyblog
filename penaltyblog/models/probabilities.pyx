@@ -148,6 +148,81 @@ cpdef void compute_dixon_coles_probabilities(double home_attack,
 @cython.cdivision(True)
 @cython.nonecheck(False)
 @cython.initializedcheck(False)
+cpdef void compute_random_intercept_probabilities(double home_attack,
+                                                  double away_attack,
+                                                  double home_defense,
+                                                  double away_defense,
+                                                  double home_advantage,
+                                                  double rho,
+                                                  double match_intercept,
+                                                  int max_goals,
+                                                  np.float64_t[:] score_matrix,
+                                                  np.float64_t[:] lambda_home,
+                                                  np.float64_t[:] lambda_away):
+    """
+    Compute the Dixon–Coles adjusted scoreline probabilities with a random intercept.
+
+    Parameters:
+      home_attack, away_attack: Attack parameters.
+      home_defense, away_defense: Defence parameters.
+      home_advantage: Home advantage.
+      rho: Dixon–Coles adjustment parameter.
+      match_intercept: The per-match random intercept.
+      max_goals: The maximum number of goals to consider.
+      score_matrix: Pre-allocated flattened (1D) array of length max_goals**2,
+                    where the score matrix will be stored in row-major order.
+      lambda_home, lambda_away: 1-element arrays to hold the expected goals.
+    """
+    cdef double lh, la
+    cdef int i, j, g
+    cdef double* homeGoalsVector
+    cdef double* awayGoalsVector
+    cdef double p, factor
+
+    # Compute expected goals.
+    lh = exp(home_advantage + home_attack + away_defense + match_intercept)
+    la = exp(away_attack + home_defense + match_intercept)
+    lambda_home[0] = lh
+    lambda_away[0] = la
+
+    # Allocate temporary arrays for probabilities.
+    homeGoalsVector = <double*> malloc(max_goals * sizeof(double))
+    awayGoalsVector = <double*> malloc(max_goals * sizeof(double))
+    if homeGoalsVector == NULL or awayGoalsVector == NULL:
+        raise MemoryError("Unable to allocate memory for probability vectors.")
+
+    # Compute the Poisson probability for each possible goal count.
+    for g in range(max_goals):
+        homeGoalsVector[g] = poisson_pmf(g, lh)
+        awayGoalsVector[g] = poisson_pmf(g, la)
+
+    # Fill the score matrix with the Dixon–Coles adjustment.
+    for i in range(max_goals):
+        for j in range(max_goals):
+            p = homeGoalsVector[i] * awayGoalsVector[j]
+            # Apply Dixon–Coles adjustments for low scoring outcomes.
+            if i == 0 and j == 0:
+                factor = 1 - rho * lh * la
+            elif i == 0 and j == 1:
+                factor = 1 + rho * lh
+            elif i == 1 and j == 0:
+                factor = 1 + rho * la
+            elif i == 1 and j == 1:
+                factor = 1 - rho
+            else:
+                factor = 1.0
+            score_matrix[i * max_goals + j] = p * factor
+
+    # Free the temporary arrays.
+    free(homeGoalsVector)
+    free(awayGoalsVector)
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
+@cython.nonecheck(False)
+@cython.initializedcheck(False)
 cpdef void compute_negative_binomial_probabilities(double home_attack,
                                                      double away_attack,
                                                      double home_defense,
