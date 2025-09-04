@@ -201,7 +201,7 @@ class BayesianHierarchicalModel(BaseGoalsModel):
             "rho": params[2 * nt + 5],
         }
 
-    def fit(self, n_walkers=None, n_steps=2000, n_burn=1000, initial_params=None):
+    def fit(self, n_walkers=None, n_steps=4000, n_burn=1000, initial_params=None):
         """
         Fit the model using the emcee MCMC sampler in parallel.
 
