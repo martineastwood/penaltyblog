@@ -60,37 +60,22 @@ def _handle_missing_dependency(path: str) -> None:
             break
 
 
-def dispatch(step) -> "Flow":
+def dispatch(step) -> Iterator[Dict[Any, Any]]:
     op = step["op"]
     if op == "from_folder":
-        # Cast the iterator to Flow for type checking
-        from ..flow import Flow
-
-        return cast(Flow, from_folder(step))
+        return from_folder(step)
     elif op == "from_materialized":
-        from ..flow import Flow
-
-        return cast(Flow, iter(step["records"]))
+        return iter(step["records"])
     elif op == "from_json":
-        from ..flow import Flow
-
-        return cast(Flow, from_json(step))
+        return from_json(step)
     elif op == "from_jsonl":
-        from ..flow import Flow
-
-        return cast(Flow, from_jsonl(step))
+        return from_jsonl(step)
     elif op == "from_statsbomb":
-        from ..flow import Flow
-
-        return cast(Flow, from_statsbomb(step))
+        return from_statsbomb(step)
     elif op == "from_glob":
-        from ..flow import Flow
-
-        return cast(Flow, from_glob(step))
+        return from_glob(step)
     elif op == "from_concat":
-        from ..flow import Flow
-
-        return cast(Flow, from_concat(step))
+        return from_concat(step)
     else:
         raise ValueError(f"Unsupported source op: {step['op']}")
 

@@ -159,7 +159,9 @@ def _convert_ast(node, local_vars: Optional[Dict[str, Any]] = None):
             else:
                 op_to_use = op
 
-        if transform:
+        if transform and callable(transform):
+            # Capture transform in local scope to ensure it's not None
+            transform_func = transform
 
             def predicate(record: dict) -> bool:
                 field_val = get_field(record, field)
@@ -167,7 +169,7 @@ def _convert_ast(node, local_vars: Optional[Dict[str, Any]] = None):
                     return False
 
                 try:
-                    transformed_val = transform(field_val)
+                    transformed_val = transform_func(field_val)
                 except TypeError:
                     return False
 
