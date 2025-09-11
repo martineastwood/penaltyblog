@@ -1,7 +1,7 @@
 import ast
 import re
 from datetime import date, datetime
-from typing import Any, Callable, Dict
+from typing import Any, Callable, Dict, Optional
 
 from .predicates_helpers import (
     and_,
@@ -82,7 +82,7 @@ def _parse_field_expr(node: ast.AST) -> tuple[str, Callable | None]:
     return field, None
 
 
-def _convert_ast(node, local_vars: Dict[str, Any] = None):
+def _convert_ast(node, local_vars: Optional[Dict[str, Any]] = None):
     """
     Convert an AST node into a Predicate.
 

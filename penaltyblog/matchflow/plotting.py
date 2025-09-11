@@ -58,7 +58,7 @@ def _vertical_layout(G, spacing=2.5):
     return {node: (0.5, -i * spacing) for i, node in enumerate(G.nodes())}
 
 
-def plot_plan(plan, ax=None, title=""):
+def plot_plan(plan, ax, title=""):
     G = _to_nx_graph(plan)
     pos = _vertical_layout(G)
 

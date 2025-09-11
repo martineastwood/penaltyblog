@@ -251,7 +251,7 @@ class BaseGoalsModel(ABC):
         self.fitted = True
 
     @abstractmethod
-    def fit(self, minimizer_options: dict = None):
+    def fit(self, minimizer_options: Optional[dict] = None):
         """
         Fit the model to training data.
 
