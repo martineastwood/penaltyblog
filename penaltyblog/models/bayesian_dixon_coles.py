@@ -10,7 +10,7 @@ from penaltyblog.models.football_probability_grid import (
     FootballProbabilityGrid,
 )
 
-from .loss import dixon_coles_loss_function
+from .loss import dixon_coles_loss_function  # noqa
 from .probabilities import (
     compute_dixon_coles_probabilities,
 )

@@ -2,7 +2,7 @@
 Odds Conversion Utilities
 """
 
-from typing import List, Union
+from typing import List, Optional, Union
 
 from ..implied.models import OddsFormat, OddsInput
 
@@ -10,7 +10,7 @@ from ..implied.models import OddsFormat, OddsInput
 def convert_odds(
     odds: List[Union[float, str]],
     odds_format: Union[str, OddsFormat],
-    market_names: List[str] = None,
+    market_names: Optional[List[str]] = None,
 ) -> List[float]:
     """
     Converts odds from a specified format to decimal odds.

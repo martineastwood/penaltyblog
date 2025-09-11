@@ -1,3 +1,5 @@
+from typing import Optional
+
 import numpy as np
 from numpy.typing import NDArray
 
@@ -11,9 +13,9 @@ from penaltyblog.models.football_probability_grid import (
     FootballProbabilityGrid,
 )
 
-from .gradients import weibull_copula_gradient
-from .loss import compute_weibull_copula_loss
-from .probabilities import compute_weibull_copula_probabilities
+from .gradients import weibull_copula_gradient  # noqa
+from .loss import compute_weibull_copula_loss  # noqa
+from .probabilities import compute_weibull_copula_probabilities  # noqa
 
 
 class WeibullCopulaGoalsModel(BaseGoalsModel):
@@ -176,7 +178,7 @@ class WeibullCopulaGoalsModel(BaseGoalsModel):
             self.max_goals,
         )
 
-    def fit(self, minimizer_options: dict = None, use_gradient: bool = True):
+    def fit(self, minimizer_options: Optional[dict] = None, use_gradient: bool = True):
         """
         Fits the Weibull Copula model to the data.
 

@@ -1,3 +1,5 @@
+from typing import Optional
+
 import numpy as np
 
 from penaltyblog.models.base_model import BaseGoalsModel
@@ -10,9 +12,9 @@ from penaltyblog.models.football_probability_grid import (
     FootballProbabilityGrid,
 )
 
-from .gradients import negative_binomial_gradient
-from .loss import compute_negative_binomial_loss
-from .probabilities import compute_negative_binomial_probabilities
+from .gradients import negative_binomial_gradient  # noqa
+from .loss import compute_negative_binomial_loss  # noqa
+from .probabilities import compute_negative_binomial_probabilities  # noqa
 
 
 class NegativeBinomialGoalModel(BaseGoalsModel):
@@ -171,8 +173,7 @@ class NegativeBinomialGoalModel(BaseGoalsModel):
 
     def fit(
         self,
-        minimizer_options: dict = None,
-        method: str = None,
+        minimizer_options: Optional[dict] = None,
         use_gradient: bool = True,
     ):
         """
@@ -182,9 +183,6 @@ class NegativeBinomialGoalModel(BaseGoalsModel):
         ----------
         minimizer_options : dict, optional
             Dictionary of options to pass to scipy.optimize.minimize (e.g., maxiter, ftol, disp). Default is None.
-
-        method : str, optional
-            The method to use for optimization. Defaults to scipy's default method if left as None.
 
         use_gradient : bool, optional
             Whether to use the analytical gradient during optimization. Default is True.

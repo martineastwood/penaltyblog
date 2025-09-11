@@ -4,6 +4,8 @@ Zero-Inflated Poisson Model for Football Goal Scoring
 This module implements the Zero-Inflated Poisson model for predicting football match outcomes.
 """
 
+from typing import Optional
+
 import numpy as np
 
 from penaltyblog.models.base_model import BaseGoalsModel
@@ -16,9 +18,9 @@ from penaltyblog.models.football_probability_grid import (
     FootballProbabilityGrid,
 )
 
-from .gradients import zero_inflated_poisson_gradient
-from .loss import compute_zero_inflated_poisson_loss
-from .probabilities import compute_zero_inflated_poisson_probabilities
+from .gradients import zero_inflated_poisson_gradient  # noqa
+from .loss import compute_zero_inflated_poisson_loss  # noqa
+from .probabilities import compute_zero_inflated_poisson_probabilities  # noqa
 
 
 class ZeroInflatedPoissonGoalsModel(BaseGoalsModel):
@@ -111,8 +113,8 @@ class ZeroInflatedPoissonGoalsModel(BaseGoalsModel):
         defence = np.asarray(
             params[self.n_teams : 2 * self.n_teams], dtype=np.double, order="C"
         )
-        hfa = params[-2]
-        zero_inflation = params[-1]
+        hfa = float(params[-2])
+        zero_inflation = float(params[-1])
 
         return compute_zero_inflated_poisson_loss(
             self.goals_home,
@@ -131,8 +133,8 @@ class ZeroInflatedPoissonGoalsModel(BaseGoalsModel):
         defence = np.asarray(
             params[self.n_teams : 2 * self.n_teams], dtype=np.double, order="C"
         )
-        hfa = params[-2]
-        zero_inflation = params[-1]
+        hfa = float(params[-2])
+        zero_inflation = float(params[-1])
 
         return zero_inflated_poisson_gradient(
             attack,
@@ -148,8 +150,7 @@ class ZeroInflatedPoissonGoalsModel(BaseGoalsModel):
 
     def fit(
         self,
-        minimizer_options: dict = None,
-        method: str = None,
+        minimizer_options: Optional[dict] = None,
         use_gradient: bool = True,
     ):
         """
@@ -159,9 +160,6 @@ class ZeroInflatedPoissonGoalsModel(BaseGoalsModel):
         ----------
         minimizer_options : dict, optional
             Dictionary of options to pass to scipy.optimize.minimize (e.g., maxiter, ftol, disp). Default is None.
-
-        method : str, optional
-            The method to use for optimization. Defaults to scipy's default method if left as None.
 
         use_gradient : bool, optional
             Whether to use the analytical gradient during optimization. Default is True.

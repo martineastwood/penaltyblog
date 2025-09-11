@@ -1,3 +1,5 @@
+from typing import Optional
+
 import numpy as np
 from numpy.typing import NDArray
 
@@ -11,9 +13,9 @@ from penaltyblog.models.football_probability_grid import (
     FootballProbabilityGrid,
 )
 
-from .gradients import dixon_coles_gradient
-from .loss import dixon_coles_loss_function
-from .probabilities import compute_dixon_coles_probabilities
+from .gradients import dixon_coles_gradient  # noqa
+from .loss import dixon_coles_loss_function  # noqa
+from .probabilities import compute_dixon_coles_probabilities  # noqa
 
 
 class DixonColesGoalModel(BaseGoalsModel):
@@ -164,7 +166,7 @@ class DixonColesGoalModel(BaseGoalsModel):
             rho,
         )
 
-    def fit(self, minimizer_options: dict = None, use_gradient: bool = True):
+    def fit(self, minimizer_options: Optional[dict] = None, use_gradient: bool = True):
         """
         Fits the model to the data and calculates the team strengths,
         home advantage and intercept. Must be called before `predict` can be used

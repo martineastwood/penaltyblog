@@ -7,7 +7,16 @@ import itertools
 import json
 from pprint import pprint
 from time import perf_counter
-from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, Union
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Callable,
+    Dict,
+    List,
+    Optional,
+    Union,
+    cast,
+)
 
 from tabulate import tabulate
 from typing_extensions import Literal
@@ -538,7 +547,7 @@ class Flow:
                     "'left_on' and 'right_on' must have the same number of keys"
                 )
 
-        how = how.lower()
+        how = cast(Literal["left", "right", "outer", "inner", "anti"], how.lower())
         if how not in {"left", "right", "outer", "inner", "anti"}:
             raise ValueError(
                 f"Unsupported join type: {how}. Must be one of 'left', 'right', 'outer', 'inner', 'anti'"
@@ -837,7 +846,8 @@ class Flow:
             flow.query("name.regex('^[A-Z][a-z]+$')")  # Names starting with capital letter
             flow.query("name.match('\\d{4}', 0)")  # Contains 4 digits in a row
         """
-        frame = inspect.currentframe().f_back
+        current_frame = inspect.currentframe()
+        frame = current_frame.f_back if current_frame else None
         local_vars = frame.f_locals if frame else {}
 
         predicate = parse_query_expr(expr, local_vars=local_vars)

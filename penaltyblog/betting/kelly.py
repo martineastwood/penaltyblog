@@ -361,9 +361,13 @@ def kelly_criterion(
     # Input validation
     input_warnings = _validate_inputs(decimal_odds, true_prob)
 
+    # Convert to numpy arrays for consistent type handling
+    odds_array = np.asarray(decimal_odds)
+    prob_array = np.asarray(true_prob)
+
     # Calculate basic Kelly criterion
-    edge = (true_prob * decimal_odds) - 1
-    kelly_fraction = edge / (decimal_odds - 1)
+    edge = (prob_array * odds_array) - 1
+    kelly_fraction = edge / (odds_array - 1)
     stake = np.clip(kelly_fraction * fraction, 0, 1)
 
     # Calculate additional metrics
@@ -371,8 +375,6 @@ def kelly_criterion(
 
     # Expected log growth rate
     # E[log(1 + f * (b * p - q))] where f=stake, b=odds-1, p=true_prob, q=1-p
-    odds_array = np.asarray(decimal_odds)
-    prob_array = np.asarray(true_prob)
     stake_array = np.asarray(stake)
 
     # Expected growth calculation
@@ -507,7 +509,7 @@ def multiple_kelly_criterion(
             # Calculate basic Kelly criterion inline
             edge = (prob * odds) - 1
             kelly_fraction = edge / (odds - 1)
-            kelly = np.clip(kelly_fraction, 0, 1)  # Don't apply fraction yet
+            kelly = float(np.clip(kelly_fraction, 0, 1))  # Don't apply fraction yet
             stakes.append(kelly)
 
         # Scale down if total exceeds max_total_stake
@@ -580,7 +582,7 @@ def multiple_kelly_criterion(
             # Calculate basic Kelly criterion inline
             edge = (prob * odds) - 1
             kelly_fraction = edge / (odds - 1)
-            kelly = np.clip(kelly_fraction, 0, 1)
+            kelly = float(np.clip(kelly_fraction, 0, 1))
             initial_stakes.append(
                 min(kelly * 0.5, max_total_stake / (2 * n))
             )  # More conservative initial guess

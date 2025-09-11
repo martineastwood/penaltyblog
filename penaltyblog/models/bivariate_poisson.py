@@ -1,3 +1,5 @@
+from typing import Optional
+
 import numpy as np
 from numpy.typing import NDArray
 
@@ -12,9 +14,9 @@ from penaltyblog.models.football_probability_grid import (
     FootballProbabilityGrid,
 )
 
-from .gradients import bivariate_poisson_gradient
-from .loss import compute_bivariate_poisson_loss
-from .probabilities import compute_bivariate_poisson_probabilities
+from .gradients import bivariate_poisson_gradient  # noqa
+from .loss import compute_bivariate_poisson_loss  # noqa
+from .probabilities import compute_bivariate_poisson_probabilities  # noqa
 
 
 class BivariatePoissonGoalModel(BaseGoalsModel):
@@ -145,7 +147,7 @@ class BivariatePoissonGoalModel(BaseGoalsModel):
             self.weights,
         )
 
-    def fit(self, minimizer_options: dict = None, use_gradient: bool = True):
+    def fit(self, minimizer_options: Optional[dict] = None, use_gradient: bool = True):
         """
         Fits the Bivariate Poisson model to the data.
 

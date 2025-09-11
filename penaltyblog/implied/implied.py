@@ -87,8 +87,19 @@ def calculate_implied(
             except ValueError:
                 raise ValueError(f"Unknown odds format: {odds_format}")
 
+        if isinstance(odds, list):
+            if all(isinstance(x, (int, float)) for x in odds):
+                odds_values: List[Union[float, str]] = [float(x) for x in odds]
+            else:
+                odds_values: List[Union[float, str]] = [str(x) for x in odds]
+        else:
+            # This should not happen due to the isinstance check above
+            raise TypeError(f"Expected list, got {type(odds)}")
+
         # Create OddsInput and convert to decimal
-        odds_input = OddsInput(odds, odds_format, market_names)
+        odds_input = OddsInput(
+            values=odds_values, format=odds_format, market_names=market_names
+        )
         decimal_odds = odds_input.to_decimal()
         names = market_names
 

@@ -5,7 +5,7 @@ Functions for identifying value bets by comparing bookmaker odds to estimated tr
 """
 
 from dataclasses import dataclass
-from typing import List, Union
+from typing import List, Optional, Union
 
 import numpy as np
 from numpy.typing import NDArray
@@ -308,7 +308,7 @@ def calculate_bet_value(bookmaker_odds: float, estimated_probability: float) -> 
 
 
 def find_arbitrage_opportunities(
-    bookmaker_odds_list: List[List[float]], outcome_labels: List[str] = None
+    bookmaker_odds_list: List[List[float]], outcome_labels: Optional[List[str]] = None
 ) -> ArbitrageResult:
     """
     Find arbitrage opportunities across multiple bookmakers for the same event.

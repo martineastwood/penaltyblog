@@ -1,3 +1,5 @@
+from typing import Optional
+
 import numpy as np
 
 from penaltyblog.models.base_model import BaseGoalsModel
@@ -10,9 +12,9 @@ from penaltyblog.models.football_probability_grid import (
     FootballProbabilityGrid,
 )
 
-from .gradients import poisson_gradient
-from .loss import poisson_loss_function
-from .probabilities import compute_poisson_probabilities
+from .gradients import poisson_gradient  # noqa
+from .loss import poisson_loss_function  # noqa
+from .probabilities import compute_poisson_probabilities  # noqa
 
 
 class PoissonGoalsModel(BaseGoalsModel):
@@ -157,7 +159,7 @@ class PoissonGoalsModel(BaseGoalsModel):
 
     def fit(
         self,
-        minimizer_options: dict = None,
+        minimizer_options: Optional[dict] = None,
         use_gradient: bool = True,
     ):
         """
