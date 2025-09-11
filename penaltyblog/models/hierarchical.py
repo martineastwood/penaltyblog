@@ -252,7 +252,9 @@ class BayesianHierarchicalModel(BaseGoalsModel):
             self.sampler = emcee.EnsembleSampler(
                 n_walkers, ndim, hierarchical_log_probability, args=args, pool=pool
             )
-            self.sampler.run_mcmc(pos, n_steps, progress=False)
+            self.sampler.run_mcmc(
+                pos, n_steps, progress=False, skip_initial_state_check=True
+            )
 
         self.chain = self.sampler.get_chain(discard=n_burn, thin=15, flat=True)
         self.fitted = True
