@@ -319,9 +319,5 @@ def _eval_literal(node, local_vars=None):
             if hasattr(obj, node.attr):
                 return getattr(obj, node.attr)
         raise ValueError(f"Unknown attribute: {ast.dump(node)}")
-    elif hasattr(ast, "Str") and isinstance(node, ast.Str):
-        return node.s
-    elif hasattr(ast, "Num") and isinstance(node, ast.Num):
-        return node.n
     else:
         raise ValueError(f"Unsupported literal: {ast.dump(node)}")

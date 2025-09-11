@@ -1,4 +1,5 @@
 import warnings
+from typing import Optional
 
 import numpy as np
 from scipy.optimize import minimize
@@ -11,7 +12,7 @@ def goal_expectancy(
     away: float,
     dc_adj: bool = True,
     rho: float = 0.001,
-    minimizer_options: dict = None,
+    minimizer_options: Optional[dict] = None,
     *,
     max_goals: int = 15,
     remove_overround: bool = False,
