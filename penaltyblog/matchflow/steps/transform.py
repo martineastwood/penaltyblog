@@ -193,7 +193,7 @@ def apply_sort(records: RecordStream, step: dict) -> RecordStream:
     """
     keys = step["keys"]
     ascending = step.get("ascending", [True] * len(keys))
-    records = list(records)
+    records_list: List[Record] = list(records)
 
     def sort_key(r):
         key_parts = []
@@ -203,7 +203,7 @@ def apply_sort(records: RecordStream, step: dict) -> RecordStream:
             key_parts.append(v if asc else _invert(v))
         return tuple(key_parts)
 
-    return iter(sorted(records, key=sort_key))
+    return iter(sorted(records_list, key=sort_key))
 
 
 def _invert(value):
@@ -443,12 +443,12 @@ def _apply_sort_merge_join(records: RecordStream, step: dict) -> RecordStream:
     compiled_left = step.get("_compiled_left")
     compiled_right = step.get("_compiled_right")
 
-    if not compiled_left:
+    if not compiled_left and left_keys is not None:
         compiled_left = [k.split(".") for k in left_keys]
         step["_compiled_left"] = compiled_left
 
     if not compiled_right:
-        compiled_right = [k.split(".") for k in right_keys]
+        compiled_right = [k.split(".") for k in right_keys] if right_keys else []
         step["_compiled_right"] = compiled_right
 
     # Get left and right iterators
@@ -458,13 +458,14 @@ def _apply_sort_merge_join(records: RecordStream, step: dict) -> RecordStream:
     # Key extraction functions
     def left_key(record):
         return tuple(
-            _coerce_join_key(get_field(record, k), type_coercion) for k in compiled_left
+            _coerce_join_key(get_field(record, k), type_coercion)
+            for k in (compiled_left or [])
         )
 
     def right_key(record):
         return tuple(
             _coerce_join_key(get_field(record, k), type_coercion)
-            for k in compiled_right
+            for k in (compiled_right or [])
         )
 
     # Helper function to merge records with suffix handling
@@ -472,7 +473,7 @@ def _apply_sort_merge_join(records: RecordStream, step: dict) -> RecordStream:
         if is_left_primary:
             merged = dict(left_rec)
             for rk, rv in right_rec.items():
-                if rk in right_keys:
+                if right_keys is not None and rk in right_keys:
                     continue
                 if rk in merged:
                     if rsuffix:
@@ -483,14 +484,19 @@ def _apply_sort_merge_join(records: RecordStream, step: dict) -> RecordStream:
             # Apply lsuffix if needed
             if lsuffix:
                 for lk in list(merged.keys()):
-                    if lk in left_rec and lk not in left_keys and lk in right_rec:
+                    if (
+                        lk in left_rec
+                        and left_keys is not None
+                        and lk not in left_keys
+                        and lk in right_rec
+                    ):
                         if lk + lsuffix not in merged:
                             merged[lk + lsuffix] = merged.pop(lk)
         else:
             # Right is primary (for right joins)
             merged = dict(right_rec)
             for lk, lv in left_rec.items():
-                if lk in left_keys:
+                if left_keys is not None and lk in left_keys:
                     continue
                 if lk in merged:
                     if lsuffix:
@@ -505,7 +511,7 @@ def _apply_sort_merge_join(records: RecordStream, step: dict) -> RecordStream:
         result = dict(right_rec)
         if sample_left:
             for lk in sample_left.keys():
-                if lk not in right_keys:
+                if right_keys is not None and lk not in right_keys:
                     field_name = lk + lsuffix if (lsuffix and lk in result) else lk
                     if field_name not in result:
                         result[field_name] = None
@@ -515,7 +521,7 @@ def _apply_sort_merge_join(records: RecordStream, step: dict) -> RecordStream:
         result = dict(left_rec)
         if sample_right:
             for rk in sample_right.keys():
-                if rk not in left_keys:
+                if left_keys is not None and rk not in left_keys:
                     field_name = rk + rsuffix if (rsuffix and rk in result) else rk
                     if field_name not in result:
                         result[field_name] = None
@@ -549,7 +555,12 @@ def _apply_sort_merge_join(records: RecordStream, step: dict) -> RecordStream:
 
     # Main sort-merge loop
     while left_has_data or right_has_data:
-        if not right_has_data or (left_has_data and left_key_val < right_key_val):
+        if not right_has_data or (
+            left_has_data
+            and left_key_val is not None
+            and right_key_val is not None
+            and left_key_val < right_key_val
+        ):
             # Left key is smaller or no more right data
             if how in ["left", "outer"]:
                 for left_rec in left_group:
@@ -565,7 +576,12 @@ def _apply_sort_merge_join(records: RecordStream, step: dict) -> RecordStream:
             except StopIteration:
                 left_has_data = False
 
-        elif not left_has_data or (right_has_data and right_key_val < left_key_val):
+        elif not left_has_data or (
+            right_has_data
+            and left_key_val is not None
+            and right_key_val is not None
+            and right_key_val < left_key_val
+        ):
             # Right key is smaller or no more left data
             if how in ["right", "outer"]:
                 for right_rec in right_group:
@@ -643,21 +659,22 @@ def _apply_hash_join(records: RecordStream, step: dict) -> RecordStream:
     compiled_left = step.get("_compiled_left")
     compiled_right = step.get("_compiled_right")
 
-    if not compiled_left:
+    if not compiled_left and left_keys is not None:
         compiled_left = [k.split(".") for k in left_keys]
         step["_compiled_left"] = compiled_left
 
     if not compiled_right:
-        compiled_right = [k.split(".") for k in right_keys]
+        compiled_right = [k.split(".") for k in right_keys] if right_keys else []
         step["_compiled_right"] = compiled_right
 
     # Execute right plan and build index
-    right_records = list(FlowExecutor(step["right_plan"]).execute())
+    right_records: List[Record] = list(FlowExecutor(step["right_plan"]).execute())
     right_index: dict[tuple[Any, ...], list[dict]] = {}
 
     for r in right_records:
         key = tuple(
-            _coerce_join_key(get_field(r, k), type_coercion) for k in compiled_right
+            _coerce_join_key(get_field(r, k), type_coercion)
+            for k in (compiled_right or [])
         )
         right_index.setdefault(key, []).append(r)
 
@@ -666,13 +683,13 @@ def _apply_hash_join(records: RecordStream, step: dict) -> RecordStream:
         # Swap left and right, then do a left join
         def right_join_generator():
             # Build left index
-            left_records = list(records)
+            left_records: List[Record] = list(records)
             left_index: dict[tuple[Any, ...], list[dict]] = {}
 
             for l in left_records:
                 key = tuple(
                     _coerce_join_key(get_field(l, k), type_coercion)
-                    for k in compiled_left
+                    for k in (compiled_left or [])
                 )
                 left_index.setdefault(key, []).append(l)
 
@@ -680,7 +697,7 @@ def _apply_hash_join(records: RecordStream, step: dict) -> RecordStream:
             for right in right_records:
                 key = tuple(
                     _coerce_join_key(get_field(right, k), type_coercion)
-                    for k in compiled_right
+                    for k in (compiled_right or [])
                 )
                 matches = left_index.get(key)
 
@@ -693,7 +710,7 @@ def _apply_hash_join(records: RecordStream, step: dict) -> RecordStream:
                         left_records[:1] if left_records else [{}]
                     ):  # Use first left record as template
                         for lk in left_rec.keys():
-                            if lk not in right_keys:
+                            if right_keys is not None and lk not in right_keys:
                                 left_name = (
                                     lk + lsuffix if (lsuffix and lk in joined) else lk
                                 )
@@ -705,7 +722,7 @@ def _apply_hash_join(records: RecordStream, step: dict) -> RecordStream:
                     for left in matches:
                         joined = dict(right)
                         for lk, lv in left.items():
-                            if lk in right_keys:
+                            if right_keys is not None and lk in right_keys:
                                 continue
                             if lk in joined:
                                 joined[lk + lsuffix] = lv
@@ -722,7 +739,8 @@ def _apply_hash_join(records: RecordStream, step: dict) -> RecordStream:
     # Process left records
     for left in records:
         key = tuple(
-            _coerce_join_key(get_field(left, k), type_coercion) for k in compiled_left
+            _coerce_join_key(get_field(left, k), type_coercion)
+            for k in (compiled_left or [])
         )
         matches = right_index.get(key)
 
@@ -748,7 +766,7 @@ def _apply_hash_join(records: RecordStream, step: dict) -> RecordStream:
         for right in matches:
             joined = dict(left)
             for rk, rv in right.items():
-                if rk in right_keys:
+                if right_keys is not None and rk in right_keys:
                     continue
                 if rk in joined:
                     # Handle suffix collision
@@ -763,7 +781,7 @@ def _apply_hash_join(records: RecordStream, step: dict) -> RecordStream:
             # Apply lsuffix to overlapping left fields if needed
             if lsuffix:
                 for lk in list(joined.keys()):
-                    if lk in left and lk not in left_keys:
+                    if lk in left and left_keys is not None and lk not in left_keys:
                         # Check if this left field conflicts with a right field
                         if any(lk in r for r in matches):
                             # Rename left field with lsuffix
@@ -775,7 +793,7 @@ def _apply_hash_join(records: RecordStream, step: dict) -> RecordStream:
     # Handle outer join - emit unmatched right records
     if how == "outer":
         for key, right_group in right_index.items():
-            if key not in matched_right_keys:
+            if matched_right_keys is not None and key not in matched_right_keys:
                 for right in right_group:
                     # Create record with right data and null left fields
                     joined = dict(right)
@@ -788,7 +806,7 @@ def _apply_hash_join(records: RecordStream, step: dict) -> RecordStream:
                     )
                     if left_sample:
                         for lk in left_sample.keys():
-                            if lk not in left_keys:
+                            if left_keys is not None and lk not in left_keys:
                                 left_name = (
                                     lk + lsuffix if (lsuffix and lk in joined) else lk
                                 )
@@ -888,7 +906,7 @@ def apply_summary(records: RecordStream, step: dict) -> RecordStream:
         A stream of summary results.
     """
     agg_func = step["agg"]
-    rows = list(records)
+    rows: List[Record] = list(records)
     result = agg_func(rows)
 
     if not isinstance(result, dict):

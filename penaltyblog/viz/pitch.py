@@ -281,12 +281,21 @@ class Pitch:
         # ── Numeric custom slices ───────────────────────────────────────
         # 2-tuple  → (x0,x1) with full height
         # 4-tuple  → (x0,x1,y0,y1)
-        if isinstance(self.view, tuple) and len(self.view) in {2, 4}:
+        if isinstance(self.view, tuple):
             if len(self.view) == 2:
                 orig = (*self.view, 0.0, self.dim.width)
+            elif len(self.view) == 4:
+                orig = self.view
             else:
-                orig = self.view  # type: ignore[assignment]
+                raise ValueError(
+                    f"`view` tuple must have 2 or 4 elements, got {len(self.view)} elements. "
+                    f"Use (x0, x1) for horizontal zoom or (x0, x1, y0, y1) for rectangular zoom."
+                )
 
+            # Type assertion to help the type checker understand that orig is always a 4-tuple here
+            assert (
+                len(orig) == 4
+            ), f"orig should always be a 4-tuple, got {len(orig)} elements"
             orig_x0, orig_x1, orig_y0, orig_y1 = orig
             df_c = pd.DataFrame({"x": [orig_x0, orig_x1], "y": [orig_y0, orig_y1]})
             df_c = self.dim.apply_coordinate_scaling(df_c, x="x", y="y")
