@@ -92,9 +92,9 @@ dev = [
     "types-requests>=2.28.11",
 ]
 s3 = ["s3fs"]
-gcs = ["gcsfs"]
+gcs = ["gcsfs", "gcloud"]
 azure = ["adlfs"]
-cloud = ["s3fs", "gcsfs", "adlfs"]
+cloud = ["s3fs", "gcsfs", "adlfs", "gcloud"]
 
 [tool.coverage.paths]
 source = ["penaltyblog", "*/site-packages"]
@@ -112,10 +112,6 @@ profile = "black"
 src_paths = ["penaltyblog", "tests"]
 include_trailing_comma = true
 line_length = 79
-
-[tool.mypy]
-ignore_missing_imports = true
-disable_error_code = ["import-untyped"]
 
 [tool.ty.rules]
 unresolved-import = "ignore"

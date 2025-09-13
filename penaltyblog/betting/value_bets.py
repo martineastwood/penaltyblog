@@ -182,7 +182,6 @@ def identify_value_bet(
     individual_results = []
 
     for i, (odds, prob) in enumerate(zip(odds_flat, prob_flat)):
-        # Calculate individual bet metrics
         implied_prob = _calculate_implied_probability(odds)
         expected_value = _calculate_expected_value(odds, prob)
         expected_return_pct = expected_value * 100
