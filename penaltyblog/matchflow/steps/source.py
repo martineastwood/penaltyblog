@@ -241,15 +241,50 @@ def from_glob(step) -> Iterator[Dict[Any, Any]]:
     _handle_missing_dependency(pattern)
 
     # Use fsspec glob
-    fs = fsspec.filesystem(
-        fsspec.utils.infer_storage_options(pattern, **storage_options)["protocol"],
-        **storage_options,
-    )
+    try:
+        storage_options_for_fs = storage_options.copy()
+        protocol = fsspec.utils.infer_storage_options(
+            pattern, **storage_options_for_fs
+        )["protocol"]
+        fs = fsspec.filesystem(protocol, **storage_options_for_fs)
+    except Exception as e:
+        raise ValueError(
+            f"Failed to create filesystem for pattern '{pattern}': {e}"
+        ) from e
 
-    for path in fs.glob(pattern):
-        # Check if it's a file (not a directory)
+    # Get the list of files matching the pattern
+    try:
+        file_paths = fs.glob(pattern)
+    except Exception as e:
+        raise ValueError(f"Failed to glob pattern '{pattern}': {e}") from e
+
+    for path in file_paths:
+        # Skip directories
         if fs.isdir(path):
             continue
+
+        # Handle path reconstruction for cloud storage
+        if protocol != "file":
+            if not path.startswith(f"{protocol}://"):
+                # Extract the bucket and base path from the pattern
+                pattern_parts = pattern.replace(f"{protocol}://", "").split("/", 1)
+                bucket = pattern_parts[0]
+
+                # If the path already starts with the bucket name, just prepend the protocol
+                if path.startswith(f"{bucket}/"):
+                    path = f"{protocol}://{path}"
+                else:
+                    # Otherwise, reconstruct using the full base path from the pattern
+                    if "/" in pattern:
+                        base_path = pattern.rsplit("/", 1)[0]
+                    else:
+                        base_path = pattern
+                    clean_path = path.lstrip("/")
+                    path = f"{base_path}/{clean_path}"
+        else:
+            # For local files, ensure we have absolute paths
+            if not os.path.isabs(path):
+                path = os.path.abspath(path)
 
         # Create child steps with storage_options passed through
         child_step = {"path": path}
