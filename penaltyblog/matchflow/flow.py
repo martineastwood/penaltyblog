@@ -24,6 +24,7 @@ from typing_extensions import Literal
 if TYPE_CHECKING:
     from .flowgroup import FlowGroup
 
+import fsspec
 import pandas as pd
 from tqdm.auto import tqdm
 
@@ -35,6 +36,37 @@ from .plotting import plot_flow_plan
 from .predicates_helpers import and_
 from .query import parse_query_expr
 from .steps.utils import flatten_dict, get_field, schema
+
+
+def _handle_missing_dependency(path: str) -> None:
+    """
+    Check if required cloud storage dependencies are installed and provide helpful error messages.
+
+    Args:
+        path (str): The path being accessed
+
+    Raises:
+        ImportError: If required dependency is missing
+    """
+    protocol_mapping = {
+        "s3://": "s3fs",
+        "gs://": "gcsfs",
+        "gcs://": "gcsfs",
+        "azure://": "adlfs",
+        "abfs://": "adlfs",
+        "abfss://": "adlfs",
+    }
+
+    for protocol, package in protocol_mapping.items():
+        if path.startswith(protocol):
+            try:
+                __import__(package)
+            except ImportError:
+                raise ImportError(
+                    f"To access {protocol} paths, install {package}: pip install {package}"
+                ) from None
+            break
+
 
 PlanNode = Dict[str, Any]
 
@@ -171,26 +203,46 @@ class Flow:
             plan=[{"op": "from_materialized", "records": records}], optimize=optimize
         )
 
-    def to_json(self, path: str, indent=4):
+    def to_json(
+        self, path: str, indent=4, storage_options: Optional[Dict[str, Any]] = None
+    ):
         """
         Write the flow to a JSON file (as a list of records).
 
         Args:
             path (str): The path to the JSON file.
             indent (int, optional): The number of spaces to use for indentation.
+            storage_options (dict, optional): Additional options for cloud storage backends.
+                For S3: {"key": "access_key", "secret": "secret_key", "endpoint_url": "url"}
+                For GCS: {"token": "path/to/token.json"}
+                For Azure: {"account_name": "name", "account_key": "key"}
         """
+        storage_options = storage_options or {}
+
+        # Check dependencies for cloud storage
+        _handle_missing_dependency(path)
+
         records = list(self.collect())
-        with open(path, "w", encoding="utf-8") as f:
+        with fsspec.open(path, "w", encoding="utf-8", **storage_options) as f:
             json.dump(records, f, indent=indent)
 
-    def to_jsonl(self, path: str):
+    def to_jsonl(self, path: str, storage_options: Optional[Dict[str, Any]] = None):
         """
         Write the flow to a JSONL file (one record per line).
 
         Args:
             path (str): The path to the JSONL file.
+            storage_options (dict, optional): Additional options for cloud storage backends.
+                For S3: {"key": "access_key", "secret": "secret_key", "endpoint_url": "url"}
+                For GCS: {"token": "path/to/token.json"}
+                For Azure: {"account_name": "name", "account_key": "key"}
         """
-        with open(path, "w", encoding="utf-8") as f:
+        storage_options = storage_options or {}
+
+        # Check dependencies for cloud storage
+        _handle_missing_dependency(path)
+
+        with fsspec.open(path, "w", encoding="utf-8", **storage_options) as f:
             for row in self.collect():
                 f.write(json.dumps(row) + "\n")
 
