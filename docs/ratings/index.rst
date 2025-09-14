@@ -11,7 +11,7 @@ By quantifying team performance accurately, these rating systems can significant
    :maxdepth: 1
    :caption: Examples:
 
-   colley_ratings
-   elo_ratings
+   colley
+   elo
    massey_ratings
-   pi_ratings
+   pi
