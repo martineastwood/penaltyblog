@@ -1,6 +1,11 @@
 Elo Ratings
 ===========
 
+The Elo rating system is a method for calculating the relative skill levels of players or teams in competitive games.
+Originally developed by Arpad Elo for chess, it has since been adapted for many other sports and competitions.
+In an Elo system, each player or team has a numerical rating that increases when they win matches and decreases when they lose, with the magnitude of change depending on the expected outcome of the match based on the rating difference between opponents.
+Higher-rated teams are expected to win against lower-rated teams, so an upset victory results in larger rating changes than a predictable outcome.
+
 .. code-block:: python
 
     import penaltyblog as pb

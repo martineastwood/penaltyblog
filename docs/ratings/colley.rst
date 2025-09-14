@@ -2,11 +2,14 @@
 Colley Ratings
 ==============
 
-Colley Ratings are a mathematically sound, unbiased method for ranking football teams, relying exclusively on match outcomes rather than scores or margins of victory.
+The Colley rating system is a sophisticated mathematical approach to team ranking that was originally developed by Wesley Colley for college football.
 
-Unlike some rating systems, the Colley method is specifically designed to be objective, using only wins, losses, and draws without subjective weighting.
+The method uses linear algebra to solve a system of equations based on team performance, creating ratings that reflect relative strength while maintaining mathematical rigor and objectivity.
+What sets Colley apart from other rating systems is its focus purely on wins, losses, and draws, completely ignoring score margins, which eliminates potential bias from "running up the score" or other strategic considerations.
+The system works by constructing a matrix equation where each team's rating is determined by their win-loss record relative to their opponents' strength.
 
-Its mathematical simplicity and stability make it highly suitable for quickly evaluating team performance, objectively comparing team strengths, and identifying discrepancies between actual team quality and public perception or bookmaker odds.
+This creates a self-reinforcing system where beating strong teams boosts your rating more than beating weak teams, while the mathematical framework ensures the ratings converge to a stable, unique solution.
+The elegance of the Colley method lies in its ability to produce meaningful rankings with relatively simple inputs, making it both computationally efficient and resistant to manipulation.
 
 Basic Usage
 ===========
