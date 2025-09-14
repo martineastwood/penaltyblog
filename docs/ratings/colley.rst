@@ -2,6 +2,13 @@
 Colley Ratings
 ==============
 
+.. raw:: html
+
+   <a href="https://colab.research.google.com/drive/1gjQASy0Ge_I_qdsJaBDfGTiwRzXqCISW?usp=sharing" target="_blank">
+      <img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open in Colab">
+   </a>
+   <br><br>
+
 The Colley rating system is a sophisticated mathematical approach to team ranking that was originally developed by Wesley Colley for college football.
 
 The method uses linear algebra to solve a system of equations based on team performance, creating ratings that reflect relative strength while maintaining mathematical rigor and objectivity.
@@ -42,22 +49,37 @@ Example output:
 
 .. code-block:: text
 
-              team    rating
-   0     Liverpool  1.904762
-   1      Man City  1.892857
-   2       Chelsea  1.791667
-   3     Tottenham  1.708333
-   4       Arsenal  1.672619
-   5    Man United  1.654762
-   6      Brighton   1.64881
-   7  Crystal Palace     1.625
-   8      West Ham  1.619048
-   9     Leicester  1.607143
+            .. list-table:: Colley Ratings Example
+               :header-rows: 1
+
+               * - team
+                 - rating
+               * - Liverpool
+                 - 1.904762
+               * - Man City
+                 - 1.892857
+               * - Chelsea
+                 - 1.791667
+               * - Tottenham
+                 - 1.708333
+               * - Arsenal
+                 - 1.672619
+               * - Man United
+                 - 1.654762
+               * - Brighton
+                 - 1.64881
+               * - Crystal Palace
+                 - 1.625
+               * - West Ham
+                 - 1.619048
+               * - Leicester
+                 - 1.607143
 
 Colley Ratings Excluding Tied Scorelines
 =========================================
 
-You can exclude draws from the calculation by setting ``include_draws=False``. This focuses purely on decisive results:
+You can exclude draws from the calculation by setting ``include_draws=False``.
+This focuses purely on decisive results:
 
 .. code-block:: python
 
@@ -73,19 +95,31 @@ You can exclude draws from the calculation by setting ``include_draws=False``. T
 
 Example output:
 
-.. code-block:: text
+.. list-table:: Colley Ratings Example (Excluding Draws)
+   :header-rows: 1
 
-              team    rating
-   0     Liverpool  0.809524
-   1      Man City  0.809524
-   2       Chelsea  0.678571
-   3     Tottenham  0.630952
-   4       Arsenal  0.607143
-   5    Man United  0.547619
-   6      West Ham   0.52381
-   7      Brighton  0.511905
-   8     Leicester       0.5
-   9  Crystal Palace  0.488095
+   * - team
+     - rating
+   * - Liverpool
+     - 0.809524
+   * - Man City
+     - 0.809524
+   * - Chelsea
+     - 0.678571
+   * - Tottenham
+     - 0.630952
+   * - Arsenal
+     - 0.607143
+   * - Man United
+     - 0.547619
+   * - West Ham
+     - 0.52381
+   * - Brighton
+     - 0.511905
+   * - Leicester
+     - 0.5
+   * - Crystal Palace
+     - 0.488095
 
 Key Features
 ============
@@ -95,3 +129,16 @@ Key Features
 - **Flexible**: Can include or exclude drawn matches
 - **Fast**: Efficient computation suitable for regular updates
 - **Unbiased**: No home field advantage or margin of victory weighting
+
+Interactive Example
+===================
+
+For a comprehensive, hands-on demonstration of the Colley rating system, try the interactive Colab notebook.
+The notebook walks you through loading match data, calculating ratings, and visualizing the results.
+You can modify the code, experiment with different parameters, and see how the ratings change in real-time.
+
+.. raw:: html
+
+   <a href="https://colab.research.google.com/drive/1gjQASy0Ge_I_qdsJaBDfGTiwRzXqCISW?usp=sharing" target="_blank">
+      <img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open in Colab">
+   </a>

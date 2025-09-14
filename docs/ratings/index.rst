@@ -13,5 +13,5 @@ By quantifying team performance accurately, these rating systems can significant
 
    colley
    elo
-   massey_ratings
+   massey
    pi
