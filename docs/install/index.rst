@@ -12,6 +12,16 @@ To install the latest stable release:
 
     pip install penaltyblog
 
+If you want to read / write data from cloud storage (e.g., AWS S3, Google Cloud Storage) using ``Matchflow``,
+you may need to install additional dependencies:
+
+.. code-block:: bash
+
+    pip install penaltyblog[s3]      # For AWS S3 support
+    pip install penaltyblog[gcs]     # For Google Cloud Storage support
+    pip install penaltyblog[azure]   # For Azure Blob Storage support
+    pip install penaltyblog[cloud]   # For all cloud storage support
+
 Installing from Source
 ----------------------
 
