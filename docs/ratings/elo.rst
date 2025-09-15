@@ -1,6 +1,13 @@
 Elo Ratings
 ===========
 
+.. raw:: html
+
+   <a href="https://colab.research.google.com/drive/14KTWI_-_fzTZPUAcZghZxcNYb7ODSstW?usp=sharing" target="_blank">
+      <img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open in Colab">
+   </a>
+   <br><br>
+
 The Elo rating system is a method for calculating the relative skill levels of players or teams in competitive games.
 Originally developed by Arpad Elo for chess, it has since been adapted for many other sports and competitions.
 In an Elo system, each player or team has a numerical rating that increases when they win matches and decreases when they lose, with the magnitude of change depending on the expected outcome of the match based on the rating difference between opponents.
@@ -55,3 +62,17 @@ Get New Ratings
 .. code-block:: none
 
     1507.1987000039423
+
+Interactive Example
+-------------------
+
+For a comprehensive, hands-on demonstration of the Elo rating system, try the interactive Colab notebook.
+The notebook walks you through loading match data, calculating ratings, and visualizing the results.
+You can modify the code, experiment with different parameters, and see how the ratings change in real-time.
+
+.. raw:: html
+
+   <a href="https://colab.research.google.com/drive/14KTWI_-_fzTZPUAcZghZxcNYb7ODSstW?usp=sharing" target="_blank">
+      <img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open in Colab">
+   </a>
+   <br>

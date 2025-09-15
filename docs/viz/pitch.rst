@@ -2,6 +2,13 @@
 Pitch Visualization
 ==================
 
+.. raw:: html
+
+   <a href="https://colab.research.google.com/drive/1xFfIdvmbFcjHlS_2eHEu3NxD-xLNrbpY?usp=sharing" target="_blank">
+      <img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open in Colab">
+   </a>
+   <br><br>
+
 The ``Pitch`` class is a powerful and flexible interface for rendering football (soccer) pitch visualizations using ``plotly``. It supports multiple pitch dimensions (e.g., StatsBomb, Wyscout), configurable themes, and layered plotting of various visual elements (scatter, heatmap, arrows, comets, etc.).
 
 📐 Initialization
@@ -223,3 +230,16 @@ Custom themes
 - Use ``.set_layer_visibility()`` for interactive toggling in notebooks or dashboards.
 - Use ``.set_layer_order()`` to control stacking (e.g., heatmap behind scatter).
 - Works seamlessly with ``Flow`` objects or Pandas DataFrames.
+
+Interactive Examples
+--------------------
+
+For a comprehensive, hands-on demonstration of the plotting using ``Pitch``, try the interactive Colab notebook.
+The notebook walks you through all the different plotting methods, themes and customization options.
+
+.. raw:: html
+
+   <a href="https://colab.research.google.com/drive/1xFfIdvmbFcjHlS_2eHEu3NxD-xLNrbpY?usp=sharing" target="_blank">
+      <img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open in Colab">
+   </a>
+   <br><br>

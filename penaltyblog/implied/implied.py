@@ -383,40 +383,60 @@ def _logarithmic(
     market_names: Optional[List[str]] = None,
 ) -> ImpliedProbabilities:
     """
-    Logarithmic method for overround removal (Jullien & Salanié, 2000).
+    Logarithmic method for overround removal using an additive shift.
 
-    Adjusts the logarithm of odds proportionally, which is more robust
-    for extreme probabilities than linear methods.
+    This method operates in "log-odds" (logit) space. It assumes the
+    bookmaker's margin is a constant value 'c' subtracted from the
+    log-odds of each outcome. The solver finds the 'c' that makes the
+    final probabilities sum to 1.0. This is a common and robust method.
 
-    The method works by:
-    1. Converting odds to log-odds: log(p/(1-p))
-    2. Adjusting log-odds by a constant factor
-    3. Converting back to probabilities
-    4. Normalizing to sum to 1.0
+    Parameters
+    ----------
+    odds : List[float]
+        List of decimal odds for each outcome
+    market_names : List[str], optional
+        Names for each market outcome
+
+    Returns
+    -------
+    ImpliedProbabilities
+        Object containing the calculated probabilities, method metadata,
+        and the odds ratio parameter 'c' in method_params
     """
     odds_arr = np.array(odds, dtype=np.float64)
     inv_odds = 1.0 / odds_arr
     margin = float(np.sum(inv_odds) - 1)
 
-    # Convert to log-odds (logit)
-    probs = inv_odds
+    # If there is no margin, no adjustment is needed.
+    if np.isclose(margin, 0.0):
+        return ImpliedProbabilities(
+            probabilities=inv_odds.tolist(),
+            method=ImpliedMethod.LOGARITHMIC,
+            margin=margin,
+            market_names=market_names,
+            method_params={"c": 0.0},
+        )
 
-    # Avoid division by zero for probabilities very close to 1
+    probs = inv_odds
     probs_safe = np.clip(probs, 1e-15, 1 - 1e-15)
     log_odds = np.log(probs_safe / (1 - probs_safe))
 
-    # Find the adjustment factor that makes probabilities sum to 1
-    def _log_odds_error(alpha: float, log_odds: np.ndarray) -> float:
-        adjusted_log_odds = alpha * log_odds
+    # Find the adjustment constant 'c' that makes probabilities sum to 1
+    def _log_odds_error(c: float, log_odds: np.ndarray) -> float:
+        adjusted_log_odds = log_odds - c
         # Convert back to probabilities using sigmoid function
         adjusted_probs = 1 / (1 + np.exp(-adjusted_log_odds))
-        return float(1 - np.sum(adjusted_probs))
+        return float(np.sum(adjusted_probs) - 1)
 
-    # Find alpha that normalizes probabilities
-    alpha = float(optimize.brentq(_log_odds_error, 0.1, 100.0, args=(log_odds,)))
+    # For an overround market, 'c' will be positive.
+    try:
+        c = float(optimize.brentq(_log_odds_error, 0, 20.0, args=(log_odds,)))
+    except ValueError:
+        # Fallback for extreme cases or underround markets
+        c = float(optimize.brentq(_log_odds_error, -20.0, 20.0, args=(log_odds,)))
 
     # Apply adjustment and convert back to probabilities
-    adjusted_log_odds = alpha * log_odds
+    adjusted_log_odds = log_odds - c
     normalized = (1 / (1 + np.exp(-adjusted_log_odds))).tolist()
 
     return ImpliedProbabilities(
@@ -424,5 +444,5 @@ def _logarithmic(
         method=ImpliedMethod.LOGARITHMIC,
         margin=margin,
         market_names=market_names,
-        method_params={"alpha": alpha},
+        method_params={"c": c},
     )

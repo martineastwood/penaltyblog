@@ -39,6 +39,7 @@ Documentation Improvements
 - Updated ``Matchflow`` documentation
 - Updated ``implied`` documentation
 - Updated ``betting`` documentation
+- Started adding Colab notebooks for interactive examples, more to come!
 
 v1.5.1 (2025-08-20)
 ^^^^^^^^^^^^^^^^^^^^

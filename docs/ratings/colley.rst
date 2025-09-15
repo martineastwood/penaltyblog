@@ -19,7 +19,7 @@ This creates a self-reinforcing system where beating strong teams boosts your ra
 The elegance of the Colley method lies in its ability to produce meaningful rankings with relatively simple inputs, making it both computationally efficient and resistant to manipulation.
 
 Basic Usage
-===========
+----------------
 
 .. code-block:: python
 
@@ -30,7 +30,7 @@ Basic Usage
    df = fbd.get_fixtures()
 
 Colley Ratings Including Tied Scorelines
-=========================================
+------------------------------------------
 
 By default, the Colley method treats draws as partial wins for both teams (0.5 each):
 
@@ -76,7 +76,7 @@ Example output:
                  - 1.607143
 
 Colley Ratings Excluding Tied Scorelines
-=========================================
+------------------------------------------
 
 You can exclude draws from the calculation by setting ``include_draws=False``.
 This focuses purely on decisive results:
@@ -122,7 +122,7 @@ Example output:
      - 0.488095
 
 Key Features
-============
+-------------
 
 - **Objective**: Uses only match results, not subjective assessments
 - **Stable**: Mathematical foundation prevents extreme fluctuations
@@ -131,7 +131,7 @@ Key Features
 - **Unbiased**: No home field advantage or margin of victory weighting
 
 Interactive Example
-===================
+--------------------
 
 For a comprehensive, hands-on demonstration of the Colley rating system, try the interactive Colab notebook.
 The notebook walks you through loading match data, calculating ratings, and visualizing the results.

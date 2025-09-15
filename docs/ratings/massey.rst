@@ -31,7 +31,7 @@ These component ratings provide valuable insights into team composition, for exa
 
 
 Basic Usage
-===========
+----------------
 
 .. code-block:: python
 
@@ -42,7 +42,7 @@ Basic Usage
    df = fbd.get_fixtures()
 
 Calculate Ratings
-=================
+----------------
 
 .. code-block:: python
 
@@ -109,7 +109,7 @@ Example output:
       - -0.833553
 
 Offensive and Defensive Ratings
-=============================================
+------------------------------
 
 .. code-block:: python
 
@@ -173,7 +173,7 @@ Offensive and Defensive Ratings
       - -0.833553
 
 Key Features
-================
+--------------
 
 - **Comprehensive**: Incorporates both wins/losses and point differentials for richer analysis
 - **Decomposable**: Automatically generates separate offensive and defensive ratings alongside overall team strength
@@ -184,7 +184,7 @@ Key Features
 - **Scalable**: Handles leagues of any size with automatic strength-of-schedule adjustments
 
 Interactive Example
-===================
+-------------------
 
 For a comprehensive, hands-on demonstration of the Massey rating system, try the interactive Colab notebook.
 The notebook walks you through loading match data, calculating ratings, and visualizing the results.

@@ -78,7 +78,7 @@ Get New Ratings
     0.11538461538461539
 
 Interactive Example
-===================
+-------------------
 
 For a comprehensive, hands-on demonstration of the Pi rating system, try the interactive Colab notebook.
 The notebook walks you through loading match data, calculating ratings, and visualizing the results.
