@@ -25,7 +25,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          pip install .
+          pip install .[cloud]
           pip install pytest
 
       - name: Show working directory and files
