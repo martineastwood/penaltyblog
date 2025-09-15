@@ -325,11 +325,11 @@ class TestMethodParameters:
         assert isinstance(result.method_params["c"], float)
 
     def test_logarithmic_method_parameters(self):
-        """Test that logarithmic method returns alpha parameter."""
+        """Test that logarithmic method returns c parameter."""
         odds = [2.7, 2.3, 4.4]
         result = calculate_implied(odds, method=ImpliedMethod.LOGARITHMIC)
 
         assert result.method_params is not None
-        assert "alpha" in result.method_params
-        assert isinstance(result.method_params["alpha"], float)
-        assert result.method_params["alpha"] > 0  # Should be positive
+        assert "c" in result.method_params
+        assert isinstance(result.method_params["c"], float)
+        assert result.method_params["c"] > 0  # Should be positive
