@@ -2,6 +2,13 @@
 Using Flow with StatsBomb Data
 ===============================
 
+.. raw:: html
+
+   <a href="https://colab.research.google.com/drive/1vctEMktiSri4zUhawT7Z3KauKprWkGtW?usp=sharing" target="_blank">
+      <img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open in Colab">
+   </a>
+   <br><br>
+
 Flow includes a built-in integration with the StatsBomb API, making it easy to stream structured football data directly into your pipelines.
 
 Rather than loading everything upfront, Flow wraps the API as **lazy operations** - each call builds a plan that fetches the data only when needed (e.g., on ``.collect()`` or ``.to_pandas()``).
@@ -126,3 +133,16 @@ Flow's StatsBomb integration:
 - ✅ Streams on demand (not loaded eagerly)
 - ✅ Integrates with full Flow pipeline tools
 - ✅ Works with both open and authenticated endpoints
+
+Interactive Example
+--------------------
+
+For a comprehensive, hands-on demonstration of working with StatsBomb data, try the interactive Colab notebook.
+The notebook walks you through loading data from the StatsBomb API, calculating ratings, and visualizing the results.
+You can modify the code, experiment with different parameters, and see how the data change in real-time.
+
+.. raw:: html
+
+   <a href="https://colab.research.google.com/drive/1vctEMktiSri4zUhawT7Z3KauKprWkGtW?usp=sharing" target="_blank">
+      <img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open in Colab">
+   </a>

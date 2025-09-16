@@ -1,6 +1,13 @@
 MatchFlow
 ==========
 
+.. raw:: html
+
+   <a href="https://colab.research.google.com/drive/1rRJV8mNOTLTXmn5cOGT4faxIwIP44pC-?usp=sharing" target="_blank">
+      <img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open in Colab">
+   </a>
+   <br><br>
+
 **MatchFlow** is a lightweight toolkit for working with structured football data, especially nested JSON like StatsBomb event files or match-level logs. Whether you're building quick explorations or full pipelines, MatchFlow helps you work directly with deeply structured data using a clean, lazy, and chainable API.
 
 What is MatchFlow?
@@ -19,6 +26,20 @@ You can:
 - Filtering using string expressions, like ``"age > 30 and team == @team_name"``
 
 All transformations are **lazy**; nothing runs until you ask for results with ``.collect()``, ``.to_pandas()``, ``.to_jsonl()`` etc.
+
+Interactive Examples
+--------------------
+
+For a comprehensive, hands-on demonstration of the Matchflow, try the interactive Colab notebook.
+The notebook walks you downloading data directly from the Statsbomb API (including Statsbomb's free, open data sets),
+building data pipelines, and creating interactive vizualisations using ``penaltyblog``'s ``Pitch`` plotting library.
+You can modify the code, experiment with different parameters, and see how the data changes in real-time.
+
+.. raw:: html
+
+   <a href="https://colab.research.google.com/drive/1rRJV8mNOTLTXmn5cOGT4faxIwIP44pC-?usp=sharing" target="_blank">
+      <img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open in Colab">
+   </a>
 
 Guide Index
 -----------
@@ -57,8 +78,8 @@ Guide Index
      - Streaming data directly from the StatsBomb API
 
 
-Example
--------
+Quick Start
+------------
 
 .. code-block:: python
 
@@ -73,17 +94,6 @@ Example
 
    for shot in flow.head(5):
       print(shot)
-
-Notes
------
-
-.. note::
-
-    This is the first public release of ``penaltyblog.matchflow``.
-    It’s already powering real-world workflows, but edge cases may still surface.
-
-    **If you find bugs, performance issues, or have feature ideas then please open an issue or reach out.**
-    Your feedback makes this better for everyone.
 
 Ready to Flow?
 --------------
