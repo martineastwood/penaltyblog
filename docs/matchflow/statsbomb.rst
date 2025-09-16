@@ -138,7 +138,7 @@ Interactive Example
 --------------------
 
 For a comprehensive, hands-on demonstration of working with StatsBomb data, try the interactive Colab notebook.
-The notebook walks you through loading data from the StatsBomb API, calculating ratings, and visualizing the results.
+The notebook walks you through loading data from the StatsBomb API, filtering it, and visualizing the results.
 You can modify the code, experiment with different parameters, and see how the data change in real-time.
 
 .. raw:: html
