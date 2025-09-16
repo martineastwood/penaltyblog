@@ -61,7 +61,7 @@ Run these examples directly in your browser (no installation required):
 | **Calculate Massey Ratings** | Calculate teams' attack and defense strengths | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1d_WPJwQgrogeSI9oIO9fY8s18CPPZ8nL?usp=sharing) |
 | **Use Pi Ratings** | Like Elo ratings, but better | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/12qEDCNYG-FFHOJ_kURe0cm80sScandyh?usp=sharing) |
 | **Create Interactive Charts** | Create your own interactive football vizualisations | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1xFfIdvmbFcjHlS_2eHEu3NxD-xLNrbpY?usp=sharing) |
-| **Work Directly With Statsbomb Data** | Connect directly to Statsbomb's API, including their free, open data sets | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1xFfIdvmbFcjHlS_2eHEu3NxD-xLNrbpY?usp=sharing) |
+| **Work Directly With Statsbomb Data** | Connect directly to Statsbomb's API, including their free open data sets | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1xFfIdvmbFcjHlS_2eHEu3NxD-xLNrbpY?usp=sharing) |
 
 ## Documentation
 
