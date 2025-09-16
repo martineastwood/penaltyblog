@@ -92,6 +92,8 @@ class FlowExecutor:
                 gen = transform.apply_fused(gen, step)
             elif op == "from_materialized":
                 gen = iter(step["records"])
+            elif op == "from_concat":
+                gen = source.from_concat(step)
             else:
                 raise ValueError(f"Unknown plan op: {op}")
 

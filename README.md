@@ -50,6 +50,17 @@ Take your football analytics and betting strategy to the next level with **penal
 pip install penaltyblog
 ```
 
+## 🚀 Quick Start - Try it Now!
+
+Run these examples directly in your browser (no installation required):
+
+| Example | Description | Colab |
+|---------|-------------|-------|
+| **Predict Soccer Match Results** | Build a match prediction model from scratch | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1GjrDG_iq_9_lxEQK_aBmr-jCCCnFt0v7?usp=sharing) |
+| **Calculate Massey Ratings** | Calculate teams' attack and defense strengths | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1d_WPJwQgrogeSI9oIO9fY8s18CPPZ8nL?usp=sharing) |
+| **Use Pi Ratings** | Like Elo ratings, but better | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/12qEDCNYG-FFHOJ_kURe0cm80sScandyh?usp=sharing) |
+| **Create Interactive Charts** | Create your own interactive football vizualisations | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1xFfIdvmbFcjHlS_2eHEu3NxD-xLNrbpY?usp=sharing) |
+
 ## Documentation
 
 Learn more about how to utilize `penaltyblog` by exploring the [official documentation](https://penaltyblog.readthedocs.io/en/latest/) and detailed examples:
