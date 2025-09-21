@@ -13,16 +13,22 @@ v1.6.0 (2025-xx-xx)
 Package Updates
 ---------------
 
-- ``Matchflow`` can now load data from cloud storage (e.g. S3, GCS, Azure Blob Storage) using `fsspec`
-- ``Matchflow`` now supports multiple join strategies:
+- ``Matchflow``
+
+- can now read / write data from cloud storage (e.g. S3, GCS, Azure Blob Storage) using ``fsspec``
+- Now supports multiple join strategies:
 
   - left, right, outer, inner and anti joins
   - Automatic type inference and conversion for join keys
   - Customizable type coercion functions for complex join key scenarios
 
-- Updated ``implied`` submodule to add logarithmic overround removal method and return structured results
-- Renamed ``kelly`` submodule to ``betting``
+- Fixed bug where where executor did not recognise ``.concat()`` function
 
+- Updated ``implied`` submodule to add logarithmic overround removal method and return structured results
+
+- ``Betting``
+
+  - Renamed ``kelly`` submodule to ``betting``
   - Added ``multiple_criterion`` function for calculating Kelly Criterion for multiple outcomes
   - Added ``arbitrage_hedge`` function to calculate hedge bet sizes
   - Added ``arbitrage_opportunities`` function to identify arbitrage opportunities across bookmakers
@@ -30,8 +36,10 @@ Package Updates
   - Added ``odds_conversion`` function to convert between different odds formats (decimal, fractional, American)
   - Updated all betting utility functions to return structured output
 
-  - Added ``BayesianHierarchicalModel`` for hierarchical Bayesian modeling of team strengths
-  - Added ``BayesianDixonColesModel`` for Bayesian modeling of team strengths
+- ``Goals Models``
+
+  - Added ``BayesianHierarchicalModel`` for hierarchical Bayesian modeling
+  - Added ``BayesianDixonColesModel`` for Bayesian version of Dixon-Coles model
 
 Documentation Improvements
 ----------------------------
