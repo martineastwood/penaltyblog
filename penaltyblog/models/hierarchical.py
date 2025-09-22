@@ -1,16 +1,10 @@
-from multiprocessing import Pool
-
-import emcee
 import numpy as np
-from scipy.optimize import minimize
 from scipy.stats import expon, norm
 
-from .base_model import BaseGoalsModel
+from .bayesian_base import BaseBayesianModel
 from .football_probability_grid import FootballProbabilityGrid
 from .loss import dixon_coles_loss_function
-from .probabilities import (
-    compute_dixon_coles_probabilities,
-)
+from .probabilities import compute_dixon_coles_probabilities
 
 
 # --- Top-level function for multiprocessing ---
@@ -98,7 +92,7 @@ def hierarchical_log_probability(
     return log_prior_prob - neg_log_likelihood
 
 
-class BayesianHierarchicalModel(BaseGoalsModel):
+class BayesianHierarchicalModel(BaseBayesianModel):
     """
     A hierarchical Bayesian Dixon-Coles model fitted in parallel with emcee.
 
@@ -145,8 +139,17 @@ class BayesianHierarchicalModel(BaseGoalsModel):
                 [-0.1],  # rho
             )
         )
-        self.sampler = None
-        self.chain = None
+
+    def _get_log_probability_function(self):
+        """
+        Return the model-specific log probability function.
+
+        Returns:
+        --------
+        callable
+            Log probability function for MCMC sampling
+        """
+        return hierarchical_log_probability
 
     def _get_param_names(self):
         """
@@ -201,63 +204,61 @@ class BayesianHierarchicalModel(BaseGoalsModel):
             "rho": params[2 * nt + 5],
         }
 
-    def fit(self, n_walkers=None, n_steps=4000, n_burn=1000, initial_params=None):
+    def _calculate_frequentist_metrics(self):
         """
-        Fit the model using the emcee MCMC sampler in parallel.
+        Calculate frequentist-style metrics (AIC, log-likelihood) using posterior mean.
 
-        This method runs an MCMC simulation to sample from the posterior
-        distribution of the model parameters. It begins by finding a good
-        starting point via optimization (Maximum A Posteriori) and then
-        initializes a set of "walkers" to explore the parameter space.
-
-        Args:
-            n_walkers (int, optional): The number of MCMC walkers. If None,
-                defaults to twice the number of dimensions.
-            n_steps (int, optional): The number of steps for each walker to
-                take. Defaults to 2000.
-            n_burn (int, optional): The number of "burn-in" steps to discard
-                from the beginning of the chain. Defaults to 1000.
-            initial_params (np.ndarray, optional): A specific starting point
-                for the parameters. If None, a starting point is found via
-                optimization. Defaults to None.
+        This method provides compatibility with frequentist models for comparison purposes.
         """
-        ndim = len(self._params)
-        if n_walkers is None:
-            n_walkers = 2 * ndim
+        # Extract final team strengths from posterior mean for AIC calculation
+        p = self._unpack_params(self._params)
 
-        args = (
-            self.home_idx,
-            self.away_idx,
+        # Calculate negative log-likelihood using Dixon-Coles loss
+        # (hierarchical model uses same likelihood, just different priors)
+        neg_ll = dixon_coles_loss_function(
             self.goals_home,
             self.goals_away,
             self.weights,
-            self.n_teams,
+            self.home_idx,
+            self.away_idx,
+            p["attack"],
+            p["defense"],
+            p["hfa"],
+            p["rho"],
         )
 
-        if initial_params is None:
-            neg_log_prob = lambda p, *a: -hierarchical_log_probability(p, *a)
+        # Set frequentist metrics using posterior mean
+        self.n_params = len(self._params)
+        self.loglikelihood = -neg_ll
+        self.aic = 2 * neg_ll + 2 * self.n_params
 
-            def safe_neg_log_prob(p, *a):
-                res = neg_log_prob(p, *a)
-                return res if np.isfinite(res) else 1e12
+    def _calculate_log_likelihood(self, params):
+        """
+        Calculate total log-likelihood for given parameters.
 
-            result = minimize(
-                safe_neg_log_prob, self._params, args=args, method="L-BFGS-B"
-            )
-            initial_params = result.x
+        Parameters:
+        -----------
+        params : array-like
+            Model parameters
 
-        pos = initial_params + 1e-4 * np.random.randn(n_walkers, ndim)
-
-        with Pool() as pool:
-            self.sampler = emcee.EnsembleSampler(
-                n_walkers, ndim, hierarchical_log_probability, args=args, pool=pool
-            )
-            self.sampler.run_mcmc(
-                pos, n_steps, progress=False, skip_initial_state_check=True
-            )
-
-        self.chain = self.sampler.get_chain(discard=n_burn, thin=15, flat=True)
-        self.fitted = True
+        Returns:
+        --------
+        float
+            Total log-likelihood
+        """
+        p = self._unpack_params(params)
+        neg_ll = dixon_coles_loss_function(
+            self.goals_home,
+            self.goals_away,
+            self.weights,
+            self.home_idx,
+            self.away_idx,
+            p["attack"],
+            p["defense"],
+            p["hfa"],
+            p["rho"],
+        )
+        return -neg_ll
 
     def _compute_probabilities(self, home_idx, away_idx, max_goals, normalize=True):
         """
@@ -322,3 +323,85 @@ class BayesianHierarchicalModel(BaseGoalsModel):
         return FootballProbabilityGrid(
             avg_score_matrix, avg_lambda_home, avg_lambda_away, normalize=normalize
         )
+
+    def __repr__(self):
+        """
+        Return a string representation of the fitted Bayesian Hierarchical model.
+
+        Displays both frequentist (AIC) and Bayesian (WAIC) information criteria
+        for comprehensive model comparison, along with team parameters and
+        hierarchical hyperparameters.
+        """
+        lines = [
+            "Module: Penaltyblog",
+            "",
+            "Model: Bayesian Hierarchical Dixon-Coles",
+            "",
+        ]
+
+        if not self.fitted:
+            lines.append("Status: Model not fitted")
+            return "\n".join(lines)
+
+        # Ensure all required attributes are available
+        assert self.aic is not None
+        assert self.loglikelihood is not None
+        assert self.n_params is not None
+        assert hasattr(
+            self, "waic"
+        ), "WAIC not calculated - model fitting may have failed"
+
+        lines.extend(
+            [
+                f"Number of parameters: {self.n_params}",
+                f"Log Likelihood: {round(self.loglikelihood, 3)}",
+                f"AIC: {round(self.aic, 3)}",
+                f"WAIC: {round(self.waic, 3)}",
+                f"Effective parameters (p_WAIC): {round(self.p_waic, 3)}",
+                "",
+                "Hyperparameters:",
+                "-" * 40,
+            ]
+        )
+
+        # Extract hyperparameters
+        nt = self.n_teams
+        epsilon = 1e-6
+        attack_offsets = self._params[:nt]
+        defense_offsets = self._params[nt : 2 * nt]
+        mu_attack = self._params[2 * nt]
+        sigma_attack = np.exp(self._params[2 * nt + 1]) + epsilon
+        mu_defense = self._params[2 * nt + 2]
+        sigma_defense = np.exp(self._params[2 * nt + 3]) + epsilon
+        hfa = self._params[2 * nt + 4]
+        rho = self._params[2 * nt + 5]
+
+        lines.extend(
+            [
+                f"Attack mean (μ_attack): {round(mu_attack, 3)}",
+                f"Attack std (σ_attack): {round(sigma_attack, 3)}",
+                f"Defense mean (μ_defense): {round(mu_defense, 3)}",
+                f"Defense std (σ_defense): {round(sigma_defense, 3)}",
+                f"Home Advantage: {round(hfa, 3)}",
+                f"Rho: {round(rho, 3)}",
+                "",
+                "Team Parameters:",
+                "{0: <20} {1:<20} {2:<20}".format("Team", "Attack", "Defense"),
+                "-" * 60,
+            ]
+        )
+
+        # Calculate final team strengths
+        attack = mu_attack + sigma_attack * attack_offsets
+        defense = mu_defense + sigma_defense * defense_offsets
+
+        for idx, team in enumerate(self.teams):
+            lines.append(
+                "{0: <20} {1:<20} {2:<20}".format(
+                    team,
+                    round(attack[idx], 3),
+                    round(defense[idx], 3),
+                )
+            )
+
+        return "\n".join(lines)

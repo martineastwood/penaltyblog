@@ -158,7 +158,7 @@ def test_hierarchical_unfitted_repr(fixtures):
     )
 
     repr_str = str(clf)
-    assert "BayesianHierarchicalModel" in repr_str
+    assert "Bayesian Hierarchical Dixon-Coles" in repr_str
 
 
 @pytest.mark.local

@@ -148,7 +148,7 @@ def test_bayesian_dc_unfitted_repr(fixtures):
     )
 
     repr_str = str(clf)
-    assert "BayesianDixonColesModel" in repr_str
+    assert "Bayesian Dixon-Coles" in repr_str
 
 
 @pytest.mark.local

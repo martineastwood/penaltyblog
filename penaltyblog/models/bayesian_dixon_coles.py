@@ -1,19 +1,10 @@
-from multiprocessing import Pool
-
-import emcee
 import numpy as np
-from scipy.optimize import minimize
 from scipy.stats import norm
 
-from penaltyblog.models.base_model import BaseGoalsModel
-from penaltyblog.models.football_probability_grid import (
-    FootballProbabilityGrid,
-)
-
-from .loss import dixon_coles_loss_function  # noqa
-from .probabilities import (
-    compute_dixon_coles_probabilities,
-)
+from .bayesian_base import BaseBayesianModel
+from .football_probability_grid import FootballProbabilityGrid
+from .loss import dixon_coles_loss_function
+from .probabilities import compute_dixon_coles_probabilities
 
 
 # --- Top-level function for multiprocessing ---
@@ -116,7 +107,7 @@ def log_probability(
     return log_prior_prob + log_likelihood
 
 
-class BayesianDixonColesModel(BaseGoalsModel):
+class BayesianDixonColesModel(BaseBayesianModel):
     """
     A Bayesian implementation of the Dixon-Coles model for football match prediction.
 
@@ -265,8 +256,17 @@ class BayesianDixonColesModel(BaseGoalsModel):
                 [-0.1],  # rho
             )
         )
-        self.sampler = None
-        self.chain = None
+
+    def _get_log_probability_function(self):
+        """
+        Return the model-specific log probability function.
+
+        Returns:
+        --------
+        callable
+            Log probability function for MCMC sampling
+        """
+        return log_probability
 
     def _get_param_names(self):
         """
@@ -320,123 +320,60 @@ class BayesianDixonColesModel(BaseGoalsModel):
             "rho": params[2 * nt + 1],
         }
 
-    def fit(self, n_walkers=None, n_steps=2000, n_burn=1000, initial_params=None):
+    def _calculate_frequentist_metrics(self):
         """
-        Fit the Bayesian Dixon-Coles model using MCMC sampling.
+        Calculate frequentist-style metrics (AIC, log-likelihood) using posterior mean.
 
-        This method performs full Bayesian inference by sampling from the posterior
-        distribution of model parameters using the emcee affine-invariant ensemble
-        sampler. The process includes automatic initialization via MAP estimation,
-        parallel chain evaluation, and post-processing of samples.
-
-        Algorithm Overview:
-        ------------------
-        1. Initialize walkers around MAP estimate (if initial_params=None)
-        2. Run MCMC chains in parallel using multiprocessing
-        3. Discard burn-in samples and thin the remaining chain
-        4. Store flattened posterior samples for prediction
-
-        Parameters:
-        -----------
-        n_walkers : int, optional
-            Number of MCMC walkers (chains) to run in parallel. Should be at least
-            2 times the number of parameters for good mixing. If None, defaults to
-            2 * (2*n_teams + 2). Recommended: 50-200 for most applications.
-        n_steps : int, optional
-            Total number of MCMC steps per walker. More steps provide better
-            convergence and more precise posterior estimates. Default: 2000.
-            Recommended: 1000-5000 depending on model complexity.
-        n_burn : int, optional
-            Number of initial samples to discard as burn-in. These samples allow
-            chains to reach the target distribution from their starting positions.
-            Should be sufficient for convergence (typically 25-50% of n_steps).
-            Default: 1000.
-        initial_params : array-like, optional
-            Starting parameter values for MCMC chains. If provided, must have shape
-            (2*n_teams + 2,). If None, automatically finds good starting point via
-            MAP estimation using L-BFGS-B optimization. Default: None.
-
-        Raises:
-        -------
-        ValueError
-            If n_walkers < 2*n_parameters or if optimization fails to find valid
-            starting parameters
-        RuntimeError
-            If MCMC sampling encounters numerical issues or fails to converge
-
-        Notes:
-        ------
-        - Uses multiprocessing for parallel evaluation of log-probability
-        - Chains are automatically thinned by factor of 15 to reduce storage
-        - Progress display can be controlled via emcee parameters
-        - Sets self.fitted = True upon successful completion
-        - Convergence diagnostics should be checked after fitting
-
-        Performance Tips:
-        ----------------
-        - For large datasets: reduce n_steps and increase n_walkers
-        - For small datasets: increase n_steps for better mixing
-        - Monitor acceptance rates (should be 20-50%)
-        - Use convergence diagnostics (R-hat, effective sample size)
-
-        Examples:
-        ---------
-        >>> # Quick fit for exploration
-        >>> model.fit(n_walkers=50, n_steps=1000, n_burn=300)
-
-        >>> # Production fit with good convergence
-        >>> model.fit(n_walkers=100, n_steps=3000, n_burn=1000)
-
-        >>> # Custom initialization
-        >>> custom_params = np.concatenate([attack_init, defense_init, [0.3, -0.05]])
-        >>> model.fit(initial_params=custom_params)
+        This method provides compatibility with frequentist models for comparison purposes.
         """
-        ndim = len(self._params)
+        # Extract parameters at posterior mean for AIC calculation
+        p = self._unpack_params(self._params)
 
-        # Rule of thumb: use at least twice as many walkers as dimensions
-        if n_walkers is None:
-            n_walkers = 2 * ndim
-
-        # Prepare the tuple of extra arguments for the log_probability function
-        args = (
-            self.home_idx,
-            self.away_idx,
+        # Calculate negative log-likelihood using existing loss function
+        neg_ll = dixon_coles_loss_function(
             self.goals_home,
             self.goals_away,
             self.weights,
-            self.n_teams,
+            self.home_idx,
+            self.away_idx,
+            p["attack"],
+            p["defense"],
+            p["hfa"],
+            p["rho"],
         )
 
-        if initial_params is None:
-            # Find a good starting point using a quick optimization
-            neg_log_prob = lambda p, *a: -log_probability(p, *a)
+        # Set frequentist metrics using posterior mean
+        self.n_params = len(self._params)
+        self.loglikelihood = -neg_ll
+        self.aic = 2 * neg_ll + 2 * self.n_params
 
-            def safe_neg_log_prob(p, *a):
-                res = neg_log_prob(p, *a)
-                return res if np.isfinite(res) else 1e12
+    def _calculate_log_likelihood(self, params):
+        """
+        Calculate total log-likelihood for given parameters.
 
-            result = minimize(
-                safe_neg_log_prob, self._params, args=args, method="L-BFGS-B"
-            )
-            initial_params = result.x
+        Parameters:
+        -----------
+        params : array-like
+            Model parameters
 
-        # Initialize walkers in a small, random ball around the best-fit parameters
-        pos = initial_params + 1e-4 * np.random.randn(n_walkers, ndim)
-
-        # Use the multiprocessing Pool to run in parallel
-        with Pool() as pool:
-            self.sampler = emcee.EnsembleSampler(
-                n_walkers, ndim, log_probability, args=args, pool=pool
-            )
-
-            # Run the MCMC sampler
-            self.sampler.run_mcmc(
-                pos, n_steps, progress=False, skip_initial_state_check=True
-            )
-
-        # Store the flattened chain, discarding the burn-in phase and thinning
-        self.chain = self.sampler.get_chain(discard=n_burn, thin=15, flat=True)
-        self.fitted = True
+        Returns:
+        --------
+        float
+            Total log-likelihood
+        """
+        p = self._unpack_params(params)
+        neg_ll = dixon_coles_loss_function(
+            self.goals_home,
+            self.goals_away,
+            self.weights,
+            self.home_idx,
+            self.away_idx,
+            p["attack"],
+            p["defense"],
+            p["hfa"],
+            p["rho"],
+        )
+        return -neg_ll
 
     def _compute_probabilities(self, home_idx, away_idx, max_goals, normalize=True):
         """
@@ -507,3 +444,58 @@ class BayesianDixonColesModel(BaseGoalsModel):
             avg_lambda_away,
             normalize=normalize,
         )
+
+    def __repr__(self):
+        """
+        Return a string representation of the fitted Bayesian Dixon-Coles model.
+
+        Displays both frequentist (AIC) and Bayesian (WAIC) information criteria
+        for comprehensive model comparison, along with team parameters and
+        model fit statistics.
+        """
+        lines = ["Module: Penaltyblog", "", "Model: Bayesian Dixon-Coles", ""]
+
+        if not self.fitted:
+            lines.append("Status: Model not fitted")
+            return "\n".join(lines)
+
+        # Ensure all required attributes are available
+        assert self.aic is not None
+        assert self.loglikelihood is not None
+        assert self.n_params is not None
+        assert hasattr(
+            self, "waic"
+        ), "WAIC not calculated - model fitting may have failed"
+
+        lines.extend(
+            [
+                f"Number of parameters: {self.n_params}",
+                f"Log Likelihood: {round(self.loglikelihood, 3)}",
+                f"AIC: {round(self.aic, 3)}",
+                f"WAIC: {round(self.waic, 3)}",
+                f"Effective parameters (p_WAIC): {round(self.p_waic, 3)}",
+                "",
+                "{0: <20} {1:<20} {2:<20}".format("Team", "Attack", "Defence"),
+                "-" * 60,
+            ]
+        )
+
+        p = self._unpack_params(self._params)
+        for idx, team in enumerate(self.teams):
+            lines.append(
+                "{0: <20} {1:<20} {2:<20}".format(
+                    team,
+                    round(p["attack"][idx], 3),
+                    round(p["defense"][idx], 3),
+                )
+            )
+
+        lines.extend(
+            [
+                "-" * 60,
+                f"Home Advantage: {round(p['hfa'], 3)}",
+                f"Rho: {round(p['rho'], 3)}",
+            ]
+        )
+
+        return "\n".join(lines)
