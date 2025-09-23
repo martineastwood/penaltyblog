@@ -59,24 +59,6 @@ A more flexible alternative to Poisson-based models, using a Weibull distributio
 - **Weaknesses**: Statistically and computationally intensive, not always worth the added complexity.
 - **Best for**: Advanced modelling in leagues with unusual scoring patterns.
 
-7. Regularized Bayesian Dixon-Coles Model
-=========================================
-
-This model applies a Bayesian framework to the robust Dixon-Coles model. Instead of finding a single best set of parameters, it uses MCMC (Markov Chain Monte Carlo) sampling to explore all plausible parameter values, yielding a richer, more robust forecast.
-
-- **Strengths**: Provides **regularization** via priors, which prevents overfitting and produces more stable team ratings. It also offers full **uncertainty quantification**, allowing you to gauge the model's confidence in its predictions.
-- **Weaknesses**: Computationally more intensive and slower to fit than non-Bayesian models. Requires a basic understanding of Bayesian concepts.
-- **Best for**: Users seeking to improve predictive accuracy beyond frequentist models and for applications where quantifying risk and uncertainty is critical.
-
-8. Hierarchical Bayesian Dixon-Coles Model
-==========================================
-
-The most advanced model in the suite, this builds on the Bayesian framework by adding a **hierarchical structure**. It assumes each team's strength is drawn from a common, league-wide distribution of talent that the model learns from the data.
-
-- **Strengths**: Offers "smart" shrinkage by sharing statistical strength across the league, producing the most realistic and robust team ratings, especially when data is sparse (e.g., early in a season).
-- **Weaknesses**: The most computationally intensive model to fit due to its complexity.
-- **Best for**: Achieving the highest possible predictive accuracy and for in-depth analysis where the most robust team ratings are essential.
-
 Model Comparison
 ================
 
@@ -94,10 +76,6 @@ Model Comparison
 | **Negative Binomial**      | Handles overdispersion, realistic extreme scores | Still independent goal counts                   | High-scoring, volatile leagues |
 +----------------------------+---------------------------------------------------+-------------------------------------------------+---------------+
 | **Weibull + Copula**       | Flexible distribution & correlation modelling    | Highly complex, slow to fit                     | Complex goal patterns |
-+----------------------------+---------------------------------------------------+-------------------------------------------------+---------------+
-| **Bayesian D&C**           | Regularization prevents overfitting, uncertainty | Slower to fit (MCMC), more complex concepts    | Quantifying uncertainty, risk analysis |
-+----------------------------+---------------------------------------------------+-------------------------------------------------+---------------+
-| **Hierarchical Bayesian**  | "Smart" shrinkage, best with sparse data         | Most computationally intensive, highest complexity | State-of-the-art forecasting |
 +----------------------------+---------------------------------------------------+-------------------------------------------------+---------------+
 
 Consistent API Across Models
