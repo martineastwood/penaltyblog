@@ -24,7 +24,6 @@ dependencies = [
     "beautifulsoup4",
     "cssselect",
     "cython",
-    "emcee",
     "fsspec",
     "html5lib",
     "ipywidgets",
