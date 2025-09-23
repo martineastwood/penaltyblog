@@ -36,11 +36,6 @@ Package Updates
   - Added ``odds_conversion`` function to convert between different odds formats (decimal, fractional, American)
   - Updated all betting utility functions to return structured output
 
-- ``Goals Models``
-
-  - Added ``BayesianHierarchicalModel`` for hierarchical Bayesian modeling
-  - Added ``BayesianDixonColesModel`` for Bayesian version of Dixon-Coles model
-
 Documentation Improvements
 ----------------------------
 
