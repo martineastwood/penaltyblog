@@ -14,7 +14,7 @@ Package Updates
 ---------------
 
 - Updated goals models loss functions to work with ``scipy 1.16+``
-- Improved numerical stability of loss function for Negative Binomial model to improve convergence
+- Improved numerical stability of the loss function for the Negative Binomial model to improve convergence
 - Added colab notebook for implied probabilities examples
 - Python 3.14 support
 
