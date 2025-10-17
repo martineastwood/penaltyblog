@@ -155,10 +155,8 @@ scratch.py
 codecov
 docs/y
 
-GEMINI.md
 /benchmarks
-chatgpt_combined_output.txt
-copy_files.py
+repomix-output.xml
 roadmap.md
 notebook.ipynb
 .clinerules

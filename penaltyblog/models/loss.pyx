@@ -1,7 +1,7 @@
 import numpy as np
 
 cimport numpy as np
-from libc.math cimport exp, fabs, isinf, isnan, lgamma, log, tgamma
+from libc.math cimport exp, fabs, fmax, isinf, isnan, lgamma, log, tgamma
 
 from cython.parallel import prange
 
@@ -18,6 +18,9 @@ from .utils cimport (
     precompute_poisson_pmf,
     weibull_count_pmf,
 )
+
+
+cdef double epsilon = 1e-9
 
 
 @cython.boundscheck(False)
@@ -124,13 +127,13 @@ cpdef double dixon_coles_loss_function(long[:] goals_home,
 
         # Dixon–Coles adjustment for low-scoring matches.
         if k_home == 0 and k_away == 0:
-            adjustment = log(1 - rho * lambda_home * lambda_away)
+            adjustment = log(fmax(epsilon, 1 - rho * lambda_home * lambda_away))
         elif k_home == 0 and k_away == 1:
-            adjustment = log(1 + rho * lambda_home)
+            adjustment = log(fmax(epsilon, 1 + rho * lambda_home))
         elif k_home == 1 and k_away == 0:
-            adjustment = log(1 + rho * lambda_away)
+            adjustment = log(fmax(epsilon, 1 + rho * lambda_away))
         elif k_home == 1 and k_away == 1:
-            adjustment = log(1 - rho)
+            adjustment = log(fmax(epsilon, 1 - rho))
         else:
             adjustment = 0.0
 
@@ -468,13 +471,13 @@ cpdef double random_intercept_loss_function(
 
         # Dixon–Coles adjustment for low-scoring matches.
         if k_home == 0 and k_away == 0:
-            adjustment = log(1 - rho * lambda_home * lambda_away)
+            adjustment = log(fmax(epsilon, 1 - rho * lambda_home * lambda_away))
         elif k_home == 0 and k_away == 1:
-            adjustment = log(1 + rho * lambda_home)
+            adjustment = log(fmax(epsilon, 1 + rho * lambda_home))
         elif k_home == 1 and k_away == 0:
-            adjustment = log(1 + rho * lambda_away)
+            adjustment = log(fmax(epsilon, 1 + rho * lambda_away))
         elif k_home == 1 and k_away == 1:
-            adjustment = log(1 - rho)
+            adjustment = log(fmax(epsilon, 1 - rho))
         else:
             adjustment = 0.0
 

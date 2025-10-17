@@ -2,7 +2,7 @@ import numpy as np
 
 cimport cython
 cimport numpy as np
-from libc.math cimport exp, fabs, lgamma, log, tgamma
+from libc.math cimport exp, fabs, fmax, lgamma, log, tgamma
 from libc.stdlib cimport free, malloc
 
 
@@ -17,7 +17,8 @@ cdef inline double poisson_log_pmf(int k, double lam):
 
 
 cdef inline double negBinomLogPMF(int k, double dispersion, double p) nogil:
-    return lgamma(k + dispersion) - lgamma(k + 1) - lgamma(dispersion) + dispersion * log(p) + k * log(1 - p)
+    cdef double epsilon = 1e-9
+    return lgamma(k + dispersion) - lgamma(k + 1) - lgamma(dispersion) + dispersion * log(fmax(epsilon, p)) + k * log(fmax(epsilon, 1 - p))
 
 
 cdef inline double negbinom_pmf(int k, double disp, double lam):

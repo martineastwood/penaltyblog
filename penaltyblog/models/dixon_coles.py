@@ -154,7 +154,7 @@ class DixonColesGoalModel(BaseGoalsModel):
         hfa = params[-2]
         rho = params[-1]
 
-        return dixon_coles_loss_function(
+        loss = dixon_coles_loss_function(
             self.goals_home,
             self.goals_away,
             self.weights,
@@ -165,6 +165,12 @@ class DixonColesGoalModel(BaseGoalsModel):
             hfa,
             rho,
         )
+
+        if np.isnan(loss) or np.isinf(loss):
+            print(params)
+            return 1e10
+
+        return loss
 
     def fit(self, minimizer_options: Optional[dict] = None, use_gradient: bool = True):
         """
@@ -187,7 +193,7 @@ class DixonColesGoalModel(BaseGoalsModel):
             }
         ]
 
-        bounds = [(-3, 3)] * self.n_teams * 2 + [(0, 2), (-2, 2)]
+        bounds = [(-2.5, 2.5)] * self.n_teams * 2 + [(0, 2), (-2.5, 2.5)]
 
         # Use gradient if requested and available
         jac = self._gradient if use_gradient else None
