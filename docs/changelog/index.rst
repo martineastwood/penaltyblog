@@ -7,6 +7,17 @@ Version Numbering
 ``penaltyblog`` follows the SemVer versioning guidelines. For more information,
 see `semver.org <http://semver.org/>`_
 
+v1.6.1 (2025-10-x)
+^^^^^^^^^^^^^^^^^^^^
+
+Package Updates
+---------------
+
+- Updated goals models loss functions to work with ``scipy 1.16+``
+- Improved numerical stability of loss function for Negative Binomial model to improve convergence
+- Added colab notebook for implied probabilities examples
+- Python 3.14 support
+
 v1.6.0 (2025-09-23)
 ^^^^^^^^^^^^^^^^^^^^
 
