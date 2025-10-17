@@ -7,7 +7,7 @@ Version Numbering
 ``penaltyblog`` follows the SemVer versioning guidelines. For more information,
 see `semver.org <http://semver.org/>`_
 
-v1.6.1 (2025-10-x)
+v1.6.1 (2025-10-17)
 ^^^^^^^^^^^^^^^^^^^^
 
 Package Updates
