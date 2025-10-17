@@ -46,6 +46,7 @@ def test_understat_shots():
     assert type(df) == pd.DataFrame
 
 
+@pytest.mark.local
 def test_understat_fixture_info():
     under = pb.scrapers.Understat("ENG Premier League", "2020-2021")
     df = under.get_fixture_info("14090")
@@ -53,6 +54,7 @@ def test_understat_fixture_info():
     assert df.shape[0] == 1
 
 
+@pytest.mark.local
 def test_understat_player_season():
     under = pb.scrapers.Understat("ENG Premier League", "2020-2021")
     df = under.get_player_season(8260)
@@ -60,6 +62,7 @@ def test_understat_player_season():
     assert df.shape[0] > 0
 
 
+@pytest.mark.local
 def test_understat_player_shots():
     under = pb.scrapers.Understat("ENG Premier League", "2020-2021")
     df = under.get_player_shots(8260)
@@ -67,6 +70,7 @@ def test_understat_player_shots():
     assert df.shape[0] > 0
 
 
+@pytest.mark.local
 def test_map_season():
     under = pb.scrapers.Understat("ENG Premier League", "2020-2021")
     mapped = under._map_season("2020-2021")
