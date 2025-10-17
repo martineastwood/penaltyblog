@@ -37,7 +37,7 @@ dependencies = [
     "plotly",
     "pulp",
     "requests",
-    "scipy<=1.15.3",
+    "scipy",
     "statsbombpy",
     "tabulate",
     "tqdm",
