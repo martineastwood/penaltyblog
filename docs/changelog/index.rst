@@ -7,6 +7,14 @@ Version Numbering
 ``penaltyblog`` follows the SemVer versioning guidelines. For more information,
 see `semver.org <http://semver.org/>`_
 
+v1.6.2 (2025-10-22)
+^^^^^^^^^^^^^^^^^^^^
+
+Package Updates
+---------------
+
+- Fixed bug in ``PoissonGoalsModel`` where weights parameter was not being handled correctly in the gradient function.
+
 v1.6.1 (2025-10-17)
 ^^^^^^^^^^^^^^^^^^^^
 
