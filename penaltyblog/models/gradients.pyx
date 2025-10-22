@@ -41,7 +41,8 @@ def poisson_gradient(
     cnp.ndarray[long, ndim=1] home_idx,
     cnp.ndarray[long, ndim=1] away_idx,
     cnp.ndarray[long, ndim=1] goals_home,
-    cnp.ndarray[long, ndim=1] goals_away
+    cnp.ndarray[long, ndim=1] goals_away,
+    cnp.ndarray[double, ndim=1] weights
 ):
     cdef int n_teams = attack.shape[0]
     cdef int n_games = home_idx.shape[0]
@@ -62,11 +63,11 @@ def poisson_gradient(
         lambda_home = exp(attack[h] + defence[a] + hfa)
         lambda_away = exp(attack[a] + defence[h])
 
-        grad_attack[h] += goals_home[i] - lambda_home
-        grad_attack[a] += goals_away[i] - lambda_away
-        grad_defence[a] += goals_home[i] - lambda_home
-        grad_defence[h] += goals_away[i] - lambda_away
-        grad_hfa += goals_home[i] - lambda_home
+        grad_attack[h] += (goals_home[i] - lambda_home) * weights[i]
+        grad_attack[a] += (goals_away[i] - lambda_away) * weights[i]
+        grad_defence[a] += (goals_home[i] - lambda_home) * weights[i]
+        grad_defence[h] += (goals_away[i] - lambda_away) * weights[i]
+        grad_hfa += (goals_home[i] - lambda_home) * weights[i]
 
     return np.concatenate([grad_attack, grad_defence, [grad_hfa]])
 

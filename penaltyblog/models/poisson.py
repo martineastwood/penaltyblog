@@ -131,6 +131,7 @@ class PoissonGoalsModel(BaseGoalsModel):
             self.away_idx,
             self.goals_home,
             self.goals_away,
+            self.weights,
         )
 
     def _loss_function(self, params):
