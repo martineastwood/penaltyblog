@@ -973,6 +973,8 @@ class Flow:
         )
 
 
+from .contrib.opta import opta as opta_module
 from .contrib.statsbomb import statsbomb as statsbomb_module
 
 Flow.statsbomb = statsbomb_module  # type: ignore[attr-defined]
+Flow.opta = opta_module  # type: ignore[attr-defined]
