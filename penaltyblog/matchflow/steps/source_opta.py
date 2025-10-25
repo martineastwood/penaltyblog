@@ -1,11 +1,14 @@
 # penaltyblog/matchflow/steps/source_opta.py
 
-from typing import TYPE_CHECKING, Any, Dict, Iterator
+from typing import TYPE_CHECKING, Any, Dict, Iterator, List, Union, cast
 
 import requests
 
 if TYPE_CHECKING:
     from ..flow import Flow
+
+# --- HELPER FUNCTIONS REMOVED ---
+# No parsing helpers needed for raw output
 
 
 # --- OPTA HTTP LOGIC ---
@@ -23,7 +26,10 @@ def _build_opta_request_details(step: dict) -> tuple[str, dict, dict]:
         base_url = f"{step['base_url']}/{step['asset_type']}"
         params["_rt"] = creds["rt_mode"]
     else:
-        raise ValueError(...)  # Unchanged
+        raise ValueError(
+            "Invalid Opta credentials. Provide 'auth_key' and 'rt_mode' "
+            "in DEFAULT_CREDS or via the 'creds' parameter."
+        )
 
     params["_fmt"] = "json"
 
@@ -32,7 +38,7 @@ def _build_opta_request_details(step: dict) -> tuple[str, dict, dict]:
     endpoint_path = ""
     auth_key = creds.get("auth_key")
 
-    # OT2
+    # OT2 - Tournament Calendars (Paginated)
     if source == "tournament_calendars":
         status = args.get("status", "all")
         base_ot2_path = f"/tournamentcalendar/{auth_key}"
@@ -48,17 +54,19 @@ def _build_opta_request_details(step: dict) -> tuple[str, dict, dict]:
         params["ctst"] = args.get("ctst")
         params["stages"] = args.get("stages")
         params["coverage"] = args.get("coverage")
-    # MA0
+    # MA0 - Tournament Schedule (Non-Paginated)
     elif source == "tournament_schedule":
         tournament_calendar_uuid = args.get("tournament_calendar_uuid")
         if not tournament_calendar_uuid:
-            raise ValueError(...)
+            raise ValueError(
+                "tournament_schedule source requires 'tournament_calendar_uuid'"
+            )
         endpoint_path = f"/tournamentschedule/{auth_key}/{tournament_calendar_uuid}"
         params["cvlv"] = args.get("cvlv")
         params["_lcl"] = args.get("_lcl")
-    # MA1 Basic (Paginated List)
+    # MA1 Basic - Fixtures & Results (Paginated List)
     elif source == "matches_basic":
-        endpoint_path = f"/match/{auth_key}"
+        endpoint_path = f"/match/{auth_key}"  # Use /match endpoint
         params["fx"] = args.get("fx")
         params["tmcl"] = args.get("tmcl")
         params["comp"] = args.get("comp")
@@ -68,38 +76,41 @@ def _build_opta_request_details(step: dict) -> tuple[str, dict, dict]:
         params["live"] = args.get("live")
         params["lineups"] = args.get("lineups")
         params["_lcl"] = args.get("_lcl")
-    # MA1 Basic (Single Match)
+    # MA1 Basic - Fixtures & Results (Single Match, Non-Paginated)
     elif source == "match_basic":
         fixture_uuid = args.get("fixture_uuid")
         if not fixture_uuid:
-            raise ValueError(...)
-        endpoint_path = f"/match/{auth_key}/{fixture_uuid}"
+            raise ValueError("match_basic source requires 'fixture_uuid'")
+        endpoint_path = f"/match/{auth_key}/{fixture_uuid}"  # Use /match endpoint
         params["live"] = args.get("live")
         params["lineups"] = args.get("lineups")
         params["_lcl"] = args.get("_lcl")
-    # MA2 Basic (Stats)
+    # MA2 Basic - Match Stats (Non-Paginated, handles single/multi fx)
     elif source == "match_stats_basic":
         fixture_uuids = args.get("fixture_uuids")
         if not fixture_uuids:
-            raise ValueError(...)
+            raise ValueError(f"{source} source requires 'fixture_uuids'")
         if isinstance(fixture_uuids, str):
-            endpoint_path = f"/matchstats/{auth_key}/{fixture_uuids}"
+            endpoint_path = (
+                f"/matchstats/{auth_key}/{fixture_uuids}"  # Use /matchstats endpoint
+            )
         elif isinstance(fixture_uuids, list):
-            endpoint_path = f"/matchstats/{auth_key}"
+            endpoint_path = f"/matchstats/{auth_key}"  # Use /matchstats endpoint
             params["fx"] = ",".join(fixture_uuids)
+        # Removed 'detailed' param
         params["people"] = args.get("people")
         params["_lcl"] = args.get("_lcl")
-    # MA3 (Events)
+    # MA3 - Match Events (Non-Paginated)
     elif source == "match_events":
         fixture_uuid = args.get("fixture_uuid")
         if not fixture_uuid:
-            raise ValueError(...)
+            raise ValueError("match_events source requires 'fixture_uuid'")
         endpoint_path = f"/matchevent/{auth_key}/{fixture_uuid}"
         params["ctst"] = args.get("ctst")
         params["prsn"] = args.get("prsn")
         params["type"] = args.get("type")
         params["_lcl"] = args.get("_lcl")
-    # TM1 (Teams)
+    # TM1 - Teams (Paginated)
     elif source == "teams":
         endpoint_path = f"/team/{auth_key}"
         params["tmcl"] = args.get("tmcl")
@@ -107,18 +118,14 @@ def _build_opta_request_details(step: dict) -> tuple[str, dict, dict]:
         params["ctry"] = args.get("ctry")
         params["stg"] = args.get("stg")
         params["srs"] = args.get("srs")
-
-    # TM3 (Squads)
+    # TM3 - Squads (Paginated)
     elif source == "squads":
         endpoint_path = f"/squads/{auth_key}"
-        # Add filter params
         params["tmcl"] = args.get("tmcl")
         params["ctst"] = args.get("ctst")
-        # detailed param omitted
         params["_lcl"] = args.get("_lcl")
-
     else:
-        # Removed placeholder logic, raise error for unknown
+        # Catch any source names not explicitly handled
         raise ValueError(f"Unknown Opta source type in plan: {source}")
 
     final_url = base_url + endpoint_path
@@ -127,11 +134,11 @@ def _build_opta_request_details(step: dict) -> tuple[str, dict, dict]:
     return final_url, final_params, headers
 
 
-# Define which sources are not paginated
+# Define which sources are not paginated based on our revised scope
 NON_PAGINATED_SOURCES = {
     "tournament_schedule",  # MA0
     "match_basic",  # MA1 (Single)
-    "match_stats_basic",  # MA2 (Single or Multi via fx)
+    "match_stats_basic",  # MA2 (Single or Multi via fx - API returns one JSON)
     "match_events",  # MA3
 }
 
@@ -139,9 +146,11 @@ NON_PAGINATED_SOURCES = {
 def from_opta(step) -> Iterator[Dict[Any, Any]]:
     """
     Create a Flow from an Opta API endpoint, handling pagination.
-    Yields RAW JSON data directly from the API.
+    Yields RAW JSON data directly from the API (one dict per page for paginated feeds).
     """
     source = step.get("source")
+    args = step.get("args", {})
+    # raw_output flag removed - raw is the only behavior
 
     base_url, base_params, headers = _build_opta_request_details(step)
 
@@ -158,15 +167,15 @@ def from_opta(step) -> Iterator[Dict[Any, Any]]:
         if "errorCode" in data:
             raise RuntimeError(f"Opta API Error: {data['errorCode']}")
 
-        # Yield the raw data directly
+        # Yield the raw data directly for non-paginated sources
         yield data
         return  # Stop generator
 
     # --- Handle Paginated Endpoints ---
+    # In scope: OT2, MA1-basic (list), TM1, TM3
     page_num = 1
-    page_size = (
-        1000  # Use 1000 page size, adjust if specific endpoints have lower limits
-    )
+    # Use 1000 page size, adjust if specific endpoints have lower limits found during testing
+    page_size = 1000
 
     while True:
         params = base_params.copy()
@@ -186,38 +195,39 @@ def from_opta(step) -> Iterator[Dict[Any, Any]]:
         # Yield raw JSON for the current page
         yield data
 
-        # --- Determine if last page ---
+        # --- Determine if last page by checking item count ---
         items_on_page = 0
         try:
-            if source == "tournament_calendars":
+            if source == "tournament_calendars":  # OT2
                 items = data.get("tournamentCalendars", {}).get(
                     "tournamentCalendar", []
                 )
                 if not items:
-                    items = data.get("tournamentCalendar", [])
+                    items = data.get("tournamentCalendar", [])  # Fallback
                 items_on_page = len(items)
             elif source == "matches_basic":  # MA1 Basic list
-                items = data.get("matches", {}).get("match", [])
+                items = data.get("match", [])  # Primary structure from sample
                 if not items:
-                    items = data.get("match", [])
+                    items = data.get("matches", {}).get("match", [])  # Fallback
                 items_on_page = len(items)
-            elif source == "teams":  # TM1 Check
+            elif source == "teams":  # TM1
                 items = data.get("contestants", {}).get("contestant", [])
                 if not items:
-                    items = data.get("contestant", [])
+                    items = data.get("contestant", [])  # Fallback
                 items_on_page = len(items)
-            elif source == "squads":  # TM3 Check
-                items = data.get("teamSquads", {}).get("squad", [])
-                if not items:
-                    items = data.get("squad", [])
+            elif source == "squads":  # TM3
+                items = data.get("squad", [])  # Structure from sample
                 items_on_page = len(items)
             else:
-                items_on_page = page_size  # Pessimistic guess
+                # Should not happen if _build_opta_request_details is correct,
+                # but act pessimistically if it does.
+                items_on_page = page_size
 
         except Exception:
+            # If inspecting the structure fails, assume not last page
             items_on_page = page_size
 
         if items_on_page < page_size:
-            break  # Last page
+            break  # Assume last page
 
         page_num += 1
