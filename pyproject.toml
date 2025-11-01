@@ -38,6 +38,7 @@ dependencies = [
     "pulp",
     "requests",
     "scipy",
+    "socks",
     "statsbombpy",
     "tabulate",
     "tqdm",

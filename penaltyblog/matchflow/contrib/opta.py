@@ -3,7 +3,7 @@ import os
 from datetime import datetime
 from typing import TYPE_CHECKING, List, Optional, Union
 
-from typing_extensions import Literal  # Keep Literal for status
+from typing_extensions import Literal
 
 if TYPE_CHECKING:
     from ..flow import Flow
@@ -30,11 +30,8 @@ class Opta:
         """Internal helper to build a lazy Flow plan."""
         from ..flow import Flow
 
-        # Ensure 'raw' is always True in args passed to the plan
-        # We handle this internally now, not exposed to user
         args_with_raw = args.copy()
-        args_with_raw["raw"] = True  # Force raw internally
-
+        args_with_raw["raw"] = True
         return Flow(
             plan=[
                 {
@@ -42,7 +39,6 @@ class Opta:
                     "source": source,
                     "base_url": self.BASE_URL,
                     "asset_type": self.ASSET_TYPE,
-                    # Pass the modified args dict
                     "args": args_with_raw,
                 }
             ],
@@ -59,34 +55,10 @@ class Opta:
         include_stages: bool = False,
         include_coverage: bool = False,
         creds: Optional[dict] = None,
+        proxies: Optional[dict] = None,
         optimize: bool = False,
     ) -> "Flow":
-        """
-        Return a Flow of raw tournament calendar data (Feed OT2).
-        This feed is paginated. Yields one raw JSON object per page.
-
-        Parameters
-        ----------
-        status : Literal["all", "active", "authorized", "active_authorized"], optional
-            Filter calendars by status (default: "all").
-        competition_uuid : str, optional
-            Filter by competition UUID.
-        contestant_uuid : str, optional
-            Filter by contestant UUID.
-        include_stages : bool, optional
-            Request stage details (default: False).
-        include_coverage : bool, optional
-            Request coverage details (default: False).
-        creds : dict, optional
-            Credentials for Opta API.
-        optimize : bool, optional
-            Whether to optimize the plan.
-
-        Returns
-        -------
-        Flow
-            A Flow yielding raw JSON data per page.
-        """
+        """Return a Flow of raw tournament calendar data (Feed OT2)."""
         return self._step(
             "tournament_calendars",
             status=status,
@@ -95,6 +67,7 @@ class Opta:
             stages="yes" if include_stages else None,
             coverage="yes" if include_coverage else None,
             creds=creds or self.DEFAULT_CREDS,
+            proxies=proxies,
             optimize=optimize,
         )
 
@@ -104,42 +77,22 @@ class Opta:
         coverage_level: Optional[Union[int, List[int]]] = None,
         use_opta_names: bool = False,
         creds: Optional[dict] = None,
+        proxies: Optional[dict] = None,
         optimize: bool = False,
     ) -> "Flow":
-        """
-        Return a Flow of raw tournament schedule data (Feed MA0).
-        Yields one raw JSON object for the entire schedule.
-
-        Parameters
-        ----------
-        tournament_calendar_uuid : str
-            The UUID for the specific tournament calendar.
-        coverage_level : int or List[int], optional
-            Filter matches by coverage level(s).
-        use_opta_names : bool, optional
-            Request 'en-op' locale (default: False).
-        creds : dict, optional
-            Credentials for Opta API.
-        optimize : bool, optional
-            Whether to optimize the plan.
-
-        Returns
-        -------
-        Flow
-            A Flow yielding one raw JSON object.
-        """
+        """Return a Flow of raw tournament schedule data (Feed MA0)."""
         cvlv_str = None
         if isinstance(coverage_level, list):
             cvlv_str = ",".join(map(str, coverage_level))
         elif isinstance(coverage_level, int):
             cvlv_str = str(coverage_level)
-
         return self._step(
-            "tournament_schedule",  # Uses MA0 endpoint
+            "tournament_schedule",
             tournament_calendar_uuid=tournament_calendar_uuid,
             cvlv=cvlv_str,
             _lcl="en-op" if use_opta_names else None,
             creds=creds or self.DEFAULT_CREDS,
+            proxies=proxies,
             optimize=optimize,
         )
 
@@ -148,7 +101,9 @@ class Opta:
         fixture_uuids: Optional[List[str]] = None,
         tournament_calendar_uuid: Optional[str] = None,
         competition_uuids: Optional[List[str]] = None,
-        contestant_uuids: Optional[List[str]] = None,
+        contestant_uuid: Optional[str] = None,
+        opponent_uuid: Optional[str] = None,
+        contestant_position: Optional[Literal["home", "away"]] = None,
         date_from: Optional[Union[str, datetime]] = None,
         date_to: Optional[Union[str, datetime]] = None,
         delta_timestamp: Optional[Union[str, datetime]] = None,
@@ -156,6 +111,7 @@ class Opta:
         lineups: bool = False,
         use_opta_names: bool = False,
         creds: Optional[dict] = None,
+        proxies: Optional[dict] = None,
         optimize: bool = False,
     ) -> "Flow":
         """
@@ -165,13 +121,17 @@ class Opta:
         Parameters
         ----------
         fixture_uuids : List[str], optional
-            Get specific matches by UUID.
+            Get specific matches by UUID (comma-separated).
         tournament_calendar_uuid : str, optional
             Filter by tournament calendar.
         competition_uuids : List[str], optional
-            Filter by competition(s).
-        contestant_uuids : List[str], optional
-            Filter by contestant(s).
+            Filter by competition(s) (comma-separated).
+        contestant_uuid : str, optional
+            Filter by a specific contestant (team).
+        opponent_uuid : str, optional
+            Filter for matches where contestant_uuid played opponent_uuid (maps to ctst2).
+        contestant_position : Literal["home", "away"], optional
+            Filter for matches where contestant_uuid played home or away.
         date_from : str or datetime, optional
             Start of date range.
         date_to : str or datetime, optional
@@ -186,6 +146,8 @@ class Opta:
             Request 'en-op' locale (default: False).
         creds : dict, optional
             Credentials for Opta API.
+        proxies : dict, optional
+            Proxies dictionary for requests (e.g., {'http': 'socks5h://...'})
         optimize : bool, optional
             Whether to optimize the plan.
 
@@ -201,17 +163,20 @@ class Opta:
             raise ValueError("Both 'date_from' and 'date_to' must be provided")
 
         return self._step(
-            "matches_basic",  # Changed source to indicate basic MA1
+            "matches_basic",
             fx=",".join(fixture_uuids) if fixture_uuids else None,
             tmcl=tournament_calendar_uuid,
             comp=",".join(competition_uuids) if competition_uuids else None,
-            ctst=",".join(contestant_uuids) if contestant_uuids else None,
+            ctst=contestant_uuid,
+            ctst2=opponent_uuid,
+            ctstpos=contestant_position,
             mt_mDt=date_range_str,
             _dlt=_format_opta_datetime(delta_timestamp) if delta_timestamp else None,
             live="yes" if live or lineups else "no",
             lineups="yes" if lineups else "no",
             _lcl="en-op" if use_opta_names else None,
             creds=creds or self.DEFAULT_CREDS,
+            proxies=proxies,
             optimize=optimize,
         )
 
@@ -222,84 +187,38 @@ class Opta:
         lineups: bool = False,
         use_opta_names: bool = False,
         creds: Optional[dict] = None,
+        proxies: Optional[dict] = None,
         optimize: bool = False,
     ) -> "Flow":
-        """
-        Return a Flow of raw data for a single match (Feed MA1 - Basic).
-        Yields one raw JSON object.
-
-        Parameters
-        ----------
-        fixture_uuid : str
-            The UUID for the specific match.
-        live : bool, optional
-            Request live data (default: False).
-        lineups : bool, optional
-            Request lineup data (requires live=True) (default: False).
-        use_opta_names : bool, optional
-            Request 'en-op' locale (default: False).
-        creds : dict, optional
-            Credentials for Opta API.
-        optimize : bool, optional
-            Whether to optimize the plan.
-
-        Returns
-        -------
-        Flow
-            A Flow yielding one raw JSON object.
-        """
+        """Return a Flow of raw data for a single match (Feed MA1 - Basic)."""
         return self._step(
-            "match_basic",  # Changed source to indicate basic MA1
+            "match_basic",
             fixture_uuid=fixture_uuid,
             live="yes" if live or lineups else "no",
             lineups="yes" if lineups else "no",
             _lcl="en-op" if use_opta_names else None,
             creds=creds or self.DEFAULT_CREDS,
+            proxies=proxies,
             optimize=optimize,
         )
 
     def match_stats(
         self,
         fixture_uuids: Union[str, List[str]],
-        # detailed parameter removed
-        include_players: bool = True,  # Renamed 'people' for clarity
+        include_players: bool = True,
         use_opta_names: bool = False,
         creds: Optional[dict] = None,
+        proxies: Optional[dict] = None,
         optimize: bool = False,
     ) -> "Flow":
-        """
-        Return a Flow of raw match stats data (Feed MA2 - Basic).
-        Yields one raw JSON object (contains both team and player stats if requested).
-
-        Parameters
-        ----------
-        fixture_uuids : str or List[str]
-            A single match UUID or a list of match UUIDs.
-        include_players : bool, optional
-            Include player stats alongside team stats (default: True). If False, only
-            team stats are returned (maps to 'people=no').
-        use_opta_names : bool, optional
-            Request 'en-op' locale (default: False).
-        creds : dict, optional
-            Credentials for Opta API.
-        optimize : bool, optional
-            Whether to optimize the plan.
-
-        Returns
-        -------
-        Flow
-            A Flow yielding one raw JSON object per match requested.
-            Note: If multiple UUIDs are requested, the API returns a structure
-            containing multiple matches, yielded here as a single JSON object.
-            Use matchflow operations downstream to process further.
-        """
+        """Return a Flow of raw match stats data (Feed MA2 - Basic)."""
         return self._step(
-            "match_stats_basic",  # Changed source to indicate basic MA2
+            "match_stats_basic",
             fixture_uuids=fixture_uuids,
-            # detailed parameter removed, defaults to basic
-            people="yes" if include_players else "no",  # Use renamed param
+            people="yes" if include_players else "no",
             _lcl="en-op" if use_opta_names else None,
             creds=creds or self.DEFAULT_CREDS,
+            proxies=proxies,
             optimize=optimize,
         )
 
@@ -311,52 +230,26 @@ class Opta:
         event_types: Optional[Union[int, List[int]]] = None,
         use_opta_names: bool = False,
         creds: Optional[dict] = None,
+        proxies: Optional[dict] = None,
         optimize: bool = False,
     ) -> "Flow":
-        """
-        Return a Flow of raw match events data (Feed MA3).
-        Yields one raw JSON object containing all events.
-
-        Parameters
-        ----------
-        fixture_uuid : str
-            The UUID for the specific match.
-        contestant_uuid : str, optional
-            Filter events by contestant.
-        person_uuid : str, optional
-            Filter events by person.
-        event_types : int or List[int], optional
-            Filter by event type ID(s).
-        use_opta_names : bool, optional
-            Request 'en-op' locale (default: False).
-        creds : dict, optional
-            Credentials for Opta API.
-        optimize : bool, optional
-            Whether to optimize the plan.
-
-        Returns
-        -------
-        Flow
-            A Flow yielding one raw JSON object.
-        """
+        """Return a Flow of raw match events data (Feed MA3)."""
         type_str = None
         if isinstance(event_types, list):
             type_str = ",".join(map(str, event_types))
         elif isinstance(event_types, int):
             type_str = str(event_types)
-
         return self._step(
-            "match_events",  # Uses MA3 endpoint
+            "match_events",
             fixture_uuid=fixture_uuid,
             ctst=contestant_uuid,
             prsn=person_uuid,
             type=type_str,
             _lcl="en-op" if use_opta_names else None,
             creds=creds or self.DEFAULT_CREDS,
+            proxies=proxies,
             optimize=optimize,
         )
-
-    # --- PLACEHOLDERS for TM1 and TM3 ---
 
     def teams(
         self,
@@ -365,56 +258,24 @@ class Opta:
         country_uuid: Optional[str] = None,
         stage_uuid: Optional[str] = None,
         series_uuid: Optional[str] = None,
-        # detailed parameter not used as we always get raw
         creds: Optional[dict] = None,
+        proxies: Optional[dict] = None,
         optimize: bool = False,
     ) -> "Flow":
-        """
-        Return a Flow of raw team data (Feed TM1).
-        Requires either tournament_calendar_uuid or contestant_uuid.
-        This feed is paginated. Yields one raw JSON object per page.
-
-        Parameters
-        ----------
-        tournament_calendar_uuid : str, optional
-            Filter by a specific tournament calendar (season).
-        contestant_uuid : str, optional
-            Filter by a specific contestant (team).
-        country_uuid : str, optional
-            Filter by country UUID.
-        stage_uuid : str, optional
-            Filter by stage UUID.
-        series_uuid : str, optional
-            Filter by series UUID.
-        creds : dict, optional
-            Credentials for Opta API.
-        optimize : bool, optional
-            Whether to optimize the plan.
-
-        Returns
-        -------
-        Flow
-            A Flow yielding raw JSON data per page.
-
-        Raises
-        ------
-        ValueError
-            If neither tournament_calendar_uuid nor contestant_uuid is provided.
-        """
+        """Return a Flow of raw team data (Feed TM1)."""
         if not tournament_calendar_uuid and not contestant_uuid:
             raise ValueError(
                 "Either 'tournament_calendar_uuid' or 'contestant_uuid' must be provided for the teams feed."
             )
-
         return self._step(
-            "teams",  # Use final source name
+            "teams",
             tmcl=tournament_calendar_uuid,
             ctst=contestant_uuid,
             ctry=country_uuid,
             stg=stage_uuid,
             srs=series_uuid,
-            # detailed=yes parameter removed from sample calls, omitting
             creds=creds or self.DEFAULT_CREDS,
+            proxies=proxies,
             optimize=optimize,
         )
 
@@ -424,48 +285,107 @@ class Opta:
         contestant_uuid: Optional[str] = None,
         use_opta_names: bool = False,
         creds: Optional[dict] = None,
+        proxies: Optional[dict] = None,
+        optimize: bool = False,
+    ) -> "Flow":
+        """Return a Flow of raw squad data (Feed TM3)."""
+        if not tournament_calendar_uuid and not contestant_uuid:
+            raise ValueError(
+                "Either 'tournament_calendar_uuid' or 'contestant_uuid' must be provided for the squads feed."
+            )
+        return self._step(
+            "squads",
+            tmcl=tournament_calendar_uuid,
+            ctst=contestant_uuid,
+            _lcl="en-op" if use_opta_names else None,
+            creds=creds or self.DEFAULT_CREDS,
+            proxies=proxies,
+            optimize=optimize,
+        )
+
+    def player_season_stats(
+        self,
+        tournament_calendar_uuid: str,
+        contestant_uuid: str,
+        detailed: bool = True,
+        creds: Optional[dict] = None,
+        proxies: Optional[dict] = None,
         optimize: bool = False,
     ) -> "Flow":
         """
-        Return a Flow of raw squad data (Feed TM3).
-        Requires either tournament_calendar_uuid or contestant_uuid.
-        This feed is paginated. Yields one raw JSON object per page.
+        Return a Flow of cumulative player stats for a season (Feed TM4).
+        This feed is paginated.
 
         Parameters
         ----------
-        tournament_calendar_uuid : str, optional
-            Filter by a specific tournament calendar (season).
+        tournament_calendar_uuid : str
+            The UUID for the specific tournament calendar (season).
         contestant_uuid : str, optional
             Filter by a specific contestant (team).
-        use_opta_names : bool, optional
-            Request 'en-op' locale (default: False).
+        detailed : bool, optional
+            Request detailed stats (default: True).
         creds : dict, optional
             Credentials for Opta API.
+        proxies : dict, optional
+            Proxies dictionary for requests.
         optimize : bool, optional
             Whether to optimize the plan.
 
         Returns
         -------
         Flow
-            A Flow yielding raw JSON data per page.
-
-        Raises
-        ------
-        ValueError
-            If neither tournament_calendar_uuid nor contestant_uuid is provided.
+            A Flow yielding a stream of player stat records.
         """
-        if not tournament_calendar_uuid and not contestant_uuid:
-            raise ValueError(
-                "Either 'tournament_calendar_uuid' or 'contestant_uuid' must be provided for the squads feed."
-            )
-
         return self._step(
-            "squads",  # Use final source name
+            "player_season_stats",  # New source name
             tmcl=tournament_calendar_uuid,
             ctst=contestant_uuid,
-            # detailed=yes parameter removed
-            _lcl="en-op" if use_opta_names else None,
+            detailed="yes" if detailed else "no",
             creds=creds or self.DEFAULT_CREDS,
+            proxies=proxies,
+            optimize=optimize,
+        )
+
+    def team_season_stats(
+        self,
+        tournament_calendar_uuid: str,
+        contestant_uuid: str = None,
+        detailed: bool = True,
+        creds: Optional[dict] = None,
+        proxies: Optional[dict] = None,
+        optimize: bool = False,
+    ) -> "Flow":
+        """
+        Return a Flow of cumulative team stats for a season (Feed TM4).
+        This feed is paginated.
+
+        Parameters
+        ----------
+        tournament_calendar_uuid : str
+            The UUID for the specific tournament calendar (season).
+        contestant_uuid : str
+            Filter by a specific contestant (team).
+        detailed : bool, optional
+            Request detailed stats (default: True).
+        creds : dict, optional
+            Credentials for Opta API.
+        proxies : dict, optional
+            Proxies dictionary for requests.
+        optimize : bool, optional
+            Whether to optimize the plan.
+
+        Returns
+        -------
+        Flow
+            A Flow yielding a stream of team stat records.
+        """
+        return self._step(
+            "team_season_stats",  # New source name
+            tmcl=tournament_calendar_uuid,
+            ctst=contestant_uuid,
+            detailed="yes" if detailed else "no",
+            creds=creds or self.DEFAULT_CREDS,
+            proxies=proxies,
             optimize=optimize,
         )
 
