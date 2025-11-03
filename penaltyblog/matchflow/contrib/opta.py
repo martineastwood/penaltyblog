@@ -30,8 +30,7 @@ class Opta:
         """Internal helper to build a lazy Flow plan."""
         from ..flow import Flow
 
-        args_with_raw = args.copy()
-        args_with_raw["raw"] = True
+        args = args.copy()
         return Flow(
             plan=[
                 {
@@ -39,7 +38,7 @@ class Opta:
                     "source": source,
                     "base_url": self.BASE_URL,
                     "asset_type": self.ASSET_TYPE,
-                    "args": args_with_raw,
+                    "args": args,
                 }
             ],
             optimize=optimize,

@@ -160,4 +160,5 @@ repomix-output.xml
 roadmap.md
 notebook.ipynb
 .clinerules
-test/data
+test/data/opta/*.json
+test/data/opta/data.*

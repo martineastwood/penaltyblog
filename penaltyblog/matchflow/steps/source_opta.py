@@ -272,6 +272,9 @@ NON_PAGINATED_SOURCES = {
     "match_events",  # MA3
     "player_season_stats",  # TM4
     "team_season_stats",  # TM4
+    "xg_shots",  # MA12
+    "xg_player_summary",  # MA12
+    "xg_team_summary",  # MA12
 }
 
 
