@@ -39,10 +39,15 @@ class Opta:
 
     Supported Feeds (in order):
     - OT2 (Tournament Calendars):  .tournament_calendars()
+    - OT3 (Venues):                .venues()
+    - OT4 (Areas):                 .areas()
     - MA0 (Tournament Schedule):   .tournament_schedule()
     - MA1 (Match - Basic):         .matches() / .match()
     - MA2 (Match Stats - Basic):   .match_stats()
     - MA3 (Match Events):          .events()
+    - PE2 (Player Career):         .player_career()
+    - PE3 (Referees):              .referees()
+    - PE7 (Injuries):              .injuries()
     - TM1 (Teams):                 .teams()
     - TM3 (Squads):                .squads()
     - TM4 (Season Stats):          .player_season_stats() / .team_season_stats()
@@ -137,6 +142,114 @@ class Opta:
             ctst=contestant_uuid,
             stages="yes" if include_stages else None,
             coverage="yes" if include_coverage else None,
+            creds=creds or self.DEFAULT_CREDS,
+            proxies=proxies,
+            optimize=optimize,
+        )
+
+    def venues(
+        self,
+        tournament_calendar_uuid: Optional[str] = None,
+        contestant_uuid: Optional[str] = None,
+        venue_uuid: Optional[str] = None,
+        use_opta_names: bool = False,
+        creds: Optional[dict] = None,
+        proxies: Optional[dict] = None,
+        optimize: bool = False,
+    ) -> "Flow":
+        """
+        Return a Flow of raw venue data (Feed OT3).
+        This feed is paginated.
+
+        Note: You must specify at least one of 'tournament_calendar_uuid',
+        'contestant_uuid', or 'venue_uuid'.
+
+        Parameters
+        ----------
+        tournament_calendar_uuid : str, optional
+            Filter by a specific tournament calendar UUID.
+        contestant_uuid : str, optional
+            Filter by a specific contestant (team) UUID.
+        venue_uuid : str, optional
+            Filter by a specific venue UUID.
+        use_opta_names : bool, optional
+            Request 'en-op' locale for Opta-specific names (default: False).
+        creds : dict, optional
+            Credentials for Opta API.
+        proxies : dict, optional
+            Proxies dictionary for requests (e.g., {'http': 'socks5h://...'}).
+        optimize : bool, optional
+            Whether to optimize the plan (default: False).
+
+        Returns
+        -------
+        Flow
+            A Flow yielding raw venue data.
+
+        Raises
+        ------
+        ValueError
+            If no filter (tmcl, ctst, or venue) is provided.
+        """
+        if not tournament_calendar_uuid and not contestant_uuid and not venue_uuid:
+            raise ValueError(
+                "At least one of 'tournament_calendar_uuid', 'contestant_uuid', or 'venue_uuid' must be provided."
+            )
+
+        return self._step(
+            "venues",
+            tournament_calendar_uuid=tournament_calendar_uuid,
+            contestant_uuid=contestant_uuid,
+            venue_uuid=venue_uuid,
+            _lcl="en-op" if use_opta_names else None,
+            creds=creds or self.DEFAULT_CREDS,
+            proxies=proxies,
+            optimize=optimize,
+        )
+
+    def areas(
+        self,
+        area_uuid: Optional[str] = None,
+        use_opta_names: bool = False,
+        creds: Optional[dict] = None,
+        proxies: Optional[dict] = None,
+        optimize: bool = False,
+    ) -> "Flow":
+        """
+        Return a Flow of raw area data (Feed OT4).
+
+        If 'area_uuid' is provided, fetches data for a specific area.
+        If 'area_uuid' is None, fetches a paginated list of all areas.
+
+        Parameters
+        ----------
+        area_uuid : str, optional
+            The UUID for a specific area.
+        use_opta_names : bool, optional
+            Request 'en-op' locale for Opta-specific names (default: False).
+        creds : dict, optional
+            Credentials for Opta API.
+        proxies : dict, optional
+            Proxies dictionary for requests (e.g., {'http': 'socks5h://...'}).
+        optimize : bool, optional
+            Whether to optimize the plan (default: False).
+
+        Returns
+        -------
+        Flow
+            A Flow yielding raw area data.
+        """
+        if area_uuid:
+            # Fetch a specific area (non-paginated)
+            source = "area_specific"
+        else:
+            # Fetch all areas (paginated)
+            source = "areas_all"
+
+        return self._step(
+            source,
+            area_uuid=area_uuid,
+            _lcl="en-op" if use_opta_names else None,
             creds=creds or self.DEFAULT_CREDS,
             proxies=proxies,
             optimize=optimize,
@@ -410,6 +523,225 @@ class Opta:
             ctst=contestant_uuid,
             prsn=person_uuid,
             type=type_str,
+            _lcl="en-op" if use_opta_names else None,
+            creds=creds or self.DEFAULT_CREDS,
+            proxies=proxies,
+            optimize=optimize,
+        )
+
+    def player_career(
+        self,
+        person_uuid: Optional[str] = None,
+        contestant_uuid: Optional[str] = None,
+        active: bool = True,
+        use_opta_names: bool = False,
+        creds: Optional[dict] = None,
+        proxies: Optional[dict] = None,
+        optimize: bool = False,
+    ) -> "Flow":
+        """
+        Return a Flow of raw player career data (Feed PE2).
+
+        Fetches by person (non-paginated) or contestant (paginated).
+        You must specify exactly one of 'person_uuid' or 'contestant_uuid'.
+
+        Parameters
+        ----------
+        person_uuid : str, optional
+            Filter by a specific person UUID.
+        contestant_uuid : str, optional
+            Filter by a specific contestant (team) UUID.
+        active : bool, optional
+            When using 'contestant_uuid', filter for active players
+            (default: True). Ignored for 'person_uuid'.
+        use_opta_names : bool, optional
+            Request 'en-op' locale for Opta-specific names (default: False).
+        creds : dict, optional
+            Credentials for Opta API.
+        proxies : dict, optional
+            Proxies dictionary for requests (e.g., {'http': 'socks5h://...'}).
+        optimize : bool, optional
+            Whether to optimize the plan (default: False).
+
+        Returns
+        -------
+        Flow
+            A Flow yielding raw player career data.
+
+        Raises
+        ------
+        ValueError
+            If neither or both 'person_uuid' and 'contestant_uuid' are provided.
+        """
+        if not person_uuid and not contestant_uuid:
+            raise ValueError(
+                "Either 'person_uuid' or 'contestant_uuid' must be provided."
+            )
+        if person_uuid and contestant_uuid:
+            raise ValueError("Cannot provide both 'person_uuid' and 'contestant_uuid'.")
+
+        if person_uuid:
+            source = "player_career_person"
+            active_param = None  # 'active' only applies to ctst
+        else:
+            source = "player_career_contestant"
+            active_param = active
+
+        return self._step(
+            source,
+            person_uuid=person_uuid,
+            contestant_uuid=contestant_uuid,
+            active=active_param,
+            _lcl="en-op" if use_opta_names else None,
+            creds=creds or self.DEFAULT_CREDS,
+            proxies=proxies,
+            optimize=optimize,
+        )
+
+    def referees(
+        self,
+        person_uuid: Optional[str] = None,
+        tournament_calendar_uuid: Optional[str] = None,
+        stage_uuid: Optional[str] = None,
+        use_opta_names: bool = False,
+        creds: Optional[dict] = None,
+        proxies: Optional[dict] = None,
+        optimize: bool = False,
+    ) -> "Flow":
+        """
+        Return a Flow of raw referee data (Feed PE3).
+        This feed is paginated.
+
+        You must specify exactly one of 'person_uuid', 'tournament_calendar_uuid',
+        or 'stage_uuid'.
+
+        Parameters
+        ----------
+        person_uuid : str, optional
+            Filter by a specific person (referee) UUID.
+        tournament_calendar_uuid : str, optional
+            Filter by a specific tournament calendar UUID.
+        stage_uuid : str, optional
+            Filter by a specific stage UUID.
+        use_opta_names : bool, optional
+            Request 'en-op' locale for Opta-specific names (default: False).
+        creds : dict, optional
+            Credentials for Opta API.
+        proxies : dict, optional
+            Proxies dictionary for requests (e.g., {'http': 'socks5h://...'}).
+        optimize : bool, optional
+            Whether to optimize the plan (default: False).
+
+        Returns
+        -------
+        Flow
+            A Flow yielding raw referee data.
+
+        Raises
+        ------
+        ValueError
+            If the parameter combination is invalid (e.g., none or multiple
+            filter UUIDs are provided).
+        """
+        # Check that exactly one filter is provided
+        filters_provided = sum(
+            1
+            for f in [person_uuid, tournament_calendar_uuid, stage_uuid]
+            if f is not None
+        )
+        if filters_provided == 0:
+            raise ValueError(
+                "One of 'person_uuid', 'tournament_calendar_uuid', or 'stage_uuid' must be provided."
+            )
+        if filters_provided > 1:
+            raise ValueError(
+                "Only one of 'person_uuid', 'tournament_calendar_uuid', or 'stage_uuid' can be provided at a time."
+            )
+
+        return self._step(
+            "referees",
+            person_uuid=person_uuid,
+            tournament_calendar_uuid=tournament_calendar_uuid,
+            stage_uuid=stage_uuid,
+            _lcl="en-op" if use_opta_names else None,
+            creds=creds or self.DEFAULT_CREDS,
+            proxies=proxies,
+            optimize=optimize,
+        )
+
+    def injuries(
+        self,
+        person_uuid: Optional[str] = None,
+        tournament_calendar_uuid: Optional[str] = None,
+        contestant_uuid: Optional[str] = None,
+        use_opta_names: bool = False,
+        creds: Optional[dict] = None,
+        proxies: Optional[dict] = None,
+        optimize: bool = False,
+    ) -> "Flow":
+        """
+        Return a Flow of raw player injury data (Feed PE7).
+
+        Fetches by person (non-paginated) or by tournament calendar (paginated).
+        You must specify 'person_uuid' OR 'tournament_calendar_uuid'.
+        'contestant_uuid' can only be used in combination with 'tournament_calendar_uuid'.
+
+        Parameters
+        ----------
+        person_uuid : str, optional
+            Filter by a specific person UUID. Can be used as the primary
+            filter (path parameter) or with 'tournament_calendar_uuid'
+            (query parameter).
+        tournament_calendar_uuid : str, optional
+            Filter by a specific tournament calendar UUID.
+        contestant_uuid : str, optional
+            Filter by a specific contestant (team) UUID.
+            Must be used with 'tournament_calendar_uuid'.
+        use_opta_names : bool, optional
+            Request 'en-op' locale for Opta-specific names (default: False).
+        creds : dict, optional
+            Credentials for Opta API.
+        proxies : dict, optional
+            Proxies dictionary for requests (e.g., {'http': 'socks5h://...'}).
+        optimize : bool, optional
+            Whether to optimize the plan (default: False).
+
+        Returns
+        -------
+        Flow
+            A Flow yielding raw injury data.
+
+        Raises
+        ------
+        ValueError
+            If parameter combinations are invalid (e.g., no args,
+            'ctst' without 'tmcl', or 'person_uuid' and 'contestant_uuid' together).
+        """
+        if not person_uuid and not tournament_calendar_uuid:
+            raise ValueError(
+                "Either 'person_uuid' or 'tournament_calendar_uuid' must be provided."
+            )
+        if contestant_uuid and not tournament_calendar_uuid:
+            raise ValueError(
+                "'contestant_uuid' can only be used in combination with 'tournament_calendar_uuid'."
+            )
+        if contestant_uuid and person_uuid:
+            raise ValueError(
+                "Cannot use 'contestant_uuid' and 'person_uuid' in the same request."
+            )
+
+        # Use specific path-based source if ONLY person_uuid is given
+        if person_uuid and not tournament_calendar_uuid:
+            source = "injuries_person_path"
+        else:
+            # All other combinations use the query endpoint
+            source = "injuries_query"
+
+        return self._step(
+            source,
+            person_uuid=person_uuid,
+            tournament_calendar_uuid=tournament_calendar_uuid,
+            contestant_uuid=contestant_uuid,
             _lcl="en-op" if use_opta_names else None,
             creds=creds or self.DEFAULT_CREDS,
             proxies=proxies,

@@ -6,6 +6,9 @@ from typing import Dict, List, Set
 
 # Sources that are not paginated
 NON_PAGINATED_SOURCES: Set[str] = {
+    "injuries_person_path",
+    "player_career_person",
+    "area_specific",
     "tournament_schedule",  # MA0
     "match_basic",  # MA1 (Single)
     "match_stats_basic",  # MA2 (Single or Multi via fx)
@@ -33,8 +36,17 @@ ENDPOINT_CONFIGS: Dict[str, Dict] = {
             "all": "",
         },
     },
+    "venues": {
+        "path_template": "/venues/{auth_key}",
+    },
     "tournament_schedule": {
         "path_template": "/tournamentschedule/{auth_key}/{tournament_calendar_uuid}",
+    },
+    "areas_all": {
+        "path_template": "/areas/{auth_key}",
+    },
+    "area_specific": {
+        "path_template": "/areas/{auth_key}/{area_uuid}",
     },
     "matches_basic": {
         "path_template": "/match/{auth_key}",
@@ -48,6 +60,21 @@ ENDPOINT_CONFIGS: Dict[str, Dict] = {
     },
     "match_events": {
         "path_template": "/matchevent/{auth_key}/{fixture_uuid}",
+    },
+    "player_career_person": {
+        "path_template": "/playercareer/{auth_key}/{person_uuid}",
+    },
+    "player_career_contestant": {
+        "path_template": "/playercareer/{auth_key}",
+    },
+    "injuries_person_path": {
+        "path_template": "/injuries/{auth_key}/{person_uuid}",
+    },
+    "injuries_query": {
+        "path_template": "/injuries/{auth_key}",
+    },
+    "referees": {
+        "path_template": "/referees/{auth_key}",
     },
     "teams": {
         "path_template": "/team/{auth_key}",
@@ -123,10 +150,51 @@ PARAMETER_MAPPINGS: Dict[str, Dict[str, str]] = {
         "contestant_uuid": "ctst",
         "active": "active",
     },
+    "areas_all": {
+        "use_opta_names": "_lcl",
+    },
+    "area_specific": {
+        "use_opta_names": "_lcl",
+    },
+    "venues": {
+        "tournament_calendar_uuid": "tmcl",
+        "contestant_uuid": "ctst",
+        "venue_uuid": "venue",
+        "use_opta_names": "_lcl",
+    },
+    "player_career_person": {
+        "person_uuid": "prsn",
+        "use_opta_names": "_lcl",
+    },
+    "player_career_contestant": {
+        "contestant_uuid": "ctst",
+        "active": "active",
+        "use_opta_names": "_lcl",
+    },
+    "injuries_person_path": {
+        "person_uuid": "prsn",
+        "use_opta_names": "_lcl",
+    },
+    "injuries_query": {
+        "person_uuid": "prsn",
+        "tournament_calendar_uuid": "tmcl",
+        "contestant_uuid": "ctst",
+        "use_opta_names": "_lcl",
+    },
+    "referees": {
+        "person_uuid": "prsn",
+        "tournament_calendar_uuid": "tmcl",
+        "stage_uuid": "stg",
+        "use_opta_names": "_lcl",
+    },
 }
 
 # Response parsing configurations
 RESPONSE_PARSERS: Dict[str, str] = {
+    "injuries_person_path": "parse_injuries_person",
+    "injuries_query": "parse_injuries_query",
+    "player_career_person": "parse_player_career_person",
+    "area_specific": "parse_area_specific",
     "tournament_schedule": "parse_tournament_schedule",
     "match_basic": "parse_match_basic",
     "match_stats_basic": "parse_match_stats_basic",
@@ -137,6 +205,11 @@ RESPONSE_PARSERS: Dict[str, str] = {
 
 # Pagination response key mappings
 PAGINATION_RESPONSE_KEYS: Dict[str, List[str]] = {
+    "referees": ["referee"],
+    "injuries_query": ["person"],
+    "player_career_contestant": ["person"],
+    "areas_all": ["area"],
+    "venues": ["venue"],
     "tournament_calendars": ["competition"],
     "matches_basic": ["match", "matches.match"],
     "teams": ["contestants.contestant", "contestant"],

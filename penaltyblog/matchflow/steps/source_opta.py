@@ -67,7 +67,7 @@ def from_opta(step: Dict[str, Any]) -> Iterator[Dict[Any, Any]]:
         params["_rt"] = creds["rt_mode"]
 
         # Handle paginated vs non-paginated endpoints
-        if OptaPaginator.is_paginated(source):
+        if OptaPaginator.is_paginated(source, args):
             yield from _handle_paginated_endpoint(client, source, url, params, headers)
         else:
             yield from _handle_non_paginated_endpoint(

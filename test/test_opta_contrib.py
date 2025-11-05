@@ -573,3 +573,270 @@ def test_opta_contestant_participation_plan():
     # Test error case - no contestant_uuid provided
     with pytest.raises(ValueError, match="'contestant_uuid' must be provided"):
         Opta().contestant_participation(contestant_uuid=None)
+
+
+def test_opta_areas_plan():
+    """Tests that the 'areas' method builds the correct plan."""
+    # Test with no area_uuid (all areas)
+    flow = Opta().areas(use_opta_names=True)
+
+    expected_args = {
+        "area_uuid": None,
+        "_lcl": "en-op",
+        "creds": opta_instance.DEFAULT_CREDS,
+        "proxies": None,
+    }
+
+    assert flow.plan[0]["op"] == "from_opta"
+    assert flow.plan[0]["source"] == "areas_all"
+    assert flow.plan[0]["args"] == expected_args
+
+    # Test with area_uuid (specific area)
+    flow = Opta().areas(area_uuid="area123")
+
+    expected_args = {
+        "area_uuid": "area123",
+        "_lcl": None,
+        "creds": opta_instance.DEFAULT_CREDS,
+        "proxies": None,
+    }
+
+    assert flow.plan[0]["op"] == "from_opta"
+    assert flow.plan[0]["source"] == "area_specific"
+    assert flow.plan[0]["args"] == expected_args
+
+
+def test_opta_venues_plan():
+    """Tests that the 'venues' method builds the correct plan."""
+    # Test with tournament_calendar_uuid
+    flow = Opta().venues(tournament_calendar_uuid="tmcl1", use_opta_names=True)
+
+    expected_args = {
+        "tournament_calendar_uuid": "tmcl1",
+        "contestant_uuid": None,
+        "venue_uuid": None,
+        "_lcl": "en-op",
+        "creds": opta_instance.DEFAULT_CREDS,
+        "proxies": None,
+    }
+
+    assert flow.plan[0]["op"] == "from_opta"
+    assert flow.plan[0]["source"] == "venues"
+    assert flow.plan[0]["args"] == expected_args
+
+    # Test with contestant_uuid
+    flow = Opta().venues(contestant_uuid="ctst1")
+
+    expected_args = {
+        "tournament_calendar_uuid": None,
+        "contestant_uuid": "ctst1",
+        "venue_uuid": None,
+        "_lcl": None,
+        "creds": opta_instance.DEFAULT_CREDS,
+        "proxies": None,
+    }
+
+    assert flow.plan[0]["op"] == "from_opta"
+    assert flow.plan[0]["source"] == "venues"
+    assert flow.plan[0]["args"] == expected_args
+
+    # Test with venue_uuid
+    flow = Opta().venues(venue_uuid="venue123")
+
+    expected_args = {
+        "tournament_calendar_uuid": None,
+        "contestant_uuid": None,
+        "venue_uuid": "venue123",
+        "_lcl": None,
+        "creds": opta_instance.DEFAULT_CREDS,
+        "proxies": None,
+    }
+
+    assert flow.plan[0]["op"] == "from_opta"
+    assert flow.plan[0]["source"] == "venues"
+    assert flow.plan[0]["args"] == expected_args
+
+    # Test error case - no filter provided
+    with pytest.raises(ValueError):
+        Opta().venues()
+
+
+def test_opta_player_career_plan():
+    """Tests that the 'player_career' method builds the correct plan."""
+    # Test with person_uuid
+    flow = Opta().player_career(person_uuid="person123", use_opta_names=True)
+
+    expected_args = {
+        "person_uuid": "person123",
+        "contestant_uuid": None,
+        "active": None,
+        "_lcl": "en-op",
+        "creds": opta_instance.DEFAULT_CREDS,
+        "proxies": None,
+    }
+
+    assert flow.plan[0]["op"] == "from_opta"
+    assert flow.plan[0]["source"] == "player_career_person"
+    assert flow.plan[0]["args"] == expected_args
+
+    # Test with contestant_uuid
+    flow = Opta().player_career(contestant_uuid="ctst1", active=False)
+
+    expected_args = {
+        "person_uuid": None,
+        "contestant_uuid": "ctst1",
+        "active": False,
+        "_lcl": None,
+        "creds": opta_instance.DEFAULT_CREDS,
+        "proxies": None,
+    }
+
+    assert flow.plan[0]["op"] == "from_opta"
+    assert flow.plan[0]["source"] == "player_career_contestant"
+    assert flow.plan[0]["args"] == expected_args
+
+    # Test error case - no filter provided
+    with pytest.raises(ValueError):
+        Opta().player_career()
+
+    # Test error case - both filters provided
+    with pytest.raises(ValueError):
+        Opta().player_career(person_uuid="person123", contestant_uuid="ctst1")
+
+
+def test_opta_injuries_plan():
+    """Tests that the 'injuries' method builds the correct plan."""
+    # Test with person_uuid only (path-based)
+    flow = Opta().injuries(person_uuid="person123", use_opta_names=True)
+
+    expected_args = {
+        "person_uuid": "person123",
+        "tournament_calendar_uuid": None,
+        "contestant_uuid": None,
+        "_lcl": "en-op",
+        "creds": opta_instance.DEFAULT_CREDS,
+        "proxies": None,
+    }
+
+    assert flow.plan[0]["op"] == "from_opta"
+    assert flow.plan[0]["source"] == "injuries_person_path"
+    assert flow.plan[0]["args"] == expected_args
+
+    # Test with tournament_calendar_uuid (query-based)
+    flow = Opta().injuries(tournament_calendar_uuid="tmcl1")
+
+    expected_args = {
+        "person_uuid": None,
+        "tournament_calendar_uuid": "tmcl1",
+        "contestant_uuid": None,
+        "_lcl": None,
+        "creds": opta_instance.DEFAULT_CREDS,
+        "proxies": None,
+    }
+
+    assert flow.plan[0]["op"] == "from_opta"
+    assert flow.plan[0]["source"] == "injuries_query"
+    assert flow.plan[0]["args"] == expected_args
+
+    # Test with tournament_calendar_uuid and contestant_uuid (query-based)
+    flow = Opta().injuries(tournament_calendar_uuid="tmcl1", contestant_uuid="ctst1")
+
+    expected_args = {
+        "person_uuid": None,
+        "tournament_calendar_uuid": "tmcl1",
+        "contestant_uuid": "ctst1",
+        "_lcl": None,
+        "creds": opta_instance.DEFAULT_CREDS,
+        "proxies": None,
+    }
+
+    assert flow.plan[0]["op"] == "from_opta"
+    assert flow.plan[0]["source"] == "injuries_query"
+    assert flow.plan[0]["args"] == expected_args
+
+    # Test with tournament_calendar_uuid and person_uuid (query-based)
+    flow = Opta().injuries(tournament_calendar_uuid="tmcl1", person_uuid="person123")
+
+    expected_args = {
+        "person_uuid": "person123",
+        "tournament_calendar_uuid": "tmcl1",
+        "contestant_uuid": None,
+        "_lcl": None,
+        "creds": opta_instance.DEFAULT_CREDS,
+        "proxies": None,
+    }
+
+    assert flow.plan[0]["op"] == "from_opta"
+    assert flow.plan[0]["source"] == "injuries_query"
+    assert flow.plan[0]["args"] == expected_args
+
+    # Test error case - no filter provided
+    with pytest.raises(ValueError):
+        Opta().injuries()
+
+    # Test error case - contestant_uuid without tournament_calendar_uuid
+    with pytest.raises(ValueError):
+        Opta().injuries(contestant_uuid="ctst1")
+
+    # Test error case - contestant_uuid and person_uuid
+    with pytest.raises(ValueError):
+        Opta().injuries(contestant_uuid="ctst1", person_uuid="person123")
+
+
+def test_opta_referees_plan():
+    """Tests that the 'referees' method builds the correct plan."""
+    # Test with person_uuid
+    flow = Opta().referees(person_uuid="person123", use_opta_names=True)
+
+    expected_args = {
+        "person_uuid": "person123",
+        "tournament_calendar_uuid": None,
+        "stage_uuid": None,
+        "_lcl": "en-op",
+        "creds": opta_instance.DEFAULT_CREDS,
+        "proxies": None,
+    }
+
+    assert flow.plan[0]["op"] == "from_opta"
+    assert flow.plan[0]["source"] == "referees"
+    assert flow.plan[0]["args"] == expected_args
+
+    # Test with tournament_calendar_uuid
+    flow = Opta().referees(tournament_calendar_uuid="tmcl1")
+
+    expected_args = {
+        "person_uuid": None,
+        "tournament_calendar_uuid": "tmcl1",
+        "stage_uuid": None,
+        "_lcl": None,
+        "creds": opta_instance.DEFAULT_CREDS,
+        "proxies": None,
+    }
+
+    assert flow.plan[0]["op"] == "from_opta"
+    assert flow.plan[0]["source"] == "referees"
+    assert flow.plan[0]["args"] == expected_args
+
+    # Test with stage_uuid
+    flow = Opta().referees(stage_uuid="stage1")
+
+    expected_args = {
+        "person_uuid": None,
+        "tournament_calendar_uuid": None,
+        "stage_uuid": "stage1",
+        "_lcl": None,
+        "creds": opta_instance.DEFAULT_CREDS,
+        "proxies": None,
+    }
+
+    assert flow.plan[0]["op"] == "from_opta"
+    assert flow.plan[0]["source"] == "referees"
+    assert flow.plan[0]["args"] == expected_args
+
+    # Test error case - no filter provided
+    with pytest.raises(ValueError):
+        Opta().referees()
+
+    # Test error case - multiple filters provided
+    with pytest.raises(ValueError):
+        Opta().referees(person_uuid="person123", tournament_calendar_uuid="tmcl1")

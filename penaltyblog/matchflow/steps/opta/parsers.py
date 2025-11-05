@@ -183,3 +183,41 @@ def parse_match_stats_basic(
             yield from extract_player_stats(match)
         else:
             yield from extract_team_stats(match)
+
+
+def parse_area_specific(data: Dict[str, Any]) -> Iterator[Dict[str, Any]]:
+    """Parse specific area (OT4) response."""
+    # The response for a specific area is just the area object itself
+    yield data
+
+
+def parse_player_career_person(data: Dict[str, Any]) -> Iterator[Dict[str, Any]]:
+    """Parse specific player career (PE2) response."""
+    # The response for a specific person is just the person object itself
+    yield data
+
+
+def parse_injuries_person(data: Dict[str, Any]) -> Iterator[Dict[str, Any]]:
+    """Parse specific player injuries (PE7) response from path parameter."""
+    # The response for a specific person might be the person object itself,
+    # or a list under the "person" key.
+    if "person" in data and isinstance(data["person"], list):
+        yield from data["person"]
+    else:
+        yield data
+
+
+def parse_injuries_query(data: Dict[str, Any]) -> Iterator[Dict[str, Any]]:
+    """
+    Parse player injuries (PE7) response from query parameters.
+    This handles both non-paginated (tmcl+prsn) and paginated (tmcl) results.
+    """
+    # If 'person' is a list, it's a paginated (tmcl) or (tmcl+ctst) result.
+    if "person" in data and isinstance(data["person"], list):
+        yield from data["person"]
+    # If 'person' is a dict, it's a non-paginated (tmcl+prsn) result.
+    elif "person" in data and isinstance(data["person"], dict):
+        yield data["person"]
+    # Fallback for unexpected structures, though 'person' should be the key.
+    elif "injuries" in data:
+        yield data

@@ -118,6 +118,30 @@ class OptaEndpointBuilder:
         ):
             path_params["fixture_uuids"] = args["fixture_uuids"]
 
+        elif source == "area_specific":
+            area_uuid = args.get("area_uuid")
+            if not area_uuid:
+                raise OptaConfigurationError(
+                    "area_specific source requires 'area_uuid'"
+                )
+            path_params["area_uuid"] = area_uuid
+
+        elif source == "player_career_person":
+            person_uuid = args.get("person_uuid")
+            if not person_uuid:
+                raise OptaConfigurationError(
+                    "player_career_person source requires 'person_uuid'"
+                )
+            path_params["person_uuid"] = person_uuid
+
+        elif source == "injuries_person_path":
+            person_uuid = args.get("person_uuid")
+            if not person_uuid:
+                raise OptaConfigurationError(
+                    "injuries_person_path source requires 'person_uuid'"
+                )
+            path_params["person_uuid"] = person_uuid
+
         return path_params
 
     def _build_parameters(self, source: str, args: Dict[str, Any]) -> Dict[str, Any]:
@@ -148,7 +172,9 @@ class OptaEndpointBuilder:
                     "detailed",
                     "active",
                 ]:
-                    params[param_name] = "yes" if value else "no"
+                    params[param_name] = (
+                        "yes" if value else ("no" if value is False else None)
+                    )  # Handle False explicitly
                 elif arg_name == "competition_uuids" and isinstance(value, list):
                     params[param_name] = ",".join(value)
                 elif arg_name == "contestant_uuid" and isinstance(value, list):

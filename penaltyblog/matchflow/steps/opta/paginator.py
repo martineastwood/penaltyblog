@@ -91,6 +91,14 @@ class OptaPaginator:
         Raises:
             OptaParsingError: If response structure is unexpected
         """
+        if source == "referees":
+            records = []
+            if "stage" in data and isinstance(data["stage"], list):
+                for stage in data["stage"]:
+                    if "referee" in stage and isinstance(stage["referee"], list):
+                        records.extend(stage["referee"])
+            return records
+
         try:
             response_keys = PAGINATION_RESPONSE_KEYS.get(source, [])
 
@@ -123,7 +131,7 @@ class OptaPaginator:
             ) from e
 
     @staticmethod
-    def is_paginated(source: str) -> bool:
+    def is_paginated(source: str, args: Dict[str, Any]) -> bool:
         """
         Check if a source is paginated.
 
@@ -133,4 +141,12 @@ class OptaPaginator:
         Returns:
             True if source is paginated, False otherwise
         """
+        # Handle dynamic pagination for injuries_query
+        if source == "injuries_query":
+            # It's non-paginated if 'prsn' (person_uuid) is provided
+            if args.get("person_uuid") is not None:
+                return False
+            # Otherwise, it's paginated (e.g., when filtering by tmcl)
+            return True
+
         return source not in NON_PAGINATED_SOURCES
