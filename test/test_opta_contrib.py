@@ -511,3 +511,65 @@ def test_opta_tournament_calendars_all_parameters():
 
     assert flow.plan[0]["args"] == expected_args
     assert flow.optimize is False
+
+
+def test_opta_contestant_participation_plan():
+    """Tests that the 'contestant_participation' method builds the correct plan."""
+    # Test with single contestant UUID
+    flow = Opta().contestant_participation(
+        contestant_uuid="ctst1",
+        active=True,
+    )
+
+    expected_args = {
+        "contestant_uuid": "ctst1",
+        "active": True,
+        "creds": opta_instance.DEFAULT_CREDS,
+        "proxies": None,
+    }
+
+    assert flow.plan[0]["op"] == "from_opta"
+    assert flow.plan[0]["source"] == "contestant_participation"
+    assert flow.plan[0]["args"] == expected_args
+
+    # Test with list of contestant UUIDs
+    flow = Opta().contestant_participation(
+        contestant_uuid=["ctst1", "ctst2"],
+        active=False,
+    )
+
+    expected_args = {
+        "contestant_uuid": ["ctst1", "ctst2"],
+        "active": False,
+        "creds": opta_instance.DEFAULT_CREDS,
+        "proxies": None,
+    }
+
+    assert flow.plan[0]["source"] == "contestant_participation"
+    assert flow.plan[0]["args"] == expected_args
+
+    # Test with custom credentials and proxies
+    custom_creds = {"auth_key": "custom_key", "rt_mode": "a"}
+    custom_proxies = {"https": "http://my.proxy.com"}
+
+    flow = Opta().contestant_participation(
+        contestant_uuid="ctst1",
+        creds=custom_creds,
+        proxies=custom_proxies,
+        optimize=True,
+    )
+
+    expected_args = {
+        "contestant_uuid": "ctst1",
+        "active": False,
+        "creds": custom_creds,
+        "proxies": custom_proxies,
+    }
+
+    assert flow.plan[0]["source"] == "contestant_participation"
+    assert flow.plan[0]["args"] == expected_args
+    assert flow.optimize is True
+
+    # Test error case - no contestant_uuid provided
+    with pytest.raises(ValueError, match="'contestant_uuid' must be provided"):
+        Opta().contestant_participation(contestant_uuid=None)

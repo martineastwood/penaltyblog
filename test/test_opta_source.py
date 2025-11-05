@@ -4,10 +4,8 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from penaltyblog.matchflow.steps.source_opta import (
-    _build_opta_request_details,
-    from_opta,
-)
+from penaltyblog.matchflow.steps.opta.endpoints import OptaEndpointBuilder
+from penaltyblog.matchflow.steps.source_opta import from_opta
 
 
 # --- Mock Data Loader ---
@@ -28,7 +26,7 @@ def load_sample_json(filename):
 
 
 def test_build_request_events():
-    """Tests _build_opta_request_details for MA3 Events."""
+    """Tests OptaEndpointBuilder for MA3 Events."""
     step = {
         "source": "match_events",
         "base_url": "http://api.test.com",
@@ -38,13 +36,18 @@ def test_build_request_events():
             "creds": {"auth_key": "my_key", "rt_mode": "b"},
         },
     }
-    url, params, headers = _build_opta_request_details(step)
+    builder = OptaEndpointBuilder(
+        base_url=step["base_url"],
+        asset_type=step["asset_type"],
+        auth_key=step["args"]["creds"]["auth_key"],
+    )
+    url, params = builder.build_request_details(step["source"], step["args"])
     assert url == "http://api.test.com/soccerdata/matchevent/my_key/fx1"
-    assert params == {"_rt": "b", "_fmt": "json"}
+    assert params["_fmt"] == "json"
 
 
 def test_build_request_matches_filters():
-    """Tests _build_opta_request_details for MA1 with multiple filters."""
+    """Tests OptaEndpointBuilder for MA1 with multiple filters."""
     step = {
         "source": "matches_basic",
         "base_url": "http://api.test.com",
@@ -56,7 +59,12 @@ def test_build_request_matches_filters():
             "creds": {"auth_key": "my_key", "rt_mode": "b"},
         },
     }
-    url, params, headers = _build_opta_request_details(step)
+    builder = OptaEndpointBuilder(
+        base_url=step["base_url"],
+        asset_type=step["asset_type"],
+        auth_key=step["args"]["creds"]["auth_key"],
+    )
+    url, params = builder.build_request_details(step["source"], step["args"])
     assert url == "http://api.test.com/soccerdata/match/my_key"
     assert params["tmcl"] == "tmcl1"
     assert params["ctst"] == "ctst1"
@@ -64,7 +72,7 @@ def test_build_request_matches_filters():
 
 
 def test_build_request_calendars_active():
-    """Tests _build_opta_request_details for OT2 special URL."""
+    """Tests OptaEndpointBuilder for OT2 special URL."""
     step = {
         "source": "tournament_calendars",
         "base_url": "http://api.test.com",
@@ -74,7 +82,12 @@ def test_build_request_calendars_active():
             "creds": {"auth_key": "my_key", "rt_mode": "b"},
         },
     }
-    url, params, headers = _build_opta_request_details(step)
+    builder = OptaEndpointBuilder(
+        base_url=step["base_url"],
+        asset_type=step["asset_type"],
+        auth_key=step["args"]["creds"]["auth_key"],
+    )
+    url, params = builder.build_request_details(step["source"], step["args"])
     assert (
         url
         == "http://api.test.com/soccerdata/tournamentcalendar/my_key/active/authorized"
@@ -85,8 +98,8 @@ def test_build_request_calendars_active():
 # These tests use mocks and your saved data
 
 
-@patch("penaltyblog.matchflow.steps.source_opta.requests.Session")
-def test_from_opta_non_paginated(mock_Session):
+@patch("penaltyblog.matchflow.steps.source_opta.OptaClient")
+def test_from_opta_non_paginated(mock_OptaClient):
     """Tests a single non-paginated feed (e.g., MA3 Events)."""
     # 1. Load your saved sample
     # SAMPLE_MA3 = load_sample_json("ma3_events_uuidDEF_sample.json")
@@ -103,13 +116,12 @@ def test_from_opta_non_paginated(mock_Session):
         },
     }
 
-    # 2. Configure the mock session and response
-    mock_session_instance = MagicMock()
-    mock_response = MagicMock()
-    mock_response.status_code = 200
-    mock_response.json.return_value = SAMPLE_MA3
-    mock_session_instance.get.return_value = mock_response
-    mock_Session.return_value.__enter__.return_value = mock_session_instance
+    # 2. Configure the mock client
+    mock_client_instance = MagicMock()
+    mock_client_instance.make_request.return_value = SAMPLE_MA3
+    mock_client_instance.__enter__ = MagicMock(return_value=mock_client_instance)
+    mock_client_instance.__exit__ = MagicMock(return_value=None)
+    mock_OptaClient.return_value = mock_client_instance
 
     # 3. Define the step to run
     step = {
@@ -126,15 +138,15 @@ def test_from_opta_non_paginated(mock_Session):
     results = list(from_opta(step))
 
     # 5. Assert
-    mock_session_instance.get.assert_called_once()
+    mock_client_instance.make_request.assert_called_once()
     assert len(results) == 2  # Check that it flattened the event list
     assert results[0]["id"] == 2328542063
     assert results[1]["typeId"] == 34
     assert "_match_info" in results[0]  # Check that it was enriched
 
 
-@patch("penaltyblog.matchflow.steps.source_opta.requests.Session")
-def test_from_opta_paginated(mock_Session):
+@patch("penaltyblog.matchflow.steps.source_opta.OptaPaginator")
+def test_from_opta_paginated(mock_OptaPaginator):
     """Tests a paginated feed (e.g., OT2) and flattens the items."""
     # 1. Load samples
     # SAMPLE_OT2_P1 = load_sample_json("ot2_page1.json")
@@ -143,18 +155,14 @@ def test_from_opta_paginated(mock_Session):
     SAMPLE_OT2_P1 = {"competition": [{"id": "c1"}, {"id": "c2"}]}  # Page 1 (full)
     SAMPLE_OT2_P2 = {"competition": [{"id": "c3"}]}  # Page 2 (last page)
 
-    # 2. Configure mock session
-    mock_session_instance = MagicMock()
-    mock_resp_p1 = MagicMock(status_code=200)
-    mock_resp_p1.json.return_value = SAMPLE_OT2_P1
-
-    mock_resp_p2 = MagicMock(status_code=200)
-    mock_resp_p2.json.return_value = SAMPLE_OT2_P2
-
-    mock_resp_404 = MagicMock(status_code=404)  # To stop pagination
-
-    mock_session_instance.get.side_effect = [mock_resp_p1, mock_resp_p2, mock_resp_404]
-    mock_Session.return_value.__enter__.return_value = mock_session_instance
+    # 2. Configure mock paginator
+    mock_paginator_instance = MagicMock()
+    mock_paginator_instance.fetch_paginated_data.return_value = [
+        {"id": "c1"},
+        {"id": "c2"},
+        {"id": "c3"},
+    ]
+    mock_OptaPaginator.return_value = mock_paginator_instance
 
     # 3. Define step
     step = {
@@ -168,18 +176,18 @@ def test_from_opta_paginated(mock_Session):
     results = list(from_opta(step))
 
     # 5. Assert
-    assert mock_session_instance.get.call_count == 3  # p1, p2, p3(404)
+    mock_paginator_instance.fetch_paginated_data.assert_called_once()
     assert len(results) == 3  # 2 from p1 + 1 from p2
     assert results[0]["id"] == "c1"
     assert results[2]["id"] == "c3"
 
 
-@patch("penaltyblog.matchflow.steps.source_opta.requests.Session")
-def test_from_opta_proxies(mock_Session):
+@patch("penaltyblog.matchflow.steps.source_opta.OptaClient")
+def test_from_opta_proxies(mock_OptaClient):
     """Tests that the proxies dict is correctly passed to the session."""
-    mock_session_instance = MagicMock()
-    mock_session_instance.get.return_value.status_code = 404  # Just stop immediately
-    mock_Session.return_value.__enter__.return_value = mock_session_instance
+    mock_client_instance = MagicMock()
+    mock_client_instance.fetch_paginated.return_value = []  # Return empty list
+    mock_OptaClient.return_value = mock_client_instance
 
     my_proxies = {"https": "socks5h://localhost:9090"}
     step = {
@@ -195,29 +203,45 @@ def test_from_opta_proxies(mock_Session):
 
     list(from_opta(step))  # Run the generator
 
-    # Assert that the session's proxies attribute was set
-    assert mock_session_instance.proxies == my_proxies
+    # Assert that the client was initialized with proxies
+    mock_OptaClient.assert_called_once()
+    # Check that proxies were passed in the args
+    call_args = mock_OptaClient.call_args
+    assert call_args[1]["proxies"] == my_proxies
 
 
-@patch("penaltyblog.matchflow.steps.source_opta.requests.Session")
-def test_from_opta_ma2_parsing_logic(mock_Session):
-    """Tests that MA2 (match_stats_basic) calls the correct helper."""
-    # This sample is the single match root object from your example
-    SAMPLE_MA2 = {"matchInfo": {"id": "m1"}, "liveData": {"lineUp": [...]}}
+@patch("penaltyblog.matchflow.steps.source_opta.OptaClient")
+def test_from_opta_ma2_parsing_logic(mock_OptaClient):
+    """Tests that MA2 (match_stats_basic) calls correct helper."""
+    # This sample is single match root object from your example
+    SAMPLE_MA2 = {
+        "matchInfo": {"id": "m1"},
+        "liveData": {
+            "lineUp": [
+                {
+                    "contestantId": "team1",
+                    "player": [
+                        {"id": "p1", "stat": [{"type": "goals", "value": "1"}]},
+                        {"id": "p2", "stat": [{"type": "assists", "value": "2"}]},
+                    ],
+                }
+            ]
+        },
+    }
 
-    mock_response = MagicMock(status_code=200)
-    mock_response.json.return_value = SAMPLE_MA2
-    mock_session_instance = MagicMock()
-    mock_session_instance.get.return_value = mock_response
-    mock_Session.return_value.__enter__.return_value = mock_session_instance
+    mock_client_instance = MagicMock()
+    mock_client_instance.make_request.return_value = SAMPLE_MA2
+    mock_client_instance.__enter__ = MagicMock(return_value=mock_client_instance)
+    mock_client_instance.__exit__ = MagicMock(return_value=None)
+    mock_OptaClient.return_value = mock_client_instance
 
     # We also mock the helpers themselves to check they are called
     with (
         patch(
-            "penaltyblog.matchflow.steps.source_opta._extract_player_stats"
+            "penaltyblog.matchflow.steps.opta.parsers.extract_player_stats"
         ) as mock_player_helper,
         patch(
-            "penaltyblog.matchflow.steps.source_opta._extract_team_stats"
+            "penaltyblog.matchflow.steps.opta.parsers.extract_team_stats"
         ) as mock_team_helper,
     ):
 
@@ -237,7 +261,7 @@ def test_from_opta_ma2_parsing_logic(mock_Session):
         }
         results_players = list(from_opta(step_players))
 
-        mock_player_helper.assert_called_once_with(SAMPLE_MA2, include_xg=False)
+        mock_player_helper.assert_called_once_with(SAMPLE_MA2)
         mock_team_helper.assert_not_called()
         assert results_players == [{"player": 1}]
 
