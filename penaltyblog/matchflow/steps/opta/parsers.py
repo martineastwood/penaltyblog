@@ -54,19 +54,23 @@ def extract_team_stats(match: Dict[str, Any]) -> Iterator[Dict[str, Any]]:
     """Un-nests team stats from a MA2 match record."""
     match_info = match.get("matchInfo", {})
     live_data = match.get("liveData", {})
-    team_stats_list = live_data.get("teamStats", [])
+    lineups = live_data.get("lineUp", [])
 
-    for team in team_stats_list:
-        team_stats = flatten_stats(team.get("stat", []), key_name="type")
+    for team_lineup in lineups:
+        team_stats_data = team_lineup.get("teamStats")
+        if not team_stats_data:
+            continue
+
+        team_stats = flatten_stats(team_stats_data.get("stat", []), key_name="type")
         if not team_stats:
             continue
+
         team_record = {
-            **team,
+            "contestantId": team_lineup.get("contestantId"),
             **team_stats,
             "_match_uuid": match_info.get("id"),
             "_match_info": match_info,
         }
-        team_record.pop("stat", None)
         yield team_record
 
 
