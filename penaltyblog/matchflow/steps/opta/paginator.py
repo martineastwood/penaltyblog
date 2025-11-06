@@ -149,4 +149,12 @@ class OptaPaginator:
             # Otherwise, it's paginated (e.g., when filtering by tmcl)
             return True
 
+        # Handle dynamic pagination for transfers
+        elif source == "transfers":
+            # It's non-paginated if 'prsn' (person_uuid) is provided
+            if args.get("person_uuid") is not None:
+                return False
+            # Otherwise, it's paginated
+            return True
+
         return source not in NON_PAGINATED_SOURCES

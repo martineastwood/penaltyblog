@@ -221,3 +221,13 @@ def parse_injuries_query(data: Dict[str, Any]) -> Iterator[Dict[str, Any]]:
     # Fallback for unexpected structures, though 'person' should be the key.
     elif "injuries" in data:
         yield data
+
+
+def parse_transfers(data: Dict[str, Any]) -> Iterator[Dict[str, Any]]:
+    """
+    Parse player transfers (TM7) response.
+    This handles the non-paginated (prsn) case, which returns a single
+    person object.
+    """
+    # The response for a specific person is just the person object itself
+    yield data

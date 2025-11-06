@@ -76,6 +76,8 @@ Guide Index
      - Smart plan rewrites for faster execution
    * - :doc:`statsbomb`
      - Streaming data directly from the StatsBomb API
+   * - :doc:`opta`
+     - Streaming data directly from the Opta API
 
 
 Quick Start
@@ -118,3 +120,4 @@ Need help? Ask questions, file issues, or suggest improvements any time.
    predicates
    query
    statsbomb
+   opta

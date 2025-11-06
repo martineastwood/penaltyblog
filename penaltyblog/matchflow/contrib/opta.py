@@ -1,6 +1,6 @@
 # penaltyblog/matchflow/contrib/opta.py
 import os
-from datetime import datetime
+from datetime import date, datetime
 from typing import TYPE_CHECKING, List, Optional, Union
 
 from typing_extensions import Literal
@@ -29,6 +29,15 @@ def _format_opta_datetime(dt: Union[str, datetime]) -> str:
     return dt
 
 
+def _format_opta_date(dt: Union[str, datetime, date]) -> str:
+    """
+    Format a datetime/date object or string into Opta's required YYYY-MM-DD format.
+    """
+    if isinstance(dt, (datetime, date)):
+        return dt.strftime("%Y-%m-%d")
+    return dt
+
+
 class Opta:
     """
     A lazy Flow builder for the Stats Perform (Opta) Soccer API.
@@ -51,6 +60,7 @@ class Opta:
     - TM1 (Teams):                 .teams()
     - TM3 (Squads):                .squads()
     - TM4 (Season Stats):          .player_season_stats() / .team_season_stats()
+    - TM7 (Transfers):             .transfers()
     - TM16 (Contestant Part.):     .contestant_participation()
     """
 
@@ -58,6 +68,7 @@ class Opta:
         "auth_key": os.environ.get("OPTA_AUTH_KEY"),
         "rt_mode": os.environ.get("OPTA_RT_MODE", "b"),
     }
+
     BASE_URL = os.environ.get("OPTA_BASE_URL", "http://api.performfeeds.com")
     ASSET_TYPE = "soccerdata"
 
@@ -742,6 +753,97 @@ class Opta:
             person_uuid=person_uuid,
             tournament_calendar_uuid=tournament_calendar_uuid,
             contestant_uuid=contestant_uuid,
+            _lcl="en-op" if use_opta_names else None,
+            creds=creds or self.DEFAULT_CREDS,
+            proxies=proxies,
+            optimize=optimize,
+        )
+
+    def transfers(
+        self,
+        person_uuid: Optional[str] = None,
+        contestant_uuid: Optional[str] = None,
+        competition_uuid: Optional[str] = None,
+        tournament_calendar_uuid: Optional[str] = None,
+        start_date: Optional[Union[str, datetime, date]] = None,
+        end_date: Optional[Union[str, datetime, date]] = None,
+        use_opta_names: bool = False,
+        creds: Optional[dict] = None,
+        proxies: Optional[dict] = None,
+        optimize: bool = False,
+    ) -> "Flow":
+        """
+        Return a Flow of raw player transfer data (Feed TM7).
+
+        Fetches by person (non-paginated) or by other criteria (paginated).
+        You must specify at least one of 'person_uuid', 'contestant_uuid',
+        'competition_uuid', or 'tournament_calendar_uuid'.
+
+        Parameters
+        ----------
+        person_uuid : str, optional
+            Filter by a specific person UUID.
+        contestant_uuid : str, optional
+            Filter by a specific contestant (team) UUID.
+        competition_uuid : str, optional
+            Filter by a specific competition UUID. (Recommended to use with dates).
+        tournament_calendar_uuid : str, optional
+            Filter by a specific tournament calendar UUID.
+        start_date : str, datetime, or date, optional
+            The start date for filtering (YYYY-MM-DD). Requires 'end_date'.
+        end_date : str, datetime, or date, optional
+            The end date for filtering (YYYY-MM-DD). Requires 'start_date'.
+        use_opta_names : bool, optional
+            Request 'en-op' locale for Opta-specific names (default: False).
+        creds : dict, optional
+            Credentials for Opta API.
+        proxies : dict, optional
+            Proxies dictionary for requests (e.g., {'http': 'socks5h://...'}).
+        optimize : bool, optional
+            Whether to optimize the plan (default: False).
+
+        Returns
+        -------
+        Flow
+            A Flow yielding raw transfer data (grouped by person).
+
+        Raises
+        ------
+        ValueError
+            If parameter combinations are invalid (e.g., no filters,
+            or partial date range).
+        """
+        if not any(
+            [
+                person_uuid,
+                contestant_uuid,
+                competition_uuid,
+                tournament_calendar_uuid,
+            ]
+        ):
+            raise ValueError(
+                "At least one of 'person_uuid', 'contestant_uuid', "
+                "'competition_uuid', or 'tournament_calendar_uuid' must be provided."
+            )
+
+        start_date_str = None
+        end_date_str = None
+        if start_date and end_date:
+            start_date_str = _format_opta_date(start_date)
+            end_date_str = _format_opta_date(end_date)
+        elif start_date or end_date:
+            raise ValueError(
+                "Both 'start_date' and 'end_date' must be provided together."
+            )
+
+        return self._step(
+            "transfers",
+            person_uuid=person_uuid,
+            contestant_uuid=contestant_uuid,
+            competition_uuid=competition_uuid,
+            tournament_calendar_uuid=tournament_calendar_uuid,
+            start_date=start_date_str,
+            end_date=end_date_str,
             _lcl="en-op" if use_opta_names else None,
             creds=creds or self.DEFAULT_CREDS,
             proxies=proxies,

@@ -91,6 +91,9 @@ ENDPOINT_CONFIGS: Dict[str, Dict] = {
     "contestant_participation": {
         "path_template": "/contestantparticipation/{auth_key}",
     },
+    "transfers": {
+        "path_template": "/transfers/{auth_key}",
+    },
 }
 
 # Parameter mappings for different endpoints
@@ -187,10 +190,20 @@ PARAMETER_MAPPINGS: Dict[str, Dict[str, str]] = {
         "stage_uuid": "stg",
         "use_opta_names": "_lcl",
     },
+    "transfers": {
+        "person_uuid": "prsn",
+        "contestant_uuid": "ctst",
+        "competition_uuid": "comp",
+        "tournament_calendar_uuid": "tmcl",
+        "start_date": "strtDt",
+        "end_date": "endDt",
+        "use_opta_names": "_lcl",
+    },
 }
 
 # Response parsing configurations
 RESPONSE_PARSERS: Dict[str, str] = {
+    "transfers": "parse_transfers",
     "injuries_person_path": "parse_injuries_person",
     "injuries_query": "parse_injuries_query",
     "player_career_person": "parse_player_career_person",
@@ -205,6 +218,7 @@ RESPONSE_PARSERS: Dict[str, str] = {
 
 # Pagination response key mappings
 PAGINATION_RESPONSE_KEYS: Dict[str, List[str]] = {
+    "transfers": ["person"],
     "referees": ["referee"],
     "injuries_query": ["person"],
     "player_career_contestant": ["person"],

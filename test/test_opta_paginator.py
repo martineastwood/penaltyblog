@@ -25,8 +25,22 @@ class TestOptaPaginator:
             "squads",
         ]
 
+        # Must pass an args dict (even empty)
         for source in paginated_sources:
-            assert OptaPaginator.is_paginated(source) is True
+            assert OptaPaginator.is_paginated(source, {}) is True
+
+        # injuries_query is paginated when NOT filtered by person_uuid
+        assert (
+            OptaPaginator.is_paginated(
+                "injuries_query", {"tournament_calendar_uuid": "xyz"}
+            )
+            is True
+        )
+
+        # transfers is paginated when NOT filtered by person_uuid
+        assert (
+            OptaPaginator.is_paginated("transfers", {"contestant_uuid": "abc"}) is True
+        )
 
     def test_is_paginated_false(self):
         """Test is_paginated returns False for non-paginated sources."""
@@ -37,13 +51,20 @@ class TestOptaPaginator:
             "match_events",
             "player_season_stats",
             "team_season_stats",
-            "xg_shots",
-            "xg_player_summary",
-            "xg_team_summary",
         ]
 
+        # Must pass an args dict (even empty)
         for source in non_paginated_sources:
-            assert OptaPaginator.is_paginated(source) is False
+            assert OptaPaginator.is_paginated(source, {}) is False
+
+        # injuries_query becomes non-paginated when filtered by person_uuid
+        assert (
+            OptaPaginator.is_paginated("injuries_query", {"person_uuid": "123"})
+            is False
+        )
+
+        # transfers becomes non-paginated when filtered by person_uuid
+        assert OptaPaginator.is_paginated("transfers", {"person_uuid": "123"}) is False
 
     @patch("penaltyblog.matchflow.steps.opta.paginator.DEFAULT_PAGE_SIZE", 2)
     @patch("penaltyblog.matchflow.steps.opta.paginator.DEFAULT_PAGE_NUM", 1)

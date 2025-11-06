@@ -1,3 +1,5 @@
+from datetime import date
+
 import pytest
 
 from penaltyblog.matchflow.contrib.opta import Opta
@@ -840,3 +842,55 @@ def test_opta_referees_plan():
     # Test error case - multiple filters provided
     with pytest.raises(ValueError):
         Opta().referees(person_uuid="person123", tournament_calendar_uuid="tmcl1")
+
+
+def test_opta_transfers_plan():
+    """Tests that the 'transfers' method builds the correct plan."""
+    # Test with person_uuid
+    flow = Opta().transfers(person_uuid="person123", use_opta_names=True)
+
+    expected_args = {
+        "person_uuid": "person123",
+        "contestant_uuid": None,
+        "competition_uuid": None,
+        "tournament_calendar_uuid": None,
+        "start_date": None,
+        "end_date": None,
+        "_lcl": "en-op",
+        "creds": opta_instance.DEFAULT_CREDS,
+        "proxies": None,
+    }
+
+    assert flow.plan[0]["op"] == "from_opta"
+    assert flow.plan[0]["source"] == "transfers"
+    assert flow.plan[0]["args"] == expected_args
+
+    # Test with date range
+    from datetime import date
+
+    flow = Opta().transfers(
+        competition_uuid="comp1",
+        start_date=date(2023, 6, 1),
+        end_date=date(2023, 8, 31),
+    )
+
+    expected_args = {
+        "person_uuid": None,
+        "contestant_uuid": None,
+        "competition_uuid": "comp1",
+        "tournament_calendar_uuid": None,
+        "start_date": "2023-06-01",
+        "end_date": "2023-08-31",
+        "_lcl": None,
+        "creds": opta_instance.DEFAULT_CREDS,
+        "proxies": None,
+    }
+    assert flow.plan[0]["args"] == expected_args
+
+    # Test error case - no filter provided
+    with pytest.raises(ValueError):
+        Opta().transfers()
+
+    # Test error case - partial date range
+    with pytest.raises(ValueError):
+        Opta().transfers(start_date=date(2023, 6, 1))
