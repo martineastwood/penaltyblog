@@ -1,0 +1,168 @@
+interactions:
+- request:
+    body: null
+    headers:
+      Accept:
+      - '*/*'
+      Accept-Encoding:
+      - gzip, deflate
+      Connection:
+      - keep-alive
+      User-Agent:
+      - python-requests/2.32.5
+    method: GET
+    uri: http://api.performfeeds.com/soccerdata/match/1oz220uimg4nk1k8tccbnl7cgz/zhs8gg1hvcuqvhkk2itb54pg?_fmt=json&live=yes&lineups=yes&_rt=b
+  response:
+    body:
+      string: "{\"matchInfo\":{\"id\":\"zhs8gg1hvcuqvhkk2itb54pg\",\"coverageLevel\":\"13\",\"date\":\"2025-08-15Z\",\"time\":\"19:00:00Z\",\"localDate\":\"2025-08-15\",\"localTime\":\"20:00:00\",\"week\":\"1\",\"numberOfPeriods\":2,\"periodLength\":45,\"var\":\"1\",\"lastUpdated\":\"2025-11-04T15:47:50Z\",\"description\":\"Liverpool
+        vs AFC Bournemouth\",\"sport\":{\"id\":\"289u5typ3vp4ifwh5thalohmq\",\"name\":\"Soccer\"},\"ruleset\":{\"id\":\"79plas4983031idr6vw83nuel\",\"name\":\"Men\"},\"competition\":{\"id\":\"2kwbbcootiqqgmrzs6o5inle5\",\"name\":\"Premier
+        League\",\"knownName\":\"English Premier League\",\"competitionCode\":\"EPL\",\"competitionFormat\":\"Domestic
+        league\",\"country\":{\"id\":\"1fk5l4hkqk12i7zske6mcqju6\",\"name\":\"England\"}},\"tournamentCalendar\":{\"id\":\"51r6ph2woavlbbpk8f29nynf8\",\"startDate\":\"2025-08-15Z\",\"endDate\":\"2026-05-24Z\",\"name\":\"2025/2026\"},\"stage\":{\"id\":\"52mas07a9lsy28lwm6egrtqfo\",\"formatId\":\"e2q01r9o9jwiq1fls93d1sslx\",\"startDate\":\"2025-08-15Z\",\"endDate\":\"2026-05-24Z\",\"name\":\"Regular
+        Season\"},\"contestant\":[{\"id\":\"c8h9bw1l82s06h77xxrelzhur\",\"name\":\"Liverpool\",\"shortName\":\"Liverpool\",\"officialName\":\"Liverpool
+        FC\",\"code\":\"LIV\",\"position\":\"home\",\"country\":{\"id\":\"1fk5l4hkqk12i7zske6mcqju6\",\"name\":\"England\"}},{\"id\":\"1pse9ta7a45pi2w2grjim70ge\",\"name\":\"AFC
+        Bournemouth\",\"shortName\":\"Bournemouth\",\"officialName\":\"AFC Bournemouth\",\"code\":\"BOU\",\"position\":\"away\",\"country\":{\"id\":\"1fk5l4hkqk12i7zske6mcqju6\",\"name\":\"England\"}}],\"venue\":{\"id\":\"39tsgu0lj7rs44kxa9n7r6k4\",\"neutral\":\"no\",\"longName\":\"Anfield\",\"shortName\":\"Anfield\",\"latitude\":\"53.430827885\",\"longitude\":\"-2.960852981\"}},\"liveData\":{\"matchDetails\":{\"periodId\":14,\"matchStatus\":\"Played\",\"winner\":\"home\",\"matchLengthMin\":99,\"matchLengthSec\":9,\"period\":[{\"id\":1,\"start\":\"2025-08-15T19:01:03Z\",\"end\":\"2025-08-15T19:49:06Z\",\"lengthMin\":48,\"lengthSec\":3,\"announcedInjuryTime\":180},{\"id\":2,\"start\":\"2025-08-15T20:05:06Z\",\"end\":\"2025-08-15T20:56:12Z\",\"lengthMin\":51,\"lengthSec\":6,\"announcedInjuryTime\":360}],\"scores\":{\"ht\":{\"home\":1,\"away\":0},\"ft\":{\"home\":4,\"away\":2},\"total\":{\"home\":4,\"away\":2}}},\"goal\":[{\"contestantId\":\"c8h9bw1l82s06h77xxrelzhur\",\"periodId\":1,\"timeMin\":37,\"timeMinSec\":\"36:16\",\"lastUpdated\":\"2025-09-19T18:24:58Z\",\"timestamp\":\"2025-08-15T19:37:20Z\",\"type\":\"G\",\"scorerId\":\"3vx94h32ahujciraspdayj9t6\",\"scorerName\":\"H.
+        Ekitik\xE9\",\"assistPlayerId\":\"am6ppbdrbz4ml3xsbty53o73d\",\"assistPlayerName\":\"A.
+        Mac Allister\",\"optaEventId\":\"2835175299\",\"homeScore\":1,\"awayScore\":0},{\"contestantId\":\"c8h9bw1l82s06h77xxrelzhur\",\"periodId\":2,\"timeMin\":49,\"timeMinSec\":\"48:23\",\"lastUpdated\":\"2025-08-15T20:09:33Z\",\"timestamp\":\"2025-08-15T20:08:29Z\",\"type\":\"G\",\"scorerId\":\"9psfk94nduz6icnuwty5v9all\",\"scorerName\":\"C.
+        Gakpo\",\"assistPlayerId\":\"3vx94h32ahujciraspdayj9t6\",\"assistPlayerName\":\"H.
+        Ekitik\xE9\",\"optaEventId\":\"2835200893\",\"homeScore\":2,\"awayScore\":0},{\"contestantId\":\"1pse9ta7a45pi2w2grjim70ge\",\"periodId\":2,\"timeMin\":64,\"timeMinSec\":\"63:07\",\"lastUpdated\":\"2025-08-15T20:24:09Z\",\"timestamp\":\"2025-08-15T20:23:13Z\",\"type\":\"G\",\"scorerId\":\"7tnuxlg9l4rjhc7j3ko36hduy\",\"scorerName\":\"A.
+        Semenyo\",\"assistPlayerId\":\"96ou7x51dxymv16l0ocsuhbyt\",\"assistPlayerName\":\"D.
+        Brooks\",\"optaEventId\":\"2835208631\",\"homeScore\":2,\"awayScore\":1},{\"contestantId\":\"1pse9ta7a45pi2w2grjim70ge\",\"periodId\":2,\"timeMin\":76,\"timeMinSec\":\"75:56\",\"lastUpdated\":\"2025-08-15T20:37:12Z\",\"timestamp\":\"2025-08-15T20:36:02Z\",\"type\":\"G\",\"scorerId\":\"7tnuxlg9l4rjhc7j3ko36hduy\",\"scorerName\":\"A.
+        Semenyo\",\"assistPlayerId\":\"ctq9si3nbc6n8cznhlcvtixd6\",\"assistPlayerName\":\"H.
+        Traor\xE9\",\"optaEventId\":\"2835213579\",\"homeScore\":2,\"awayScore\":2},{\"contestantId\":\"c8h9bw1l82s06h77xxrelzhur\",\"periodId\":2,\"timeMin\":88,\"timeMinSec\":\"87:46\",\"lastUpdated\":\"2025-08-15T20:48:22Z\",\"timestamp\":\"2025-08-15T20:47:52Z\",\"type\":\"G\",\"scorerId\":\"c6nl81c1q4unq5js94s6s942x\",\"scorerName\":\"F.
+        Chiesa\",\"optaEventId\":\"2835217703\",\"homeScore\":3,\"awayScore\":2},{\"contestantId\":\"c8h9bw1l82s06h77xxrelzhur\",\"periodId\":2,\"timeMin\":94,\"timeMinSec\":\"93:51\",\"lastUpdated\":\"2025-08-15T20:55:18Z\",\"timestamp\":\"2025-08-15T20:53:58Z\",\"type\":\"G\",\"scorerId\":\"5ilkkfbsss0bxd6ttdlqg0uz9\",\"scorerName\":\"Mohamed
+        Salah\",\"assistPlayerId\":\"3kti58d195gmtzwrjh5nprx05\",\"assistPlayerName\":\"W.
+        Endo\",\"optaEventId\":\"2835219487\",\"homeScore\":4,\"awayScore\":2}],\"card\":[{\"contestantId\":\"1pse9ta7a45pi2w2grjim70ge\",\"periodId\":1,\"timeMin\":14,\"timeMinSec\":\"13:56\",\"lastUpdated\":\"2025-08-15T19:15:14Z\",\"timestamp\":\"2025-08-15T19:14:59Z\",\"type\":\"YC\",\"playerId\":\"96ou7x51dxymv16l0ocsuhbyt\",\"playerName\":\"D.
+        Brooks\",\"optaEventId\":\"2835153593\",\"cardReason\":\"Time wasting\"},{\"contestantId\":\"c8h9bw1l82s06h77xxrelzhur\",\"periodId\":1,\"timeMin\":43,\"timeMinSec\":\"42:24\",\"lastUpdated\":\"2025-08-15T19:43:43Z\",\"timestamp\":\"2025-08-15T19:43:27Z\",\"type\":\"YC\",\"playerId\":\"a2zavv31d2aadyddk0kjttdgq\",\"playerName\":\"M.
+        Kerkez\",\"optaEventId\":\"2835181029\",\"cardReason\":\"Foul\"},{\"contestantId\":\"1pse9ta7a45pi2w2grjim70ge\",\"periodId\":2,\"timeMin\":81,\"timeMinSec\":\"80:45\",\"lastUpdated\":\"2025-08-15T20:41:00Z\",\"timestamp\":\"2025-08-15T20:40:52Z\",\"type\":\"YC\",\"playerId\":\"2wl0uylmkzi2ls7v4amgaa1yi\",\"playerName\":\"Evanilson\",\"optaEventId\":\"2835215361\",\"cardReason\":\"Foul\"}],\"substitute\":[{\"contestantId\":\"c8h9bw1l82s06h77xxrelzhur\",\"periodId\":2,\"timeMin\":60,\"timeMinSec\":\"59:41\",\"lastUpdated\":\"2025-08-28T14:18:47Z\",\"timestamp\":\"2025-08-15T20:19:47Z\",\"playerOnId\":\"3kti58d195gmtzwrjh5nprx05\",\"playerOnName\":\"W.
+        Endo\",\"playerOffId\":\"9qo448ueot8pfc5oqo378wag9\",\"playerOffName\":\"J.
+        Frimpong\",\"subReason\":\"Tactical\"},{\"contestantId\":\"c8h9bw1l82s06h77xxrelzhur\",\"periodId\":2,\"timeMin\":60,\"timeMinSec\":\"59:48\",\"lastUpdated\":\"2025-08-15T20:20:02Z\",\"timestamp\":\"2025-08-15T20:19:54Z\",\"playerOnId\":\"eziqega9e25bg939pfh4vjp3p\",\"playerOnName\":\"A.
+        Robertson\",\"playerOffId\":\"a2zavv31d2aadyddk0kjttdgq\",\"playerOffName\":\"M.
+        Kerkez\",\"subReason\":\"Tactical\"},{\"contestantId\":\"c8h9bw1l82s06h77xxrelzhur\",\"periodId\":2,\"timeMin\":72,\"timeMinSec\":\"71:27\",\"lastUpdated\":\"2025-08-15T20:31:41Z\",\"timestamp\":\"2025-08-15T20:31:33Z\",\"playerOnId\":\"29dp5gmu5xbd04mozwxq5tjh1\",\"playerOnName\":\"J.
+        Gomez\",\"playerOffId\":\"3vx94h32ahujciraspdayj9t6\",\"playerOffName\":\"H.
+        Ekitik\xE9\",\"subReason\":\"Tactical\"},{\"contestantId\":\"c8h9bw1l82s06h77xxrelzhur\",\"periodId\":2,\"timeMin\":72,\"timeMinSec\":\"71:32\",\"lastUpdated\":\"2025-08-15T20:31:47Z\",\"timestamp\":\"2025-08-15T20:31:38Z\",\"playerOnId\":\"3kdl679ra6mlobdg09xqf7fft\",\"playerOnName\":\"C.
+        Jones\",\"playerOffId\":\"am6ppbdrbz4ml3xsbty53o73d\",\"playerOffName\":\"A.
+        Mac Allister\",\"subReason\":\"Tactical\"},{\"contestantId\":\"1pse9ta7a45pi2w2grjim70ge\",\"periodId\":2,\"timeMin\":74,\"timeMinSec\":\"73:42\",\"lastUpdated\":\"2025-08-15T20:33:57Z\",\"timestamp\":\"2025-08-15T20:33:48Z\",\"playerOnId\":\"ctq9si3nbc6n8cznhlcvtixd6\",\"playerOnName\":\"H.
+        Traor\xE9\",\"playerOffId\":\"mfsus6ryni5b1hjn0y70sbo4\",\"playerOffName\":\"A.
+        Scott\",\"subReason\":\"Tactical\"},{\"contestantId\":\"c8h9bw1l82s06h77xxrelzhur\",\"periodId\":2,\"timeMin\":82,\"timeMinSec\":\"81:11\",\"lastUpdated\":\"2025-08-15T20:41:25Z\",\"timestamp\":\"2025-08-15T20:41:17Z\",\"playerOnId\":\"c6nl81c1q4unq5js94s6s942x\",\"playerOnName\":\"F.
+        Chiesa\",\"playerOffId\":\"2k5g68ywtr79lc45wozvifqlm\",\"playerOffName\":\"F.
+        Wirtz\",\"subReason\":\"Tactical\"},{\"contestantId\":\"1pse9ta7a45pi2w2grjim70ge\",\"periodId\":2,\"timeMin\":84,\"timeMinSec\":\"83:38\",\"lastUpdated\":\"2025-08-15T20:43:52Z\",\"timestamp\":\"2025-08-15T20:43:44Z\",\"playerOnId\":\"a27jmusots4qlgmc8yrecv02c\",\"playerOnName\":\"B.
+        Winterburn\",\"playerOffId\":\"96ou7x51dxymv16l0ocsuhbyt\",\"playerOffName\":\"D.
+        Brooks\",\"subReason\":\"Tactical\"},{\"contestantId\":\"1pse9ta7a45pi2w2grjim70ge\",\"periodId\":2,\"timeMin\":90,\"timeMinSec\":\"89:58\",\"lastUpdated\":\"2025-08-15T20:50:37Z\",\"timestamp\":\"2025-08-15T20:50:04Z\",\"playerOnId\":\"9ea8t509bssf2bhp1n5xxvrl6\",\"playerOnName\":\"J.
+        Hill\",\"playerOffId\":\"80bmtj7l07ohb2h475w955n9\",\"playerOffName\":\"A.
+        Smith\",\"subReason\":\"Tactical\"},{\"contestantId\":\"1pse9ta7a45pi2w2grjim70ge\",\"periodId\":2,\"timeMin\":91,\"timeMinSec\":\"90:10\",\"lastUpdated\":\"2025-08-15T20:50:32Z\",\"timestamp\":\"2025-08-15T20:50:16Z\",\"playerOnId\":\"3f2e9orrwiljklmmzwh2m7uvo\",\"playerOnName\":\"J.
+        Kroupi\",\"playerOffId\":\"7dbzcwyph2xoljyhaogjo7mcp\",\"playerOffName\":\"T.
+        Adams\",\"subReason\":\"Tactical\"}],\"lineUp\":[{\"contestantId\":\"c8h9bw1l82s06h77xxrelzhur\",\"formationUsed\":\"4231\",\"player\":[{\"playerId\":\"53d0pvr7ylvfhp6p749iniqc5\",\"firstName\":\"Alisson
+        Rams\xE9s\",\"lastName\":\"Becker\",\"shortFirstName\":\"Alisson Rams\xE9s\",\"shortLastName\":\"Becker\",\"knownName\":\"Alisson
+        Becker\",\"matchName\":\"Alisson Becker\",\"shirtNumber\":1,\"position\":\"Goalkeeper\",\"positionSide\":\"Centre\",\"formationPlace\":\"1\"},{\"playerId\":\"a2zavv31d2aadyddk0kjttdgq\",\"firstName\":\"Milo\u0161\",\"lastName\":\"Kerkez\",\"shortFirstName\":\"Milos\",\"shortLastName\":\"Kerkez\",\"matchName\":\"M.
+        Kerkez\",\"shirtNumber\":6,\"position\":\"Defender\",\"positionSide\":\"Left\",\"formationPlace\":\"3\"},{\"playerId\":\"dxze3b3fsfl814bjcs7q6wcet\",\"firstName\":\"Virgil\",\"lastName\":\"van
+        Dijk\",\"shortFirstName\":\"Virgil\",\"shortLastName\":\"van Dijk\",\"matchName\":\"V.
+        van Dijk\",\"shirtNumber\":4,\"position\":\"Defender\",\"positionSide\":\"Left/Centre\",\"formationPlace\":\"6\",\"captain\":\"yes\"},{\"playerId\":\"2zfjgh5747ge9r9q0thbk123t\",\"firstName\":\"Ibrahima\",\"lastName\":\"Konat\xE9\",\"shortFirstName\":\"Ibrahima\",\"shortLastName\":\"Konat\xE9\",\"matchName\":\"I.
+        Konat\xE9\",\"shirtNumber\":5,\"position\":\"Defender\",\"positionSide\":\"Centre/Right\",\"formationPlace\":\"5\"},{\"playerId\":\"9qo448ueot8pfc5oqo378wag9\",\"firstName\":\"Jeremie
+        Agyekum\",\"lastName\":\"Frimpong\",\"shortFirstName\":\"Jeremie\",\"shortLastName\":\"Frimpong\",\"matchName\":\"J.
+        Frimpong\",\"shirtNumber\":30,\"position\":\"Defender\",\"positionSide\":\"Right\",\"formationPlace\":\"2\"},{\"playerId\":\"am6ppbdrbz4ml3xsbty53o73d\",\"firstName\":\"Alexis\",\"lastName\":\"Mac
+        Allister\",\"shortFirstName\":\"Alexis\",\"shortLastName\":\"Mac Allister\",\"matchName\":\"A.
+        Mac Allister\",\"shirtNumber\":10,\"position\":\"Defensive Midfielder\",\"positionSide\":\"Left/Centre\",\"formationPlace\":\"4\"},{\"playerId\":\"avh60ensgiwz1qalvn1bbqkfd\",\"firstName\":\"Dominik\",\"lastName\":\"Szoboszlai\",\"shortFirstName\":\"Dominik\",\"shortLastName\":\"Szoboszlai\",\"matchName\":\"D.
+        Szoboszlai\",\"shirtNumber\":8,\"position\":\"Defensive Midfielder\",\"positionSide\":\"Centre/Right\",\"formationPlace\":\"8\"},{\"playerId\":\"9psfk94nduz6icnuwty5v9all\",\"firstName\":\"Cody
+        Math\xE8s\",\"lastName\":\"Gakpo\",\"shortFirstName\":\"Cody\",\"shortLastName\":\"Gakpo\",\"matchName\":\"C.
+        Gakpo\",\"shirtNumber\":18,\"position\":\"Attacking Midfielder\",\"positionSide\":\"Left\",\"formationPlace\":\"11\"},{\"playerId\":\"2k5g68ywtr79lc45wozvifqlm\",\"firstName\":\"Florian
+        Richard\",\"lastName\":\"Wirtz\",\"shortFirstName\":\"Florian\",\"shortLastName\":\"Wirtz\",\"matchName\":\"F.
+        Wirtz\",\"shirtNumber\":7,\"position\":\"Attacking Midfielder\",\"positionSide\":\"Centre\",\"formationPlace\":\"10\"},{\"playerId\":\"5ilkkfbsss0bxd6ttdlqg0uz9\",\"firstName\":\"Mohamed\",\"lastName\":\"Salah
+        Hamed Mahrous Ghaly\",\"shortFirstName\":\"Mohamed\",\"shortLastName\":\"Salah
+        Hamed Mahrous Ghaly\",\"knownName\":\"Mohamed Salah\",\"matchName\":\"Mohamed
+        Salah\",\"shirtNumber\":11,\"position\":\"Attacking Midfielder\",\"positionSide\":\"Right\",\"formationPlace\":\"7\"},{\"playerId\":\"3vx94h32ahujciraspdayj9t6\",\"firstName\":\"Hugo
+        Timoth\xE9e\",\"lastName\":\"Ekitik\xE9\",\"shortFirstName\":\"Hugo\",\"shortLastName\":\"Ekitik\xE9\",\"matchName\":\"H.
+        Ekitik\xE9\",\"shirtNumber\":22,\"position\":\"Striker\",\"positionSide\":\"Centre\",\"formationPlace\":\"9\"},{\"playerId\":\"c6nl81c1q4unq5js94s6s942x\",\"firstName\":\"Federico\",\"lastName\":\"Chiesa\",\"shortFirstName\":\"Federico\",\"shortLastName\":\"Chiesa\",\"matchName\":\"F.
+        Chiesa\",\"shirtNumber\":14,\"position\":\"Substitute\",\"subPosition\":\"Attacker\"},{\"playerId\":\"dz2rfsmhib89jwilpuub10qcq\",\"firstName\":\"Harvey
+        Daniel James\",\"lastName\":\"Elliott\",\"shortFirstName\":\"Harvey\",\"shortLastName\":\"Elliott\",\"matchName\":\"H.
+        Elliott\",\"shirtNumber\":19,\"position\":\"Substitute\",\"subPosition\":\"Midfielder\"},{\"playerId\":\"3kti58d195gmtzwrjh5nprx05\",\"firstName\":\"Wataru\",\"lastName\":\"Endo\",\"shortFirstName\":\"Wataru\",\"shortLastName\":\"Endo\",\"matchName\":\"W.
+        Endo\",\"shirtNumber\":3,\"position\":\"Substitute\",\"subPosition\":\"Midfielder\"},{\"playerId\":\"29dp5gmu5xbd04mozwxq5tjh1\",\"firstName\":\"Joseph
+        Dave\",\"lastName\":\"Gomez\",\"shortFirstName\":\"Joe\",\"shortLastName\":\"Gomez\",\"matchName\":\"J.
+        Gomez\",\"shirtNumber\":2,\"position\":\"Substitute\",\"subPosition\":\"Defender\"},{\"playerId\":\"3kdl679ra6mlobdg09xqf7fft\",\"firstName\":\"Curtis
+        Julian\",\"lastName\":\"Jones\",\"shortFirstName\":\"Curtis\",\"shortLastName\":\"Jones\",\"matchName\":\"C.
+        Jones\",\"shirtNumber\":17,\"position\":\"Substitute\",\"subPosition\":\"Midfielder\"},{\"playerId\":\"20o2dr1mdk18xhxmkujzgak89\",\"firstName\":\"Giorgi\",\"lastName\":\"Mamardashvili\",\"shortFirstName\":\"Giorgi\",\"shortLastName\":\"Mamardashvili\",\"matchName\":\"G.
+        Mamardashvili\",\"shirtNumber\":25,\"position\":\"Substitute\",\"subPosition\":\"Goalkeeper\"},{\"playerId\":\"154gonr6x9vuraxmzd9zi5xck\",\"firstName\":\"Rio
+        Bass Ray\",\"lastName\":\"Ngumoha Adigun\",\"shortFirstName\":\"Rio\",\"shortLastName\":\"Ngumoha\",\"matchName\":\"R.
+        Ngumoha\",\"shirtNumber\":73,\"position\":\"Substitute\",\"subPosition\":\"Attacker\"},{\"playerId\":\"e51jmlxup2pdr8ikl98etxgd0\",\"firstName\":\"Treymaurice\",\"lastName\":\"Nyoni\",\"shortFirstName\":\"Trey\",\"shortLastName\":\"Nyoni\",\"matchName\":\"T.
+        Nyoni\",\"shirtNumber\":42,\"position\":\"Substitute\",\"subPosition\":\"Midfielder\"},{\"playerId\":\"eziqega9e25bg939pfh4vjp3p\",\"firstName\":\"Andrew
+        Henry\",\"lastName\":\"Robertson\",\"shortFirstName\":\"Andy\",\"shortLastName\":\"Robertson\",\"matchName\":\"A.
+        Robertson\",\"shirtNumber\":26,\"position\":\"Substitute\",\"subPosition\":\"Defender\"}],\"teamOfficial\":[{\"id\":\"atca0d383at1y0hxzbhok2zmd\",\"firstName\":\"Arend
+        Martijn\",\"lastName\":\"Slot\",\"shortFirstName\":\"Arne\",\"shortLastName\":\"Slot\",\"type\":\"manager\"}]},{\"contestantId\":\"1pse9ta7a45pi2w2grjim70ge\",\"formationUsed\":\"4141\",\"player\":[{\"playerId\":\"bcfzovs0pj9urgv9r0ykjnlrd\",\"firstName\":\"\u0110or\u0111e\",\"lastName\":\"Petrovi\u0107\",\"shortFirstName\":\"Djordje\",\"shortLastName\":\"Petrovic\",\"matchName\":\"\u0110.
+        Petrovi\u0107\",\"shirtNumber\":1,\"position\":\"Goalkeeper\",\"positionSide\":\"Centre\",\"formationPlace\":\"1\"},{\"playerId\":\"92qqdiryqd8juqdjq8585476y\",\"firstName\":\"Adrien
+        Lilian Ga\xEBtan\",\"lastName\":\"Truffert\",\"shortFirstName\":\"Adrien\",\"shortLastName\":\"Truffert\",\"matchName\":\"A.
+        Truffert\",\"shirtNumber\":3,\"position\":\"Defender\",\"positionSide\":\"Left\",\"formationPlace\":\"3\"},{\"playerId\":\"95pzsjfh0wf6isp6qpf9lddyh\",\"firstName\":\"Marcos
+        Nicol\xE1s\",\"lastName\":\"Senesi Bar\xF3n\",\"shortFirstName\":\"Marcos\",\"shortLastName\":\"Senesi\",\"matchName\":\"M.
+        Senesi\",\"shirtNumber\":5,\"position\":\"Defender\",\"positionSide\":\"Left/Centre\",\"formationPlace\":\"6\"},{\"playerId\":\"7c0b5fz3m1uw0fwpm051e6rfu\",\"firstName\":\"Bafod\xE9\",\"lastName\":\"Diakit\xE9\",\"shortFirstName\":\"Bafod\xE9\",\"shortLastName\":\"Diakit\xE9\",\"matchName\":\"B.
+        Diakit\xE9\",\"shirtNumber\":18,\"position\":\"Defender\",\"positionSide\":\"Centre/Right\",\"formationPlace\":\"5\"},{\"playerId\":\"80bmtj7l07ohb2h475w955n9\",\"firstName\":\"Adam
+        James\",\"lastName\":\"Smith\",\"shortFirstName\":\"Adam\",\"shortLastName\":\"Smith\",\"matchName\":\"A.
+        Smith\",\"shirtNumber\":15,\"position\":\"Defender\",\"positionSide\":\"Right\",\"formationPlace\":\"2\",\"captain\":\"yes\"},{\"playerId\":\"7dbzcwyph2xoljyhaogjo7mcp\",\"firstName\":\"Tyler
+        Shaan\",\"lastName\":\"Adams\",\"shortFirstName\":\"Tyler\",\"shortLastName\":\"Adams\",\"matchName\":\"T.
+        Adams\",\"shirtNumber\":12,\"position\":\"Defensive Midfielder\",\"positionSide\":\"Centre\",\"formationPlace\":\"4\"},{\"playerId\":\"96ou7x51dxymv16l0ocsuhbyt\",\"firstName\":\"David
+        Robert\",\"lastName\":\"Brooks\",\"shortFirstName\":\"David\",\"shortLastName\":\"Brooks\",\"matchName\":\"D.
+        Brooks\",\"shirtNumber\":7,\"position\":\"Midfielder\",\"positionSide\":\"Left\",\"formationPlace\":\"11\"},{\"playerId\":\"b3gobhr43y8oxpafvp4f8rgmh\",\"firstName\":\"Marcus
+        Joseph\",\"lastName\":\"Tavernier\",\"shortFirstName\":\"Marcus\",\"shortLastName\":\"Tavernier\",\"matchName\":\"M.
+        Tavernier\",\"shirtNumber\":16,\"position\":\"Midfielder\",\"positionSide\":\"Left/Centre\",\"formationPlace\":\"10\"},{\"playerId\":\"mfsus6ryni5b1hjn0y70sbo4\",\"firstName\":\"Alex
+        Jay\",\"lastName\":\"Scott\",\"shortFirstName\":\"Alex\",\"shortLastName\":\"Scott\",\"matchName\":\"A.
+        Scott\",\"shirtNumber\":8,\"position\":\"Midfielder\",\"positionSide\":\"Centre/Right\",\"formationPlace\":\"8\"},{\"playerId\":\"7tnuxlg9l4rjhc7j3ko36hduy\",\"firstName\":\"Antoine
+        Serlom\",\"lastName\":\"Semenyo\",\"shortFirstName\":\"Antoine\",\"shortLastName\":\"Semenyo\",\"matchName\":\"A.
+        Semenyo\",\"shirtNumber\":24,\"position\":\"Midfielder\",\"positionSide\":\"Right\",\"formationPlace\":\"7\"},{\"playerId\":\"2wl0uylmkzi2ls7v4amgaa1yi\",\"firstName\":\"Francisco
+        Evanilson\",\"lastName\":\"de Lima Barbosa\",\"shortFirstName\":\"Francisco
+        Evanilson\",\"shortLastName\":\"de Lima Barbosa\",\"knownName\":\"Evanilson\",\"matchName\":\"Evanilson\",\"shirtNumber\":9,\"position\":\"Striker\",\"positionSide\":\"Centre\",\"formationPlace\":\"9\"},{\"playerId\":\"5rslwexx17p7hqwp9p3vgcxuy\",\"firstName\":\"Juli\xE1n
+        Vicente\",\"lastName\":\"Araujo Z\xFA\xF1iga\",\"shortFirstName\":\"Juli\xE1n\",\"shortLastName\":\"Araujo\",\"matchName\":\"J.
+        Araujo\",\"shirtNumber\":2,\"position\":\"Substitute\",\"subPosition\":\"Defender\"},{\"playerId\":\"33cny48k38nlo8pcx3i24ldqt\",\"firstName\":\"Philip
+        Anyanwu\",\"lastName\":\"Billing\",\"shortFirstName\":\"Philip\",\"shortLastName\":\"Billing\",\"matchName\":\"P.
+        Billing\",\"shirtNumber\":29,\"position\":\"Substitute\",\"subPosition\":\"Midfielder\"},{\"playerId\":\"b1y7pnmjciimn2ntaf8o5m73e\",\"firstName\":\"William
+        Jonathan\",\"lastName\":\"Dennis\",\"shortFirstName\":\"Will\",\"shortLastName\":\"Dennis\",\"matchName\":\"W.
+        Dennis\",\"shirtNumber\":40,\"position\":\"Substitute\",\"subPosition\":\"Goalkeeper\"},{\"playerId\":\"9ea8t509bssf2bhp1n5xxvrl6\",\"firstName\":\"James
+        Clayton\",\"lastName\":\"Hill\",\"shortFirstName\":\"James\",\"shortLastName\":\"Hill\",\"matchName\":\"J.
+        Hill\",\"shirtNumber\":23,\"position\":\"Substitute\",\"subPosition\":\"Defender\"},{\"playerId\":\"3f2e9orrwiljklmmzwh2m7uvo\",\"firstName\":\"Eli
+        Junior \xC9ric Anatole Rainha\",\"lastName\":\"Kroupi\",\"shortFirstName\":\"Junior\",\"shortLastName\":\"Kroupi\",\"matchName\":\"J.
+        Kroupi\",\"shirtNumber\":22,\"position\":\"Substitute\",\"subPosition\":\"Attacker\"},{\"playerId\":\"bch2qxtejv4kj2h1zyfpl05qs\",\"firstName\":\"Remy
+        William James\",\"lastName\":\"Rees-Dottin\",\"shortFirstName\":\"Remy\",\"shortLastName\":\"Rees-Dottin\",\"matchName\":\"R.
+        Rees-Dottin\",\"shirtNumber\":50,\"position\":\"Substitute\",\"subPosition\":\"Attacker\"},{\"playerId\":\"erge77vege2a3zor041ert5w4\",\"firstName\":\"Julio
+        C\xE9sar\",\"lastName\":\"Soler Barreto\",\"shortFirstName\":\"Julio\",\"shortLastName\":\"Soler\",\"matchName\":\"J.
+        Soler\",\"shirtNumber\":20,\"position\":\"Substitute\",\"subPosition\":\"Defender\"},{\"playerId\":\"ctq9si3nbc6n8cznhlcvtixd6\",\"firstName\":\"Hamed
+        Junior\",\"lastName\":\"Traor\xE9\",\"shortFirstName\":\"Hamed\",\"shortLastName\":\"Traor\xE9\",\"matchName\":\"H.
+        Traor\xE9\",\"shirtNumber\":25,\"position\":\"Substitute\",\"subPosition\":\"Midfielder\"},{\"playerId\":\"a27jmusots4qlgmc8yrecv02c\",\"firstName\":\"Benjamin
+        George\",\"lastName\":\"Winterburn\",\"shortFirstName\":\"Ben\",\"shortLastName\":\"Winterburn\",\"matchName\":\"B.
+        Winterburn\",\"shirtNumber\":47,\"position\":\"Substitute\",\"subPosition\":\"Midfielder\"}],\"teamOfficial\":[{\"id\":\"5npculapp3dhx3e9747ul6m3u\",\"firstName\":\"Andoni\",\"lastName\":\"Iraola
+        Sagarna\",\"shortFirstName\":\"Andoni\",\"shortLastName\":\"Iraola\",\"type\":\"manager\"}]}],\"matchDetailsExtra\":{\"attendance\":\"60315\",\"matchOfficial\":[{\"id\":\"3st0eqq19bhwgt404iy9xrqol\",\"type\":\"Main\",\"firstName\":\"Anthony\",\"lastName\":\"Taylor\",\"shortFirstName\":\"Anthony\",\"shortLastName\":\"Taylor\"},{\"id\":\"3sisydaara6f9jp295fikgafp\",\"type\":\"Assistant
+        referee 1\",\"firstName\":\"Gary\",\"lastName\":\"Beswick\",\"shortFirstName\":\"Gary\",\"shortLastName\":\"Beswick\"},{\"id\":\"8wszpe3f2hj5xi1p9kc0qhyvp\",\"type\":\"Assistant
+        referee 2\",\"firstName\":\"Craig\",\"lastName\":\"Taylor\",\"shortFirstName\":\"Craig\",\"shortLastName\":\"Taylor\"},{\"id\":\"e3dovkx10pyggwpgk9bwxllre\",\"type\":\"Fourth
+        official\",\"firstName\":\"Farai\",\"lastName\":\"Hallam\",\"shortFirstName\":\"Farai\",\"shortLastName\":\"Hallam\"},{\"id\":\"4n2p6ko6550c8z2qa4yfdjn4l\",\"type\":\"Video
+        Assistant Referee\",\"firstName\":\"Michael\",\"lastName\":\"Oliver\",\"shortFirstName\":\"Michael\",\"shortLastName\":\"Oliver\"},{\"id\":\"ays1qinoskgby4otyi5qukg5x\",\"type\":\"Assistant
+        VAR Official\",\"firstName\":\"Thomas\",\"lastName\":\"Bramall\",\"shortFirstName\":\"Thomas\",\"shortLastName\":\"Bramall\"}]}}}"
+    headers:
+      Cache-Control:
+      - max-age=60
+      Connection:
+      - keep-alive
+      Content-Encoding:
+      - gzip
+      Content-Language:
+      - en-US
+      Content-Length:
+      - '4890'
+      Content-Type:
+      - application/json;charset=utf-8
+      Date:
+      - Thu, 06 Nov 2025 19:56:21 GMT
+      Last-Modified:
+      - Thu, 06 Nov 2025 19:52:50 GMT
+      Server:
+      - Apache Tomcat
+      Vary:
+      - accept-encoding
+      content-transfer-encoding:
+      - base64
+      performfeeds-_pgnm:
+      - '1'
+      performfeeds-last-modified:
+      - Tue, 04 Nov 2025 15:47:51 GMT
+      performfeeds-node-id:
+      - soccer-fe-7f44f8c68c-v9v78
+      x-content-type-options:
+      - nosniff
+    status:
+      code: 200
+      message: OK
+version: 1

@@ -1,0 +1,48 @@
+interactions:
+- request:
+    body: null
+    headers:
+      Accept:
+      - '*/*'
+      Accept-Encoding:
+      - gzip, deflate
+      Connection:
+      - keep-alive
+      User-Agent:
+      - python-requests/2.32.5
+    method: GET
+    uri: http://api.performfeeds.com/soccerdata/matchstats/1oz220uimg4nk1k8tccbnl7cgz?_fmt=json&_rt=b
+  response:
+    body:
+      string: '{"errorCode":"10200","token":"c52m8sofmirvaktkvfxtdbpuj"}'
+    headers:
+      Cache-Control:
+      - max-age=60
+      Connection:
+      - keep-alive
+      Content-Encoding:
+      - gzip
+      Content-Language:
+      - en-US
+      Content-Length:
+      - '82'
+      Content-Type:
+      - application/json;charset=utf-8
+      Date:
+      - Thu, 06 Nov 2025 19:56:21 GMT
+      Server:
+      - Apache Tomcat
+      Vary:
+      - accept-encoding
+      content-transfer-encoding:
+      - base64
+      performfeeds-node-id:
+      - soccer-fe-7f44f8c68c-wkfjq
+      x-content-type-options:
+      - nosniff
+      x-feed-status-code:
+      - '10200'
+    status:
+      code: 400
+      message: Bad Request
+version: 1

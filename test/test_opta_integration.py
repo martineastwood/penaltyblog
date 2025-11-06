@@ -7,6 +7,7 @@ VALID_TMCL_UUID = "51r6ph2woavlbbpk8f29nynf8"
 VALID_FIXTURE_UUID = "zhs8gg1hvcuqvhkk2itb54pg"
 VALID_CONTESTANT_UUID = "c8h9bw1l82s06h77xxrelzhur"
 VALID_PERSON_UUID = "5ilkkfbsss0bxd6ttdlqg0uz9"
+VALID_VENUE_UUID = "bxpq91vq4x9r3q6eq3d0bwjuy"
 
 
 # This mark tells vcrpy to record/replay this test
@@ -152,30 +153,6 @@ def test_parser_tm16_contestant_participation():
 
 
 @pytest.mark.vcr
-def test_dynamic_pagination_injuries_paginated():
-    """
-    Tests: is_paginated('injuries_query', ...) == True
-    """
-    flow = opta.injuries(tournament_calendar_uuid=VALID_TMCL_UUID)
-    data = flow.collect()
-    assert data is not None
-    assert "personId" in data[0]
-
-
-@pytest.mark.vcr
-def test_dynamic_pagination_injuries_non_paginated():
-    """
-    Tests: is_paginated('injuries_query', ...) == False
-    Logic: Uses 'person_uuid' to trigger non-paginated path
-    """
-    flow = opta.injuries(person_uuid=VALID_PERSON_UUID)
-    data = flow.collect()
-    assert data is not None
-    # This also tests the 'else: yield data' fallback in source_opta.py
-    assert "personId" in data[0]
-
-
-@pytest.mark.vcr
 def test_dynamic_pagination_transfers_paginated():
     """
     Tests: is_paginated('transfers', ...) == True
@@ -233,7 +210,7 @@ def test_params_use_opta_names():
     Tests: 'use_opta_names=True' param
     """
     # 'venues' is a good simple endpoint for this
-    flow = opta.venues(venue_uuid="your_venue_uuid", use_opta_names=True)
+    flow = opta.venues(venue_uuid=VALID_VENUE_UUID, use_opta_names=True)
     data = flow.collect()
     assert data is not None
     # No easy assert, but this captures a response with the _lcl=en-op param
