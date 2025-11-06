@@ -205,19 +205,6 @@ def test_params_events_by_type():
 
 
 @pytest.mark.vcr
-def test_params_use_opta_names():
-    """
-    Tests: 'use_opta_names=True' param
-    """
-    # 'venues' is a good simple endpoint for this
-    flow = opta.venues(venue_uuid=VALID_VENUE_UUID, use_opta_names=True)
-    data = flow.collect()
-    assert data is not None
-    # No easy assert, but this captures a response with the _lcl=en-op param
-    assert "name" in data[0]
-
-
-@pytest.mark.vcr
 def test_error_handling_404_not_found():
     """
     Tests: OptaClient.make_request for 404

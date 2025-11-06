@@ -523,17 +523,12 @@ class Opta:
         Flow
             A Flow yielding raw match events data.
         """
-        type_str = None
-        if isinstance(event_types, list):
-            type_str = ",".join(map(str, event_types))
-        elif isinstance(event_types, int):
-            type_str = str(event_types)
         return self._step(
             "match_events",
             fixture_uuid=fixture_uuid,
             ctst=contestant_uuid,
             prsn=person_uuid,
-            type=type_str,
+            event_types=event_types,
             _lcl="en-op" if use_opta_names else None,
             creds=creds or self.DEFAULT_CREDS,
             proxies=proxies,
