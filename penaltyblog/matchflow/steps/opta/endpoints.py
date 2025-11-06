@@ -155,7 +155,11 @@ class OptaEndpointBuilder:
         if source == "match_stats_basic" and isinstance(
             args.get("fixture_uuids"), list
         ):
-            params["fx"] = ",".join(args["fixture_uuids"])
+            fx_uuids = args.get("fixture_uuids")
+            if isinstance(fx_uuids, list):
+                params["fx"] = ",".join(fx_uuids)
+            elif isinstance(fx_uuids, str):
+                params["fx"] = fx_uuids
 
         # Map arguments to parameter names
         for arg_name, param_name in param_mapping.items():
