@@ -475,6 +475,8 @@ class Opta:
         Flow
             A Flow yielding raw match statistics data.
         """
+        if isinstance(fixture_uuids, str):
+            fixture_uuids = [fixture_uuids]
         return self._step(
             "match_stats_basic",
             fixture_uuids=fixture_uuids,
