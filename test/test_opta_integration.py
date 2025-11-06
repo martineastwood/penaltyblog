@@ -3,8 +3,6 @@ import pytest
 
 from penaltyblog.matchflow.contrib.opta import opta
 
-proxies = {"http": "socks5h://localhost:9090", "https://": "socks5h://localhost:9090"}
-
 VALID_TMCL_UUID = "51r6ph2woavlbbpk8f29nynf8"
 VALID_FIXTURE_UUID = "zhs8gg1hvcuqvhkk2itb54pg"
 VALID_CONTESTANT_UUID = "c8h9bw1l82s06h77xxrelzhur"
@@ -15,7 +13,8 @@ VALID_PERSON_UUID = "5ilkkfbsss0bxd6ttdlqg0uz9"
 @pytest.mark.vcr
 def test_fetch_tournament_calendars():
     flow = opta.tournament_calendars(
-        status="active", include_stages=True, proxies=proxies
+        status="active",
+        include_stages=True,
     )
     calendars = flow.collect()
 
@@ -32,7 +31,9 @@ def test_fetch_tournament_calendars():
 def test_fetch_match_events():
     # Use a real match UUID you have access to this week
     MATCH_UUID = "zhs8gg1hvcuqvhkk2itb54pg"
-    flow = opta.events(fixture_uuid=MATCH_UUID, proxies=proxies)
+    flow = opta.events(
+        fixture_uuid=MATCH_UUID,
+    )
     events = flow.collect()
 
     assert events is not None
