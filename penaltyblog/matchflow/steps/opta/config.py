@@ -121,6 +121,8 @@ PARAMETER_MAPPINGS: Dict[str, Dict[str, str]] = {
         "use_opta_names": "_lcl",
     },
     "match_stats_basic": {
+        "fixture_uuids": "fx",
+        "include_players": "people",
         "use_opta_names": "_lcl",
     },
     "match_events": {

@@ -175,6 +175,7 @@ class OptaEndpointBuilder:
                     "include_coverage",
                     "detailed",
                     "active",
+                    "include_players",
                 ]:
                     params[param_name] = (
                         "yes" if value else ("no" if value is False else None)

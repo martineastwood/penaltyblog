@@ -90,6 +90,7 @@ def test_parser_ma2_match_stats_teams():
     """
     flow = opta.match_stats(fixture_uuids=VALID_FIXTURE_UUID, include_players=False)
     data = flow.collect()
+    pytest.set_trace()
     assert data is not None
     assert len(data) == 2  # Should be one record per team
     # Check for keys from extract_team_stats

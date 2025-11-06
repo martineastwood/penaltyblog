@@ -480,7 +480,7 @@ class Opta:
         return self._step(
             "match_stats_basic",
             fixture_uuids=fixture_uuids,
-            include_players="yes" if include_players else "no",
+            include_players=include_players,
             use_opta_names="en-op" if use_opta_names else None,
             creds=creds or self.DEFAULT_CREDS,
             proxies=proxies,

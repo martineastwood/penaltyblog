@@ -162,3 +162,4 @@ notebook.ipynb
 .clinerules
 test/data/opta/*.json
 test/data/opta/data.*
+test/data/fixtures
