@@ -108,6 +108,18 @@ def test_areas_area():
 
 
 @pytest.mark.vcr
+def test_tournament_schedule_tcml():
+    flow = opta.tournament_schedule(tournament_calendar_uuid=VALID_TMCL_UUID)
+    data = flow.collect()
+
+    assert data is not None
+    assert isinstance(data, list)
+    assert len(data) == 380
+    assert "id" in data[0]
+    assert "homeContestantId" in data[0]
+
+
+@pytest.mark.vcr
 def test_fetch_match_events():
     # Use a real match UUID you have access to this week
     MATCH_UUID = "zhs8gg1hvcuqvhkk2itb54pg"
