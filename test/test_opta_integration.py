@@ -28,8 +28,8 @@ def test_fetch_tournament_calendars_active():
 
 @pytest.mark.vcr
 def test_fetch_tournament_calendars_all():
-    flow = opta.tournament_calendars()
-    calendars = flow.collect(status="all")
+    flow = opta.tournament_calendars(status="all")
+    calendars = flow.collect()
 
     assert calendars is not None
     assert isinstance(calendars, list)
