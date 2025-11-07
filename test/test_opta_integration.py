@@ -63,6 +63,18 @@ def test_venue_tmcl():
 
 
 @pytest.mark.vcr
+def test_venue_contestant():
+    flow = opta.venues(contestant_uuid=VALID_CONTESTANT_UUID)
+    data = flow.collect()
+
+    assert data is not None
+    assert isinstance(data, list)
+    assert len(data) == 1
+    assert "id" in data[0]
+    assert "name" in data[0]
+
+
+@pytest.mark.vcr
 def test_fetch_match_events():
     # Use a real match UUID you have access to this week
     MATCH_UUID = "zhs8gg1hvcuqvhkk2itb54pg"
