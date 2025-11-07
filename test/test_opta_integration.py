@@ -5,6 +5,7 @@ from penaltyblog.matchflow.contrib.opta import opta
 
 VALID_TMCL_UUID = "51r6ph2woavlbbpk8f29nynf8"
 VALID_FIXTURE_UUID = "zhs8gg1hvcuqvhkk2itb54pg"
+VALID_FIXTURE_UUID2 = "102dto55773ex3p58gp94ql90"
 VALID_CONTESTANT_UUID = "c8h9bw1l82s06h77xxrelzhur"
 VALID_PERSON_UUID = "5ilkkfbsss0bxd6ttdlqg0uz9"
 VALID_VENUE_UUID = "bxpq91vq4x9r3q6eq3d0bwjuy"
@@ -117,6 +118,42 @@ def test_tournament_schedule_tcml():
     assert len(data) == 380
     assert "id" in data[0]
     assert "homeContestantId" in data[0]
+
+
+@pytest.mark.vcr
+def test_matches_tmcl():
+    flow = opta.matches(tournament_calendar_uuid=VALID_TMCL_UUID)
+    data = flow.collect()
+
+    assert data is not None
+    assert isinstance(data, list)
+    assert len(data) == 380
+    assert "matchInfo" in data[0]
+    assert "liveData" in data[0]
+
+
+@pytest.mark.vcr
+def test_matches_single_fixture():
+    flow = opta.matches(fixture_uuids=VALID_FIXTURE_UUID)
+    data = flow.collect()
+
+    assert data is not None
+    assert isinstance(data, list)
+    assert len(data) == 1
+    assert "matchInfo" in data[0]
+    assert "liveData" in data[0]
+
+
+@pytest.mark.vcr
+def test_matches_multiple_fixtures():
+    flow = opta.matches(fixture_uuids=[VALID_FIXTURE_UUID, VALID_FIXTURE_UUID2])
+    data = flow.collect()
+
+    assert data is not None
+    assert isinstance(data, list)
+    assert len(data) == 1
+    assert "matchInfo" in data[0]
+    assert "liveData" in data[0]
 
 
 @pytest.mark.vcr
