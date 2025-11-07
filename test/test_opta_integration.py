@@ -104,7 +104,7 @@ def test_areas_area():
 
     assert data is not None
     assert isinstance(data, list)
-    assert data[0]["name"] == "Asia"
+    assert data[0]["area"]["name"] == "Asia"
 
 
 @pytest.mark.vcr
