@@ -11,7 +11,7 @@ from .config import (
     NON_PAGINATED_SOURCES,
     PAGINATION_RESPONSE_KEYS,
 )
-from .exceptions import OptaParsingError
+from .exceptions import OptaParsingError, OptaRequestError
 
 
 class OptaPaginator:
@@ -57,6 +57,8 @@ class OptaPaginator:
 
             try:
                 data = self.client.make_request(base_url, params, headers)
+            except OptaRequestError as e:
+                raise e
             except Exception as e:
                 print(
                     f"Warning: Could not fetch page {page_num} for {source}. Stopping. Error: {e}"
