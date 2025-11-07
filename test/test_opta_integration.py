@@ -151,7 +151,7 @@ def test_matches_multiple_fixtures():
 
     assert data is not None
     assert isinstance(data, list)
-    assert len(data) == 1
+    assert len(data) == 2
     assert "matchInfo" in data[0]
     assert "liveData" in data[0]
 
