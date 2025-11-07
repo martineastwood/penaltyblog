@@ -51,6 +51,18 @@ def test_fetch_tournament_calendars_authorized():
 
 
 @pytest.mark.vcr
+def test_venue_tmcl():
+    flow = opta.venues(tournament_calendar_uuid=VALID_TMCL_UUID)
+    data = flow.collect()
+
+    assert data is not None
+    assert isinstance(data, list)
+    assert len(data) == 20
+    assert "id" in data[0]
+    assert "name" in data[0]
+
+
+@pytest.mark.vcr
 def test_fetch_match_events():
     # Use a real match UUID you have access to this week
     MATCH_UUID = "zhs8gg1hvcuqvhkk2itb54pg"
