@@ -57,11 +57,11 @@ def extract_team_stats(match: Dict[str, Any]) -> Iterator[Dict[str, Any]]:
     lineups = live_data.get("lineUp", [])
 
     for team_lineup in lineups:
-        team_stats_data = team_lineup.get("teamStats")
+        team_stats_data = team_lineup.get("stat")
         if not team_stats_data:
             continue
 
-        team_stats = flatten_stats(team_stats_data.get("stat", []), key_name="type")
+        team_stats = flatten_stats(team_stats_data, key_name="type")
         if not team_stats:
             continue
 
