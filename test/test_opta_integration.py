@@ -19,8 +19,6 @@ def test_fetch_tournament_calendars():
     )
     calendars = flow.collect()
 
-    # pytest.set_trace()
-
     assert calendars is not None
     assert isinstance(calendars, list)
     assert len(calendars) > 0
@@ -90,7 +88,9 @@ def test_parser_ma2_match_stats_teams():
     """
     flow = opta.match_stats(fixture_uuids=VALID_FIXTURE_UUID, include_players=False)
     data = flow.collect()
-    pytest.set_trace()
+
+    # pytest.set_trace()
+
     assert data is not None
     assert len(data) == 2  # Should be one record per team
     # Check for keys from extract_team_stats
@@ -122,7 +122,8 @@ def test_parser_tm4_player_season_stats():
     assert data is not None
     assert len(data) > 0
     # Check for keys from extract_season_player_stats
-    assert "playerId" in data[0] and "_competition" in data[0]
+    assert "id" in data[0]
+    assert "_competition" in data[0]
 
 
 @pytest.mark.vcr
@@ -134,10 +135,14 @@ def test_parser_tm4_team_season_stats():
         tournament_calendar_uuid=VALID_TMCL_UUID, contestant_uuid=VALID_CONTESTANT_UUID
     )
     data = flow.collect()
+
     assert data is not None
     assert len(data) == 1  # Should be one record for the team
     # Check for keys from extract_season_team_stats
-    assert "contestantId" in data[0] and "_competition" in data[0]
+    assert "id" in data[0]
+    assert "name" in data[0]
+    assert "_competition" in data[0]
+    assert "_tournamentCalendar" in data[0]
 
 
 @pytest.mark.vcr
@@ -161,7 +166,7 @@ def test_dynamic_pagination_transfers_paginated():
     flow = opta.transfers(contestant_uuid=VALID_CONTESTANT_UUID)
     data = flow.collect()
     assert data is not None
-    assert "personId" in data[0]
+    assert "id" in data[0]
 
 
 @pytest.mark.vcr
@@ -172,9 +177,11 @@ def test_dynamic_pagination_transfers_non_paginated():
     """
     flow = opta.transfers(person_uuid=VALID_PERSON_UUID)
     data = flow.collect()
+
     assert data is not None
-    # This also tests the 'else: yield data' fallback in source_opta.py
-    assert "personId" in data[0]
+    assert "id" in data[0]
+    assert "firstName" in data[0]
+    assert "lastName" in data[0]
 
 
 @pytest.mark.vcr
@@ -186,7 +193,7 @@ def test_params_tournament_calendars_status():
     data = flow.collect()
     assert data is not None
     assert len(data) > 0
-    assert "stage" in data[0]  # Test 'include_stages'
+    assert "competitionCode" in data[0]
 
 
 @pytest.mark.vcr

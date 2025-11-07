@@ -163,3 +163,4 @@ notebook.ipynb
 test/data/opta/*.json
 test/data/opta/data.*
 test/fixtures/*
+scratch.md

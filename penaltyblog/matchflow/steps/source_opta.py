@@ -136,7 +136,7 @@ def _handle_non_paginated_endpoint(
         yield from parse_match_basic(data)
 
     elif source == "match_stats_basic":
-        include_players = args.get("people", "yes") == "yes"
+        include_players = args.get("include_players", True)
         yield from parse_match_stats_basic(data, include_players)
 
     elif source == "match_events":
