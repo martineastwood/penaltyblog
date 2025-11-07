@@ -12,7 +12,7 @@ VALID_VENUE_UUID = "bxpq91vq4x9r3q6eq3d0bwjuy"
 
 # This mark tells vcrpy to record/replay this test
 @pytest.mark.vcr
-def test_fetch_tournament_calendars():
+def test_fetch_tournament_calendars_active():
     flow = opta.tournament_calendars(
         status="active",
         include_stages=True,
@@ -22,6 +22,30 @@ def test_fetch_tournament_calendars():
     assert calendars is not None
     assert isinstance(calendars, list)
     assert len(calendars) > 0
+    assert "competitionCode" in calendars[0]
+    assert "competitionType" in calendars[0]
+
+
+@pytest.mark.vcr
+def test_fetch_tournament_calendars_all():
+    flow = opta.tournament_calendars()
+    calendars = flow.collect(status="all")
+
+    assert calendars is not None
+    assert isinstance(calendars, list)
+    assert len(calendars) > 0
+    assert "competitionCode" in calendars[0]
+    assert "competitionType" in calendars[0]
+
+
+@pytest.mark.vcr
+def test_fetch_tournament_calendars_authorized():
+    flow = opta.tournament_calendars()
+    calendars = flow.collect(status="authorized")
+
+    assert calendars is not None
+    assert isinstance(calendars, list)
+    assert len(calendars) == 1
     assert "competitionCode" in calendars[0]
     assert "competitionType" in calendars[0]
 
