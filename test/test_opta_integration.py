@@ -8,6 +8,7 @@ VALID_FIXTURE_UUID = "zhs8gg1hvcuqvhkk2itb54pg"
 VALID_CONTESTANT_UUID = "c8h9bw1l82s06h77xxrelzhur"
 VALID_PERSON_UUID = "5ilkkfbsss0bxd6ttdlqg0uz9"
 VALID_VENUE_UUID = "bxpq91vq4x9r3q6eq3d0bwjuy"
+VALID_AREA_UUID = "7yck0z0f9rlpeyatanjc1ylzp"
 
 
 # This mark tells vcrpy to record/replay this test
@@ -76,7 +77,7 @@ def test_venue_contestant():
 
 @pytest.mark.vcr
 def test_venue_venue():
-    flow = opta.venues(venue_uuid=VALID_VENUE_UUID)
+    flow = opta.venues(venue_uuid=VALID_VENUE_UUID, use_opta_names=True)
     data = flow.collect()
 
     assert data is not None
@@ -84,6 +85,26 @@ def test_venue_venue():
     assert len(data) == 1
     assert "id" in data[0]
     assert "name" in data[0]
+
+
+@pytest.mark.vcr
+def test_areas_all():
+    flow = opta.areas()
+    data = flow.collect()
+
+    assert data is not None
+    assert isinstance(data, list)
+    assert data[0]["name"] == "World"
+
+
+@pytest.mark.vcr
+def test_areas_area():
+    flow = opta.areas(area_uuid=VALID_AREA_UUID)
+    data = flow.collect()
+
+    assert data is not None
+    assert isinstance(data, list)
+    assert data[0]["name"] == "Asia"
 
 
 @pytest.mark.vcr
