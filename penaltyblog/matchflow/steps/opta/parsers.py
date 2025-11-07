@@ -234,9 +234,6 @@ def parse_transfers(data: Dict[str, Any]) -> Iterator[Dict[str, Any]]:
     person object.
     """
     # The response for a specific person is just the person object itself
-    import pdb
-
-    pdb.set_trace()
     if "person" in data and isinstance(data["person"], list):
         yield from data["person"]
     else:

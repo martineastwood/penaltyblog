@@ -19,6 +19,7 @@ from .opta.parsers import (
     parse_match_basic,
     parse_match_stats_basic,
     parse_tournament_schedule,
+    parse_transfers,
 )
 
 
@@ -150,6 +151,9 @@ def _handle_non_paginated_endpoint(
 
     elif source == "contestant_participation":
         yield from extract_contestant_participation(data)
+
+    elif source == "transfers":
+        yield from parse_transfers(data)
 
     else:
         # Fallback for any other non-paginated source
