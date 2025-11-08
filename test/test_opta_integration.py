@@ -191,7 +191,7 @@ def test_matches_contestant_dates():
     flow = opta.matches(
         tournament_calendar_uuid=VALID_TMCL_UUID,
         contestant_uuid=VALID_CONTESTANT_UUID,
-        date_from="2025-09-01",
+        date_to="2025-09-01",
         date_from="2025-10-01",
     )
     data = flow.collect()
