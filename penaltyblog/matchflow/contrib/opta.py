@@ -386,12 +386,25 @@ class Opta:
         """
         date_range_str = None
         if date_from and date_to:
+
+            def _to_datetime(d):
+                if isinstance(d, datetime):
+                    return d
+                if isinstance(d, date):
+                    return datetime.combine(d, datetime.min.time())
+                if isinstance(d, str):
+                    if "T" in d:
+                        return datetime.fromisoformat(d.replace("Z", ""))
+                    else:
+                        return datetime.strptime(d, "%Y-%m-%d")
+                raise TypeError(f"Unsupported date type: {type(d)}")
+
+            if _to_datetime(date_from) > _to_datetime(date_to):
+                raise ValueError("'date_from' cannot be after 'date_to'")
+
             date_range_str = f"[{_format_opta_datetime(date_from)} TO {_format_opta_datetime(date_to)}]"
         elif date_from or date_to:
             raise ValueError("Both 'date_from' and 'date_to' must be provided")
-
-        if delta_timestamp:
-            delta_timestamp = _format_opta_datetime(delta_timestamp)
 
         return self._step(
             "matches_basic",
