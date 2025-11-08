@@ -206,6 +206,22 @@ def test_matches_contestant_date_str():
 
 
 @pytest.mark.vcr
+def test_matches_lineups():
+    flow = opta.matches(
+        tournament_calendar_uuid=VALID_TMCL_UUID,
+        contestant_uuid=VALID_CONTESTANT_UUID,
+        date_from="2025-09-01",
+        date_to="2025-10-01",
+    )
+    data = flow.collect()
+
+    assert data is not None
+    assert isinstance(data, list)
+    assert len(data) == 3
+    assert "lineups" in data[0]
+
+
+@pytest.mark.vcr
 def test_matches_contestant_date_error():
     with pytest.raises(ValueError):
         flow = opta.matches(
