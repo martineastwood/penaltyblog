@@ -10,22 +10,33 @@ if TYPE_CHECKING:
 
 
 # --- Helper for formatting dates ---
-def _format_opta_datetime(dt: Union[str, datetime]) -> str:
+def _format_opta_datetime(dt: Union[str, datetime, date]) -> str:
     """
-    Format a datetime object or string into Opta's required Z-format.
+    Format a datetime/date object or string into Opta's required Z-format.
+
+    If a date or date string is provided, it is assumed to be the start of the day (00:00:00).
 
     Parameters
     ----------
-    dt : str or datetime
-            The datetime object or string to format.
+    dt : str, datetime, or date
+        The datetime/date object or string to format.
 
     Returns
     -------
     str
-            The formatted datetime string in ISO 8601 format with 'Z' suffix.
+        The formatted datetime string in ISO 8601 format with 'Z' suffix.
     """
     if isinstance(dt, datetime):
         return dt.strftime("%Y-%m-%dT%H:%M:%SZ")
+    if isinstance(dt, date):  # Must be before str check
+        return dt.strftime("%Y-%m-%dT00:00:00Z")
+    if isinstance(dt, str):
+        if "T" not in dt:
+            try:
+                datetime.strptime(dt, "%Y-%m-%d")
+                return f"{dt}T00:00:00Z"
+            except ValueError:
+                pass  # Not a date string, fall through and return as is
     return dt
 
 
@@ -321,9 +332,9 @@ class Opta:
         contestant_uuid: Optional[str] = None,
         opponent_uuid: Optional[str] = None,
         contestant_position: Optional[Literal["home", "away"]] = None,
-        date_from: Optional[Union[str, datetime]] = None,
-        date_to: Optional[Union[str, datetime]] = None,
-        delta_timestamp: Optional[Union[str, datetime]] = None,
+        date_from: Optional[Union[str, datetime, date]] = None,
+        date_to: Optional[Union[str, datetime, date]] = None,
+        delta_timestamp: Optional[Union[str, datetime, date]] = None,
         live: bool = False,
         lineups: bool = False,
         use_opta_names: bool = False,
@@ -349,11 +360,11 @@ class Opta:
             Filter for matches where contestant_uuid played opponent_uuid (maps to ctst2).
         contestant_position : Literal["home", "away"], optional
             Filter for matches where contestant_uuid played home or away.
-        date_from : str or datetime, optional
+        date_from : str, datetime, or date, optional
             Start of date range.
-        date_to : str or datetime, optional
+        date_to : str, datetime, or date, optional
             End of date range.
-        delta_timestamp : str or datetime, optional
+        delta_timestamp : str, datetime, or date, optional
             Get updates since this time.
         live : bool, optional
             Request live data (default: False).
