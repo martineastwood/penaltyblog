@@ -379,6 +379,9 @@ class Opta:
         elif date_from or date_to:
             raise ValueError("Both 'date_from' and 'date_to' must be provided")
 
+        if delta_timestamp:
+            delta_timestamp = _format_opta_datetime(delta_timestamp)
+
         return self._step(
             "matches_basic",
             fixture_uuids=fixture_uuids,
