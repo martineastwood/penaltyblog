@@ -1,4 +1,6 @@
 # tests/test_opta_integration.py
+from datetime import datetime
+
 import pytest
 
 from penaltyblog.matchflow.contrib.opta import opta
@@ -187,7 +189,7 @@ def test_matches_contestant_home():
 
 
 @pytest.mark.vcr
-def test_matches_contestant_dates():
+def test_matches_contestant_date_str():
     flow = opta.matches(
         tournament_calendar_uuid=VALID_TMCL_UUID,
         contestant_uuid=VALID_CONTESTANT_UUID,
@@ -198,7 +200,24 @@ def test_matches_contestant_dates():
 
     assert data is not None
     assert isinstance(data, list)
-    assert len(data) == 19
+    assert len(data) == 3
+    assert "matchInfo" in data[0]
+    assert "liveData" in data[0]
+
+
+@pytest.mark.vcr
+def test_matches_contestant_date_dt():
+    flow = opta.matches(
+        tournament_calendar_uuid=VALID_TMCL_UUID,
+        contestant_uuid=VALID_CONTESTANT_UUID,
+        date_from=datetime(2025, 9, 1),
+        date_to=datetime(2025, 10, 1),
+    )
+    data = flow.collect()
+
+    assert data is not None
+    assert isinstance(data, list)
+    assert len(data) == 3
     assert "matchInfo" in data[0]
     assert "liveData" in data[0]
 
