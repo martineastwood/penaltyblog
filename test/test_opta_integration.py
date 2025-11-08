@@ -210,6 +210,8 @@ def test_matches_lineups():
     flow = opta.matches(
         tournament_calendar_uuid=VALID_TMCL_UUID,
         contestant_uuid=VALID_CONTESTANT_UUID,
+        lineups=True,
+        live=True,
         date_from="2025-09-01",
         date_to="2025-10-01",
     )
@@ -218,7 +220,7 @@ def test_matches_lineups():
     assert data is not None
     assert isinstance(data, list)
     assert len(data) == 3
-    assert "lineups" in data[0]
+    assert "lineUp" in data[0]["liveData"]
 
 
 @pytest.mark.vcr

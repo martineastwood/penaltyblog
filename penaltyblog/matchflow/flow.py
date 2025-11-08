@@ -5,6 +5,7 @@ Flow class for handling a streaming data pipeline.
 import inspect
 import itertools
 import json
+import urllib.parse
 from pprint import pprint
 from time import perf_counter
 from typing import (
@@ -971,6 +972,45 @@ class Flow:
                 tablefmt="github",
             )
         )
+
+    def get_url(self) -> str:
+        """
+        For a Flow created from an API source (e.g. Opta),
+        construct and return the URL that will be called.
+        This is a debugging utility and may not work for all flows.
+        """
+        if not self.plan:
+            raise ValueError("Cannot get URL for an empty plan.")
+
+        step = self.plan[0]
+        op = step.get("op")
+
+        if op == "from_opta":
+            from .steps.opta.endpoints import OptaEndpointBuilder
+
+            source = step.get("source")
+            args = step.get("args", {})
+            creds = args.get("creds", {})
+
+            auth_key = creds.get("auth_key", "YOUR_AUTH_KEY")
+            rt_mode = creds.get("rt_mode", "b")
+
+            endpoint_builder = OptaEndpointBuilder(
+                base_url=step["base_url"],
+                asset_type=step["asset_type"],
+                auth_key=auth_key,
+            )
+
+            url, params = endpoint_builder.build_request_details(source, args)
+            params["_rt"] = rt_mode
+
+            query_string = urllib.parse.urlencode(params)
+            return f"{url}?{query_string}"
+
+        elif op == "from_statsbomb":
+            raise NotImplementedError("get_url() is not yet implemented for Statsbomb.")
+        else:
+            raise ValueError(f"get_url() is not supported for flows with op '{op}'.")
 
 
 from .contrib.opta import opta as opta_module
