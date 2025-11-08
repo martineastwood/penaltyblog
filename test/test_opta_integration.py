@@ -157,6 +157,20 @@ def test_matches_multiple_fixtures():
 
 
 @pytest.mark.vcr
+def test_matches_contestant():
+    flow = opta.matches(
+        tournament_calendar_uuid=VALID_TMCL_UUID, contestant_uuid=VALID_CONTESTANT_UUID
+    )
+    data = flow.collect()
+
+    assert data is not None
+    assert isinstance(data, list)
+    assert len(data) == 38
+    assert "matchInfo" in data[0]
+    assert "liveData" in data[0]
+
+
+@pytest.mark.vcr
 def test_fetch_match_events():
     # Use a real match UUID you have access to this week
     MATCH_UUID = "zhs8gg1hvcuqvhkk2itb54pg"
