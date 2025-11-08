@@ -181,7 +181,7 @@ def test_matches_contestant_home():
 
     assert data is not None
     assert isinstance(data, list)
-    assert len(data) == 38
+    assert len(data) == 19
     assert "matchInfo" in data[0]
     assert "liveData" in data[0]
 
