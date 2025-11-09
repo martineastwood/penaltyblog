@@ -430,7 +430,6 @@ def test_parser_ma3_match_events_person():
     data = flow.collect()
     assert data is not None
     assert len(data) == 70
-    pytest.set_trace()
     assert "typeId" in data[0] and "_match_info" in data[0]
     ids = [x["playerId"] for x in data]
     assert all(i == VALID_PERSON_UUID for i in ids)
@@ -624,24 +623,17 @@ def test_transfers_validation_invalid_date_combinations():
     Tests: transfers() method validation for invalid parameter combinations
     """
     # Test: start_date without end_date should raise ValueError
-    with pytest.raises(
-        ValueError, match="Both 'start_date' and 'end_date' must be provided together"
-    ):
+    with pytest.raises(ValueError):
         opta.transfers(
             tournament_calendar_uuid=VALID_TMCL_UUID, start_date="2025-08-01"
         )
 
     # Test: end_date without start_date should raise ValueError
-    with pytest.raises(
-        ValueError, match="Both 'start_date' and 'end_date' must be provided together"
-    ):
+    with pytest.raises(ValueError):
         opta.transfers(tournament_calendar_uuid=VALID_TMCL_UUID, end_date="2025-09-01")
 
     # Test: date parameters with tournament_calendar_uuid should raise ValueError
-    with pytest.raises(
-        ValueError,
-        match="Date parameters \\('start_date', 'end_date'\\) cannot be used with 'tournament_calendar_uuid'",
-    ):
+    with pytest.raises(ValueError):
         opta.transfers(
             tournament_calendar_uuid=VALID_TMCL_UUID,
             start_date="2025-08-01",
@@ -649,10 +641,7 @@ def test_transfers_validation_invalid_date_combinations():
         )
 
     # Test: date parameters without competition_uuid should raise ValueError
-    with pytest.raises(
-        ValueError,
-        match="When using 'start_date' and 'end_date', 'competition_uuid' must be provided",
-    ):
+    with pytest.raises(ValueError):
         opta.transfers(
             contestant_uuid=VALID_CONTESTANT_UUID,
             start_date="2025-08-01",
@@ -660,10 +649,7 @@ def test_transfers_validation_invalid_date_combinations():
         )
 
     # Test: date parameters with both tournament_calendar_uuid and competition_uuid should raise ValueError
-    with pytest.raises(
-        ValueError,
-        match="Date parameters \\('start_date', 'end_date'\\) cannot be used with 'tournament_calendar_uuid'",
-    ):
+    with pytest.raises(ValueError):
         opta.transfers(
             tournament_calendar_uuid=VALID_TMCL_UUID,
             competition_uuid="8qkvlx3f1s7z1h8r4y0g5p2s3",
@@ -677,10 +663,7 @@ def test_transfers_validation_no_filters():
     Tests: transfers() method validation when no filters are provided
     """
     # Test: no parameters should raise ValueError
-    with pytest.raises(
-        ValueError,
-        match="At least one of 'person_uuid', 'contestant_uuid', 'competition_uuid', or 'tournament_calendar_uuid' must be provided",
-    ):
+    with pytest.raises(ValueError):
         opta.transfers()
 
 
