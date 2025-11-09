@@ -223,6 +223,9 @@ def test_matches_lineups():
     assert "lineUp" in data[0]["liveData"]
 
 
+###
+
+
 @pytest.mark.vcr
 def test_matches_contestant_date_error():
     with pytest.raises(ValueError):
@@ -253,6 +256,57 @@ def test_matches_contestant_date_dt():
 
 
 @pytest.mark.vcr
+def test_parser_ma1_match_basic():
+    """
+    Tests: _handle_non_paginated_endpoint -> parse_match_basic
+    """
+    flow = opta.match(fixture_uuid=VALID_FIXTURE_UUID)
+    data = flow.collect()
+    assert data is not None
+    assert len(data) == 1
+    assert "matchInfo" in data[0]
+
+
+@pytest.mark.vcr
+def test_parser_ma1_match_lineups():
+    """
+    Tests: _handle_non_paginated_endpoint -> parse_match_basic
+    """
+    flow = opta.match(fixture_uuid=VALID_FIXTURE_UUID, lineups=True, live=True)
+    data = flow.collect()
+    assert data is not None
+    assert len(data) == 1
+    assert "matchInfo" in data[0]
+    assert "lineUp" in data[0]["liveData"]
+
+
+@pytest.mark.vcr
+def test_parser_ma1_match_not_lineups():
+    """
+    Tests: _handle_non_paginated_endpoint -> parse_match_basic
+    """
+    flow = opta.match(fixture_uuid=VALID_FIXTURE_UUID, lineups=False, live=True)
+    data = flow.collect()
+    assert data is not None
+    assert len(data) == 1
+    assert "matchInfo" in data[0]
+    assert "lineUp" not in data[0]["liveData"]
+
+
+@pytest.mark.vcr
+def test_parser_ma1_match_not_live():
+    """
+    Tests: _handle_non_paginated_endpoint -> parse_match_basic
+    """
+    flow = opta.match(fixture_uuid=VALID_FIXTURE_UUID, live=False)
+    data = flow.collect()
+    assert data is not None
+    assert len(data) == 1
+    assert "matchInfo" in data[0]
+    assert "liveData" not in data[0]
+
+
+@pytest.mark.vcr
 def test_fetch_match_events():
     # Use a real match UUID you have access to this week
     MATCH_UUID = "zhs8gg1hvcuqvhkk2itb54pg"
@@ -278,18 +332,6 @@ def test_parser_ma0_tournament_schedule():
     assert len(data) > 0
     # Check for your parsed keys
     assert "_competition" in data[0] and "_tournamentCalendar" in data[0]
-
-
-@pytest.mark.vcr
-def test_parser_ma1_match_basic():
-    """
-    Tests: _handle_non_paginated_endpoint -> parse_match_basic
-    """
-    flow = opta.match(fixture_uuid=VALID_FIXTURE_UUID)
-    data = flow.collect()
-    assert data is not None
-    assert len(data) == 1
-    assert "matchInfo" in data[0]
 
 
 @pytest.mark.vcr
