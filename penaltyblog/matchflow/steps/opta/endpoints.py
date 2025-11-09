@@ -152,7 +152,7 @@ class OptaEndpointBuilder:
         param_mapping = PARAMETER_MAPPINGS.get(source, {})
 
         # Handle special cases
-        if source == "match_stats_basic" and isinstance(
+        if source in ["match_stats_basic", "matches_basic"] and isinstance(
             args.get("fixture_uuids"), list
         ):
             fx_uuids = args.get("fixture_uuids")
