@@ -9,6 +9,7 @@ VALID_TMCL_UUID = "51r6ph2woavlbbpk8f29nynf8"
 VALID_FIXTURE_UUID = "zhs8gg1hvcuqvhkk2itb54pg"
 VALID_FIXTURE_UUID2 = "102dto55773ex3p58gp94ql90"
 VALID_CONTESTANT_UUID = "c8h9bw1l82s06h77xxrelzhur"
+VALID_CONTESTANT_UUID2 = "1pse9ta7a45pi2w2grjim70ge"
 VALID_PERSON_UUID = "5ilkkfbsss0bxd6ttdlqg0uz9"
 VALID_VENUE_UUID = "bxpq91vq4x9r3q6eq3d0bwjuy"
 VALID_AREA_UUID = "7yck0z0f9rlpeyatanjc1ylzp"
@@ -479,9 +480,26 @@ def test_parser_tm16_contestant_participation():
     flow = opta.contestant_participation(contestant_uuid=VALID_CONTESTANT_UUID)
     data = flow.collect()
     assert data is not None
-    pytest.set_trace()
-    assert len(data) > 0
+    assert len(data) == 1
     assert "id" in data[0] and "name" in data[0]
+    assert data[0]["id"] == VALID_CONTESTANT_UUID
+
+
+@pytest.mark.vcr
+def test_parser_tm16_contestant_participation_multiple():
+    """
+    Tests: _handle_non_paginated_endpoint -> extract_contestant_participation
+    """
+    flow = opta.contestant_participation(
+        contestant_uuid=[VALID_CONTESTANT_UUID, VALID_CONTESTANT_UUID2]
+    )
+    data = flow.collect()
+    assert data is not None
+    assert len(data) == 2
+    assert "id" in data[0] and "name" in data[0]
+    assert data[0]["id"] == VALID_CONTESTANT_UUID
+    ids = {x["id"] for x in data}
+    assert ids == set([VALID_CONTESTANT_UUID, VALID_CONTESTANT_UUID2])
 
 
 @pytest.mark.vcr
