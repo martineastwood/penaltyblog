@@ -508,7 +508,7 @@ def test_dynamic_pagination_transfers_paginated():
     """
     flow = opta.transfers(contestant_uuid=VALID_CONTESTANT_UUID)
     data = flow.collect()
-    pytest.set_trace()
+    assert len(data) > 300
     assert data is not None
     assert "id" in data[0]
 
@@ -521,6 +521,7 @@ def test_dynamic_pagination_transfers_non_paginated():
     """
     flow = opta.transfers(person_uuid=VALID_PERSON_UUID)
     data = flow.collect()
+    pytest.set_trace()
 
     assert data is not None
     assert "id" in data[0]
