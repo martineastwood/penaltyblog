@@ -412,6 +412,7 @@ def test_parser_ma3_match_events_contestant():
         fixture_uuid=VALID_FIXTURE_UUID, contestant_uuid=VALID_CONTESTANT_UUID
     )
     data = flow.collect()
+    pytest.set_trace()
     assert data is not None
     assert len(data) == 957
     assert "typeId" in data[0] and "_match_info" in data[0]
@@ -424,10 +425,13 @@ def test_parser_ma3_match_events_person():
     """
     flow = opta.events(fixture_uuid=VALID_FIXTURE_UUID, person_uuid=VALID_PERSON_UUID)
     data = flow.collect()
-    pytest.set_trace()
     assert data is not None
-    assert len(data) == 957
+    assert len(data) == 70
     assert "typeId" in data[0] and "_match_info" in data[0]
+
+    names = [x["playerName"] for x in data]
+    len(set(names)) == 1
+    assert names[0] == "Mohamed Salah"
 
 
 @pytest.mark.vcr
