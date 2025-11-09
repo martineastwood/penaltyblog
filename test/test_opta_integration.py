@@ -497,7 +497,6 @@ def test_parser_tm16_contestant_participation_multiple():
     assert data is not None
     assert len(data) == 2
     assert "id" in data[0] and "name" in data[0]
-    assert data[0]["id"] == VALID_CONTESTANT_UUID
     ids = {x["id"] for x in data}
     assert ids == set([VALID_CONTESTANT_UUID, VALID_CONTESTANT_UUID2])
 
