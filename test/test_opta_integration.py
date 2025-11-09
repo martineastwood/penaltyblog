@@ -447,8 +447,8 @@ def test_parser_tm4_player_season_stats():
     assert len(data) > 0
     assert "id" in data[0]
     assert "_competition" in data[0]
-    ids = [x["playerId"] for x in data]
-    assert all(i == VALID_PERSON_UUID for i in ids)
+    ids = [x["contestant_uuid"] for x in data]
+    assert all(i == VALID_CONTESTANT_UUID for i in ids)
 
 
 @pytest.mark.vcr
