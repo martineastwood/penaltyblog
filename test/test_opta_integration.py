@@ -412,10 +412,11 @@ def test_parser_ma3_match_events_contestant():
         fixture_uuid=VALID_FIXTURE_UUID, contestant_uuid=VALID_CONTESTANT_UUID
     )
     data = flow.collect()
-    pytest.set_trace()
     assert data is not None
     assert len(data) == 957
     assert "typeId" in data[0] and "_match_info" in data[0]
+    ids = [x["contestantId"] for x in data]
+    assert all(i == VALID_CONTESTANT_UUID for i in ids)
 
 
 @pytest.mark.vcr
@@ -427,11 +428,10 @@ def test_parser_ma3_match_events_person():
     data = flow.collect()
     assert data is not None
     assert len(data) == 70
+    pytest.set_trace()
     assert "typeId" in data[0] and "_match_info" in data[0]
-
-    names = [x["playerName"] for x in data]
-    len(set(names)) == 1
-    assert names[0] == "Mohamed Salah"
+    ids = [x["personId"] for x in data]
+    assert all(i == VALID_PERSON_UUID for i in ids)
 
 
 @pytest.mark.vcr
