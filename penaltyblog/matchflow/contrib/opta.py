@@ -846,13 +846,13 @@ class Opta:
         contestant_uuid : str, optional
             Filter by a specific contestant (team) UUID.
         competition_uuid : str, optional
-            Filter by a specific competition UUID. (Recommended to use with dates).
+            Filter by a specific competition UUID. Required when using date parameters.
         tournament_calendar_uuid : str, optional
-            Filter by a specific tournament calendar UUID.
+            Filter by a specific tournament calendar UUID. Cannot be used with date parameters.
         start_date : str, datetime, or date, optional
-            The start date for filtering (YYYY-MM-DD). Requires 'end_date'.
+            The start date for filtering (YYYY-MM-DD). Requires 'end_date' and 'competition_uuid'.
         end_date : str, datetime, or date, optional
-            The end date for filtering (YYYY-MM-DD). Requires 'start_date'.
+            The end date for filtering (YYYY-MM-DD). Requires 'start_date' and 'competition_uuid'.
         use_opta_names : bool, optional
             Request 'en-op' locale for Opta-specific names (default: False).
         creds : dict, optional
@@ -871,7 +871,7 @@ class Opta:
         ------
         ValueError
             If parameter combinations are invalid (e.g., no filters,
-            or partial date range).
+            partial date range, or invalid date parameter usage).
         """
         if not any(
             [
@@ -895,6 +895,20 @@ class Opta:
             raise ValueError(
                 "Both 'start_date' and 'end_date' must be provided together."
             )
+
+        # Validate parameter combinations according to API documentation
+        if start_date and end_date:
+            # Date parameters can only be used with competition_uuid, not tournament_calendar_uuid
+            if not competition_uuid:
+                raise ValueError(
+                    "When using 'start_date' and 'end_date', 'competition_uuid' must be provided. "
+                    "Date parameters cannot be used with 'tournament_calendar_uuid'."
+                )
+            if tournament_calendar_uuid:
+                raise ValueError(
+                    "Date parameters ('start_date', 'end_date') cannot be used with "
+                    "'tournament_calendar_uuid'. Use 'competition_uuid' instead."
+                )
 
         return self._step(
             "transfers",
