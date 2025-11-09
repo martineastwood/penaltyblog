@@ -447,7 +447,7 @@ def test_parser_tm4_player_season_stats():
     assert len(data) > 0
     assert "id" in data[0]
     assert "_competition" in data[0]
-    ids = [x["contestant_uuid"] for x in data]
+    ids = [x["contestantId"] for x in data]
     assert all(i == VALID_CONTESTANT_UUID for i in ids)
 
 
