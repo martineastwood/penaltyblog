@@ -508,7 +508,20 @@ def test_dynamic_pagination_transfers_paginated():
     """
     flow = opta.transfers(contestant_uuid=VALID_CONTESTANT_UUID)
     data = flow.collect()
-    assert len(data) > 300
+    assert len(data) == 330
+    assert data is not None
+    assert "id" in data[0]
+
+
+@pytest.mark.vcr
+def test_dynamic_pagination_transfers_paginated_tmcl():
+    """
+    Tests: is_paginated('transfers', ...) == True
+    """
+    flow = opta.transfers(tournament_calendar_uuid=VALID_TMCL_UUID)
+    data = flow.collect()
+    pytest.set_trace()
+    assert len(data) == 330
     assert data is not None
     assert "id" in data[0]
 
@@ -521,12 +534,12 @@ def test_dynamic_pagination_transfers_non_paginated():
     """
     flow = opta.transfers(person_uuid=VALID_PERSON_UUID)
     data = flow.collect()
-    pytest.set_trace()
-
     assert data is not None
-    assert "id" in data[0]
+    assert len(data) == 1
+    assert data[0]["id"] == VALID_PERSON_UUID
     assert "firstName" in data[0]
     assert "lastName" in data[0]
+    assert len(data[0]["membership"]) > 0
 
 
 @pytest.mark.vcr
