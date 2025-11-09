@@ -444,12 +444,11 @@ def test_parser_tm4_player_season_stats():
     )
     data = flow.collect()
     assert data is not None
-    assert len(data) > 0
+    assert len(data) == 28
     assert "id" in data[0]
     assert "_competition" in data[0]
-    pytest.set_trace()
-    ids = [x["contestantId"] for x in data]
-    assert all(i == VALID_CONTESTANT_UUID for i in ids)
+    ids = [x["_tournamentCalendar"]["id"] for x in data]
+    assert all(i == VALID_TMCL_UUID for i in ids)
 
 
 @pytest.mark.vcr
@@ -468,6 +467,8 @@ def test_parser_tm4_team_season_stats():
     assert "name" in data[0]
     assert "_competition" in data[0]
     assert "_tournamentCalendar" in data[0]
+    ids = [x["_tournamentCalendar"]["id"] for x in data]
+    assert all(i == VALID_TMCL_UUID for i in ids)
 
 
 @pytest.mark.vcr
