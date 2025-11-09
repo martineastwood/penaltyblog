@@ -470,7 +470,7 @@ class Opta:
             optimize=optimize,
         )
 
-    def match_player_stats(
+    def match_stats_player(
         self,
         fixture_uuids: Union[str, List[str]],
         use_opta_names: bool = False,
@@ -510,7 +510,7 @@ class Opta:
             optimize=optimize,
         )
 
-    def match_team_stats(
+    def match_stats_team(
         self,
         fixture_uuids: Union[str, List[str]],
         use_opta_names: bool = False,
