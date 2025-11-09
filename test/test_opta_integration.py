@@ -387,8 +387,8 @@ def test_parser_ma0_tournament_schedule():
     data = flow.collect()
     assert data is not None
     assert len(data) > 0
-    # Check for your parsed keys
-    assert "_competition" in data[0] and "_tournamentCalendar" in data[0]
+    assert "_competition" in data[0]
+    assert "_tournamentCalendar" in data[0]
 
 
 @pytest.mark.vcr
@@ -399,8 +399,21 @@ def test_parser_ma3_match_events():
     flow = opta.events(fixture_uuid=VALID_FIXTURE_UUID)
     data = flow.collect()
     assert data is not None
-    assert len(data) > 100
-    # Check for your parsed keys
+    assert len(data) > 400
+    assert "typeId" in data[0] and "_match_info" in data[0]
+
+
+@pytest.mark.vcr
+def test_parser_ma3_match_events_contestant():
+    """
+    Tests: _handle_non_paginated_endpoint -> extract_match_events
+    """
+    flow = opta.events(
+        fixture_uuid=VALID_FIXTURE_UUID, contestant_uuid=VALID_CONTESTANT_UUID
+    )
+    data = flow.collect()
+    assert data is not None
+    assert 100 < len(data) < 400
     assert "typeId" in data[0] and "_match_info" in data[0]
 
 
