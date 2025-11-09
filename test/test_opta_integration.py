@@ -151,6 +151,8 @@ def test_matches_multiple_fixtures():
     flow = opta.matches(fixture_uuids=[VALID_FIXTURE_UUID, VALID_FIXTURE_UUID2])
     data = flow.collect()
 
+    pytest.set_trace()
+
     assert data is not None
     assert isinstance(data, list)
     assert len(data) == 2
