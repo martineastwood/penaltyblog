@@ -335,7 +335,7 @@ class Opta:
         date_from: Optional[Union[str, datetime, date]] = None,
         date_to: Optional[Union[str, datetime, date]] = None,
         delta_timestamp: Optional[Union[str, datetime, date]] = None,
-        live: bool = False,
+        live: bool = True,
         lineups: bool = False,
         use_opta_names: bool = False,
         creds: Optional[dict] = None,
