@@ -202,13 +202,13 @@ class OptaEndpointBuilder:
         elif source == "matches_basic":
             for param in ["live", "lineups"]:
                 if param in args and args[param] is not None:
-                    params[param] = "yes" if args[param] else "no"
+                    params[param] = args[param]
 
         elif source in ["match_basic", "match_stats_basic", "match_events"]:
             if "live" in args and args["live"] is not None:
-                params["live"] = "yes" if args["live"] else "no"
+                params["live"] = args["live"]
             if "lineups" in args and args["lineups"] is not None:
-                params["lineups"] = "yes" if args["lineups"] else "no"
+                params["lineups"] = args["lineups"]
 
         elif source == "player_season_stats" or source == "team_season_stats":
             if "detailed" in args and args["detailed"] is not None:
