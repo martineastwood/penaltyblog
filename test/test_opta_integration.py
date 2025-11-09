@@ -399,8 +399,7 @@ def test_parser_ma3_match_events():
     flow = opta.events(fixture_uuid=VALID_FIXTURE_UUID)
     data = flow.collect()
     assert data is not None
-    pytest.set_trace()
-    assert len(data) > 400
+    assert len(data) == 1733
     assert "typeId" in data[0] and "_match_info" in data[0]
 
 
@@ -413,6 +412,7 @@ def test_parser_ma3_match_events_contestant():
         fixture_uuid=VALID_FIXTURE_UUID, contestant_uuid=VALID_CONTESTANT_UUID
     )
     data = flow.collect()
+    pytest.set_trace()
     assert data is not None
     assert 100 < len(data) < 400
     assert "typeId" in data[0] and "_match_info" in data[0]
