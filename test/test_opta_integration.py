@@ -347,6 +347,23 @@ def test_parser_ma2_match_stats_teams():
 
 
 @pytest.mark.vcr
+def test_parser_ma2_match_stats_teams_multiple():
+    """
+    Tests: _handle_non_paginated_endpoint -> parse_match_stats_team
+    Logic: Must test the new match_stats_team method.
+    """
+    flow = opta.match_stats_team(
+        fixture_uuids=[VALID_FIXTURE_UUID, VALID_FIXTURE_UUID2]
+    )
+    data = flow.collect()
+
+    assert data is not None
+    assert len(data) == 4  # Should be one record per team
+    # Check for keys from extract_team_stats
+    assert "contestantId" in data[0] and "_match_uuid" in data[0]
+
+
+@pytest.mark.vcr
 def test_parser_ma0_tournament_schedule():
     """
     Tests: _handle_non_paginated_endpoint -> parse_tournament_schedule
