@@ -412,9 +412,21 @@ def test_parser_ma3_match_events_contestant():
         fixture_uuid=VALID_FIXTURE_UUID, contestant_uuid=VALID_CONTESTANT_UUID
     )
     data = flow.collect()
+    assert data is not None
+    assert len(data) == 957
+    assert "typeId" in data[0] and "_match_info" in data[0]
+
+
+@pytest.mark.vcr
+def test_parser_ma3_match_events_person():
+    """
+    Tests: _handle_non_paginated_endpoint -> extract_match_events
+    """
+    flow = opta.events(fixture_uuid=VALID_FIXTURE_UUID, person_uuid=VALID_PERSON_UUID)
+    data = flow.collect()
     pytest.set_trace()
     assert data is not None
-    assert 100 < len(data) < 400
+    assert len(data) == 957
     assert "typeId" in data[0] and "_match_info" in data[0]
 
 
