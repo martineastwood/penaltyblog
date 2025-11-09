@@ -430,7 +430,7 @@ def test_parser_ma3_match_events_person():
     assert len(data) == 70
     pytest.set_trace()
     assert "typeId" in data[0] and "_match_info" in data[0]
-    ids = [x["personId"] for x in data]
+    ids = [x["playerId"] for x in data]
     assert all(i == VALID_PERSON_UUID for i in ids)
 
 
@@ -445,9 +445,10 @@ def test_parser_tm4_player_season_stats():
     data = flow.collect()
     assert data is not None
     assert len(data) > 0
-    # Check for keys from extract_season_player_stats
     assert "id" in data[0]
     assert "_competition" in data[0]
+    ids = [x["playerId"] for x in data]
+    assert all(i == VALID_PERSON_UUID for i in ids)
 
 
 @pytest.mark.vcr
@@ -461,8 +462,7 @@ def test_parser_tm4_team_season_stats():
     data = flow.collect()
 
     assert data is not None
-    assert len(data) == 1  # Should be one record for the team
-    # Check for keys from extract_season_team_stats
+    assert len(data) == 1
     assert "id" in data[0]
     assert "name" in data[0]
     assert "_competition" in data[0]
@@ -478,7 +478,6 @@ def test_parser_tm16_contestant_participation():
     data = flow.collect()
     assert data is not None
     assert len(data) > 0
-    # Check parser logic
     assert "id" in data[0] and "name" in data[0]
 
 
