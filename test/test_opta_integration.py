@@ -332,6 +332,21 @@ def test_parser_ma2_match_stats_players():
 
 
 @pytest.mark.vcr
+def test_parser_ma2_match_stats_players_multiple():
+    """
+    Tests: _handle_non_paginated_endpoint -> parse_match_stats_player
+    Logic: Must test the new match_stats_player method.
+    """
+    flow = opta.match_stats_player(
+        fixture_uuids=[VALID_FIXTURE_UUID, VALID_FIXTURE_UUID2]
+    )
+    data = flow.collect()
+    assert data is not None
+    assert len(data) > 4
+    assert "playerId" in data[0] and "_match_uuid" in data[0]
+
+
+@pytest.mark.vcr
 def test_parser_ma2_match_stats_teams():
     """
     Tests: _handle_non_paginated_endpoint -> parse_match_stats_team
