@@ -520,8 +520,24 @@ def test_dynamic_pagination_transfers_paginated_tmcl():
     """
     flow = opta.transfers(tournament_calendar_uuid=VALID_TMCL_UUID)
     data = flow.collect()
+    assert len(data) == 707
+    assert data is not None
+    assert "id" in data[0]
+
+
+@pytest.mark.vcr
+def test_dynamic_pagination_transfers_paginated_dates():
+    """
+    Tests: is_paginated('transfers', ...) == True
+    """
+    flow = opta.transfers(
+        tournament_calendar_uuid=VALID_TMCL_UUID,
+        start_date="2025-08-01",
+        end_date="2025-09-01",
+    )
+    data = flow.collect()
     pytest.set_trace()
-    assert len(data) == 330
+    assert len(data) == 707
     assert data is not None
     assert "id" in data[0]
 
