@@ -134,11 +134,10 @@ def test_opta_matches_plan_params():
     assert flow.plan[0]["args"] == expected_args
 
 
-def test_opta_match_stats_plan():
-    """Tests that the 'match_stats' method builds the correct plan."""
-    flow = Opta().match_stats(
+def test_opta_match_stats_player_plan():
+    """Tests that the 'match_stats_player' method builds the correct plan."""
+    flow = Opta().match_stats_player(
         fixture_uuids=["fx123", "fx456"],
-        include_players=True,
         use_opta_names=True,
     )
 
@@ -151,10 +150,40 @@ def test_opta_match_stats_plan():
     }
 
     assert flow.plan[0]["op"] == "from_opta"
-    assert flow.plan[0]["source"] == "match_stats_basic"
+    assert flow.plan[0]["source"] == "match_stats_player"
     assert flow.plan[0]["args"] == expected_args
 
-    flow = Opta().match_stats(fixture_uuids="fx123", include_players=False)
+    flow = Opta().match_stats_player(fixture_uuids="fx123")
+    expected_args = {
+        "fixture_uuids": "fx123",
+        "people": "yes",
+        "_lcl": None,
+        "creds": opta_instance.DEFAULT_CREDS,
+        "proxies": None,
+    }
+    assert flow.plan[0]["args"] == expected_args
+
+
+def test_opta_match_stats_team_plan():
+    """Tests that the 'match_stats_team' method builds the correct plan."""
+    flow = Opta().match_stats_team(
+        fixture_uuids=["fx123", "fx456"],
+        use_opta_names=True,
+    )
+
+    expected_args = {
+        "fixture_uuids": ["fx123", "fx456"],
+        "people": "no",
+        "_lcl": "en-op",
+        "creds": opta_instance.DEFAULT_CREDS,
+        "proxies": None,
+    }
+
+    assert flow.plan[0]["op"] == "from_opta"
+    assert flow.plan[0]["source"] == "match_stats_team"
+    assert flow.plan[0]["args"] == expected_args
+
+    flow = Opta().match_stats_team(fixture_uuids="fx123")
     expected_args = {
         "fixture_uuids": "fx123",
         "people": "no",

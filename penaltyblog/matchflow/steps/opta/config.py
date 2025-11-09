@@ -11,7 +11,8 @@ NON_PAGINATED_SOURCES: Set[str] = {
     "area_specific",
     "tournament_schedule",  # MA0
     "match_basic",  # MA1 (Single)
-    "match_stats_basic",  # MA2 (Single or Multi via fx)
+    "match_stats_player",  # MA2 (Player stats)
+    "match_stats_team",  # MA2 (Team stats)
     "match_events",  # MA3
     "player_season_stats",  # TM4
     "team_season_stats",  # TM4
@@ -54,7 +55,11 @@ ENDPOINT_CONFIGS: Dict[str, Dict] = {
     "match_basic": {
         "path_template": "/match/{auth_key}/{fixture_uuid}",
     },
-    "match_stats_basic": {
+    "match_stats_player": {
+        "path_template": "/matchstats/{auth_key}",
+        "supports_multi": True,  # Can handle multiple fixture_uuids via fx param
+    },
+    "match_stats_team": {
         "path_template": "/matchstats/{auth_key}",
         "supports_multi": True,  # Can handle multiple fixture_uuids via fx param
     },
@@ -120,9 +125,12 @@ PARAMETER_MAPPINGS: Dict[str, Dict[str, str]] = {
     "match_basic": {
         "use_opta_names": "_lcl",
     },
-    "match_stats_basic": {
+    "match_stats_player": {
         "fixture_uuids": "fx",
-        "include_players": "people",
+        "use_opta_names": "_lcl",
+    },
+    "match_stats_team": {
+        "fixture_uuids": "fx",
         "use_opta_names": "_lcl",
     },
     "match_events": {
@@ -212,7 +220,8 @@ RESPONSE_PARSERS: Dict[str, str] = {
     "area_specific": "parse_area_specific",
     "tournament_schedule": "parse_tournament_schedule",
     "match_basic": "parse_match_basic",
-    "match_stats_basic": "parse_match_stats_basic",
+    "match_stats_player": "parse_match_stats_player",
+    "match_stats_team": "parse_match_stats_team",
     "match_events": "parse_match_events",
     "player_season_stats": "parse_season_player_stats",
     "team_season_stats": "parse_season_team_stats",

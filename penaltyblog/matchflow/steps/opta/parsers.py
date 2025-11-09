@@ -178,7 +178,7 @@ def parse_match_stats_basic(
     if isinstance(data.get("matchInfo"), dict):
         matches = [data]
 
-    # Check 2: Is it a list under the "matchStats" key? (like MA1 multi-match sample)
+    # Check 2: Is it a list under "matchStats" key? (like MA1 multi-match sample)
     elif isinstance(data.get("matchStats"), list):
         matches = data.get("matchStats")
 
@@ -187,6 +187,38 @@ def parse_match_stats_basic(
             yield from extract_player_stats(match)
         else:
             yield from extract_team_stats(match)
+
+
+def parse_match_stats_player(data: Dict[str, Any]) -> Iterator[Dict[str, Any]]:
+    """Parse match player stats (MA2) response - only player stats."""
+    matches = []  # Default to empty list
+
+    # Check 1: Is it a single match object?
+    if isinstance(data.get("matchInfo"), dict):
+        matches = [data]
+
+    # Check 2: Is it a list under "matchStats" key?
+    elif isinstance(data.get("matchStats"), list):
+        matches = data.get("matchStats")
+
+    for match in matches:
+        yield from extract_player_stats(match)
+
+
+def parse_match_stats_team(data: Dict[str, Any]) -> Iterator[Dict[str, Any]]:
+    """Parse match team stats (MA2) response - only team stats."""
+    matches = []  # Default to empty list
+
+    # Check 1: Is it a single match object?
+    if isinstance(data.get("matchInfo"), dict):
+        matches = [data]
+
+    # Check 2: Is it a list under "matchStats" key?
+    elif isinstance(data.get("matchStats"), list):
+        matches = data.get("matchStats")
+
+    for match in matches:
+        yield from extract_team_stats(match)
 
 
 def parse_area_specific(data: Dict[str, Any]) -> Iterator[Dict[str, Any]]:

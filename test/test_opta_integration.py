@@ -151,8 +151,6 @@ def test_matches_multiple_fixtures():
     flow = opta.matches(fixture_uuids=[VALID_FIXTURE_UUID, VALID_FIXTURE_UUID2])
     data = flow.collect()
 
-    pytest.set_trace()
-
     assert data is not None
     assert isinstance(data, list)
     assert len(data) == 2
@@ -223,9 +221,6 @@ def test_matches_lineups():
     assert isinstance(data, list)
     assert len(data) == 3
     assert "lineUp" in data[0]["liveData"]
-
-
-###
 
 
 @pytest.mark.vcr
@@ -324,6 +319,34 @@ def test_fetch_match_events():
 
 
 @pytest.mark.vcr
+def test_parser_ma2_match_stats_players():
+    """
+    Tests: _handle_non_paginated_endpoint -> parse_match_stats_player
+    Logic: Must test the new match_stats_player method.
+    """
+    flow = opta.match_stats_player(fixture_uuids=VALID_FIXTURE_UUID)
+    data = flow.collect()
+    assert data is not None
+    assert len(data) > 2
+    assert "playerId" in data[0] and "_match_uuid" in data[0]
+
+
+@pytest.mark.vcr
+def test_parser_ma2_match_stats_teams():
+    """
+    Tests: _handle_non_paginated_endpoint -> parse_match_stats_team
+    Logic: Must test the new match_stats_team method.
+    """
+    flow = opta.match_stats_team(fixture_uuids=VALID_FIXTURE_UUID)
+    data = flow.collect()
+
+    assert data is not None
+    assert len(data) == 2  # Should be one record per team
+    # Check for keys from extract_team_stats
+    assert "contestantId" in data[0] and "_match_uuid" in data[0]
+
+
+@pytest.mark.vcr
 def test_parser_ma0_tournament_schedule():
     """
     Tests: _handle_non_paginated_endpoint -> parse_tournament_schedule
@@ -334,37 +357,6 @@ def test_parser_ma0_tournament_schedule():
     assert len(data) > 0
     # Check for your parsed keys
     assert "_competition" in data[0] and "_tournamentCalendar" in data[0]
-
-
-@pytest.mark.vcr
-def test_parser_ma2_match_stats_players():
-    """
-    Tests: _handle_non_paginated_endpoint -> parse_match_stats_basic (with players)
-    Logic: Must test the 'include_players=True' path.
-    """
-    flow = opta.match_stats(fixture_uuids=VALID_FIXTURE_UUID, include_players=True)
-    data = flow.collect()
-    assert data is not None
-    assert len(data) > 0
-    # Check for keys from extract_player_stats
-    assert "playerId" in data[0] and "_match_uuid" in data[0]
-
-
-@pytest.mark.vcr
-def test_parser_ma2_match_stats_teams():
-    """
-    Tests: _handle_non_paginated_endpoint -> parse_match_stats_basic (teams only)
-    Logic: Must test the 'include_players=False' path.
-    """
-    flow = opta.match_stats(fixture_uuids=VALID_FIXTURE_UUID, include_players=False)
-    data = flow.collect()
-
-    # pytest.set_trace()
-
-    assert data is not None
-    assert len(data) == 2  # Should be one record per team
-    # Check for keys from extract_team_stats
-    assert "contestantId" in data[0] and "_match_uuid" in data[0]
 
 
 @pytest.mark.vcr

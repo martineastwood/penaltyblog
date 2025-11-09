@@ -68,7 +68,7 @@ class OptaEndpointBuilder:
             return base_path + status_suffix
 
         # Handle endpoints that support multiple fixture UUIDs
-        elif source == "match_stats_basic" and isinstance(
+        elif source in ["match_stats_player", "match_stats_team"] and isinstance(
             args.get("fixture_uuids"), list
         ):
             # For multiple fixtures, don't include UUIDs in path
@@ -152,9 +152,12 @@ class OptaEndpointBuilder:
         param_mapping = PARAMETER_MAPPINGS.get(source, {})
 
         # Handle special cases
-        if source in ["match_stats_basic", "matches_basic"] and isinstance(
-            args.get("fixture_uuids"), list
-        ):
+        if source in [
+            "match_stats_player",
+            "match_stats_team",
+            "match_stats_basic",
+            "matches_basic",
+        ] and isinstance(args.get("fixture_uuids"), list):
             fx_uuids = args.get("fixture_uuids")
             if isinstance(fx_uuids, list):
                 params["fx"] = ",".join(fx_uuids)

@@ -16,6 +16,8 @@ from .parsers import (
     flatten_stats,
     parse_match_basic,
     parse_match_stats_basic,
+    parse_match_stats_player,
+    parse_match_stats_team,
     parse_tournament_schedule,
 )
 
@@ -32,5 +34,7 @@ __all__ = [
     "flatten_stats",
     "parse_match_basic",
     "parse_match_stats_basic",
+    "parse_match_stats_player",
+    "parse_match_stats_team",
     "parse_tournament_schedule",
 ]

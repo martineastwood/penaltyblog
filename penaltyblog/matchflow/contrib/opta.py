@@ -63,7 +63,7 @@ class Opta:
     - OT4 (Areas):                 .areas()
     - MA0 (Tournament Schedule):   .tournament_schedule()
     - MA1 (Match - Basic):         .matches() / .match()
-    - MA2 (Match Stats - Basic):   .match_stats()
+    - MA2 (Match Stats - Basic):   .match_player_stats() / .match_team_stats()
     - MA3 (Match Events):          .events()
     - PE2 (Player Career):         .player_career()
     - PE3 (Referees):              .referees()
@@ -470,24 +470,21 @@ class Opta:
             optimize=optimize,
         )
 
-    def match_stats(
+    def match_player_stats(
         self,
         fixture_uuids: Union[str, List[str]],
-        include_players: bool = True,
         use_opta_names: bool = False,
         creds: Optional[dict] = None,
         proxies: Optional[dict] = None,
         optimize: bool = False,
     ) -> "Flow":
         """
-        Return a Flow of raw match stats data (Feed MA2 - Basic).
+        Return a Flow of raw player match stats data (Feed MA2 - Basic).
 
         Parameters
         ----------
         fixture_uuids : str or List[str]
             The UUID(s) for the specific match/fixture(es). Can be a single UUID or list of UUIDs.
-        include_players : bool, optional
-            Include player-level statistics (default: True).
         use_opta_names : bool, optional
             Request 'en-op' locale for Opta-specific names (default: False).
         creds : dict, optional
@@ -500,14 +497,53 @@ class Opta:
         Returns
         -------
         Flow
-            A Flow yielding raw match statistics data.
+            A Flow yielding raw player match statistics data.
         """
         if isinstance(fixture_uuids, str):
             fixture_uuids = [fixture_uuids]
         return self._step(
-            "match_stats_basic",
+            "match_stats_player",
             fixture_uuids=fixture_uuids,
-            include_players=include_players,
+            use_opta_names="en-op" if use_opta_names else None,
+            creds=creds or self.DEFAULT_CREDS,
+            proxies=proxies,
+            optimize=optimize,
+        )
+
+    def match_team_stats(
+        self,
+        fixture_uuids: Union[str, List[str]],
+        use_opta_names: bool = False,
+        creds: Optional[dict] = None,
+        proxies: Optional[dict] = None,
+        optimize: bool = False,
+    ) -> "Flow":
+        """
+        Return a Flow of raw team match stats data (Feed MA2 - Basic).
+
+        Parameters
+        ----------
+        fixture_uuids : str or List[str]
+            The UUID(s) for the specific match/fixture(es). Can be a single UUID or list of UUIDs.
+        use_opta_names : bool, optional
+            Request 'en-op' locale for Opta-specific names (default: False).
+        creds : dict, optional
+            Credentials for Opta API.
+        proxies : dict, optional
+            Proxies dictionary for requests (e.g., {'http': 'socks5h://...'}).
+        optimize : bool, optional
+            Whether to optimize the plan (default: False).
+
+        Returns
+        -------
+        Flow
+            A Flow yielding raw team match statistics data.
+        """
+        if isinstance(fixture_uuids, str):
+            fixture_uuids = [fixture_uuids]
+        return self._step(
+            "match_stats_team",
+            fixture_uuids=fixture_uuids,
             use_opta_names="en-op" if use_opta_names else None,
             creds=creds or self.DEFAULT_CREDS,
             proxies=proxies,
