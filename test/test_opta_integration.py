@@ -288,7 +288,6 @@ def test_parser_ma1_match_not_lineups():
     flow = opta.match(fixture_uuid=VALID_FIXTURE_UUID, lineups=False, live=True)
     data = flow.collect()
     assert data is not None
-    pytest.set_trace()
     assert len(data) == 1
     assert "matchInfo" in data[0]
     assert "lineUp" not in data[0]["liveData"]
