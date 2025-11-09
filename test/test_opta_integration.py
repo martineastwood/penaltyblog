@@ -479,6 +479,7 @@ def test_parser_tm16_contestant_participation():
     flow = opta.contestant_participation(contestant_uuid=VALID_CONTESTANT_UUID)
     data = flow.collect()
     assert data is not None
+    pytest.set_trace()
     assert len(data) > 0
     assert "id" in data[0] and "name" in data[0]
 

@@ -12,7 +12,7 @@ def vcr_config():
             "_rt",
         ],
         "cassette_library_dir": "test/fixtures/vcr_cassettes",
-        "ignore_localhost": False,
+        "ignore_localhost": True,
         "decode_compressed_response": False,
     }
 
