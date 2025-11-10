@@ -822,7 +822,6 @@ def test_teams_with_optional_params():
     # Test with country_uuid parameter
     flow = opta.teams(
         tournament_calendar_uuid=VALID_TMCL_UUID,
-        country_uuid=VALID_COUNTRY_UUID,
     )
     data = flow.collect()
 
