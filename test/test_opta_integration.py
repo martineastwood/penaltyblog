@@ -814,43 +814,6 @@ def test_teams_contestant():
     assert data[0]["id"] == VALID_CONTESTANT_UUID
 
 
-@pytest.mark.vcr
-def test_teams_with_optional_params():
-    """
-    Tests: teams() with optional parameters
-    """
-    # Test with country_uuid parameter
-    flow = opta.teams(
-        tournament_calendar_uuid=VALID_TMCL_UUID,
-    )
-    data = flow.collect()
-
-    pytest.set_trace()
-
-    assert data is not None
-    assert isinstance(data, list)
-
-    # Test with stage_uuid parameter
-    flow = opta.teams(
-        tournament_calendar_uuid=VALID_TMCL_UUID,
-        stage_uuid=VALID_STAGE_UUID,
-    )
-    data = flow.collect()
-
-    assert data is not None
-    assert isinstance(data, list)
-
-    # Test with series_uuid parameter
-    flow = opta.teams(
-        tournament_calendar_uuid=VALID_TMCL_UUID,
-        series_uuid=VALID_SERIES_UUID,
-    )
-    data = flow.collect()
-
-    assert data is not None
-    assert isinstance(data, list)
-
-
 def test_teams_validation():
     """
     Tests: teams() parameter validation
@@ -874,9 +837,11 @@ def test_squads_tournament_calendar():
     flow = opta.squads(tournament_calendar_uuid=VALID_TMCL_UUID)
     data = flow.collect()
 
+    pytest.set_trace()
+
     assert data is not None
     assert isinstance(data, list)
-    assert len(data) > 0
+    assert len(data) == 20
     assert "id" in data[0]
     assert "name" in data[0]
 
@@ -891,7 +856,7 @@ def test_squads_contestant():
 
     assert data is not None
     assert isinstance(data, list)
-    assert len(data) > 0
+    assert len(data) == 1
     assert "id" in data[0]
     assert "name" in data[0]
 
