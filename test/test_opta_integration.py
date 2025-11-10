@@ -826,6 +826,8 @@ def test_teams_with_optional_params():
     )
     data = flow.collect()
 
+    pytest.set_trace()
+
     assert data is not None
     assert isinstance(data, list)
 
@@ -857,7 +859,7 @@ def test_teams_validation():
     # Test: neither required parameter should raise ValueError
     with pytest.raises(
         ValueError,
-        match="Either 'tournament_calendar_uuid' or 'contestant_uuid' must be provided",
+        match="Either 'tournament_calendar_uuid' or 'contestant_uuid' must be provided for the teams feed.",
     ):
         opta.teams()
 
