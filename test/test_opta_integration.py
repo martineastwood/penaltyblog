@@ -908,6 +908,8 @@ def test_referees_tournament_calendar():
     flow = opta.referees(tournament_calendar_uuid=VALID_TMCL_UUID)
     data = flow.collect()
 
+    pytest.set_trace()
+
     assert data is not None
     assert isinstance(data, list)
     assert len(data) > 0
