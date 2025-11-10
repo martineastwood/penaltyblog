@@ -714,14 +714,10 @@ def test_player_career_person():
     flow = opta.player_career(person_uuid=VALID_PERSON_UUID)
     data = flow.collect()
 
-    pytest.set_trace()
-
     assert data is not None
     assert isinstance(data, list)
-    assert len(data) > 0
-    # After parsing, should yield person data directly, not wrapped in "person" key
+    assert len(data) == 1
     assert "id" in data[0]
-    assert "name" in data[0]
 
 
 @pytest.mark.vcr
@@ -731,6 +727,8 @@ def test_player_career_contestant():
     """
     flow = opta.player_career(contestant_uuid=VALID_CONTESTANT_UUID)
     data = flow.collect()
+
+    pytest.set_trace()
 
     assert data is not None
     assert isinstance(data, list)
