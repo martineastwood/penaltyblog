@@ -819,10 +819,29 @@ def test_teams_with_optional_params():
     """
     Tests: teams() with optional parameters
     """
+    # Test with country_uuid parameter
     flow = opta.teams(
         tournament_calendar_uuid=VALID_TMCL_UUID,
         country_uuid=VALID_COUNTRY_UUID,
+    )
+    data = flow.collect()
+
+    assert data is not None
+    assert isinstance(data, list)
+
+    # Test with stage_uuid parameter
+    flow = opta.teams(
+        tournament_calendar_uuid=VALID_TMCL_UUID,
         stage_uuid=VALID_STAGE_UUID,
+    )
+    data = flow.collect()
+
+    assert data is not None
+    assert isinstance(data, list)
+
+    # Test with series_uuid parameter
+    flow = opta.teams(
+        tournament_calendar_uuid=VALID_TMCL_UUID,
         series_uuid=VALID_SERIES_UUID,
     )
     data = flow.collect()
