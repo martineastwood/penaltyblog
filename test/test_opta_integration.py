@@ -741,6 +741,7 @@ def test_player_career_contestant_inactive():
     """
     flow = opta.player_career(contestant_uuid=VALID_CONTESTANT_UUID, active=False)
     data = flow.collect()
+    pytest.set_trace()
 
     assert data is not None
     assert isinstance(data, list)
