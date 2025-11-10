@@ -893,13 +893,11 @@ def test_referees_person():
     """
     flow = opta.referees(person_uuid=VALID_REFEREE_UUID)
     data = flow.collect()
-    pytest.set_trace()
 
     assert data is not None
     assert isinstance(data, list)
     assert len(data) == 1
-    assert "id" in data[0]
-    assert "name" in data[0]
+    assert data[0]["id"] == VALID_REFEREE_UUID
 
 
 @pytest.mark.vcr
