@@ -854,7 +854,7 @@ def test_squads_contestant():
     assert data is not None
     assert isinstance(data, list)
     assert len(data) == 1
-    assert data[0]["id"] == VALID_CONTESTANT_UUID
+    assert data[0]["contestantId"] == VALID_CONTESTANT_UUID
 
 
 @pytest.mark.vcr
