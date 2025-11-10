@@ -714,6 +714,8 @@ def test_player_career_person():
     flow = opta.player_career(person_uuid=VALID_PERSON_UUID)
     data = flow.collect()
 
+    pytest.set_trace()
+
     assert data is not None
     assert isinstance(data, list)
     assert len(data) > 0
