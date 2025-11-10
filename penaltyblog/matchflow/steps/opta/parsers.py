@@ -229,8 +229,15 @@ def parse_area_specific(data: Dict[str, Any]) -> Iterator[Dict[str, Any]]:
 
 def parse_player_career_person(data: Dict[str, Any]) -> Iterator[Dict[str, Any]]:
     """Parse specific player career (PE2) response."""
-    # The response for a specific person is just the person object itself
-    yield data
+    # Extract person data from the nested structure
+    if "person" in data:
+        if isinstance(data["person"], list):
+            yield from data["person"]
+        elif isinstance(data["person"], dict):
+            yield data["person"]
+    else:
+        # Fallback: yield the entire data if no person key found
+        yield data
 
 
 def parse_injuries_person(data: Dict[str, Any]) -> Iterator[Dict[str, Any]]:

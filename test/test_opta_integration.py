@@ -719,6 +719,7 @@ def test_player_career_person():
     assert data is not None
     assert isinstance(data, list)
     assert len(data) > 0
+    # After parsing, should yield person data directly, not wrapped in "person" key
     assert "id" in data[0]
     assert "name" in data[0]
 
