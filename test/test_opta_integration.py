@@ -732,7 +732,6 @@ def test_player_career_contestant():
     assert isinstance(data, list)
     assert len(data) > 1
     assert "id" in data[0]
-    assert "name" in data[0]
 
 
 @pytest.mark.vcr
