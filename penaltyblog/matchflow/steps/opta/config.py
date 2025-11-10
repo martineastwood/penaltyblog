@@ -6,6 +6,7 @@ from typing import Dict, List, Set
 
 # Sources that are not paginated
 NON_PAGINATED_SOURCES: Set[str] = {
+    "referees_person",
     "injuries_person_path",
     "player_career_person",
     "area_specific",
@@ -79,6 +80,9 @@ ENDPOINT_CONFIGS: Dict[str, Dict] = {
         "path_template": "/injuries/{auth_key}",
     },
     "referees": {
+        "path_template": "/referees/{auth_key}",
+    },
+    "referees_person": {
         "path_template": "/referees/{auth_key}",
     },
     "teams": {
@@ -195,6 +199,12 @@ PARAMETER_MAPPINGS: Dict[str, Dict[str, str]] = {
         "use_opta_names": "_lcl",
     },
     "referees": {
+        "person_uuid": "prsn",
+        "tournament_calendar_uuid": "tmcl",
+        "stage_uuid": "stg",
+        "use_opta_names": "_lcl",
+    },
+    "referees_person": {
         "person_uuid": "prsn",
         "tournament_calendar_uuid": "tmcl",
         "stage_uuid": "stg",

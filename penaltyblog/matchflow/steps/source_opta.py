@@ -21,6 +21,7 @@ from .opta.parsers import (
     parse_match_stats_player,
     parse_match_stats_team,
     parse_player_career_person,
+    parse_referees,
     parse_tournament_schedule,
     parse_transfers,
 )
@@ -166,6 +167,9 @@ def _handle_non_paginated_endpoint(
 
     elif source == "player_career_person":
         yield from parse_player_career_person(data)
+
+    elif source == "referees_person":
+        yield from parse_referees(data)
 
     else:
         # Fallback for any other non-paginated source

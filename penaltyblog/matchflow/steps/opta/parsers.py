@@ -277,3 +277,13 @@ def parse_transfers(data: Dict[str, Any]) -> Iterator[Dict[str, Any]]:
         yield from data["person"]
     else:
         yield data
+
+
+def parse_referees(data: Dict[str, Any]) -> Iterator[Dict[str, Any]]:
+    """Parse referees (PE3) response."""
+    if "referee" in data and isinstance(data["referee"], list):
+        yield from data["referee"]
+    elif "referee" in data and isinstance(data["referee"], dict):
+        yield data["referee"]
+    else:
+        yield data

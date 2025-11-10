@@ -729,8 +729,13 @@ class Opta:
                 "Only one of 'person_uuid', 'tournament_calendar_uuid', or 'stage_uuid' can be provided at a time."
             )
 
+        if person_uuid:
+            source = "referees_person"
+        else:
+            source = "referees"
+
         return self._step(
-            "referees",
+            source,
             person_uuid=person_uuid,
             tournament_calendar_uuid=tournament_calendar_uuid,
             stage_uuid=stage_uuid,
