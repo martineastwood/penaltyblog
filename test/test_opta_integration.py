@@ -837,13 +837,10 @@ def test_squads_tournament_calendar():
     flow = opta.squads(tournament_calendar_uuid=VALID_TMCL_UUID)
     data = flow.collect()
 
-    pytest.set_trace()
-
     assert data is not None
     assert isinstance(data, list)
     assert len(data) == 20
-    assert "id" in data[0]
-    assert "name" in data[0]
+    assert len(data[0]["person"]) > 0
 
 
 @pytest.mark.vcr
@@ -857,8 +854,7 @@ def test_squads_contestant():
     assert data is not None
     assert isinstance(data, list)
     assert len(data) == 1
-    assert "id" in data[0]
-    assert "name" in data[0]
+    assert data[0]["id"] == VALID_CONTESTANT_UUID
 
 
 @pytest.mark.vcr
