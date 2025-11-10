@@ -867,7 +867,7 @@ def test_squads_opta_names():
 
     assert data is not None
     assert isinstance(data, list)
-    assert len(data) > 0
+    assert len(data) == 1
 
 
 def test_squads_validation():
