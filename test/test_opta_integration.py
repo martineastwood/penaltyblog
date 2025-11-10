@@ -14,6 +14,9 @@ VALID_CONTESTANT_UUID2 = "1pse9ta7a45pi2w2grjim70ge"
 VALID_PERSON_UUID = "5ilkkfbsss0bxd6ttdlqg0uz9"
 VALID_VENUE_UUID = "bxpq91vq4x9r3q6eq3d0bwjuy"
 VALID_AREA_UUID = "7yck0z0f9rlpeyatanjc1ylzp"
+VALID_COUNTRY_UUID = "1fk5l4hkqk12i7zske6mcqju6"
+VALID_STAGE_UUID = "8qkvlx3f1s7z1h8r4y0g5p2s3"
+VALID_SERIES_UUID = "9wmx8g4h2t3y1j7k6l5p4o1n"
 
 
 # This mark tells vcrpy to record/replay this test
@@ -694,3 +697,570 @@ def test_transfers_validation_valid_combinations():
 
     except ValueError:
         pytest.fail("Valid parameter combinations should not raise ValueError")
+
+
+# ============================================================================
+# NEW TESTS FOR MISSING COVERAGE
+# ============================================================================
+
+# --- Player Career Tests (Feed PE2) ---
+
+
+@pytest.mark.vcr
+def test_player_career_person():
+    """
+    Tests: player_career() with person_uuid (non-paginated)
+    """
+    flow = opta.player_career(person_uuid=VALID_PERSON_UUID)
+    data = flow.collect()
+
+    assert data is not None
+    assert isinstance(data, list)
+    assert len(data) > 0
+    assert "id" in data[0]
+    assert "name" in data[0]
+
+
+@pytest.mark.vcr
+def test_player_career_contestant():
+    """
+    Tests: player_career() with contestant_uuid (paginated)
+    """
+    flow = opta.player_career(contestant_uuid=VALID_CONTESTANT_UUID)
+    data = flow.collect()
+
+    assert data is not None
+    assert isinstance(data, list)
+    assert len(data) > 0
+    assert "id" in data[0]
+    assert "name" in data[0]
+
+
+@pytest.mark.vcr
+def test_player_career_contestant_inactive():
+    """
+    Tests: player_career() with contestant_uuid and active=False
+    """
+    flow = opta.player_career(contestant_uuid=VALID_CONTESTANT_UUID, active=False)
+    data = flow.collect()
+
+    assert data is not None
+    assert isinstance(data, list)
+
+
+@pytest.mark.vcr
+def test_player_career_opta_names():
+    """
+    Tests: player_career() with use_opta_names=True
+    """
+    flow = opta.player_career(person_uuid=VALID_PERSON_UUID, use_opta_names=True)
+    data = flow.collect()
+
+    assert data is not None
+    assert isinstance(data, list)
+    assert len(data) > 0
+
+
+def test_player_career_validation():
+    """
+    Tests: player_career() parameter validation
+    """
+    # Test: no parameters should raise ValueError
+    with pytest.raises(
+        ValueError, match="Either 'person_uuid' or 'contestant_uuid' must be provided"
+    ):
+        opta.player_career()
+
+    # Test: both parameters should raise ValueError
+    with pytest.raises(
+        ValueError, match="Cannot provide both 'person_uuid' and 'contestant_uuid'"
+    ):
+        opta.player_career(
+            person_uuid=VALID_PERSON_UUID, contestant_uuid=VALID_CONTESTANT_UUID
+        )
+
+
+# --- Teams Tests (Feed TM1) ---
+
+
+@pytest.mark.vcr
+def test_teams_tournament_calendar():
+    """
+    Tests: teams() with tournament_calendar_uuid
+    """
+    flow = opta.teams(tournament_calendar_uuid=VALID_TMCL_UUID)
+    data = flow.collect()
+
+    assert data is not None
+    assert isinstance(data, list)
+    assert len(data) > 0
+    assert "id" in data[0]
+    assert "name" in data[0]
+
+
+@pytest.mark.vcr
+def test_teams_contestant():
+    """
+    Tests: teams() with contestant_uuid
+    """
+    flow = opta.teams(contestant_uuid=VALID_CONTESTANT_UUID)
+    data = flow.collect()
+
+    assert data is not None
+    assert isinstance(data, list)
+    assert len(data) == 1
+    assert "id" in data[0]
+    assert "name" in data[0]
+    assert data[0]["id"] == VALID_CONTESTANT_UUID
+
+
+@pytest.mark.vcr
+def test_teams_with_optional_params():
+    """
+    Tests: teams() with optional parameters
+    """
+    flow = opta.teams(
+        tournament_calendar_uuid=VALID_TMCL_UUID,
+        country_uuid=VALID_COUNTRY_UUID,
+        stage_uuid=VALID_STAGE_UUID,
+        series_uuid=VALID_SERIES_UUID,
+    )
+    data = flow.collect()
+
+    assert data is not None
+    assert isinstance(data, list)
+
+
+def test_teams_validation():
+    """
+    Tests: teams() parameter validation
+    """
+    # Test: neither required parameter should raise ValueError
+    with pytest.raises(
+        ValueError,
+        match="Either 'tournament_calendar_uuid' or 'contestant_uuid' must be provided",
+    ):
+        opta.teams()
+
+
+# --- Squads Tests (Feed TM3) ---
+
+
+@pytest.mark.vcr
+def test_squads_tournament_calendar():
+    """
+    Tests: squads() with tournament_calendar_uuid
+    """
+    flow = opta.squads(tournament_calendar_uuid=VALID_TMCL_UUID)
+    data = flow.collect()
+
+    assert data is not None
+    assert isinstance(data, list)
+    assert len(data) > 0
+    assert "id" in data[0]
+    assert "name" in data[0]
+
+
+@pytest.mark.vcr
+def test_squads_contestant():
+    """
+    Tests: squads() with contestant_uuid
+    """
+    flow = opta.squads(contestant_uuid=VALID_CONTESTANT_UUID)
+    data = flow.collect()
+
+    assert data is not None
+    assert isinstance(data, list)
+    assert len(data) > 0
+    assert "id" in data[0]
+    assert "name" in data[0]
+
+
+@pytest.mark.vcr
+def test_squads_opta_names():
+    """
+    Tests: squads() with use_opta_names=True
+    """
+    flow = opta.squads(contestant_uuid=VALID_CONTESTANT_UUID, use_opta_names=True)
+    data = flow.collect()
+
+    assert data is not None
+    assert isinstance(data, list)
+    assert len(data) > 0
+
+
+def test_squads_validation():
+    """
+    Tests: squads() parameter validation
+    """
+    # Test: neither required parameter should raise ValueError
+    with pytest.raises(
+        ValueError,
+        match="Either 'tournament_calendar_uuid' or 'contestant_uuid' must be provided",
+    ):
+        opta.squads()
+
+
+# --- Referees Tests (Feed PE3) ---
+
+
+@pytest.mark.vcr
+def test_referees_person():
+    """
+    Tests: referees() with person_uuid
+    """
+    flow = opta.referees(person_uuid=VALID_PERSON_UUID)
+    data = flow.collect()
+
+    assert data is not None
+    assert isinstance(data, list)
+    assert len(data) > 0
+    assert "id" in data[0]
+    assert "name" in data[0]
+
+
+@pytest.mark.vcr
+def test_referees_tournament_calendar():
+    """
+    Tests: referees() with tournament_calendar_uuid
+    """
+    flow = opta.referees(tournament_calendar_uuid=VALID_TMCL_UUID)
+    data = flow.collect()
+
+    assert data is not None
+    assert isinstance(data, list)
+    assert len(data) > 0
+
+
+@pytest.mark.vcr
+def test_referees_stage():
+    """
+    Tests: referees() with stage_uuid
+    """
+    flow = opta.referees(stage_uuid=VALID_STAGE_UUID)
+    data = flow.collect()
+
+    assert data is not None
+    assert isinstance(data, list)
+
+
+@pytest.mark.vcr
+def test_referees_opta_names():
+    """
+    Tests: referees() with use_opta_names=True
+    """
+    flow = opta.referees(person_uuid=VALID_PERSON_UUID, use_opta_names=True)
+    data = flow.collect()
+
+    assert data is not None
+    assert isinstance(data, list)
+    assert len(data) > 0
+
+
+def test_referees_validation():
+    """
+    Tests: referees() parameter validation
+    """
+    # Test: no parameters should raise ValueError
+    with pytest.raises(
+        ValueError,
+        match="One of 'person_uuid', 'tournament_calendar_uuid', or 'stage_uuid' must be provided",
+    ):
+        opta.referees()
+
+    # Test: multiple parameters should raise ValueError
+    with pytest.raises(
+        ValueError,
+        match="Only one of 'person_uuid', 'tournament_calendar_uuid', or 'stage_uuid' can be provided at a time",
+    ):
+        opta.referees(
+            person_uuid=VALID_PERSON_UUID, tournament_calendar_uuid=VALID_TMCL_UUID
+        )
+
+
+# --- Injuries Tests (Feed PE7) ---
+
+
+@pytest.mark.vcr
+def test_injuries_person():
+    """
+    Tests: injuries() with person_uuid only (path-based)
+    """
+    flow = opta.injuries(person_uuid=VALID_PERSON_UUID)
+    data = flow.collect()
+
+    assert data is not None
+    assert isinstance(data, list)
+    assert len(data) > 0
+    assert "id" in data[0]
+    assert "name" in data[0]
+
+
+@pytest.mark.vcr
+def test_injuries_tournament_calendar():
+    """
+    Tests: injuries() with tournament_calendar_uuid only
+    """
+    flow = opta.injuries(tournament_calendar_uuid=VALID_TMCL_UUID)
+    data = flow.collect()
+
+    assert data is not None
+    assert isinstance(data, list)
+    assert len(data) > 0
+
+
+@pytest.mark.vcr
+def test_injuries_tournament_calendar_contestant():
+    """
+    Tests: injuries() with tournament_calendar_uuid and contestant_uuid
+    """
+    flow = opta.injuries(
+        tournament_calendar_uuid=VALID_TMCL_UUID, contestant_uuid=VALID_CONTESTANT_UUID
+    )
+    data = flow.collect()
+
+    assert data is not None
+    assert isinstance(data, list)
+
+
+@pytest.mark.vcr
+def test_injuries_opta_names():
+    """
+    Tests: injuries() with use_opta_names=True
+    """
+    flow = opta.injuries(person_uuid=VALID_PERSON_UUID, use_opta_names=True)
+    data = flow.collect()
+
+    assert data is not None
+    assert isinstance(data, list)
+    assert len(data) > 0
+
+
+def test_injuries_validation():
+    """
+    Tests: injuries() parameter validation
+    """
+    # Test: no parameters should raise ValueError
+    with pytest.raises(
+        ValueError,
+        match="Either 'person_uuid' or 'tournament_calendar_uuid' must be provided",
+    ):
+        opta.injuries()
+
+    # Test: contestant_uuid without tournament_calendar_uuid should raise ValueError
+    with pytest.raises(
+        ValueError,
+        match="'contestant_uuid' can only be used in combination with 'tournament_calendar_uuid'",
+    ):
+        opta.injuries(contestant_uuid=VALID_CONTESTANT_UUID)
+
+    # Test: contestant_uuid and person_uuid together should raise ValueError
+    with pytest.raises(
+        ValueError,
+        match="Cannot use 'contestant_uuid' and 'person_uuid' in the same request",
+    ):
+        opta.injuries(
+            person_uuid=VALID_PERSON_UUID, contestant_uuid=VALID_CONTESTANT_UUID
+        )
+
+
+# --- Enhanced Tournament Schedule Tests ---
+
+
+@pytest.mark.vcr
+def test_tournament_schedule_coverage_level_single():
+    """
+    Tests: tournament_schedule() with single coverage_level
+    """
+    flow = opta.tournament_schedule(
+        tournament_calendar_uuid=VALID_TMCL_UUID, coverage_level=1
+    )
+    data = flow.collect()
+
+    assert data is not None
+    assert isinstance(data, list)
+    assert len(data) > 0
+    assert "id" in data[0]
+
+
+@pytest.mark.vcr
+def test_tournament_schedule_coverage_level_list():
+    """
+    Tests: tournament_schedule() with list of coverage_levels
+    """
+    flow = opta.tournament_schedule(
+        tournament_calendar_uuid=VALID_TMCL_UUID, coverage_level=[1, 2, 3]
+    )
+    data = flow.collect()
+
+    assert data is not None
+    assert isinstance(data, list)
+    assert len(data) > 0
+
+
+@pytest.mark.vcr
+def test_tournament_schedule_opta_names():
+    """
+    Tests: tournament_schedule() with use_opta_names=True
+    """
+    flow = opta.tournament_schedule(
+        tournament_calendar_uuid=VALID_TMCL_UUID, use_opta_names=True
+    )
+    data = flow.collect()
+
+    assert data is not None
+    assert isinstance(data, list)
+    assert len(data) > 0
+
+
+# --- Enhanced Matches Tests ---
+
+
+@pytest.mark.vcr
+def test_matches_competition_uuids():
+    """
+    Tests: matches() with competition_uuids parameter
+    """
+    flow = opta.matches(competition_uuids=[VALID_COMPETITION_UUID])
+    data = flow.collect()
+
+    assert data is not None
+    assert isinstance(data, list)
+    assert len(data) > 0
+    assert "matchInfo" in data[0]
+
+
+@pytest.mark.vcr
+def test_matches_opponent_uuid():
+    """
+    Tests: matches() with opponent_uuid parameter
+    """
+    flow = opta.matches(
+        tournament_calendar_uuid=VALID_TMCL_UUID,
+        contestant_uuid=VALID_CONTESTANT_UUID,
+        opponent_uuid=VALID_CONTESTANT_UUID2,
+    )
+    data = flow.collect()
+
+    assert data is not None
+    assert isinstance(data, list)
+    assert "matchInfo" in data[0]
+
+
+@pytest.mark.vcr
+def test_matches_contestant_position_away():
+    """
+    Tests: matches() with contestant_position="away"
+    """
+    flow = opta.matches(
+        tournament_calendar_uuid=VALID_TMCL_UUID,
+        contestant_uuid=VALID_CONTESTANT_UUID,
+        contestant_position="away",
+    )
+    data = flow.collect()
+
+    assert data is not None
+    assert isinstance(data, list)
+    assert len(data) == 19  # Should be away games
+    assert "matchInfo" in data[0]
+
+
+@pytest.mark.vcr
+def test_matches_delta_timestamp():
+    """
+    Tests: matches() with delta_timestamp parameter
+    """
+    flow = opta.matches(
+        tournament_calendar_uuid=VALID_TMCL_UUID, delta_timestamp="2025-09-01T00:00:00Z"
+    )
+    data = flow.collect()
+
+    assert data is not None
+    assert isinstance(data, list)
+    assert "matchInfo" in data[0]
+
+
+# --- Enhanced Tournament Calendars Tests ---
+
+
+@pytest.mark.vcr
+def test_tournament_calendars_competition_uuid():
+    """
+    Tests: tournament_calendars() with competition_uuid parameter
+    """
+    flow = opta.tournament_calendars(competition_uuid=VALID_COMPETITION_UUID)
+    data = flow.collect()
+
+    assert data is not None
+    assert isinstance(data, list)
+    assert len(data) > 0
+    assert "competitionCode" in data[0]
+
+
+@pytest.mark.vcr
+def test_tournament_calendars_contestant_uuid():
+    """
+    Tests: tournament_calendars() with contestant_uuid parameter
+    """
+    flow = opta.tournament_calendars(contestant_uuid=VALID_CONTESTANT_UUID)
+    data = flow.collect()
+
+    assert data is not None
+    assert isinstance(data, list)
+    assert len(data) > 0
+    assert "competitionCode" in data[0]
+
+
+@pytest.mark.vcr
+def test_tournament_calendars_include_coverage():
+    """
+    Tests: tournament_calendars() with include_coverage=True
+    """
+    flow = opta.tournament_calendars(status="active", include_coverage=True)
+    data = flow.collect()
+
+    assert data is not None
+    assert isinstance(data, list)
+    assert len(data) > 0
+    assert "competitionCode" in data[0]
+
+
+# --- Enhanced Events Tests ---
+
+
+@pytest.mark.vcr
+def test_events_event_types_single():
+    """
+    Tests: events() with single event_type
+    """
+    flow = opta.events(fixture_uuid=VALID_FIXTURE_UUID, event_types=1)  # Pass events
+    data = flow.collect()
+
+    assert data is not None
+    assert isinstance(data, list)
+    assert len(data) > 0
+    assert "typeId" in data[0]
+    assert all(event["typeId"] == 1 for event in data)
+
+
+@pytest.mark.vcr
+def test_events_opta_names():
+    """
+    Tests: events() with use_opta_names=True
+    """
+    flow = opta.events(fixture_uuid=VALID_FIXTURE_UUID, use_opta_names=True)
+    data = flow.collect()
+
+    assert data is not None
+    assert isinstance(data, list)
+    assert len(data) > 0
+    assert "typeId" in data[0]
+
+
+def test_events_validation():
+    """
+    Tests: events() parameter validation for invalid combinations
+    """
+    # Note: events() doesn't have explicit validation in the current implementation
+    # This test is a placeholder for future validation if added
+    pass
