@@ -17,6 +17,7 @@ VALID_AREA_UUID = "7yck0z0f9rlpeyatanjc1ylzp"
 VALID_COUNTRY_UUID = "1fk5l4hkqk12i7zske6mcqju6"
 VALID_STAGE_UUID = "8qkvlx3f1s7z1h8r4y0g5p2s3"
 VALID_SERIES_UUID = "9wmx8g4h2t3y1j7k6l5p4o1n"
+VALID_REFEREE_UUID = "eh83vbp5w44denpmo9kaaj8ph"
 
 
 # This mark tells vcrpy to record/replay this test
@@ -890,12 +891,12 @@ def test_referees_person():
     """
     Tests: referees() with person_uuid
     """
-    flow = opta.referees(person_uuid=VALID_PERSON_UUID)
+    flow = opta.referees(person_uuid=VALID_REFEREE_UUID)
     data = flow.collect()
 
     assert data is not None
     assert isinstance(data, list)
-    assert len(data) > 0
+    assert len(data) == 1
     assert "id" in data[0]
     assert "name" in data[0]
 
@@ -912,19 +913,8 @@ def test_referees_tournament_calendar():
 
     assert data is not None
     assert isinstance(data, list)
-    assert len(data) > 0
-
-
-@pytest.mark.vcr
-def test_referees_stage():
-    """
-    Tests: referees() with stage_uuid
-    """
-    flow = opta.referees(stage_uuid=VALID_STAGE_UUID)
-    data = flow.collect()
-
-    assert data is not None
-    assert isinstance(data, list)
+    assert len(data) > 1
+    data[0]["id"] == VALID_REFEREE_UUID
 
 
 @pytest.mark.vcr
@@ -932,7 +922,7 @@ def test_referees_opta_names():
     """
     Tests: referees() with use_opta_names=True
     """
-    flow = opta.referees(person_uuid=VALID_PERSON_UUID, use_opta_names=True)
+    flow = opta.referees(person_uuid=VALID_REFEREE_UUID, use_opta_names=True)
     data = flow.collect()
 
     assert data is not None
