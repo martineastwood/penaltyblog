@@ -1298,10 +1298,10 @@ def test_pass_matrix():
     flow = opta.pass_matrix(fixture_uuid=VALID_FIXTURE_UUID)
     data = flow.collect()
 
-    pytest.set_trace()
-
     assert data is not None
     assert isinstance(data, list)
     assert len(data) > 0
     assert "matchInfo" in data[0]
-    assert "liveData" in data[0]["liveData"]
+    assert "liveData" in data[0]
+    assert "id" in data[0]["matchInfo"]
+    assert data[0]["matchInfo"]["id"] == VALID_FIXTURE_UUID
