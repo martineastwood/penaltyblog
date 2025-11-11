@@ -1299,3 +1299,9 @@ def test_pass_matrix():
     data = flow.collect()
 
     pytest.set_trace()
+
+    assert data is not None
+    assert isinstance(data, list)
+    assert len(data) > 0
+    assert "matchInfo" in data[0]
+    assert "liveData" in data[0]["liveData"]
