@@ -303,6 +303,18 @@ def parse_rankings(data: Dict[str, Any]) -> Iterator[Dict[str, Any]]:
         stats = flatten_stats(match.get("stat", []), key_name="type")
         record = {**match, **stats, **context, "_record_type": "match"}
         record.pop("stat", None)
+
+        # Extract team information for clarity
+        team_data = match.get("teamData", [])
+        if team_data:
+            home_team = next((t for t in team_data if t.get("side") == "Home"), None)
+            away_team = next((t for t in team_data if t.get("side") == "Away"), None)
+
+            if home_team:
+                record["_home_team_id"] = home_team.get("id")
+            if away_team:
+                record["_away_team_id"] = away_team.get("id")
+
         yield record
 
     # Yield team and player rankings - teams are at the top level, not nested under tournamentCalendar
