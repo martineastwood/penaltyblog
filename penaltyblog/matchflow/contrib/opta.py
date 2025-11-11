@@ -792,7 +792,7 @@ class Opta:
         return self._step(
             "rankings",
             tournament_calendar_uuid=tournament_calendar_uuid,
-            live=live,
+            live="yes" if live else "no",
             use_opta_names="en-op" if use_opta_names else None,
             creds=creds or self.DEFAULT_CREDS,
             proxies=proxies,
