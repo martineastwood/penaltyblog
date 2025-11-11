@@ -67,6 +67,7 @@ class Opta:
     - MA3 (Match Events):          .events()
     - PE2 (Player Career):         .player_career()
     - PE3 (Referees):              .referees()
+    - PE4 (Rankings):              .rankings()
     - PE7 (Injuries):              .injuries()
     - TM1 (Teams):                 .teams()
     - TM3 (Squads):                .squads()
@@ -739,6 +740,59 @@ class Opta:
             person_uuid=person_uuid,
             tournament_calendar_uuid=tournament_calendar_uuid,
             stage_uuid=stage_uuid,
+            use_opta_names="en-op" if use_opta_names else None,
+            creds=creds or self.DEFAULT_CREDS,
+            proxies=proxies,
+            optimize=optimize,
+        )
+
+    def rankings(
+        self,
+        tournament_calendar_uuid: str,
+        live: bool = False,
+        use_opta_names: bool = False,
+        creds: Optional[dict] = None,
+        proxies: Optional[dict] = None,
+        optimize: bool = False,
+    ) -> "Flow":
+        """
+        Return a Flow of raw rankings data (Feed PE4).
+
+        Get rankings data for all players, teams and games in a range of
+        statistical categories within a tournament calendar (season).
+
+        Parameters
+        ----------
+        tournament_calendar_uuid : str
+            The UUID for the specific tournament calendar (season).
+        live : bool, optional
+            Request live rankings data (default: False).
+        use_opta_names : bool, optional
+            Request 'en-op' locale for Opta-specific names (default: False).
+        creds : dict, optional
+            Credentials for Opta API.
+        proxies : dict, optional
+            Proxies dictionary for requests (e.g., {'http': 'socks5h://...'}).
+        optimize : bool, optional
+            Whether to optimize the plan (default: False).
+
+        Returns
+        -------
+        Flow
+            A Flow yielding raw rankings data.
+
+        Raises
+        ------
+        ValueError
+            If 'tournament_calendar_uuid' is not provided.
+        """
+        if not tournament_calendar_uuid:
+            raise ValueError("'tournament_calendar_uuid' must be provided.")
+
+        return self._step(
+            "rankings",
+            tournament_calendar_uuid=tournament_calendar_uuid,
+            live=live,
             use_opta_names="en-op" if use_opta_names else None,
             creds=creds or self.DEFAULT_CREDS,
             proxies=proxies,

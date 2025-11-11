@@ -279,6 +279,63 @@ def parse_transfers(data: Dict[str, Any]) -> Iterator[Dict[str, Any]]:
         yield data
 
 
+def parse_rankings(data: Dict[str, Any]) -> Iterator[Dict[str, Any]]:
+    """
+    Parse rankings (PE4) response.
+
+    Yields records for matches, teams, and players found in the rankings.
+    """
+    season_rankings = data.get("seasonRankings", {})
+    competition = season_rankings.get("competition", {})
+    tournament_calendar = season_rankings.get("tournamentCalendar", {})
+
+    context = {
+        "_competition": competition,
+        "_tournament_calendar": tournament_calendar,
+    }
+
+    # Yield match rankings
+    match_data = tournament_calendar.get("matchData", [])
+    if isinstance(match_data, dict):  # Handle case where there's only one match
+        match_data = [match_data]
+
+    for match in match_data:
+        stats = flatten_stats(match.get("stat", []), key_name="type")
+        record = {**match, **stats, **context, "_record_type": "match"}
+        record.pop("stat", None)
+        yield record
+
+    # Yield team and player rankings
+    team_data = tournament_calendar.get("team", [])
+    if isinstance(team_data, dict):  # Handle case where there's only one team
+        team_data = [team_data]
+
+    for team in team_data:
+        # Yield player records first
+        player_data = team.get("player", [])
+        if isinstance(player_data, dict):  # Handle case where there's only one player
+            player_data = [player_data]
+
+        for player in player_data:
+            stats = flatten_stats(player.get("stat", []), key_name="type")
+            player_record = {
+                **player,
+                **stats,
+                **context,
+                "_record_type": "player",
+                "_team_id": team.get("id"),
+            }
+            player_record.pop("stat", None)
+            yield player_record
+
+        # Yield team record
+        stats = flatten_stats(team.get("stat", []), key_name="type")
+        team_record = {**team, **stats, **context, "_record_type": "team"}
+        team_record.pop("stat", None)
+        team_record.pop("player", None)  # Remove nested players
+        yield team_record
+
+
 def parse_referees(data: Dict[str, Any]) -> Iterator[Dict[str, Any]]:
     """Parse referees (PE3) response."""
     if "referee" in data and isinstance(data["referee"], list):

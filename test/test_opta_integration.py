@@ -1235,3 +1235,21 @@ def test_events_validation():
     # Note: events() doesn't have explicit validation in the current implementation
     # This test is a placeholder for future validation if added
     pass
+
+
+# --- Enhanced Rankings Tests ---
+
+
+@pytest.mark.vcr
+def test_rankings_tmcl():
+    """
+    Tests: events() with use_opta_names=True
+    """
+    flow = opta.rankings(tournament_calendar_uuid=VALID_TMCL_UUID)
+    data = flow.collect()
+    pytest.set_trace()
+
+    assert data is not None
+    assert isinstance(data, list)
+    assert len(data) > 0
+    assert "typeId" in data[0]
