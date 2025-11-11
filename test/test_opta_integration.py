@@ -1263,3 +1263,28 @@ def test_rankings_tmcl():
         assert "_away_team_id" in match_records[0]
 
     assert set([x["_record_type"] for x in data]) == {"player", "match", "team"}
+
+
+@pytest.mark.vcr
+def test_rankings_tmcl_live():
+    """
+    Tests: rankings() with tournament_calendar_uuid
+    """
+    flow = opta.rankings(tournament_calendar_uuid=VALID_TMCL_UUID, live=True)
+    data = flow.collect()
+
+    assert data is not None
+    assert isinstance(data, list)
+    assert len(data) > 0
+    # Check for expected fields from the rankings parser
+    assert "_record_type" in data[0]
+    assert "_competition" in data[0]
+    assert "_tournament_calendar" in data[0]
+
+    # For match records, check that team information is extracted
+    match_records = [r for r in data if r.get("_record_type") == "match"]
+    if match_records:
+        assert "_home_team_id" in match_records[0]
+        assert "_away_team_id" in match_records[0]
+
+    assert set([x["_record_type"] for x in data]) == {"player", "match", "team"}
