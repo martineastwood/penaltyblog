@@ -285,17 +285,17 @@ def parse_rankings(data: Dict[str, Any]) -> Iterator[Dict[str, Any]]:
 
     Yields records for matches, teams, and players found in the rankings.
     """
-    season_rankings = data.get("seasonRankings", {})
-    competition = season_rankings.get("competition", {})
-    tournament_calendar = season_rankings.get("tournamentCalendar", {})
+    # The actual API response structure is direct, not wrapped in seasonRankings
+    competition = data.get("competition", {})
+    tournament_calendar = data.get("tournamentCalendar", {})
 
     context = {
         "_competition": competition,
         "_tournament_calendar": tournament_calendar,
     }
 
-    # Yield match rankings
-    match_data = tournament_calendar.get("matchData", [])
+    # Yield match rankings - matchData is at the top level, not nested under tournamentCalendar
+    match_data = data.get("matchData", [])
     if isinstance(match_data, dict):  # Handle case where there's only one match
         match_data = [match_data]
 
@@ -305,8 +305,8 @@ def parse_rankings(data: Dict[str, Any]) -> Iterator[Dict[str, Any]]:
         record.pop("stat", None)
         yield record
 
-    # Yield team and player rankings
-    team_data = tournament_calendar.get("team", [])
+    # Yield team and player rankings - teams are at the top level, not nested under tournamentCalendar
+    team_data = data.get("team", [])
     if isinstance(team_data, dict):  # Handle case where there's only one team
         team_data = [team_data]
 
