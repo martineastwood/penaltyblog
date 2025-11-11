@@ -66,6 +66,7 @@ class Opta:
     - MA2 (Match Stats - Basic):   .match_player_stats() / .match_team_stats()
     - MA3 (Match Events):          .events()
     - MA4 (Pass Matrix):           .pass_matrix()
+    - MA5 (Possession):            .possession()
     - PE2 (Player Career):         .player_career()
     - PE3 (Referees):              .referees()
     - PE4 (Rankings):              .rankings()
@@ -646,6 +647,55 @@ class Opta:
 
         return self._step(
             "pass_matrix",
+            fixture_uuid=fixture_uuid,
+            use_opta_names="en-op" if use_opta_names else None,
+            creds=creds or self.DEFAULT_CREDS,
+            proxies=proxies,
+            optimize=optimize,
+        )
+
+    def possession(
+        self,
+        fixture_uuid: str,
+        use_opta_names: bool = False,
+        creds: Optional[dict] = None,
+        proxies: Optional[dict] = None,
+        optimize: bool = False,
+    ) -> "Flow":
+        """
+        Return a Flow of raw possession and territorial advantage data (Feed MA5).
+
+        Provides a breakdown of ball possession during a match, including overall % possession
+        and territorial advantage, split by time period (last 5, 10, 15, 20, 25, 30 minutes).
+
+        Parameters
+        ----------
+        fixture_uuid : str
+            The UUID for the specific match/fixture.
+        use_opta_names : bool, optional
+            Request 'en-op' locale for Opta-specific names (default: False).
+        creds : dict, optional
+            Credentials for Opta API.
+        proxies : dict, optional
+            Proxies dictionary for requests (e.g., {'http': 'socks5h://...'}).
+        optimize : bool, optional
+            Whether to optimize the plan (default: False).
+
+        Returns
+        -------
+        Flow
+            A Flow yielding raw possession and territorial advantage data.
+
+        Raises
+        ------
+        ValueError
+            If 'fixture_uuid' is not provided.
+        """
+        if not fixture_uuid:
+            raise ValueError("'fixture_uuid' must be provided for the possession feed.")
+
+        return self._step(
+            "possession",
             fixture_uuid=fixture_uuid,
             use_opta_names="en-op" if use_opta_names else None,
             creds=creds or self.DEFAULT_CREDS,

@@ -400,6 +400,50 @@ def parse_pass_matrix(data: Dict[str, Any]) -> Iterator[Dict[str, Any]]:
     yield record
 
 
+def parse_possession(data: Dict[str, Any]) -> Iterator[Dict[str, Any]]:
+    """
+    Parse possession and territorial advantage (MA5) response.
+
+    The MA5 feed provides possession breakdown including overall % possession,
+    territorial advantage, and time-based splits (last 5, 10, 15, 20, 25, 30 minutes).
+    """
+    # Extract match information
+    match_info = data.get("matchInfo", {})
+    live_data = data.get("liveData", {})
+
+    # Extract possession data
+    possession = data.get("possession", {})
+
+    # Extract possession territory data
+    possession_territory = data.get("possessionTerritory", {})
+
+    # Create a comprehensive record with all data
+    record = {
+        "_match_info": match_info,
+        "_live_data": live_data,
+        "_possession": possession,
+        "_possession_territory": possession_territory,
+    }
+
+    # Add top-level possession fields to record for easier access
+    if isinstance(possession, dict):
+        record.update(possession)
+
+    # Add possession territory fields to record
+    if isinstance(possession_territory, dict):
+        record.update(possession_territory)
+
+    # Add match info fields to record
+    if isinstance(match_info, dict):
+        record.update(match_info)
+
+    # Add live data fields to record
+    if isinstance(live_data, dict):
+        record.update(live_data)
+
+    yield record
+
+
 def parse_referees(data: Dict[str, Any]) -> Iterator[Dict[str, Any]]:
     """Parse referees (PE3) response."""
     if "referee" in data and isinstance(data["referee"], list):

@@ -121,6 +121,14 @@ class OptaEndpointBuilder:
                 )
             path_params["fixture_uuid"] = fixture_uuid
 
+        elif source == "possession":
+            fixture_uuid = args.get("fixture_uuid")
+            if not fixture_uuid:
+                raise OptaConfigurationError(
+                    "possession source requires 'fixture_uuid'"
+                )
+            path_params["fixture_uuid"] = fixture_uuid
+
         elif source == "match_stats_basic" and isinstance(
             args.get("fixture_uuids"), str
         ):
