@@ -1248,8 +1248,6 @@ def test_rankings_tmcl():
     flow = opta.rankings(tournament_calendar_uuid=VALID_TMCL_UUID)
     data = flow.collect()
 
-    pytest.set_trace()
-
     assert data is not None
     assert isinstance(data, list)
     assert len(data) > 0
@@ -1263,3 +1261,5 @@ def test_rankings_tmcl():
     if match_records:
         assert "_home_team_id" in match_records[0]
         assert "_away_team_id" in match_records[0]
+
+    assert set([x["_record_type"] for x in data]) == {"player", "match", "team"}
