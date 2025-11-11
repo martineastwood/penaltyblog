@@ -284,6 +284,14 @@ def parse_rankings(data: Dict[str, Any]) -> Iterator[Dict[str, Any]]:
     Parse rankings (PE4) response.
 
     Yields records for matches, teams, and players found in the rankings.
+
+    The rankings response contains three types of data:
+    1. Match rankings (matchData) - Match-level statistics and rankings
+    2. Team rankings (team) - Team-specific statistics and rankings
+    3. Player rankings (team.player) - Player-specific statistics and rankings
+
+    Match rankings contain combined statistics for the entire match (e.g., total goals
+    scored by both teams), while team and player rankings contain individual statistics.
     """
     # The actual API response structure is direct, not wrapped in seasonRankings
     competition = data.get("competition", {})
@@ -295,6 +303,7 @@ def parse_rankings(data: Dict[str, Any]) -> Iterator[Dict[str, Any]]:
     }
 
     # Yield match rankings - matchData is at the top level, not nested under tournamentCalendar
+    # These are MATCH-LEVEL statistics (combined for both teams)
     match_data = data.get("matchData", [])
     if isinstance(match_data, dict):  # Handle case where there's only one match
         match_data = [match_data]
@@ -315,9 +324,12 @@ def parse_rankings(data: Dict[str, Any]) -> Iterator[Dict[str, Any]]:
             if away_team:
                 record["_away_team_id"] = away_team.get("id")
 
+        # Add clarification that these are match-level stats
+        record["_stat_level"] = "match"
         yield record
 
     # Yield team and player rankings - teams are at the top level, not nested under tournamentCalendar
+    # These are TEAM-LEVEL statistics (individual team stats)
     team_data = data.get("team", [])
     if isinstance(team_data, dict):  # Handle case where there's only one team
         team_data = [team_data]
@@ -336,13 +348,20 @@ def parse_rankings(data: Dict[str, Any]) -> Iterator[Dict[str, Any]]:
                 **context,
                 "_record_type": "player",
                 "_team_id": team.get("id"),
+                "_stat_level": "player",
             }
             player_record.pop("stat", None)
             yield player_record
 
         # Yield team record
         stats = flatten_stats(team.get("stat", []), key_name="type")
-        team_record = {**team, **stats, **context, "_record_type": "team"}
+        team_record = {
+            **team,
+            **stats,
+            **context,
+            "_record_type": "team",
+            "_stat_level": "team",
+        }
         team_record.pop("stat", None)
         team_record.pop("player", None)  # Remove nested players
         yield team_record
