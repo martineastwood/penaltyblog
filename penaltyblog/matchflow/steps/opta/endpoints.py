@@ -142,6 +142,14 @@ class OptaEndpointBuilder:
                 )
             path_params["person_uuid"] = person_uuid
 
+        elif source == "rankings":
+            tournament_calendar_uuid = args.get("tournament_calendar_uuid")
+            if not tournament_calendar_uuid:
+                raise OptaConfigurationError(
+                    "rankings source requires 'tournament_calendar_uuid'"
+                )
+            path_params["tournament_calendar_uuid"] = tournament_calendar_uuid
+
         return path_params
 
     def _build_parameters(self, source: str, args: Dict[str, Any]) -> Dict[str, Any]:

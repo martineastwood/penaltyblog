@@ -87,7 +87,7 @@ ENDPOINT_CONFIGS: Dict[str, Dict] = {
         "path_template": "/referees/{auth_key}",
     },
     "rankings": {
-        "path_template": "/rankings/{auth_key}",
+        "path_template": "/rankings/{auth_key}/{tournament_calendar_uuid}",
     },
     "teams": {
         "path_template": "/team/{auth_key}",
@@ -215,7 +215,6 @@ PARAMETER_MAPPINGS: Dict[str, Dict[str, str]] = {
         "use_opta_names": "_lcl",
     },
     "rankings": {
-        "tournament_calendar_uuid": "tmcl",
         "live": "live",
         "use_opta_names": "_lcl",
     },
