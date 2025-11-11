@@ -1266,11 +1266,11 @@ def test_rankings_tmcl():
 
 
 @pytest.mark.vcr
-def test_rankings_tmcl_live():
+def test_rankings_tmcl_opta_names():
     """
     Tests: rankings() with tournament_calendar_uuid
     """
-    flow = opta.rankings(tournament_calendar_uuid=VALID_TMCL_UUID, live=False)
+    flow = opta.rankings(tournament_calendar_uuid=VALID_TMCL_UUID, use_opta_names=True)
     data = flow.collect()
 
     assert data is not None

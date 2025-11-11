@@ -749,7 +749,6 @@ class Opta:
     def rankings(
         self,
         tournament_calendar_uuid: str,
-        live: bool = False,
         use_opta_names: bool = False,
         creds: Optional[dict] = None,
         proxies: Optional[dict] = None,
@@ -765,8 +764,6 @@ class Opta:
         ----------
         tournament_calendar_uuid : str
             The UUID for the specific tournament calendar (season).
-        live : bool, optional
-            Request live rankings data (default: False).
         use_opta_names : bool, optional
             Request 'en-op' locale for Opta-specific names (default: False).
         creds : dict, optional
@@ -792,7 +789,6 @@ class Opta:
         return self._step(
             "rankings",
             tournament_calendar_uuid=tournament_calendar_uuid,
-            live="yes" if live else "no",
             use_opta_names="en-op" if use_opta_names else None,
             creds=creds or self.DEFAULT_CREDS,
             proxies=proxies,
