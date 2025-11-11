@@ -324,8 +324,6 @@ def parse_rankings(data: Dict[str, Any]) -> Iterator[Dict[str, Any]]:
             if away_team:
                 record["_away_team_id"] = away_team.get("id")
 
-        # Add clarification that these are match-level stats
-        record["_stat_level"] = "match"
         yield record
 
     # Yield team and player rankings - teams are at the top level, not nested under tournamentCalendar
@@ -348,7 +346,6 @@ def parse_rankings(data: Dict[str, Any]) -> Iterator[Dict[str, Any]]:
                 **context,
                 "_record_type": "player",
                 "_team_id": team.get("id"),
-                "_stat_level": "player",
             }
             player_record.pop("stat", None)
             yield player_record
@@ -360,7 +357,6 @@ def parse_rankings(data: Dict[str, Any]) -> Iterator[Dict[str, Any]]:
             **stats,
             **context,
             "_record_type": "team",
-            "_stat_level": "team",
         }
         team_record.pop("stat", None)
         team_record.pop("player", None)  # Remove nested players
