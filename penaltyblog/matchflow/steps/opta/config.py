@@ -16,6 +16,7 @@ NON_PAGINATED_SOURCES: Set[str] = {
     "match_stats_player",  # MA2 (Player stats)
     "match_stats_team",  # MA2 (Team stats)
     "match_events",  # MA3
+    "pass_matrix",  # MA4
     "player_season_stats",  # TM4
     "team_season_stats",  # TM4
     "contestant_participation",  # TM16
@@ -67,6 +68,9 @@ ENDPOINT_CONFIGS: Dict[str, Dict] = {
     },
     "match_events": {
         "path_template": "/matchevent/{auth_key}/{fixture_uuid}",
+    },
+    "pass_matrix": {
+        "path_template": "/passmatrix/{auth_key}/{fixture_uuid}",
     },
     "player_career_person": {
         "path_template": "/playercareer/{auth_key}/{person_uuid}",
@@ -146,6 +150,9 @@ PARAMETER_MAPPINGS: Dict[str, Dict[str, str]] = {
         "contestant_uuid": "ctst",
         "person_uuid": "prsn",
         "event_types": "type",
+        "use_opta_names": "_lcl",
+    },
+    "pass_matrix": {
         "use_opta_names": "_lcl",
     },
     "teams": {
@@ -243,6 +250,7 @@ RESPONSE_PARSERS: Dict[str, str] = {
     "match_stats_player": "parse_match_stats_player",
     "match_stats_team": "parse_match_stats_team",
     "match_events": "parse_match_events",
+    "pass_matrix": "parse_pass_matrix",
     "player_season_stats": "parse_season_player_stats",
     "team_season_stats": "parse_season_team_stats",
 }

@@ -65,6 +65,7 @@ class Opta:
     - MA1 (Match - Basic):         .matches() / .match()
     - MA2 (Match Stats - Basic):   .match_player_stats() / .match_team_stats()
     - MA3 (Match Events):          .events()
+    - MA4 (Pass Matrix):           .pass_matrix()
     - PE2 (Player Career):         .player_career()
     - PE3 (Referees):              .referees()
     - PE4 (Rankings):              .rankings()
@@ -595,6 +596,57 @@ class Opta:
             contestant_uuid=contestant_uuid,
             person_uuid=person_uuid,
             event_types=event_types,
+            use_opta_names="en-op" if use_opta_names else None,
+            creds=creds or self.DEFAULT_CREDS,
+            proxies=proxies,
+            optimize=optimize,
+        )
+
+    def pass_matrix(
+        self,
+        fixture_uuid: str,
+        use_opta_names: bool = False,
+        creds: Optional[dict] = None,
+        proxies: Optional[dict] = None,
+        optimize: bool = False,
+    ) -> "Flow":
+        """
+        Return a Flow of raw pass matrix and average formation data (Feed MA4).
+
+        Provides information on the number of completed passes between all player
+        combinations and x/y coordinates of their average pitch positions during the match.
+
+        Parameters
+        ----------
+        fixture_uuid : str
+            The UUID for the specific match/fixture.
+        use_opta_names : bool, optional
+            Request 'en-op' locale for Opta-specific names (default: False).
+        creds : dict, optional
+            Credentials for Opta API.
+        proxies : dict, optional
+            Proxies dictionary for requests (e.g., {'http': 'socks5h://...'}).
+        optimize : bool, optional
+            Whether to optimize the plan (default: False).
+
+        Returns
+        -------
+        Flow
+            A Flow yielding raw pass matrix and average formation data.
+
+        Raises
+        ------
+        ValueError
+            If 'fixture_uuid' is not provided.
+        """
+        if not fixture_uuid:
+            raise ValueError(
+                "'fixture_uuid' must be provided for the pass_matrix feed."
+            )
+
+        return self._step(
+            "pass_matrix",
+            fixture_uuid=fixture_uuid,
             use_opta_names="en-op" if use_opta_names else None,
             creds=creds or self.DEFAULT_CREDS,
             proxies=proxies,

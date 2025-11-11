@@ -363,6 +363,43 @@ def parse_rankings(data: Dict[str, Any]) -> Iterator[Dict[str, Any]]:
         yield team_record
 
 
+def parse_pass_matrix(data: Dict[str, Any]) -> Iterator[Dict[str, Any]]:
+    """
+    Parse pass matrix and average formation (MA4) response.
+
+    The MA4 feed provides pass matrix data and average pitch positions for players.
+    This parser extracts the pass matrix data and yields it as a single record
+    along with match information.
+    """
+    # Extract match information
+    match_info = data.get("matchInfo", {})
+    live_data = data.get("liveData", {})
+
+    # Extract pass matrix data
+    pass_matrix = data.get("passMatrix", {})
+
+    # Create a comprehensive record with all the data
+    record = {
+        "_match_info": match_info,
+        "_live_data": live_data,
+        "_pass_matrix": pass_matrix,
+    }
+
+    # Add top-level pass matrix fields to the record for easier access
+    if isinstance(pass_matrix, dict):
+        record.update(pass_matrix)
+
+    # Add match info fields to the record
+    if isinstance(match_info, dict):
+        record.update(match_info)
+
+    # Add live data fields to the record
+    if isinstance(live_data, dict):
+        record.update(live_data)
+
+    yield record
+
+
 def parse_referees(data: Dict[str, Any]) -> Iterator[Dict[str, Any]]:
     """Parse referees (PE3) response."""
     if "referee" in data and isinstance(data["referee"], list):

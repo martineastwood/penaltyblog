@@ -1288,3 +1288,14 @@ def test_rankings_tmcl_opta_names():
         assert "_away_team_id" in match_records[0]
 
     assert set([x["_record_type"] for x in data]) == {"player", "match", "team"}
+
+
+@pytest.mark.vcr
+def test_pass_matrix():
+    """
+    Tests: rankings() with tournament_calendar_uuid
+    """
+    flow = opta.pass_matrix(fixture_uuid=VALID_FIXTURE_UUID)
+    data = flow.collect()
+
+    pytest.set_trace()

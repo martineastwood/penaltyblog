@@ -113,6 +113,14 @@ class OptaEndpointBuilder:
                 )
             path_params["fixture_uuid"] = fixture_uuid
 
+        elif source == "pass_matrix":
+            fixture_uuid = args.get("fixture_uuid")
+            if not fixture_uuid:
+                raise OptaConfigurationError(
+                    "pass_matrix source requires 'fixture_uuid'"
+                )
+            path_params["fixture_uuid"] = fixture_uuid
+
         elif source == "match_stats_basic" and isinstance(
             args.get("fixture_uuids"), str
         ):
