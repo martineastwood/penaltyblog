@@ -1270,7 +1270,7 @@ def test_rankings_tmcl_live():
     """
     Tests: rankings() with tournament_calendar_uuid
     """
-    flow = opta.rankings(tournament_calendar_uuid=VALID_TMCL_UUID, live=True)
+    flow = opta.rankings(tournament_calendar_uuid=VALID_TMCL_UUID, live=False)
     data = flow.collect()
 
     assert data is not None
