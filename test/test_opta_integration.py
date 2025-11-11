@@ -1332,8 +1332,6 @@ def test_possession():
     flow = opta.possession(fixture_uuid=VALID_FIXTURE_UUID)
     data = flow.collect()
 
-    pytest.set_trace()
-
     assert data is not None
     assert isinstance(data, list)
     assert len(data) > 0
