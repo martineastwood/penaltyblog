@@ -3,7 +3,7 @@ from .flow import Flow
 from .opta_helpers import (
     OPTA_EVENT_DEFINITIONS,
     OPTA_QUALIFIER_DEFINITIONS,
-    print_opta_mappings,
+    get_opta_mappings,
     where_opta_event,
     where_opta_qualifier,
 )
