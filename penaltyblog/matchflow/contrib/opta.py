@@ -79,13 +79,23 @@ class Opta:
     - TM16 (Contestant Part.):     .contestant_participation()
     """
 
-    DEFAULT_CREDS = {
-        "auth_key": os.environ.get("OPTA_AUTH_KEY"),
-        "rt_mode": os.environ.get("OPTA_RT_MODE", "b"),
-    }
+    @property
+    def DEFAULT_CREDS(self) -> dict:
+        """Get default credentials from environment variables."""
+        return {
+            "auth_key": os.environ.get("OPTA_AUTH_KEY"),
+            "rt_mode": os.environ.get("OPTA_RT_MODE", "b"),
+        }
 
-    BASE_URL = os.environ.get("OPTA_BASE_URL", "http://api.performfeeds.com")
-    ASSET_TYPE = "soccerdata"
+    @property
+    def BASE_URL(self) -> str:
+        """Get base URL from environment variables."""
+        return os.environ.get("OPTA_BASE_URL", "http://api.performfeeds.com")
+
+    @property
+    def ASSET_TYPE(self) -> str:
+        """Get asset type (constant for now)."""
+        return "soccerdata"
 
     def _step(self, source: str, optimize: bool = False, **args) -> "Flow":
         """
