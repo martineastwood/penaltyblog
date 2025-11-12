@@ -1273,7 +1273,7 @@ def test_possession_opta_names():
 
 
 @pytest.mark.vcr
-def test_standings():
+def test_team_standings():
     """
     Tests: rankings() with tournament_calendar_uuid
     """
