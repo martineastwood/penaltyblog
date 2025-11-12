@@ -1283,7 +1283,7 @@ def test_team_standings():
     assert data is not None
     assert isinstance(data, list)
     assert len(data) == 1
-    assert data[0]["tournamentCalendar"]["id"] == VALID_FIXTURE_UUID
+    assert data[0]["tournamentCalendar"]["id"] == VALID_TMCL_UUID
     assert data[0]["sport"]["name"] == "Soccer"
 
 
@@ -1298,7 +1298,7 @@ def test_team_standings_live():
     assert data is not None
     assert isinstance(data, list)
     assert len(data) == 1
-    assert data[0]["tournamentCalendar"]["id"] == VALID_FIXTURE_UUID
+    assert data[0]["tournamentCalendar"]["id"] == VALID_TMCL_UUID
     assert data[0]["sport"]["name"] == "Soccer"
 
 
@@ -1313,7 +1313,7 @@ def test_team_standings_total():
     assert data is not None
     assert isinstance(data, list)
     assert len(data) == 1
-    assert data[0]["tournamentCalendar"]["id"] == VALID_FIXTURE_UUID
+    assert data[0]["tournamentCalendar"]["id"] == VALID_TMCL_UUID
     assert data[0]["sport"]["name"] == "Soccer"
     assert data[0]["stage"][0]["division"][0]["type"] == "total"
 
