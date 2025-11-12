@@ -1295,6 +1295,21 @@ def test_team_standings_live():
     flow = opta.team_standings(tournament_calendar_uuid=VALID_TMCL_UUID, live=True)
     data = flow.collect()
 
+    assert data is not None
+    assert isinstance(data, list)
+    assert len(data) == 1
+    assert data[0]["tournamentCalendar"]["id"] == VALID_FIXTURE_UUID
+    assert data[0]["sport"]["name"] == "Soccer"
+
+
+@pytest.mark.vcr
+def test_team_standings_total():
+    """
+    Tests: rankings() with tournament_calendar_uuid
+    """
+    flow = opta.team_standings(tournament_calendar_uuid=VALID_TMCL_UUID, type="total")
+    data = flow.collect()
+
     pytest.set_trace()
 
     assert data is not None
