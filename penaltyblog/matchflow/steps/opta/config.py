@@ -21,6 +21,7 @@ NON_PAGINATED_SOURCES: Set[str] = {
     "player_season_stats",  # TM4
     "team_season_stats",  # TM4
     "contestant_participation",  # TM16
+    "team_standings",  # TM2
     "xg_shots",  # MA12
     "xg_player_summary",  # MA12
     "xg_team_summary",  # MA12
@@ -115,6 +116,9 @@ ENDPOINT_CONFIGS: Dict[str, Dict] = {
     },
     "transfers": {
         "path_template": "/transfers/{auth_key}",
+    },
+    "team_standings": {
+        "path_template": "/standings/{auth_key}",
     },
 }
 
@@ -241,6 +245,13 @@ PARAMETER_MAPPINGS: Dict[str, Dict[str, str]] = {
         "tournament_calendar_uuid": "tmcl",
         "start_date": "strtDt",
         "end_date": "endDt",
+        "use_opta_names": "_lcl",
+    },
+    "team_standings": {
+        "tournament_calendar_uuid": "tmcl",
+        "stage_uuid": "stg",
+        "live": "live",
+        "type": "type",
         "use_opta_names": "_lcl",
     },
 }

@@ -1270,3 +1270,20 @@ def test_possession_opta_names():
     assert "liveData" in data[0]
     assert "id" in data[0]["matchInfo"]
     assert data[0]["matchInfo"]["id"] == VALID_FIXTURE_UUID
+
+
+@pytest.mark.vcr
+def test_standings():
+    """
+    Tests: rankings() with tournament_calendar_uuid
+    """
+    flow = opta.standings(tournament_calendar_uuid=VALID_TMCL_UUID)
+    data = flow.collect()
+
+    assert data is not None
+    assert isinstance(data, list)
+    assert len(data) > 0
+    assert "matchInfo" in data[0]
+    assert "liveData" in data[0]
+    assert "id" in data[0]["matchInfo"]
+    assert data[0]["matchInfo"]["id"] == VALID_FIXTURE_UUID

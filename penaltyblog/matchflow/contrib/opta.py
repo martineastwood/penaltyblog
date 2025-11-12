@@ -72,6 +72,7 @@ class Opta:
     - PE4 (Rankings):              .rankings()
     - PE7 (Injuries):              .injuries()
     - TM1 (Teams):                 .teams()
+    - TM2 (Team Standings):        .team_standings()
     - TM3 (Squads):                .squads()
     - TM4 (Season Stats):          .player_season_stats() / .team_season_stats()
     - TM7 (Transfers):             .transfers()
@@ -1135,6 +1136,89 @@ class Opta:
             country_uuid=country_uuid,
             stage_uuid=stage_uuid,
             series_uuid=series_uuid,
+            creds=creds or self.DEFAULT_CREDS,
+            proxies=proxies,
+            optimize=optimize,
+        )
+
+    def team_standings(
+        self,
+        tournament_calendar_uuid: str,
+        stage_uuid: Optional[str] = None,
+        live: bool = False,
+        type: Optional[
+            Literal[
+                "total",
+                "home",
+                "away",
+                "form-total",
+                "form-home",
+                "form-away",
+                "half-time-total",
+                "half-time-home",
+                "half-time-away",
+                "attendance",
+                "over-under",
+                "relegation",
+                "championship",
+            ]
+        ] = None,
+        use_opta_names: bool = False,
+        creds: Optional[dict] = None,
+        proxies: Optional[dict] = None,
+        optimize: bool = False,
+    ) -> "Flow":
+        """
+        Return a Flow of raw team standings data (Feed TM2).
+
+        Provides league table data including position, points, matches played/won/lost/drawn,
+        goals scored/conceded, and goal difference. Supports different division types
+        such as home/away form and half-time standings.
+
+        Parameters
+        ----------
+        tournament_calendar_uuid : str
+            The UUID for the specific tournament calendar (season).
+        stage_uuid : str, optional
+            Filter by a specific stage UUID.
+        live : bool, optional
+            Request live standings data (default: False).
+        type : str, optional
+            Filter by division type. Available values:
+            'total' (default), 'home', 'away', 'form-total', 'form-home', 'form-away',
+            'half-time-total', 'half-time-home', 'half-time-away', 'attendance',
+            'over-under', 'relegation', 'championship'.
+        use_opta_names : bool, optional
+            Request 'en-op' locale for Opta-specific names (default: False).
+        creds : dict, optional
+            Credentials for Opta API.
+        proxies : dict, optional
+            Proxies dictionary for requests (e.g., {'http': 'socks5h://...'}).
+        optimize : bool, optional
+            Whether to optimize the plan (default: False).
+
+        Returns
+        -------
+        Flow
+            A Flow yielding raw team standings data.
+
+        Raises
+        ------
+        ValueError
+            If 'tournament_calendar_uuid' is not provided.
+        """
+        if not tournament_calendar_uuid:
+            raise ValueError(
+                "'tournament_calendar_uuid' must be provided for the team_standings feed."
+            )
+
+        return self._step(
+            "team_standings",
+            tournament_calendar_uuid=tournament_calendar_uuid,
+            stage_uuid=stage_uuid,
+            live=live,
+            type=type,
+            use_opta_names="en-op" if use_opta_names else None,
             creds=creds or self.DEFAULT_CREDS,
             proxies=proxies,
             optimize=optimize,

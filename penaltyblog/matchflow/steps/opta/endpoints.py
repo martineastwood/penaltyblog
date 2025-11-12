@@ -241,4 +241,8 @@ class OptaEndpointBuilder:
             if "detailed" in args and args["detailed"] is not None:
                 params["detailed"] = "yes" if args["detailed"] else "no"
 
+        elif source == "team_standings":
+            if "live" in args and args["live"] is not None:
+                params["live"] = "yes" if args["live"] else "no"
+
         return params
