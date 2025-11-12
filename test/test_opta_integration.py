@@ -1481,8 +1481,6 @@ def test_team_standings_over_under():
     flow = opta.team_standings(tournament_calendar_uuid=VALID_TMCL_UUID, type=type_)
     data = flow.collect()
 
-    pytest.set_trace()
-
     assert data is not None
     assert isinstance(data, list)
     assert len(data) == 1
@@ -1499,6 +1497,8 @@ def test_team_standings_relegation():
     type_ = "relegation"
     flow = opta.team_standings(tournament_calendar_uuid=VALID_TMCL_UUID, type=type_)
     data = flow.collect()
+
+    pytest.set_trace()
 
     assert data is not None
     assert isinstance(data, list)
