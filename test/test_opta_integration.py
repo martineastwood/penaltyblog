@@ -1307,7 +1307,8 @@ def test_team_standings_total():
     """
     Tests: rankings() with tournament_calendar_uuid
     """
-    flow = opta.team_standings(tournament_calendar_uuid=VALID_TMCL_UUID, type="total")
+    type_ = "total"
+    flow = opta.team_standings(tournament_calendar_uuid=VALID_TMCL_UUID, type=type_)
     data = flow.collect()
 
     assert data is not None
@@ -1315,7 +1316,7 @@ def test_team_standings_total():
     assert len(data) == 1
     assert data[0]["tournamentCalendar"]["id"] == VALID_TMCL_UUID
     assert data[0]["sport"]["name"] == "Soccer"
-    assert data[0]["stage"][0]["division"][0]["type"] == "total"
+    assert data[0]["stage"][0]["division"][0]["type"] == type_
 
 
 @pytest.mark.vcr
@@ -1323,14 +1324,200 @@ def test_team_standings_home():
     """
     Tests: rankings() with tournament_calendar_uuid
     """
-    flow = opta.team_standings(tournament_calendar_uuid=VALID_TMCL_UUID, type="home")
+    type_ = "home"
+    flow = opta.team_standings(tournament_calendar_uuid=VALID_TMCL_UUID, type=type_)
     data = flow.collect()
-
-    pytest.set_trace()
 
     assert data is not None
     assert isinstance(data, list)
     assert len(data) == 1
-    assert data[0]["tournamentCalendar"]["id"] == VALID_FIXTURE_UUID
+    assert data[0]["tournamentCalendar"]["id"] == VALID_TMCL_UUID
     assert data[0]["sport"]["name"] == "Soccer"
-    assert data[0]["stage"][0]["division"][0]["type"] == "home"
+    assert data[0]["stage"][0]["division"][0]["type"] == type_
+
+
+@pytest.mark.vcr
+def test_team_standings_away():
+    """
+    Tests: rankings() with tournament_calendar_uuid
+    """
+    type_ = "away"
+    flow = opta.team_standings(tournament_calendar_uuid=VALID_TMCL_UUID, type=type_)
+    data = flow.collect()
+
+    assert data is not None
+    assert isinstance(data, list)
+    assert len(data) == 1
+    assert data[0]["tournamentCalendar"]["id"] == VALID_TMCL_UUID
+    assert data[0]["sport"]["name"] == "Soccer"
+    assert data[0]["stage"][0]["division"][0]["type"] == type_
+
+
+@pytest.mark.vcr
+def test_team_standings_form_total():
+    """
+    Tests: rankings() with tournament_calendar_uuid
+    """
+    type_ = "form-total"
+    flow = opta.team_standings(tournament_calendar_uuid=VALID_TMCL_UUID, type=type_)
+    data = flow.collect()
+
+    assert data is not None
+    assert isinstance(data, list)
+    assert len(data) == 1
+    assert data[0]["tournamentCalendar"]["id"] == VALID_TMCL_UUID
+    assert data[0]["sport"]["name"] == "Soccer"
+    assert data[0]["stage"][0]["division"][0]["type"] == type_
+
+
+@pytest.mark.vcr
+def test_team_standings_form_home():
+    """
+    Tests: rankings() with tournament_calendar_uuid
+    """
+    type_ = "form-home"
+    flow = opta.team_standings(tournament_calendar_uuid=VALID_TMCL_UUID, type=type_)
+    data = flow.collect()
+
+    assert data is not None
+    assert isinstance(data, list)
+    assert len(data) == 1
+    assert data[0]["tournamentCalendar"]["id"] == VALID_TMCL_UUID
+    assert data[0]["sport"]["name"] == "Soccer"
+    assert data[0]["stage"][0]["division"][0]["type"] == type_
+
+
+@pytest.mark.vcr
+def test_team_standings_form_away():
+    """
+    Tests: rankings() with tournament_calendar_uuid
+    """
+    type_ = "form-away"
+    flow = opta.team_standings(tournament_calendar_uuid=VALID_TMCL_UUID, type=type_)
+    data = flow.collect()
+
+    assert data is not None
+    assert isinstance(data, list)
+    assert len(data) == 1
+    assert data[0]["tournamentCalendar"]["id"] == VALID_TMCL_UUID
+    assert data[0]["sport"]["name"] == "Soccer"
+    assert data[0]["stage"][0]["division"][0]["type"] == type_
+
+
+@pytest.mark.vcr
+def test_team_standings_half_time_total():
+    """
+    Tests: rankings() with tournament_calendar_uuid
+    """
+    type_ = "half-time-total"
+    flow = opta.team_standings(tournament_calendar_uuid=VALID_TMCL_UUID, type=type_)
+    data = flow.collect()
+
+    assert data is not None
+    assert isinstance(data, list)
+    assert len(data) == 1
+    assert data[0]["tournamentCalendar"]["id"] == VALID_TMCL_UUID
+    assert data[0]["sport"]["name"] == "Soccer"
+    assert data[0]["stage"][0]["division"][0]["type"] == type_
+
+
+@pytest.mark.vcr
+def test_team_standings_half_time_home():
+    """
+    Tests: rankings() with tournament_calendar_uuid
+    """
+    type_ = "half-time-home"
+    flow = opta.team_standings(tournament_calendar_uuid=VALID_TMCL_UUID, type=type_)
+    data = flow.collect()
+
+    assert data is not None
+    assert isinstance(data, list)
+    assert len(data) == 1
+    assert data[0]["tournamentCalendar"]["id"] == VALID_TMCL_UUID
+    assert data[0]["sport"]["name"] == "Soccer"
+    assert data[0]["stage"][0]["division"][0]["type"] == type_
+
+
+@pytest.mark.vcr
+def test_team_standings_half_time_away():
+    """
+    Tests: rankings() with tournament_calendar_uuid
+    """
+    type_ = "half-time-away"
+    flow = opta.team_standings(tournament_calendar_uuid=VALID_TMCL_UUID, type=type_)
+    data = flow.collect()
+
+    assert data is not None
+    assert isinstance(data, list)
+    assert len(data) == 1
+    assert data[0]["tournamentCalendar"]["id"] == VALID_TMCL_UUID
+    assert data[0]["sport"]["name"] == "Soccer"
+    assert data[0]["stage"][0]["division"][0]["type"] == type_
+
+
+@pytest.mark.vcr
+def test_team_standings_attendance():
+    """
+    Tests: rankings() with tournament_calendar_uuid
+    """
+    type_ = "attendance"
+    flow = opta.team_standings(tournament_calendar_uuid=VALID_TMCL_UUID, type=type_)
+    data = flow.collect()
+
+    assert data is not None
+    assert isinstance(data, list)
+    assert len(data) == 1
+    assert data[0]["tournamentCalendar"]["id"] == VALID_TMCL_UUID
+    assert data[0]["sport"]["name"] == "Soccer"
+    assert data[0]["stage"][0]["division"][0]["type"] == type_
+
+
+@pytest.mark.vcr
+def test_team_standings_over_under():
+    """
+    Tests: rankings() with tournament_calendar_uuid
+    """
+    type_ = "over-under"
+    flow = opta.team_standings(tournament_calendar_uuid=VALID_TMCL_UUID, type=type_)
+    data = flow.collect()
+
+    assert data is not None
+    assert isinstance(data, list)
+    assert len(data) == 1
+    assert data[0]["tournamentCalendar"]["id"] == VALID_TMCL_UUID
+    assert data[0]["sport"]["name"] == "Soccer"
+    assert data[0]["stage"][0]["division"][0]["type"] == type_
+
+
+@pytest.mark.vcr
+def test_team_standings_relegation():
+    """
+    Tests: rankings() with tournament_calendar_uuid
+    """
+    type_ = "relegation"
+    flow = opta.team_standings(tournament_calendar_uuid=VALID_TMCL_UUID, type=type_)
+    data = flow.collect()
+
+    assert data is not None
+    assert isinstance(data, list)
+    assert len(data) == 1
+    assert data[0]["tournamentCalendar"]["id"] == VALID_TMCL_UUID
+    assert data[0]["sport"]["name"] == "Soccer"
+    assert data[0]["stage"][0]["division"][0]["type"] == type_
+
+
+@pytest.mark.vcr
+def test_team_standings_championship():
+    """
+    Tests: rankings() with tournament_calendar_uuid
+    """
+    type_ = "championship"
+    flow = opta.team_standings(tournament_calendar_uuid=VALID_TMCL_UUID, type=type_)
+    data = flow.collect()
+
+    assert data is not None
+    assert isinstance(data, list)
+    assert len(data) == 1
+    assert data[0]["tournamentCalendar"]["id"] == VALID_TMCL_UUID
+    assert data[0]["sport"]["name"] == "Soccer"
+    assert data[0]["stage"][0]["division"][0]["type"] == type_
