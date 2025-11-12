@@ -49,23 +49,33 @@ All API calls return a ``Flow``, so you can apply all usual transformations like
 +----------------------------------------------------------+---------+------------------------------------------------+
 | ``.match(fixture_uuid)``                                 | MA1     | A single match                                 |
 +----------------------------------------------------------+---------+------------------------------------------------+
-| ``.match_stats(fixture_uuids)``                          | MA2     | Player-level stats for a match                 |
+| ``.match_stats_player(fixture_uuids)``                   | MA2     | Player-level stats for a match                 |
 +----------------------------------------------------------+---------+------------------------------------------------+
-| ``.events(match_id)``                                    | MA3     | All events in a match                          |
+| ``.match_stats_team(fixture_uuids)``                      | MA2     | Team-level stats for a match                   |
++----------------------------------------------------------+---------+------------------------------------------------+
+| ``.events(fixture_uuid)``                                | MA3     | All events in a match                          |
++----------------------------------------------------------+---------+------------------------------------------------+
+| ``.pass_matrix(fixture_uuid)``                            | MA4     | Pass matrix and average formation data         |
++----------------------------------------------------------+---------+------------------------------------------------+
+| ``.possession(fixture_uuid)``                            | MA5     | Possession and territorial advantage data      |
 +----------------------------------------------------------+---------+------------------------------------------------+
 | ``.player_career()``                                     | PE2     | Player career data                             |
 +----------------------------------------------------------+---------+------------------------------------------------+
 | ``.referees()``                                          | PE3     | All referees available via API                 |
 +----------------------------------------------------------+---------+------------------------------------------------+
+| ``.rankings(tournament_calendar_uuid)``                  | PE4     | Rankings data for players, teams, and games    |
++----------------------------------------------------------+---------+------------------------------------------------+
 | ``.injuries()``                                          | PE7     | All injuries available via API                 |
 +----------------------------------------------------------+---------+------------------------------------------------+
 | ``.teams()``                                             | TM1     | All teams available via API                    |
 +----------------------------------------------------------+---------+------------------------------------------------+
+| ``.team_standings(tournament_calendar_uuid)``            | TM2     | League table and standings data                |
++----------------------------------------------------------+---------+------------------------------------------------+
 | ``.squads()``                                            | TM3     | All squads available via API                   |
 +----------------------------------------------------------+---------+------------------------------------------------+
-| ``.player_season_stats(competition_id, season_id)``      | TM4     | Player stats over a season                     |
+| ``.player_season_stats(tournament_calendar_uuid, contestant_uuid)`` | TM4     | Player stats over a season                     |
 +----------------------------------------------------------+---------+------------------------------------------------+
-| ``.team_season_stats(competition_id, season_id)``        | TM4     | Team stats over a season                       |
+| ``.team_season_stats(tournament_calendar_uuid, contestant_uuid)``   | TM4     | Team stats over a season                       |
 +----------------------------------------------------------+---------+------------------------------------------------+
 | ``.transfers()``                                         | TM7     | Player transfer data                           |
 +----------------------------------------------------------+---------+------------------------------------------------+
@@ -168,13 +178,13 @@ Use ``where_opta_event()`` to filter events by their name, like "Pass" or "Shot"
 
    # Get all shots for a match
    shots = (
-       opta.events(match_id="some_match_id")
+       opta.events(fixture_uuid="some_match_id")
        .filter(where_opta_event("Shot"))
    )
 
    # You can also filter for multiple event types
    passes_and_shots = (
-       opta.events(match_id="some_match_id")
+       opta.events(fixture_uuid="some_match_id")
        .filter(where_opta_event(["Pass", "Shot"]))
    )
 
@@ -193,7 +203,7 @@ Use ``where_opta_qualifier()`` to filter events that have a specific qualifier. 
 
    # Get all penalty shots
    penalty_shots = (
-       opta.events(match_id="some_match_id")
+       opta.events(fixture_uuid="some_match_id")
        .filter(where_opta_event("Shot"))
        .filter(where_opta_qualifier("Penalty"))
    )
@@ -207,7 +217,7 @@ Use ``where_opta_qualifier()`` to filter events that have a specific qualifier. 
 
    # Get all shots from the "Danger Zone"
    danger_zone_shots = (
-       opta.events(match_id="some_match_id")
+       opta.events(fixture_uuid="some_match_id")
        .filter(where_opta_event("Shot"))
        .filter(where_opta_qualifier("Zone", "Danger Zone"))
    )
@@ -216,24 +226,35 @@ Use ``where_opta_qualifier()`` to filter events that have a specific qualifier. 
 Exploring Available Mappings
 ----------------------------
 
-To see all available event and qualifier names that you can use with the helpers, use the ``print_opta_mappings()`` function.
+To see all available event and qualifier names that you can use with the helpers, use the ``get_opta_mappings()`` function.
 
 .. code-block:: python
 
-   from penaltyblog.matchflow.opta_helpers import print_opta_mappings
+   from penaltyblog.matchflow.opta_helpers import get_opta_mappings
 
-   print_opta_mappings()
+   mappings = get_opta_mappings()
 
-This will print a list of all event and qualifier names and their corresponding IDs, for example:
+   print("Available Event Types:")
+   for event in mappings["events"]:
+       print(f"  ID: {event['id']:3d} | Name: {event['name']}")
 
-.. code-block:: text
+   print("\nAvailable Qualifier Types:")
+   for qualifier in mappings["qualifiers"]:
+       print(f"  ID: {qualifier['id']:3d} | Name: {qualifier['name']}")
 
-   --- Opta Event Types ---
-     ID: 1   | Name: Pass
-     ID: 2   | Name: Offside Pass
-     ...
+This will return a dictionary containing all event and qualifier names and their corresponding IDs. The mappings include comprehensive football event data such as:
 
-   --- Opta Qualifier Types ---
-     ID: 1   | Name: Long Ball
-     ID: 5   | Name: Penalty
-     ...
+**Key Event Types:**
+- Pass (1), Offside Pass (2), Take On (3), Foul (4)
+- Save (10), Clearance (12), Miss (13), Post (14), Attempt Saved (15), Goal (16)
+- Card (17), Substitutions (18, 19), Interception (8), Tackle (7)
+- And many more specialized events (80+ total event types)
+
+**Key Qualifier Types:**
+- Long Ball (1), Cross (2), Head Pass (3), Through Ball (4)
+- Penalty (5), Handball (10), Various card types (31-33)
+- Pitch zones (16-25, 60-71), Shot locations (76-87)
+- Save types (173-183), VAR-related qualifiers (329-336)
+- And hundreds of detailed qualifiers for specific situations
+
+The helper functions automatically handle the case-insensitive lookup, so you can use human-readable names like "Shot", "Pass", "Penalty", "Zone" etc. in your filters without needing to remember the specific Opta IDs.

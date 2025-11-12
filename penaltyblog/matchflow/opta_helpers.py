@@ -109,23 +109,29 @@ def where_opta_qualifier(qualifier_name: str, value: Optional[Any] = None):
     return predicate
 
 
-def print_opta_mappings():
-    """Prints the available Opta event and qualifier names and their IDs."""
+def get_opta_mappings() -> dict:
+    """
+    Returns the available Opta event and qualifier names and their IDs.
 
-    print("--- Opta Event Types ---")
-    sorted_events = sorted(
-        OPTA_EVENT_DEFINITIONS.items(), key=lambda item: item[1]["name"]
-    )
-    for type_id, details in sorted_events:
-        print(f"  ID: {type_id:<3} | Name: {details['name']}")
-
-    print("\n--- Opta Qualifier Types ---")
-    sorted_qualifiers = sorted(
-        OPTA_QUALIFIER_DEFINITIONS.items(), key=lambda item: item[1]["name"]
-    )
-    for q_id, details in sorted_qualifiers:
-        print(f"  ID: {q_id:<3} | Name: {details['name']}")
-
-    print(
-        "\nUse these names (case-insensitive) with where_opta_event() and where_opta_qualifier()."
-    )
+    Returns:
+        dict: {
+            "events": List[dict],  # Each dict: {"id": type_id, "name": name}
+            "qualifiers": List[dict],  # Each dict: {"id": q_id, "name": name}
+        }
+    """
+    events = [
+        {"id": type_id, "name": details["name"]}
+        for type_id, details in sorted(
+            OPTA_EVENT_DEFINITIONS.items(), key=lambda item: item[1]["name"]
+        )
+    ]
+    qualifiers = [
+        {"id": q_id, "name": details["name"]}
+        for q_id, details in sorted(
+            OPTA_QUALIFIER_DEFINITIONS.items(), key=lambda item: item[1]["name"]
+        )
+    ]
+    return {
+        "events": events,
+        "qualifiers": qualifiers,
+    }
