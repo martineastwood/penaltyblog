@@ -1310,6 +1310,22 @@ def test_team_standings_total():
     flow = opta.team_standings(tournament_calendar_uuid=VALID_TMCL_UUID, type="total")
     data = flow.collect()
 
+    assert data is not None
+    assert isinstance(data, list)
+    assert len(data) == 1
+    assert data[0]["tournamentCalendar"]["id"] == VALID_FIXTURE_UUID
+    assert data[0]["sport"]["name"] == "Soccer"
+    assert data[0]["stage"][0]["division"][0]["type"] == "total"
+
+
+@pytest.mark.vcr
+def test_team_standings_home():
+    """
+    Tests: rankings() with tournament_calendar_uuid
+    """
+    flow = opta.team_standings(tournament_calendar_uuid=VALID_TMCL_UUID, type="home")
+    data = flow.collect()
+
     pytest.set_trace()
 
     assert data is not None
@@ -1317,3 +1333,4 @@ def test_team_standings_total():
     assert len(data) == 1
     assert data[0]["tournamentCalendar"]["id"] == VALID_FIXTURE_UUID
     assert data[0]["sport"]["name"] == "Soccer"
+    assert data[0]["stage"][0]["division"][0]["type"] == "home"
