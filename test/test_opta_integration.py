@@ -1277,7 +1277,7 @@ def test_standings():
     """
     Tests: rankings() with tournament_calendar_uuid
     """
-    flow = opta.standings(tournament_calendar_uuid=VALID_TMCL_UUID)
+    flow = opta.team_standings(tournament_calendar_uuid=VALID_TMCL_UUID)
     data = flow.collect()
 
     assert data is not None
