@@ -21,7 +21,7 @@ class StatsBomb:
 
     def _step(self, source: str, optimize: bool = False, **args) -> "Flow":
         """
-        Build a tiny plan that represents a single StatsBomb source operation and
+        Build a plan that represents a single StatsBomb source operation and
         return a Flow wrapping that plan.
 
         This is an internal helper used by the public methods. It does not
