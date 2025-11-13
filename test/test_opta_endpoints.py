@@ -1,5 +1,6 @@
 import pytest
 
+from penaltyblog.matchflow.steps.opta.config import PARAMETER_MAPPINGS
 from penaltyblog.matchflow.steps.opta.endpoints import OptaEndpointBuilder
 from penaltyblog.matchflow.steps.opta.exceptions import OptaConfigurationError
 
@@ -130,27 +131,28 @@ class TestOptaEndpointBuilder:
         ):
             builder.build_request_details("match_events", {})
 
-    def test_build_request_details_match_stats_basic_single(self):
-        """Test match_stats_basic with single fixture_uuid."""
+    def test_build_request_details_match_stats_player(self):
+        """Test match_stats_player endpoint."""
         builder = OptaEndpointBuilder(
             base_url="http://api.test.com", asset_type="soccerdata", auth_key="test_key"
         )
 
         url, params = builder.build_request_details(
-            "match_stats_basic", {"fixture_uuids": "fx123"}
+            "match_stats_player", {"fixture_uuids": ["fx123", "fx456"]}
         )
 
         assert url == "http://api.test.com/soccerdata/matchstats/test_key"
         assert params["_fmt"] == "json"
+        assert params["fx"] == "fx123,fx456"
 
-    def test_build_request_details_match_stats_basic_multiple(self):
-        """Test match_stats_basic with multiple fixture_uuids."""
+    def test_build_request_details_match_stats_team(self):
+        """Test match_stats_team endpoint."""
         builder = OptaEndpointBuilder(
             base_url="http://api.test.com", asset_type="soccerdata", auth_key="test_key"
         )
 
         url, params = builder.build_request_details(
-            "match_stats_basic", {"fixture_uuids": ["fx123", "fx456"]}
+            "match_stats_team", {"fixture_uuids": ["fx123", "fx456"]}
         )
 
         assert url == "http://api.test.com/soccerdata/matchstats/test_key"
@@ -168,9 +170,9 @@ class TestOptaEndpointBuilder:
             {
                 "tournament_calendar_uuid": "tmcl123",
                 "competition_uuids": ["comp1", "comp2"],
-                "live": True,
-                "lineups": False,
-                "use_opta_names": True,
+                "live": "yes",
+                "lineups": "no",
+                "use_opta_names": "en-op",
             },
         )
 
@@ -180,7 +182,7 @@ class TestOptaEndpointBuilder:
         assert params["comp"] == "comp1,comp2"
         assert params["live"] == "yes"
         assert params["lineups"] == "no"
-        assert params["_lcl"] is True
+        assert params["_lcl"] == "en-op"
 
     def test_build_request_details_teams(self):
         """Test teams endpoint."""
@@ -214,7 +216,7 @@ class TestOptaEndpointBuilder:
             {
                 "tournament_calendar_uuid": "tmcl123",
                 "contestant_uuid": "ctst123",
-                "use_opta_names": True,
+                "use_opta_names": "en-op",
             },
         )
 
@@ -222,7 +224,7 @@ class TestOptaEndpointBuilder:
         assert params["_fmt"] == "json"
         assert params["tmcl"] == "tmcl123"
         assert params["ctst"] == "ctst123"
-        assert params["_lcl"] is True
+        assert params["_lcl"] == "en-op"
 
     def test_build_request_details_player_season_stats(self):
         """Test player_season_stats endpoint."""
@@ -283,15 +285,21 @@ class TestOptaEndpointBuilder:
         ]
 
         for param_name, bool_value, expected_str in test_cases:
+            source = (
+                "matches_basic"
+                if param_name in ["live", "lineups"]
+                else "player_season_stats"
+            )
+
+            # The parameter mapping uses different names
+            param_mapping = PARAMETER_MAPPINGS.get(source, {})
+            mapped_param = param_mapping.get(param_name, param_name)
+
             url, params = builder.build_request_details(
-                (
-                    "matches_basic"
-                    if param_name in ["live", "lineups"]
-                    else "player_season_stats"
-                ),
+                source,
                 {param_name: bool_value},
             )
-            assert params[param_name] == expected_str
+            assert params[mapped_param] == expected_str
 
     def test_build_parameters_list_conversion(self):
         """Test list parameter conversion to comma-separated strings."""
@@ -397,28 +405,6 @@ class TestOptaEndpointBuilder:
         path_params = builder._extract_path_params("match_events", args)
 
         assert path_params == {"fixture_uuid": "fx123"}
-
-    def test_extract_path_params_match_stats_basic_single(self):
-        """Test _extract_path_params for match_stats_basic with single UUID."""
-        builder = OptaEndpointBuilder(
-            base_url="http://api.test.com", asset_type="soccerdata", auth_key="test_key"
-        )
-
-        args = {"fixture_uuids": "fx123"}
-        path_params = builder._extract_path_params("match_stats_basic", args)
-
-        assert path_params == {"fixture_uuids": "fx123"}
-
-    def test_extract_path_params_match_stats_basic_multiple(self):
-        """Test _extract_path_params for match_stats_basic with multiple UUIDs."""
-        builder = OptaEndpointBuilder(
-            base_url="http://api.test.com", asset_type="soccerdata", auth_key="test_key"
-        )
-
-        args = {"fixture_uuids": ["fx123", "fx456"]}
-        path_params = builder._extract_path_params("match_stats_basic", args)
-
-        assert path_params == {}  # Multiple UUIDs go in params, not path
 
     def test_build_parameters_default_format(self):
         """Test that _fmt=json is always included."""

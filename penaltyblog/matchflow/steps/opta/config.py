@@ -134,6 +134,8 @@ PARAMETER_MAPPINGS: Dict[str, Dict[str, str]] = {
         "date_range": "mt.mDt",
         "delta_timestamp": "_dlt",
         "use_opta_names": "_lcl",
+        "live": "live",
+        "lineups": "lineups",
         "tmcl": "tmcl",
         "ctst": "ctst",
         "ctst2": "ctst2",

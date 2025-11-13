@@ -211,8 +211,8 @@ def test_from_opta_proxies(mock_OptaClient):
 
 
 @patch("penaltyblog.matchflow.steps.source_opta.OptaClient")
-def test_from_opta_ma2_parsing_logic(mock_OptaClient):
-    """Tests that MA2 (match_stats_basic) calls correct helper."""
+def test_from_opta_ma2_player_parsing_logic(mock_OptaClient):
+    """Tests that MA2 (match_stats_player) calls correct helper."""
     # This sample is single match root object from your example
     SAMPLE_MA2 = {
         "matchInfo": {"id": "m1"},
@@ -236,35 +236,69 @@ def test_from_opta_ma2_parsing_logic(mock_OptaClient):
     mock_OptaClient.return_value = mock_client_instance
 
     # We also mock the helpers themselves to check they are called
-    with (
-        patch(
-            "penaltyblog.matchflow.steps.opta.parsers.extract_player_stats"
-        ) as mock_player_helper,
-        patch(
-            "penaltyblog.matchflow.steps.opta.parsers.extract_team_stats"
-        ) as mock_team_helper,
-    ):
-
+    with patch(
+        "penaltyblog.matchflow.steps.opta.parsers.extract_player_stats"
+    ) as mock_player_helper:
         mock_player_helper.return_value = iter([{"player": 1}])
-        mock_team_helper.return_value = iter([{"team": 1}])
 
         # Case 1: people=yes (default)
         step_players = {
-            "source": "match_stats_basic",
+            "source": "match_stats_player",
             "base_url": "http://api.test.com",
             "asset_type": "soccerdata",
             "args": {
                 "fixture_uuids": "fx1",
-                "people": "yes",
                 "creds": {"auth_key": "k", "rt_mode": "b"},
             },
         }
         results_players = list(from_opta(step_players))
 
         mock_player_helper.assert_called_once_with(SAMPLE_MA2)
-        mock_team_helper.assert_not_called()
         assert results_players == [{"player": 1}]
 
-        # Reset mocks for next case
-        mock_player_helper.reset_mock()
-        mock_team_helper.reset_mock()
+
+@patch("penaltyblog.matchflow.steps.source_opta.OptaClient")
+def test_from_opta_ma2_team_parsing_logic(mock_OptaClient):
+    """Tests that MA2 (match_stats_team) calls correct helper."""
+    # This sample is single match root object from your example
+    SAMPLE_MA2 = {
+        "matchInfo": {"id": "m1"},
+        "liveData": {
+            "lineUp": [
+                {
+                    "contestantId": "team1",
+                    "player": [
+                        {"id": "p1", "stat": [{"type": "goals", "value": "1"}]},
+                        {"id": "p2", "stat": [{"type": "assists", "value": "2"}]},
+                    ],
+                }
+            ]
+        },
+    }
+
+    mock_client_instance = MagicMock()
+    mock_client_instance.make_request.return_value = SAMPLE_MA2
+    mock_client_instance.__enter__ = MagicMock(return_value=mock_client_instance)
+    mock_client_instance.__exit__ = MagicMock(return_value=None)
+    mock_OptaClient.return_value = mock_client_instance
+
+    # We also mock the helpers themselves to check they are called
+    with patch(
+        "penaltyblog.matchflow.steps.opta.parsers.extract_team_stats"
+    ) as mock_team_helper:
+        mock_team_helper.return_value = iter([{"team": 1}])
+
+        # Case 1: people=yes (default)
+        step_team = {
+            "source": "match_stats_team",
+            "base_url": "http://api.test.com",
+            "asset_type": "soccerdata",
+            "args": {
+                "fixture_uuids": "fx1",
+                "creds": {"auth_key": "k", "rt_mode": "b"},
+            },
+        }
+        results_team = list(from_opta(step_team))
+
+        mock_team_helper.assert_called_once_with(SAMPLE_MA2)
+        assert results_team == [{"team": 1}]

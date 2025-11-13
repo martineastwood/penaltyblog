@@ -47,7 +47,8 @@ class TestOptaPaginator:
         non_paginated_sources = [
             "tournament_schedule",
             "match_basic",
-            "match_stats_basic",
+            "match_stats_player",
+            "match_stats_team",
             "match_events",
             "player_season_stats",
             "team_season_stats",

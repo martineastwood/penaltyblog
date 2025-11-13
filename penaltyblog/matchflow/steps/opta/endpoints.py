@@ -203,7 +203,7 @@ class OptaEndpointBuilder:
                     "detailed",
                     "active",
                     "include_players",
-                ]:
+                ] and isinstance(value, bool):
                     params[param_name] = (
                         "yes" if value else ("no" if value is False else None)
                     )  # Handle False explicitly
@@ -223,11 +223,6 @@ class OptaEndpointBuilder:
         # Add source-specific parameters that aren't in the mapping
         if source == "tournament_calendars":
             for param in ["comp", "ctst", "stages", "coverage"]:
-                if param in args and args[param] is not None:
-                    params[param] = args[param]
-
-        elif source == "matches_basic":
-            for param in ["live", "lineups"]:
                 if param in args and args[param] is not None:
                     params[param] = args[param]
 

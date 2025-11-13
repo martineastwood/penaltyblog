@@ -19,10 +19,10 @@ def test_opta_events_plan():
 
     expected_args = {
         "fixture_uuid": "fx123",
-        "ctst": "ctst1",
-        "prsn": "pl123",
-        "type": None,
-        "_lcl": "en-op",
+        "contestant_uuid": "ctst1",
+        "person_uuid": "pl123",
+        "event_types": None,
+        "use_opta_names": "en-op",
         "creds": opta_instance.DEFAULT_CREDS,
         "proxies": None,
     }
@@ -42,8 +42,8 @@ def test_opta_tournament_schedule_plan():
 
     expected_args = {
         "tournament_calendar_uuid": "tmcl1",
-        "cvlv": "1",
-        "_lcl": "en-op",
+        "coverage_level": "1",
+        "use_opta_names": "en-op",
         "creds": opta_instance.DEFAULT_CREDS,
         "proxies": None,
     }
@@ -60,8 +60,8 @@ def test_opta_tournament_schedule_plan():
 
     expected_args = {
         "tournament_calendar_uuid": "tmcl1",
-        "cvlv": "1,2,3",
-        "_lcl": None,
+        "coverage_level": "1,2,3",
+        "use_opta_names": None,
         "creds": opta_instance.DEFAULT_CREDS,
         "proxies": None,
     }
@@ -84,7 +84,7 @@ def test_opta_match_plan():
         "fixture_uuid": "fx123",
         "live": "yes",
         "lineups": "yes",
-        "_lcl": "en-op",
+        "use_opta_names": "en-op",
         "creds": opta_instance.DEFAULT_CREDS,
         "proxies": None,
     }
@@ -98,7 +98,7 @@ def test_opta_match_plan():
         "fixture_uuid": "fx123",
         "live": "no",
         "lineups": "no",
-        "_lcl": None,
+        "use_opta_names": None,
         "creds": opta_instance.DEFAULT_CREDS,
         "proxies": None,
     }
@@ -112,20 +112,21 @@ def test_opta_matches_plan_params():
         contestant_uuid="ctst1",
         opponent_uuid="ctst2",
         contestant_position="home",
+        live=False,
     )
 
     expected_args = {
-        "fx": None,
-        "tmcl": "tmcl1",
-        "comp": None,
-        "ctst": "ctst1",
-        "ctst2": "ctst2",
-        "ctstpos": "home",
-        "mt_mDt": None,
-        "_dlt": None,
+        "fixture_uuids": None,
+        "tournament_calendar_uuid": "tmcl1",
+        "competition_uuids": None,
+        "contestant_uuid": "ctst1",
+        "opponent_uuid": "ctst2",
+        "contestant_position": "home",
+        "date_range": None,
+        "delta_timestamp": None,
         "live": "no",
         "lineups": "no",
-        "_lcl": None,
+        "use_opta_names": None,
         "creds": opta_instance.DEFAULT_CREDS,
         "proxies": None,
     }
@@ -143,8 +144,7 @@ def test_opta_match_stats_player_plan():
 
     expected_args = {
         "fixture_uuids": ["fx123", "fx456"],
-        "people": "yes",
-        "_lcl": "en-op",
+        "use_opta_names": "en-op",
         "creds": opta_instance.DEFAULT_CREDS,
         "proxies": None,
     }
@@ -155,9 +155,8 @@ def test_opta_match_stats_player_plan():
 
     flow = Opta().match_stats_player(fixture_uuids="fx123")
     expected_args = {
-        "fixture_uuids": "fx123",
-        "people": "yes",
-        "_lcl": None,
+        "fixture_uuids": ["fx123"],
+        "use_opta_names": None,
         "creds": opta_instance.DEFAULT_CREDS,
         "proxies": None,
     }
@@ -173,8 +172,7 @@ def test_opta_match_stats_team_plan():
 
     expected_args = {
         "fixture_uuids": ["fx123", "fx456"],
-        "people": "no",
-        "_lcl": "en-op",
+        "use_opta_names": "en-op",
         "creds": opta_instance.DEFAULT_CREDS,
         "proxies": None,
     }
@@ -185,9 +183,8 @@ def test_opta_match_stats_team_plan():
 
     flow = Opta().match_stats_team(fixture_uuids="fx123")
     expected_args = {
-        "fixture_uuids": "fx123",
-        "people": "no",
-        "_lcl": None,
+        "fixture_uuids": ["fx123"],
+        "use_opta_names": None,
         "creds": opta_instance.DEFAULT_CREDS,
         "proxies": None,
     }
@@ -201,8 +198,8 @@ def test_opta_player_season_stats_plan():
     )
 
     expected_args = {
-        "tmcl": "tmcl1",
-        "ctst": "ctst1",
+        "tournament_calendar_uuid": "tmcl1",
+        "contestant_uuid": "ctst1",
         "detailed": "no",
         "creds": opta_instance.DEFAULT_CREDS,
         "proxies": None,
@@ -231,11 +228,11 @@ def test_opta_teams_plan():
     )
 
     expected_args = {
-        "tmcl": "tmcl1",
-        "ctst": "ctst1",
-        "ctry": "ctry1",
-        "stg": "stg1",
-        "srs": "srs1",
+        "tournament_calendar_uuid": "tmcl1",
+        "contestant_uuid": "ctst1",
+        "country_uuid": "ctry1",
+        "stage_uuid": "stg1",
+        "series_uuid": "srs1",
         "creds": opta_instance.DEFAULT_CREDS,
         "proxies": None,
     }
@@ -257,8 +254,8 @@ def test_opta_squads_plan():
     )
 
     expected_args = {
-        "tmcl": "tmcl1",
-        "ctst": "ctst1",
+        "tournament_calendar_uuid": "tmcl1",
+        "contestant_uuid": "ctst1",
         "_lcl": "en-op",
         "creds": opta_instance.DEFAULT_CREDS,
         "proxies": None,
@@ -270,8 +267,8 @@ def test_opta_squads_plan():
 
     flow = Opta().squads(tournament_calendar_uuid="tmcl1")
     expected_args = {
-        "tmcl": "tmcl1",
-        "ctst": None,
+        "tournament_calendar_uuid": "tmcl1",
+        "contestant_uuid": None,
         "_lcl": None,
         "creds": opta_instance.DEFAULT_CREDS,
         "proxies": None,
@@ -294,10 +291,10 @@ def test_opta_tournament_calendars_plan():
 
     expected_args = {
         "status": "active",
-        "comp": "comp1",
-        "ctst": "ctst1",
-        "stages": "yes",
-        "coverage": "yes",
+        "competition_uuid": "comp1",
+        "contestant_uuid": "ctst1",
+        "include_stages": "yes",
+        "include_coverage": "yes",
         "creds": opta_instance.DEFAULT_CREDS,
         "proxies": None,
     }
@@ -314,8 +311,8 @@ def test_opta_team_season_stats_plan():
     )
 
     expected_args = {
-        "tmcl": "tmcl1",
-        "ctst": "ctst1",
+        "tournament_calendar_uuid": "tmcl1",
+        "contestant_uuid": "ctst1",
         "detailed": "no",
         "creds": opta_instance.DEFAULT_CREDS,
         "proxies": None,
@@ -330,8 +327,8 @@ def test_opta_team_season_stats_plan():
     )
 
     expected_args = {
-        "tmcl": "tmcl1",
-        "ctst": "ctst1",
+        "tournament_calendar_uuid": "tmcl1",
+        "contestant_uuid": "ctst1",
         "detailed": "yes",
         "creds": opta_instance.DEFAULT_CREDS,
         "proxies": None,
@@ -345,8 +342,8 @@ def test_opta_team_season_stats_plan():
     flow = Opta().team_season_stats(tournament_calendar_uuid="tmcl1", detailed=True)
 
     expected_args = {
-        "tmcl": "tmcl1",
-        "ctst": None,
+        "tournament_calendar_uuid": "tmcl1",
+        "contestant_uuid": None,
         "detailed": "yes",
         "creds": opta_instance.DEFAULT_CREDS,
         "proxies": None,
@@ -374,17 +371,17 @@ def test_opta_matches_comprehensive_parameters():
     )
 
     expected_args = {
-        "fx": "fx123,fx456",
-        "tmcl": None,
-        "comp": "comp1,comp2",
-        "ctst": None,
-        "ctst2": None,
-        "ctstpos": None,
-        "mt_mDt": "[2023-01-01T00:00:00Z TO 2023-12-31T00:00:00Z]",
-        "_dlt": "2023-01-01T00:00:00Z",
+        "fixture_uuids": ["fx123", "fx456"],
+        "tournament_calendar_uuid": None,
+        "competition_uuids": ["comp1", "comp2"],
+        "contestant_uuid": None,
+        "opponent_uuid": None,
+        "contestant_position": None,
+        "date_range": "[2023-01-01T00:00:00Z TO 2023-12-31T00:00:00Z]",
+        "delta_timestamp": "2023-01-01T00:00:00Z",
         "live": "yes",
         "lineups": "yes",
-        "_lcl": "en-op",
+        "use_opta_names": "en-op",
         "creds": opta_instance.DEFAULT_CREDS,
         "proxies": None,
     }
@@ -409,10 +406,10 @@ def test_opta_events_event_types():
 
     expected_args = {
         "fixture_uuid": "fx123",
-        "ctst": None,
-        "prsn": None,
-        "type": "1",
-        "_lcl": None,
+        "contestant_uuid": None,
+        "person_uuid": None,
+        "event_types": 1,
+        "use_opta_names": None,
         "creds": opta_instance.DEFAULT_CREDS,
         "proxies": None,
     }
@@ -428,10 +425,10 @@ def test_opta_events_event_types():
 
     expected_args = {
         "fixture_uuid": "fx123",
-        "ctst": None,
-        "prsn": None,
-        "type": "1,2,3",
-        "_lcl": None,
+        "contestant_uuid": None,
+        "person_uuid": None,
+        "event_types": [1, 2, 3],
+        "use_opta_names": None,
         "creds": opta_instance.DEFAULT_CREDS,
         "proxies": None,
     }
@@ -453,10 +450,10 @@ def test_opta_custom_credentials_and_proxies():
 
     expected_args = {
         "fixture_uuid": "fx123",
-        "ctst": None,
-        "prsn": None,
-        "type": None,
-        "_lcl": None,
+        "contestant_uuid": None,
+        "person_uuid": None,
+        "event_types": None,
+        "use_opta_names": None,
         "creds": custom_creds,
         "proxies": custom_proxies,
     }
@@ -515,10 +512,10 @@ def test_opta_tournament_calendars_all_parameters():
 
     expected_args = {
         "status": "active",
-        "comp": "comp1",
-        "ctst": "ctst1",
-        "stages": "yes",
-        "coverage": "yes",
+        "competition_uuid": "comp1",
+        "contestant_uuid": "ctst1",
+        "include_stages": "yes",
+        "include_coverage": "yes",
         "creds": {"auth_key": "test"},
         "proxies": {"https": "http://proxy.com"},
     }
@@ -532,10 +529,10 @@ def test_opta_tournament_calendars_all_parameters():
 
     expected_args = {
         "status": "all",
-        "comp": None,
-        "ctst": None,
-        "stages": None,
-        "coverage": None,
+        "competition_uuid": None,
+        "contestant_uuid": None,
+        "include_stages": None,
+        "include_coverage": None,
         "creds": opta_instance.DEFAULT_CREDS,
         "proxies": None,
     }
@@ -646,7 +643,7 @@ def test_opta_venues_plan():
         "tournament_calendar_uuid": "tmcl1",
         "contestant_uuid": None,
         "venue_uuid": None,
-        "_lcl": "en-op",
+        "use_opta_names": "en-op",
         "creds": opta_instance.DEFAULT_CREDS,
         "proxies": None,
     }
@@ -662,7 +659,7 @@ def test_opta_venues_plan():
         "tournament_calendar_uuid": None,
         "contestant_uuid": "ctst1",
         "venue_uuid": None,
-        "_lcl": None,
+        "use_opta_names": None,
         "creds": opta_instance.DEFAULT_CREDS,
         "proxies": None,
     }
@@ -678,7 +675,7 @@ def test_opta_venues_plan():
         "tournament_calendar_uuid": None,
         "contestant_uuid": None,
         "venue_uuid": "venue123",
-        "_lcl": None,
+        "use_opta_names": None,
         "creds": opta_instance.DEFAULT_CREDS,
         "proxies": None,
     }
@@ -701,7 +698,7 @@ def test_opta_player_career_plan():
         "person_uuid": "person123",
         "contestant_uuid": None,
         "active": None,
-        "_lcl": "en-op",
+        "use_opta_names": "en-op",
         "creds": opta_instance.DEFAULT_CREDS,
         "proxies": None,
     }
@@ -717,7 +714,7 @@ def test_opta_player_career_plan():
         "person_uuid": None,
         "contestant_uuid": "ctst1",
         "active": False,
-        "_lcl": None,
+        "use_opta_names": None,
         "creds": opta_instance.DEFAULT_CREDS,
         "proxies": None,
     }
@@ -744,7 +741,7 @@ def test_opta_injuries_plan():
         "person_uuid": "person123",
         "tournament_calendar_uuid": None,
         "contestant_uuid": None,
-        "_lcl": "en-op",
+        "use_opta_names": "en-op",
         "creds": opta_instance.DEFAULT_CREDS,
         "proxies": None,
     }
@@ -760,7 +757,7 @@ def test_opta_injuries_plan():
         "person_uuid": None,
         "tournament_calendar_uuid": "tmcl1",
         "contestant_uuid": None,
-        "_lcl": None,
+        "use_opta_names": None,
         "creds": opta_instance.DEFAULT_CREDS,
         "proxies": None,
     }
@@ -776,7 +773,7 @@ def test_opta_injuries_plan():
         "person_uuid": None,
         "tournament_calendar_uuid": "tmcl1",
         "contestant_uuid": "ctst1",
-        "_lcl": None,
+        "use_opta_names": None,
         "creds": opta_instance.DEFAULT_CREDS,
         "proxies": None,
     }
@@ -792,7 +789,7 @@ def test_opta_injuries_plan():
         "person_uuid": "person123",
         "tournament_calendar_uuid": "tmcl1",
         "contestant_uuid": None,
-        "_lcl": None,
+        "use_opta_names": None,
         "creds": opta_instance.DEFAULT_CREDS,
         "proxies": None,
     }
@@ -823,13 +820,13 @@ def test_opta_referees_plan():
         "person_uuid": "person123",
         "tournament_calendar_uuid": None,
         "stage_uuid": None,
-        "_lcl": "en-op",
+        "use_opta_names": "en-op",
         "creds": opta_instance.DEFAULT_CREDS,
         "proxies": None,
     }
 
     assert flow.plan[0]["op"] == "from_opta"
-    assert flow.plan[0]["source"] == "referees"
+    assert flow.plan[0]["source"] == "referees_person"
     assert flow.plan[0]["args"] == expected_args
 
     # Test with tournament_calendar_uuid
@@ -839,7 +836,7 @@ def test_opta_referees_plan():
         "person_uuid": None,
         "tournament_calendar_uuid": "tmcl1",
         "stage_uuid": None,
-        "_lcl": None,
+        "use_opta_names": None,
         "creds": opta_instance.DEFAULT_CREDS,
         "proxies": None,
     }
@@ -855,7 +852,7 @@ def test_opta_referees_plan():
         "person_uuid": None,
         "tournament_calendar_uuid": None,
         "stage_uuid": "stage1",
-        "_lcl": None,
+        "use_opta_names": None,
         "creds": opta_instance.DEFAULT_CREDS,
         "proxies": None,
     }
@@ -885,7 +882,7 @@ def test_opta_transfers_plan():
         "tournament_calendar_uuid": None,
         "start_date": None,
         "end_date": None,
-        "_lcl": "en-op",
+        "use_opta_names": "en-op",
         "creds": opta_instance.DEFAULT_CREDS,
         "proxies": None,
     }
@@ -910,7 +907,7 @@ def test_opta_transfers_plan():
         "tournament_calendar_uuid": None,
         "start_date": "2023-06-01",
         "end_date": "2023-08-31",
-        "_lcl": None,
+        "use_opta_names": None,
         "creds": opta_instance.DEFAULT_CREDS,
         "proxies": None,
     }

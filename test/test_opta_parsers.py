@@ -235,7 +235,7 @@ class TestExtractTeamStats:
         match = {
             "matchInfo": {"id": "match123"},
             "liveData": {
-                "teamStats": [
+                "lineUp": [
                     {
                         "contestantId": "team1",
                         "stat": [
@@ -263,7 +263,7 @@ class TestExtractTeamStats:
         match = {
             "matchInfo": {"id": "match123"},
             "liveData": {
-                "teamStats": [
+                "lineUp": [
                     {
                         "contestantId": "team1",
                         "stat": [{"type": "goals", "value": "2"}],
@@ -582,7 +582,7 @@ class TestParseMatchStatsBasic:
         data = {
             "matchInfo": {"id": "match1"},
             "liveData": {
-                "teamStats": [
+                "lineUp": [
                     {"contestantId": "team1", "stat": [{"type": "goals", "value": "2"}]}
                 ]
             },

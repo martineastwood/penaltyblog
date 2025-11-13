@@ -15,7 +15,8 @@ class TestOptaConfig:
         expected_sources = {
             "tournament_schedule",
             "match_basic",
-            "match_stats_basic",
+            "match_stats_player",
+            "match_stats_team",
             "match_events",
             "player_season_stats",
             "team_season_stats",
@@ -55,10 +56,13 @@ class TestOptaConfig:
         for variant in expected_variants:
             assert variant in tournament_config["status_variants"]
 
-    def test_endpoint_configs_match_stats_basic_supports_multi(self):
-        """Test that match_stats_basic supports multi-fixture."""
-        match_stats_config = config.ENDPOINT_CONFIGS["match_stats_basic"]
-        assert match_stats_config.get("supports_multi") is True
+    def test_endpoint_configs_match_stats_supports_multi(self):
+        """Test that match_stats (player and team) supports multi-fixture."""
+        player_stats_config = config.ENDPOINT_CONFIGS["match_stats_player"]
+        assert player_stats_config.get("supports_multi") is True
+
+        team_stats_config = config.ENDPOINT_CONFIGS["match_stats_team"]
+        assert team_stats_config.get("supports_multi") is True
 
     def test_parameter_mappings_structure(self):
         """Test that PARAMETER_MAPPINGS has proper structure."""
@@ -77,7 +81,8 @@ class TestOptaConfig:
         expected_sources = {
             "matches_basic",
             "match_basic",
-            "match_stats_basic",
+            "match_stats_player",
+            "match_stats_team",
             "match_events",
             "teams",
             "squads",
@@ -121,7 +126,8 @@ class TestOptaConfig:
         expected_sources = {
             "tournament_schedule",
             "match_basic",
-            "match_stats_basic",
+            "match_stats_player",
+            "match_stats_team",
             "match_events",
             "player_season_stats",
             "team_season_stats",
@@ -211,7 +217,8 @@ class TestOptaConfig:
         known_non_paginated = {
             "tournament_schedule",
             "match_basic",
-            "match_stats_basic",
+            "match_stats_player",
+            "match_stats_team",
             "match_events",
             "player_season_stats",
             "team_season_stats",
