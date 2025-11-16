@@ -37,49 +37,49 @@ All API calls return a ``Flow``, so you can apply all usual transformations like
 +----------------------------------------------------------+---------+------------------------------------------------+
 | Method                                                   | Feed ID | Description                                    |
 +==========================================================+=========+================================================+
-| ``.tournament_calendars()``                              | OT2     | All tournament calendars available via API     |
+| ``.tournament_calendars(...)``                           | OT2     | All tournament calendars available via API     |
 +----------------------------------------------------------+---------+------------------------------------------------+
-| ``.venues()``                                            | OT3     | All venues available via API                   |
+| ``.venues(...)``                                         | OT3     | All venues available via API                   |
 +----------------------------------------------------------+---------+------------------------------------------------+
-| ``.areas()``                                             | OT4     | All areas available via API                    |
+| ``.areas([area_uuid])``                                  | OT4     | All areas available via API                    |
 +----------------------------------------------------------+---------+------------------------------------------------+
-| ``.tournament_schedule(tournament_calendar_uuid)``       | MA0     | Matches for a specific season                  |
+| ``.tournament_schedule(tournament_calendar_uuid, ...)``  | MA0     | Matches for a specific season                  |
 +----------------------------------------------------------+---------+------------------------------------------------+
-| ``.matches()``                                           | MA1     | All matches available via API                  |
+| ``.matches(...)``                                        | MA1     | All matches available via API                  |
 +----------------------------------------------------------+---------+------------------------------------------------+
-| ``.match(fixture_uuid)``                                 | MA1     | A single match                                 |
+| ``.match(fixture_uuid, ...)``                            | MA1     | A single match                                 |
 +----------------------------------------------------------+---------+------------------------------------------------+
-| ``.match_stats_player(fixture_uuids)``                   | MA2     | Player-level stats for a match                 |
+| ``.match_stats_player(fixture_uuids, ...)``              | MA2     | Player-level stats for a match                 |
 +----------------------------------------------------------+---------+------------------------------------------------+
-| ``.match_stats_team(fixture_uuids)``                      | MA2     | Team-level stats for a match                   |
+| ``.match_stats_team(fixture_uuids, ...)``                | MA2     | Team-level stats for a match                   |
 +----------------------------------------------------------+---------+------------------------------------------------+
-| ``.events(fixture_uuid)``                                | MA3     | All events in a match                          |
+| ``.events(fixture_uuid, ...)``                           | MA3     | All events in a match                          |
 +----------------------------------------------------------+---------+------------------------------------------------+
-| ``.pass_matrix(fixture_uuid)``                            | MA4     | Pass matrix and average formation data         |
+| ``.pass_matrix(fixture_uuid, ...)``                      | MA4     | Pass matrix and average formation data         |
 +----------------------------------------------------------+---------+------------------------------------------------+
-| ``.possession(fixture_uuid)``                            | MA5     | Possession and territorial advantage data      |
+| ``.possession(fixture_uuid, ...)``                       | MA5     | Possession and territorial advantage data      |
 +----------------------------------------------------------+---------+------------------------------------------------+
-| ``.player_career()``                                     | PE2     | Player career data                             |
+| ``.player_career(...)``                                  | PE2     | Player career data                             |
 +----------------------------------------------------------+---------+------------------------------------------------+
-| ``.referees()``                                          | PE3     | All referees available via API                 |
+| ``.referees(...)``                                       | PE3     | All referees available via API                 |
 +----------------------------------------------------------+---------+------------------------------------------------+
-| ``.rankings(tournament_calendar_uuid)``                  | PE4     | Rankings data for players, teams, and games    |
+| ``.rankings(tournament_calendar_uuid, ...)``             | PE4     | Rankings data for players, teams, and games    |
 +----------------------------------------------------------+---------+------------------------------------------------+
-| ``.injuries()``                                          | PE7     | All injuries available via API                 |
+| ``.injuries(...)``                                       | PE7     | All injuries available via API                 |
 +----------------------------------------------------------+---------+------------------------------------------------+
-| ``.teams()``                                             | TM1     | All teams available via API                    |
+| ``.teams(...)``                                          | TM1     | All teams available via API                    |
 +----------------------------------------------------------+---------+------------------------------------------------+
-| ``.team_standings(tournament_calendar_uuid)``            | TM2     | League table and standings data                |
+| ``.team_standings(tournament_calendar_uuid, ...)``       | TM2     | League table and standings data                |
 +----------------------------------------------------------+---------+------------------------------------------------+
-| ``.squads()``                                            | TM3     | All squads available via API                   |
+| ``.squads(...)``                                         | TM3     | All squads available via API                   |
 +----------------------------------------------------------+---------+------------------------------------------------+
-| ``.player_season_stats(tournament_calendar_uuid, contestant_uuid)`` | TM4     | Player stats over a season                     |
+| ``.player_season_stats(tmcl_uuid, ctst_uuid, ...)``      | TM4     | Player stats over a season                     |
 +----------------------------------------------------------+---------+------------------------------------------------+
-| ``.team_season_stats(tournament_calendar_uuid, contestant_uuid)``   | TM4     | Team stats over a season                       |
+| ``.team_season_stats(tmcl_uuid, ctst_uuid, ...)``        | TM4     | Team stats over a season                       |
 +----------------------------------------------------------+---------+------------------------------------------------+
-| ``.transfers()``                                         | TM7     | Player transfer data                           |
+| ``.transfers(...)``                                      | TM7     | Player transfer data                           |
 +----------------------------------------------------------+---------+------------------------------------------------+
-| ``.contestant_participation(contestant_uuid)``           | TM16    | Contestant participation data                  |
+| ``.contestant_participation(contestant_uuid, ...)``      | TM16    | Contestant participation data                  |
 +----------------------------------------------------------+---------+------------------------------------------------+
 
 All of these return a lazy Flow
@@ -131,7 +131,19 @@ Remember, nothing is downloaded or processed until you **materialize the flow**:
 🔒 Authenticated Access
 =======================
 
-All API methods accept a creds dictionary, or you can use environment variables:
+All API methods accept a creds dictionary, or you can use environment variables. They also accept a `proxies` argument for routing requests through a proxy.
+
+.. code-block:: python
+
+   proxies = {
+       'http': 'socks5h://localhost:9090',
+       'https://': 'socks5h://localhost:9090'
+   }
+
+   data = opta.tournament_calendars(
+       status="all",
+       proxies=proxies
+   ).collect()
 
 .. code-block:: python
 
@@ -153,11 +165,6 @@ Flow's Opta integration:
 - ✅ Streams on demand (not loaded eagerly)
 - ✅ Integrates with full Flow pipeline tools
 - ✅ Works with both open and authenticated endpoints
-
-.. autoclass:: penaltyblog.matchflow.contrib.opta.Opta
-   :members:
-   :undoc-members:
-   :show-inheritance:
 
 .. _opta-helpers:
 
@@ -252,9 +259,14 @@ This will return a dictionary containing all event and qualifier names and their
 
 **Key Qualifier Types:**
 - Long Ball (1), Cross (2), Head Pass (3), Through Ball (4)
-- Penalty (5), Handball (10), Various card types (31-33)
-- Pitch zones (16-25, 60-71), Shot locations (76-87)
-- Save types (173-183), VAR-related qualifiers (329-336)
+- Penalty (9), Handball (10), Various card types (31-33)
+- Pitch zones (e.g. Small box - Centre (16), Box - Right (63))
+- Shot locations (76-87), Save types (173-183), VAR-related qualifiers (329-336)
 - And hundreds of detailed qualifiers for specific situations
 
 The helper functions automatically handle the case-insensitive lookup, so you can use human-readable names like "Shot", "Pass", "Penalty", "Zone" etc. in your filters without needing to remember the specific Opta IDs.
+
+.. autoclass:: penaltyblog.matchflow.contrib.opta.Opta
+   :members:
+   :undoc-members:
+   :show-inheritance:
