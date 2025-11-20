@@ -137,7 +137,7 @@ All API methods accept a creds dictionary, or you can use environment variables.
 
    proxies = {
        'http': 'socks5h://localhost:9090',
-       'https://': 'socks5h://localhost:9090'
+       'https': 'socks5h://localhost:9090'
    }
 
    data = opta.tournament_calendars(
@@ -152,9 +152,9 @@ All API methods accept a creds dictionary, or you can use environment variables.
 🧠 Tips
 =======
 
-- Useful for clubs or analysts already using Opta data
-- Flows can be joined with your internal data or flattened and saved
-- Try ``.flatten().to_jsonl()`` to export clean JSONL for later
+- **Cloud Ready:** You can stream data directly to cloud storage without downloading it locally first: ``opta.events(...).to_jsonl("s3://my-bucket/events.jsonl")``
+- **Integration:** Useful for clubs or analysts already using Opta data who want to join it with internal data.
+- **Exporting:** Try ``.flatten().to_jsonl()`` to export clean, flat
 
 📝 Summary
 ==========

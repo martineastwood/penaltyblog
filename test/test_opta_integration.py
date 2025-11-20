@@ -1142,15 +1142,6 @@ def test_events_opta_names():
     assert "typeId" in data[0]
 
 
-def test_events_validation():
-    """
-    Tests: events() parameter validation for invalid combinations
-    """
-    # Note: events() doesn't have explicit validation in the current implementation
-    # This test is a placeholder for future validation if added
-    pass
-
-
 # --- Enhanced Rankings Tests ---
 
 
