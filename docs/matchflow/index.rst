@@ -24,6 +24,7 @@ You can:
 - Work with nested data without flattening too early
 - Chain steps fluently, materialize only when ready
 - Filtering using string expressions, like ``"age > 30 and team == @team_name"``
+- Stream data directly from the StatsBomb or Opta APIs
 
 All transformations are **lazy**; nothing runs until you ask for results with ``.collect()``, ``.to_pandas()``, ``.to_jsonl()`` etc.
 

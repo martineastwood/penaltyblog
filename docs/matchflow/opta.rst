@@ -34,55 +34,116 @@ All API calls return a ``Flow``, so you can apply all usual transformations like
 🔍 Available Endpoints
 ======================
 
-+----------------------------------------------------------+---------+------------------------------------------------+
-| Method                                                   | Feed ID | Description                                    |
-+==========================================================+=========+================================================+
-| ``.tournament_calendars(...)``                           | OT2     | All tournament calendars available via API     |
-+----------------------------------------------------------+---------+------------------------------------------------+
-| ``.venues(...)``                                         | OT3     | All venues available via API                   |
-+----------------------------------------------------------+---------+------------------------------------------------+
-| ``.areas([area_uuid])``                                  | OT4     | All areas available via API                    |
-+----------------------------------------------------------+---------+------------------------------------------------+
-| ``.tournament_schedule(tournament_calendar_uuid, ...)``  | MA0     | Matches for a specific season                  |
-+----------------------------------------------------------+---------+------------------------------------------------+
-| ``.matches(...)``                                        | MA1     | All matches available via API                  |
-+----------------------------------------------------------+---------+------------------------------------------------+
-| ``.match(fixture_uuid, ...)``                            | MA1     | A single match                                 |
-+----------------------------------------------------------+---------+------------------------------------------------+
-| ``.match_stats_player(fixture_uuids, ...)``              | MA2     | Player-level stats for a match                 |
-+----------------------------------------------------------+---------+------------------------------------------------+
-| ``.match_stats_team(fixture_uuids, ...)``                | MA2     | Team-level stats for a match                   |
-+----------------------------------------------------------+---------+------------------------------------------------+
-| ``.events(fixture_uuid, ...)``                           | MA3     | All events in a match                          |
-+----------------------------------------------------------+---------+------------------------------------------------+
-| ``.pass_matrix(fixture_uuid, ...)``                      | MA4     | Pass matrix and average formation data         |
-+----------------------------------------------------------+---------+------------------------------------------------+
-| ``.possession(fixture_uuid, ...)``                       | MA5     | Possession and territorial advantage data      |
-+----------------------------------------------------------+---------+------------------------------------------------+
-| ``.player_career(...)``                                  | PE2     | Player career data                             |
-+----------------------------------------------------------+---------+------------------------------------------------+
-| ``.referees(...)``                                       | PE3     | All referees available via API                 |
-+----------------------------------------------------------+---------+------------------------------------------------+
-| ``.rankings(tournament_calendar_uuid, ...)``             | PE4     | Rankings data for players, teams, and games    |
-+----------------------------------------------------------+---------+------------------------------------------------+
-| ``.injuries(...)``                                       | PE7     | All injuries available via API                 |
-+----------------------------------------------------------+---------+------------------------------------------------+
-| ``.teams(...)``                                          | TM1     | All teams available via API                    |
-+----------------------------------------------------------+---------+------------------------------------------------+
-| ``.team_standings(tournament_calendar_uuid, ...)``       | TM2     | League table and standings data                |
-+----------------------------------------------------------+---------+------------------------------------------------+
-| ``.squads(...)``                                         | TM3     | All squads available via API                   |
-+----------------------------------------------------------+---------+------------------------------------------------+
-| ``.player_season_stats(tmcl_uuid, ctst_uuid, ...)``      | TM4     | Player stats over a season                     |
-+----------------------------------------------------------+---------+------------------------------------------------+
-| ``.team_season_stats(tmcl_uuid, ctst_uuid, ...)``        | TM4     | Team stats over a season                       |
-+----------------------------------------------------------+---------+------------------------------------------------+
-| ``.transfers(...)``                                      | TM7     | Player transfer data                           |
-+----------------------------------------------------------+---------+------------------------------------------------+
-| ``.contestant_participation(contestant_uuid, ...)``      | TM16    | Contestant participation data                  |
-+----------------------------------------------------------+---------+------------------------------------------------+
+.. list-table:: Available Opta API Endpoints
+   :header-rows: 1
+   :widths: 50 10 40
+
+   * - Method
+     - Feed ID
+     - Description
+   * - ``.tournament_calendars(...)``
+     - OT2
+     - All tournament calendars available via API
+   * - ``.venues(...)``
+     - OT3
+     - All venues available via API
+   * - ``.areas([area_uuid])``
+     - OT4
+     - All areas available via API
+   * - ``.tournament_schedule(tournament_calendar_uuid, ...)``
+     - MA0
+     - Matches for a specific season
+   * - ``.matches(...)``
+     - MA1
+     - All matches available via API
+   * - ``.match(fixture_uuid, ...)``
+     - MA1
+     - A single match
+   * - ``.match_stats_player(fixture_uuids, ...)``
+     - MA2
+     - Player-level stats for a match
+   * - ``.match_stats_team(fixture_uuids, ...)``
+     - MA2
+     - Team-level stats for a match
+   * - ``.events(fixture_uuid, ...)``
+     - MA3
+     - All events in a match
+   * - ``.pass_matrix(fixture_uuid, ...)``
+     - MA4
+     - Pass matrix and average formation data
+   * - ``.possession(fixture_uuid, ...)``
+     - MA5
+     - Possession and territorial advantage data
+   * - ``.player_career(...)``
+     - PE2
+     - Player career data
+   * - ``.referees(...)``
+     - PE3
+     - All referees available via API
+   * - ``.rankings(tournament_calendar_uuid, ...)``
+     - PE4
+     - Rankings data for players, teams, and games
+   * - ``.injuries(...)``
+     - PE7
+     - All injuries available via API
+   * - ``.teams(...)``
+     - TM1
+     - All teams available via API
+   * - ``.team_standings(tournament_calendar_uuid, ...)``
+     - TM2
+     - League table and standings data with multiple division types (total, home, away, form, half-time, etc.)
+   * - ``.squads(...)``
+     - TM3
+     - All squads available via API
+   * - ``.player_season_stats(tmcl_uuid, ctst_uuid, ...)``
+     - TM4
+     - Player stats over a season
+   * - ``.team_season_stats(tmcl_uuid, ctst_uuid, ...)``
+     - TM4
+     - Team stats over a season
+   * - ``.transfers(...)``
+     - TM7
+     - Player transfer data
+   * - ``.contestant_participation(contestant_uuid, ...)``
+     - TM16
+     - Contestant participation data
 
 All of these return a lazy Flow
+
+📋 Parameter Validation & Constraints
+==================================
+
+Some methods have specific validation rules and parameter constraints:
+
+**Required Parameters**
+
+- ``venues()``: At least one of ``tournament_calendar_uuid``, ``contestant_uuid``, or ``venue_uuid`` must be provided
+- ``matches()``: Both ``date_from`` and ``date_to`` must be provided together (if using date filtering)
+- ``referees()``: Exactly one of ``person_uuid``, ``tournament_calendar_uuid``, or ``stage_uuid`` must be provided
+- ``teams()``: Either ``tournament_calendar_uuid`` or ``contestant_uuid`` must be provided
+- ``squads()``: Either ``tournament_calendar_uuid`` or ``contestant_uuid`` must be provided
+- ``player_career()``: Exactly one of ``person_uuid`` or ``contestant_uuid`` must be provided
+- ``injuries()``: Either ``person_uuid`` or ``tournament_calendar_uuid`` must be provided
+- ``transfers()``: At least one of ``person_uuid``, ``contestant_uuid``, ``competition_uuid``, or ``tournament_calendar_uuid`` must be provided
+
+**Date Parameter Constraints**
+
+- ``matches()``: When using ``date_from``/``date_to``, they must be valid dates and ``date_from`` cannot be after ``date_to``
+- ``transfers()``: When using ``start_date``/``end_date``, ``competition_uuid`` must be provided and ``tournament_calendar_uuid`` cannot be used
+
+**Common Parameter Types**
+
+- ``fixture_uuids``: Accepts ``str`` or ``List[str]`` (for match stats methods)
+- ``event_types``: Accepts ``int`` or ``List[int]`` (for events method)
+- ``coverage_level``: Accepts ``int`` or ``List[int]`` (for tournament_schedule method)
+- ``contestant_uuid``: Accepts ``str`` or ``List[str]`` (for contestant_participation method)
+
+**Optional Parameters**
+
+- ``use_opta_names``: Available on most methods (default: ``False``) - Requests 'en-op' locale for Opta-specific names
+- ``creds``: Dictionary with ``auth_key`` and ``rt_mode`` (or use environment variables)
+- ``proxies``: Dictionary for proxy configuration (e.g., ``{'http': 'socks5h://localhost:9090'}``)
+- ``optimize``: Boolean to optimize execution plan (default: ``False``)
 
 🧪 Example: Referees in a Tournament
 ====================================
@@ -98,6 +159,37 @@ All of these return a lazy Flow
 
    for referee in referees.head(3):
        print(referee)
+
+🧪 Example: Using Opta-Specific Names
+=====================================
+
+.. code-block:: python
+
+   from penaltyblog.matchflow.contrib import opta
+
+   # Get team standings with Opta-specific names
+   standings = (
+       opta.team_standings(
+           tournament_calendar_uuid="51r6ph2woavlbbpk8f29nynf8",
+           type="total",
+           use_opta_names=True
+       )
+   )
+
+🧪 Example: Multiple Fixture UUIDs
+================================
+
+.. code-block:: python
+
+   from penaltyblog.matchflow.contrib import opta
+
+   # Get player stats for multiple matches
+   player_stats = (
+       opta.match_stats_player(
+           fixture_uuids=["match1_uuid", "match2_uuid", "match3_uuid"],
+           use_opta_names=True
+       )
+   )
 
 🧼 Filtering & Transforming
 ===========================
