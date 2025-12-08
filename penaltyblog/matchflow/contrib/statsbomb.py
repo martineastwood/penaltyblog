@@ -11,14 +11,17 @@ if TYPE_CHECKING:
 
 
 class StatsBomb:
-    DEFAULT_CREDS = {
-        "user": os.environ.get("SB_USERNAME"),
-        "passwd": os.environ.get("SB_PASSWORD"),
-    }
+    @property
+    def DEFAULT_CREDS(self) -> dict:
+        """Get default credentials from environment variables."""
+        return {
+            "user": os.environ.get("SB_USERNAME"),
+            "passwd": os.environ.get("SB_PASSWORD"),
+        }
 
     def _step(self, source: str, optimize: bool = False, **args) -> "Flow":
         """
-        Build a tiny plan that represents a single StatsBomb source operation and
+        Build a plan that represents a single StatsBomb source operation and
         return a Flow wrapping that plan.
 
         This is an internal helper used by the public methods. It does not

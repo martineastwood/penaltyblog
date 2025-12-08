@@ -24,6 +24,7 @@ You can:
 - Work with nested data without flattening too early
 - Chain steps fluently, materialize only when ready
 - Filtering using string expressions, like ``"age > 30 and team == @team_name"``
+- Stream data directly from the StatsBomb or Opta APIs
 
 All transformations are **lazy**; nothing runs until you ask for results with ``.collect()``, ``.to_pandas()``, ``.to_jsonl()`` etc.
 
@@ -76,6 +77,8 @@ Guide Index
      - Smart plan rewrites for faster execution
    * - :doc:`statsbomb`
      - Streaming data directly from the StatsBomb API
+   * - :doc:`opta`
+     - Streaming data directly from the Opta API
 
 
 Quick Start
@@ -118,3 +121,4 @@ Need help? Ask questions, file issues, or suggest improvements any time.
    predicates
    query
    statsbomb
+   opta

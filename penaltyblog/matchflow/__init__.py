@@ -1,5 +1,12 @@
 from . import aggregates
 from .flow import Flow
+from .opta_helpers import (
+    OPTA_EVENT_DEFINITIONS,
+    OPTA_QUALIFIER_DEFINITIONS,
+    get_opta_mappings,
+    where_opta_event,
+    where_opta_qualifier,
+)
 from .predicates_helpers import (
     and_,
     not_,
