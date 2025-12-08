@@ -7,6 +7,18 @@ Version Numbering
 ``penaltyblog`` follows the SemVer versioning guidelines. For more information,
 see `semver.org <http://semver.org/>`_
 
+v1.7.0 (2025-11-30)
+^^^^^^^^^^^^^^^^^^^^
+
+* **Opta API Integration** (``penaltyblog.matchflow.contrib.opta``):
+
+  * Added built-in integration with Stats Perform (Opta) API, allowing for lazy loading of data streams (data is fetched only on ``.collect()`` or ``.to_pandas()``).
+  * Added support for major endpoints including ``events``, ``matches``, ``season_stats``, ``referees``, ``standings``, and ``pass_matrix``.
+  * Added ``opta_helpers`` module for human-readable filtering (e.g., ``where_opta_event("Shot")``) to avoid manual ID lookups.
+  * Added ``get_opta_mappings()`` to explore available event types and qualifiers[cite: 23].
+  * Added support for authenticated access via environment variables or credential dictionaries, including proxy configuration support.
+  * Added documentation and examples for using the Opta API integration.
+
 v1.6.2 (2025-10-22)
 ^^^^^^^^^^^^^^^^^^^^
 
