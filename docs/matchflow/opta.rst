@@ -260,8 +260,8 @@ Flow's Opta integration:
 
 .. _opta-helpers:
 
-Opta Helpers
-============
+💁 Opta Helpers
+===============
 
 The ``penaltyblog.matchflow.opta_helpers`` module provides helper functions to simplify common filtering tasks when working with Opta event data. These helpers allow you to filter by human-readable names instead of remembering specific Opta ID codes.
 
@@ -357,6 +357,9 @@ This will return a dictionary containing all event and qualifier names and their
 - And hundreds of detailed qualifiers for specific situations
 
 The helper functions automatically handle the case-insensitive lookup, so you can use human-readable names like "Shot", "Pass", "Penalty", "Zone" etc. in your filters without needing to remember the specific Opta IDs.
+
+🔍 Endpoint Arguments
+======================
 
 .. autoclass:: penaltyblog.matchflow.contrib.opta.Opta
    :members:

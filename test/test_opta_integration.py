@@ -21,6 +21,7 @@ VALID_REFEREE_UUID = "eh83vbp5w44denpmo9kaaj8ph"
 
 
 # This mark tells vcrpy to record/replay this test
+@pytest.mark.local
 @pytest.mark.vcr
 def test_fetch_tournament_calendars_active():
     flow = opta.tournament_calendars(
@@ -36,6 +37,7 @@ def test_fetch_tournament_calendars_active():
     assert "competitionType" in calendars[0]
 
 
+@pytest.mark.local
 @pytest.mark.vcr
 def test_fetch_tournament_calendars_all():
     flow = opta.tournament_calendars(status="all")
@@ -48,6 +50,7 @@ def test_fetch_tournament_calendars_all():
     assert "competitionType" in calendars[0]
 
 
+@pytest.mark.local
 @pytest.mark.vcr
 def test_fetch_tournament_calendars_authorized():
     flow = opta.tournament_calendars(status="authorized")
@@ -60,6 +63,7 @@ def test_fetch_tournament_calendars_authorized():
     assert "competitionType" in calendars[0]
 
 
+@pytest.mark.local
 @pytest.mark.vcr
 def test_venue_tmcl():
     flow = opta.venues(tournament_calendar_uuid=VALID_TMCL_UUID)
@@ -72,6 +76,7 @@ def test_venue_tmcl():
     assert "name" in data[0]
 
 
+@pytest.mark.local
 @pytest.mark.vcr
 def test_venue_contestant():
     flow = opta.venues(contestant_uuid=VALID_CONTESTANT_UUID)
@@ -84,6 +89,7 @@ def test_venue_contestant():
     assert "name" in data[0]
 
 
+@pytest.mark.local
 @pytest.mark.vcr
 def test_venue_venue():
     flow = opta.venues(venue_uuid=VALID_VENUE_UUID, use_opta_names=True)
@@ -96,6 +102,7 @@ def test_venue_venue():
     assert "name" in data[0]
 
 
+@pytest.mark.local
 @pytest.mark.vcr
 def test_areas_all():
     flow = opta.areas()
@@ -106,6 +113,7 @@ def test_areas_all():
     assert data[0]["name"] == "World"
 
 
+@pytest.mark.local
 @pytest.mark.vcr
 def test_areas_area():
     flow = opta.areas(area_uuid=VALID_AREA_UUID)
@@ -116,6 +124,7 @@ def test_areas_area():
     assert data[0]["area"][0]["name"] == "Asia"
 
 
+@pytest.mark.local
 @pytest.mark.vcr
 def test_tournament_schedule_tcml():
     flow = opta.tournament_schedule(tournament_calendar_uuid=VALID_TMCL_UUID)
@@ -128,6 +137,7 @@ def test_tournament_schedule_tcml():
     assert "homeContestantId" in data[0]
 
 
+@pytest.mark.local
 @pytest.mark.vcr
 def test_matches_tmcl():
     flow = opta.matches(tournament_calendar_uuid=VALID_TMCL_UUID)
@@ -140,6 +150,7 @@ def test_matches_tmcl():
     assert "liveData" in data[0]
 
 
+@pytest.mark.local
 @pytest.mark.vcr
 def test_matches_single_fixture():
     flow = opta.matches(fixture_uuids=VALID_FIXTURE_UUID)
@@ -152,6 +163,7 @@ def test_matches_single_fixture():
     assert "liveData" in data[0]
 
 
+@pytest.mark.local
 @pytest.mark.vcr
 def test_matches_multiple_fixtures():
     flow = opta.matches(fixture_uuids=[VALID_FIXTURE_UUID, VALID_FIXTURE_UUID2])
@@ -164,6 +176,7 @@ def test_matches_multiple_fixtures():
     assert "liveData" in data[0]
 
 
+@pytest.mark.local
 @pytest.mark.vcr
 def test_matches_contestant():
     flow = opta.matches(
@@ -178,6 +191,7 @@ def test_matches_contestant():
     assert "liveData" in data[0]
 
 
+@pytest.mark.local
 @pytest.mark.vcr
 def test_matches_contestant_home():
     flow = opta.matches(
@@ -194,6 +208,7 @@ def test_matches_contestant_home():
     assert "liveData" in data[0]
 
 
+@pytest.mark.local
 @pytest.mark.vcr
 def test_matches_contestant_date_str():
     flow = opta.matches(
@@ -211,6 +226,7 @@ def test_matches_contestant_date_str():
     assert "liveData" in data[0]
 
 
+@pytest.mark.local
 @pytest.mark.vcr
 def test_matches_lineups():
     flow = opta.matches(
@@ -229,6 +245,7 @@ def test_matches_lineups():
     assert "lineUp" in data[0]["liveData"]
 
 
+@pytest.mark.local
 @pytest.mark.vcr
 def test_matches_contestant_date_error():
     with pytest.raises(ValueError):
@@ -241,6 +258,7 @@ def test_matches_contestant_date_error():
         flow.collect()
 
 
+@pytest.mark.local
 @pytest.mark.vcr
 def test_matches_contestant_date_dt():
     flow = opta.matches(
@@ -258,6 +276,7 @@ def test_matches_contestant_date_dt():
     assert "liveData" in data[0]
 
 
+@pytest.mark.local
 @pytest.mark.vcr
 def test_parser_ma1_match_basic():
     """
@@ -270,6 +289,7 @@ def test_parser_ma1_match_basic():
     assert "matchInfo" in data[0]
 
 
+@pytest.mark.local
 @pytest.mark.vcr
 def test_parser_ma1_match_lineups():
     """
@@ -283,6 +303,7 @@ def test_parser_ma1_match_lineups():
     assert "lineUp" in data[0]["liveData"]
 
 
+@pytest.mark.local
 @pytest.mark.vcr
 def test_parser_ma1_match_not_lineups():
     """
@@ -296,6 +317,7 @@ def test_parser_ma1_match_not_lineups():
     assert "lineUp" not in data[0]["liveData"]
 
 
+@pytest.mark.local
 @pytest.mark.vcr
 def test_parser_ma1_match_not_live():
     """
@@ -309,6 +331,7 @@ def test_parser_ma1_match_not_live():
     assert "liveData" not in data[0]
 
 
+@pytest.mark.local
 @pytest.mark.vcr
 def test_fetch_match_events():
     # Use a real match UUID you have access to this week
@@ -324,6 +347,7 @@ def test_fetch_match_events():
     assert "_match_info" in events[0]  # Test your parser
 
 
+@pytest.mark.local
 @pytest.mark.vcr
 def test_parser_ma2_match_stats_players():
     """
@@ -337,6 +361,7 @@ def test_parser_ma2_match_stats_players():
     assert "playerId" in data[0] and "_match_uuid" in data[0]
 
 
+@pytest.mark.local
 @pytest.mark.vcr
 def test_parser_ma2_match_stats_players_multiple():
     """
@@ -352,6 +377,7 @@ def test_parser_ma2_match_stats_players_multiple():
     assert "playerId" in data[0] and "_match_uuid" in data[0]
 
 
+@pytest.mark.local
 @pytest.mark.vcr
 def test_parser_ma2_match_stats_teams():
     """
@@ -367,6 +393,7 @@ def test_parser_ma2_match_stats_teams():
     assert "contestantId" in data[0] and "_match_uuid" in data[0]
 
 
+@pytest.mark.local
 @pytest.mark.vcr
 def test_parser_ma2_match_stats_teams_multiple():
     """
@@ -384,6 +411,7 @@ def test_parser_ma2_match_stats_teams_multiple():
     assert "contestantId" in data[0] and "_match_uuid" in data[0]
 
 
+@pytest.mark.local
 @pytest.mark.vcr
 def test_parser_ma0_tournament_schedule():
     """
@@ -397,6 +425,7 @@ def test_parser_ma0_tournament_schedule():
     assert "_tournamentCalendar" in data[0]
 
 
+@pytest.mark.local
 @pytest.mark.vcr
 def test_parser_ma3_match_events():
     """
@@ -409,6 +438,7 @@ def test_parser_ma3_match_events():
     assert "typeId" in data[0] and "_match_info" in data[0]
 
 
+@pytest.mark.local
 @pytest.mark.vcr
 def test_parser_ma3_match_events_contestant():
     """
@@ -425,6 +455,7 @@ def test_parser_ma3_match_events_contestant():
     assert all(i == VALID_CONTESTANT_UUID for i in ids)
 
 
+@pytest.mark.local
 @pytest.mark.vcr
 def test_parser_ma3_match_events_person():
     """
@@ -439,6 +470,7 @@ def test_parser_ma3_match_events_person():
     assert all(i == VALID_PERSON_UUID for i in ids)
 
 
+@pytest.mark.local
 @pytest.mark.vcr
 def test_parser_tm4_player_season_stats():
     """
@@ -456,6 +488,7 @@ def test_parser_tm4_player_season_stats():
     assert all(i == VALID_TMCL_UUID for i in ids)
 
 
+@pytest.mark.local
 @pytest.mark.vcr
 def test_parser_tm4_team_season_stats():
     """
@@ -476,6 +509,7 @@ def test_parser_tm4_team_season_stats():
     assert all(i == VALID_TMCL_UUID for i in ids)
 
 
+@pytest.mark.local
 @pytest.mark.vcr
 def test_parser_tm16_contestant_participation():
     """
@@ -489,6 +523,7 @@ def test_parser_tm16_contestant_participation():
     assert data[0]["id"] == VALID_CONTESTANT_UUID
 
 
+@pytest.mark.local
 @pytest.mark.vcr
 def test_parser_tm16_contestant_participation_multiple():
     """
@@ -505,6 +540,7 @@ def test_parser_tm16_contestant_participation_multiple():
     assert ids == set([VALID_CONTESTANT_UUID, VALID_CONTESTANT_UUID2])
 
 
+@pytest.mark.local
 @pytest.mark.vcr
 def test_dynamic_pagination_transfers_paginated():
     """
@@ -517,6 +553,7 @@ def test_dynamic_pagination_transfers_paginated():
     assert "id" in data[0]
 
 
+@pytest.mark.local
 @pytest.mark.vcr
 def test_dynamic_pagination_transfers_paginated_tmcl():
     """
@@ -529,6 +566,7 @@ def test_dynamic_pagination_transfers_paginated_tmcl():
     assert "id" in data[0]
 
 
+@pytest.mark.local
 @pytest.mark.vcr
 def test_dynamic_pagination_transfers_paginated_dates():
     """
@@ -546,6 +584,7 @@ def test_dynamic_pagination_transfers_paginated_dates():
     assert "id" in data[0]
 
 
+@pytest.mark.local
 @pytest.mark.vcr
 def test_dynamic_pagination_transfers_non_paginated():
     """
@@ -562,6 +601,7 @@ def test_dynamic_pagination_transfers_non_paginated():
     assert len(data[0]["membership"]) > 0
 
 
+@pytest.mark.local
 @pytest.mark.vcr
 def test_params_tournament_calendars_status():
     """
@@ -574,6 +614,7 @@ def test_params_tournament_calendars_status():
     assert "competitionCode" in data[0]
 
 
+@pytest.mark.local
 @pytest.mark.vcr
 def test_params_events_by_type():
     """
@@ -590,6 +631,7 @@ def test_params_events_by_type():
     assert len(type_ids) == 2  # Should only have Passes and Goals
 
 
+@pytest.mark.local
 @pytest.mark.vcr
 def test_error_handling_404_not_found():
     """
@@ -603,6 +645,7 @@ def test_error_handling_404_not_found():
         flow.collect()
 
 
+@pytest.mark.local
 @pytest.mark.vcr
 def test_error_handling_auth_failure(monkeypatch):
     """
@@ -622,6 +665,7 @@ def test_error_handling_auth_failure(monkeypatch):
         flow.collect()
 
 
+@pytest.mark.local
 def test_transfers_validation_invalid_date_combinations():
     """
     Tests: transfers() method validation for invalid parameter combinations
@@ -662,6 +706,7 @@ def test_transfers_validation_invalid_date_combinations():
         )
 
 
+@pytest.mark.local
 def test_transfers_validation_no_filters():
     """
     Tests: transfers() method validation when no filters are provided
@@ -671,6 +716,7 @@ def test_transfers_validation_no_filters():
         opta.transfers()
 
 
+@pytest.mark.local
 def test_transfers_validation_valid_combinations():
     """
     Tests: transfers() method should accept valid parameter combinations
@@ -707,6 +753,7 @@ def test_transfers_validation_valid_combinations():
 # --- Player Career Tests (Feed PE2) ---
 
 
+@pytest.mark.local
 @pytest.mark.vcr
 def test_player_career_person():
     """
@@ -721,6 +768,7 @@ def test_player_career_person():
     assert "id" in data[0]
 
 
+@pytest.mark.local
 @pytest.mark.vcr
 def test_player_career_contestant():
     """
@@ -735,6 +783,7 @@ def test_player_career_contestant():
     assert "id" in data[0]
 
 
+@pytest.mark.local
 @pytest.mark.vcr
 def test_player_career_contestant_inactive():
     """
@@ -749,6 +798,7 @@ def test_player_career_contestant_inactive():
     assert "id" in data[0]
 
 
+@pytest.mark.local
 @pytest.mark.vcr
 def test_player_career_opta_names():
     """
@@ -762,6 +812,7 @@ def test_player_career_opta_names():
     assert len(data) == 1
 
 
+@pytest.mark.local
 def test_player_career_validation():
     """
     Tests: player_career() parameter validation
@@ -784,6 +835,7 @@ def test_player_career_validation():
 # --- Teams Tests (Feed TM1) ---
 
 
+@pytest.mark.local
 @pytest.mark.vcr
 def test_teams_tournament_calendar():
     """
@@ -799,6 +851,7 @@ def test_teams_tournament_calendar():
     assert "name" in data[0]
 
 
+@pytest.mark.local
 @pytest.mark.vcr
 def test_teams_contestant():
     """
@@ -815,6 +868,7 @@ def test_teams_contestant():
     assert data[0]["id"] == VALID_CONTESTANT_UUID
 
 
+@pytest.mark.local
 def test_teams_validation():
     """
     Tests: teams() parameter validation
@@ -830,6 +884,7 @@ def test_teams_validation():
 # --- Squads Tests (Feed TM3) ---
 
 
+@pytest.mark.local
 @pytest.mark.vcr
 def test_squads_tournament_calendar():
     """
@@ -844,6 +899,7 @@ def test_squads_tournament_calendar():
     assert len(data[0]["person"]) > 0
 
 
+@pytest.mark.local
 @pytest.mark.vcr
 def test_squads_contestant():
     """
@@ -858,6 +914,7 @@ def test_squads_contestant():
     assert data[0]["contestantId"] == VALID_CONTESTANT_UUID
 
 
+@pytest.mark.local
 @pytest.mark.vcr
 def test_squads_opta_names():
     """
@@ -871,6 +928,7 @@ def test_squads_opta_names():
     assert len(data) == 1
 
 
+@pytest.mark.local
 def test_squads_validation():
     """
     Tests: squads() parameter validation
@@ -886,6 +944,7 @@ def test_squads_validation():
 # --- Referees Tests (Feed PE3) ---
 
 
+@pytest.mark.local
 @pytest.mark.vcr
 def test_referees_person():
     """
@@ -900,6 +959,7 @@ def test_referees_person():
     assert data[0]["id"] == VALID_REFEREE_UUID
 
 
+@pytest.mark.local
 @pytest.mark.vcr
 def test_referees_tournament_calendar():
     """
@@ -914,6 +974,7 @@ def test_referees_tournament_calendar():
     data[0]["id"] == VALID_REFEREE_UUID
 
 
+@pytest.mark.local
 @pytest.mark.vcr
 def test_referees_opta_names():
     """
@@ -928,6 +989,7 @@ def test_referees_opta_names():
     assert data[0]["id"] == VALID_REFEREE_UUID
 
 
+@pytest.mark.local
 def test_referees_validation():
     """
     Tests: referees() parameter validation
@@ -952,6 +1014,7 @@ def test_referees_validation():
 # --- Enhanced Tournament Schedule Tests ---
 
 
+@pytest.mark.local
 @pytest.mark.vcr
 def test_tournament_schedule_coverage_level_single():
     """
@@ -968,6 +1031,7 @@ def test_tournament_schedule_coverage_level_single():
     assert "id" in data[0]
 
 
+@pytest.mark.local
 @pytest.mark.vcr
 def test_tournament_schedule_coverage_level_list():
     """
@@ -983,6 +1047,7 @@ def test_tournament_schedule_coverage_level_list():
     assert len(data) > 0
 
 
+@pytest.mark.local
 @pytest.mark.vcr
 def test_tournament_schedule_opta_names():
     """
@@ -1001,6 +1066,7 @@ def test_tournament_schedule_opta_names():
 # --- Enhanced Matches Tests ---
 
 
+@pytest.mark.local
 @pytest.mark.vcr
 def test_matches_competition_uuids():
     """
@@ -1015,6 +1081,7 @@ def test_matches_competition_uuids():
     assert "matchInfo" in data[0]
 
 
+@pytest.mark.local
 @pytest.mark.vcr
 def test_matches_opponent_uuid():
     """
@@ -1032,6 +1099,7 @@ def test_matches_opponent_uuid():
     assert "matchInfo" in data[0]
 
 
+@pytest.mark.local
 @pytest.mark.vcr
 def test_matches_contestant_position_away():
     """
@@ -1050,6 +1118,7 @@ def test_matches_contestant_position_away():
     assert "matchInfo" in data[0]
 
 
+@pytest.mark.local
 @pytest.mark.vcr
 def test_matches_delta_timestamp():
     """
@@ -1068,6 +1137,7 @@ def test_matches_delta_timestamp():
 # --- Enhanced Tournament Calendars Tests ---
 
 
+@pytest.mark.local
 @pytest.mark.vcr
 def test_tournament_calendars_competition_uuid():
     """
@@ -1082,6 +1152,7 @@ def test_tournament_calendars_competition_uuid():
     assert "competitionCode" in data[0]
 
 
+@pytest.mark.local
 @pytest.mark.vcr
 def test_tournament_calendars_contestant_uuid():
     """
@@ -1096,6 +1167,7 @@ def test_tournament_calendars_contestant_uuid():
     assert "competitionCode" in data[0]
 
 
+@pytest.mark.local
 @pytest.mark.vcr
 def test_tournament_calendars_include_coverage():
     """
@@ -1113,6 +1185,7 @@ def test_tournament_calendars_include_coverage():
 # --- Enhanced Events Tests ---
 
 
+@pytest.mark.local
 @pytest.mark.vcr
 def test_events_event_types_single():
     """
@@ -1128,6 +1201,7 @@ def test_events_event_types_single():
     assert all(event["typeId"] == 1 for event in data)
 
 
+@pytest.mark.local
 @pytest.mark.vcr
 def test_events_opta_names():
     """
@@ -1145,6 +1219,7 @@ def test_events_opta_names():
 # --- Enhanced Rankings Tests ---
 
 
+@pytest.mark.local
 @pytest.mark.vcr
 def test_rankings_tmcl():
     """
@@ -1170,6 +1245,7 @@ def test_rankings_tmcl():
     assert set([x["_record_type"] for x in data]) == {"player", "match", "team"}
 
 
+@pytest.mark.local
 @pytest.mark.vcr
 def test_rankings_tmcl_opta_names():
     """
@@ -1195,6 +1271,7 @@ def test_rankings_tmcl_opta_names():
     assert set([x["_record_type"] for x in data]) == {"player", "match", "team"}
 
 
+@pytest.mark.local
 @pytest.mark.vcr
 def test_pass_matrix():
     """
@@ -1212,6 +1289,7 @@ def test_pass_matrix():
     assert data[0]["matchInfo"]["id"] == VALID_FIXTURE_UUID
 
 
+@pytest.mark.local
 @pytest.mark.vcr
 def test_pass_matrix_opta_names():
     """
@@ -1229,6 +1307,7 @@ def test_pass_matrix_opta_names():
     assert data[0]["matchInfo"]["id"] == VALID_FIXTURE_UUID
 
 
+@pytest.mark.local
 @pytest.mark.vcr
 def test_possession():
     """
@@ -1246,6 +1325,7 @@ def test_possession():
     assert data[0]["matchInfo"]["id"] == VALID_FIXTURE_UUID
 
 
+@pytest.mark.local
 @pytest.mark.vcr
 def test_possession_opta_names():
     """
@@ -1263,6 +1343,7 @@ def test_possession_opta_names():
     assert data[0]["matchInfo"]["id"] == VALID_FIXTURE_UUID
 
 
+@pytest.mark.local
 @pytest.mark.vcr
 def test_team_standings():
     """
@@ -1278,6 +1359,7 @@ def test_team_standings():
     assert data[0]["sport"]["name"] == "Soccer"
 
 
+@pytest.mark.local
 @pytest.mark.vcr
 def test_team_standings_live():
     """
@@ -1293,6 +1375,7 @@ def test_team_standings_live():
     assert data[0]["sport"]["name"] == "Soccer"
 
 
+@pytest.mark.local
 @pytest.mark.vcr
 def test_team_standings_total():
     """
@@ -1310,6 +1393,7 @@ def test_team_standings_total():
     assert data[0]["stage"][0]["division"][0]["type"] == type_
 
 
+@pytest.mark.local
 @pytest.mark.vcr
 def test_team_standings_home():
     """
@@ -1327,6 +1411,7 @@ def test_team_standings_home():
     assert data[0]["stage"][0]["division"][0]["type"] == type_
 
 
+@pytest.mark.local
 @pytest.mark.vcr
 def test_team_standings_away():
     """
@@ -1344,6 +1429,7 @@ def test_team_standings_away():
     assert data[0]["stage"][0]["division"][0]["type"] == type_
 
 
+@pytest.mark.local
 @pytest.mark.vcr
 def test_team_standings_form_total():
     """
@@ -1361,6 +1447,7 @@ def test_team_standings_form_total():
     assert data[0]["stage"][0]["division"][0]["type"] == type_
 
 
+@pytest.mark.local
 @pytest.mark.vcr
 def test_team_standings_form_home():
     """
@@ -1378,6 +1465,7 @@ def test_team_standings_form_home():
     assert data[0]["stage"][0]["division"][0]["type"] == type_
 
 
+@pytest.mark.local
 @pytest.mark.vcr
 def test_team_standings_form_away():
     """
@@ -1395,6 +1483,7 @@ def test_team_standings_form_away():
     assert data[0]["stage"][0]["division"][0]["type"] == type_
 
 
+@pytest.mark.local
 @pytest.mark.vcr
 def test_team_standings_half_time_total():
     """
@@ -1412,6 +1501,7 @@ def test_team_standings_half_time_total():
     assert data[0]["stage"][0]["division"][0]["type"] == type_
 
 
+@pytest.mark.local
 @pytest.mark.vcr
 def test_team_standings_half_time_home():
     """
@@ -1429,6 +1519,7 @@ def test_team_standings_half_time_home():
     assert data[0]["stage"][0]["division"][0]["type"] == type_
 
 
+@pytest.mark.local
 @pytest.mark.vcr
 def test_team_standings_half_time_away():
     """
@@ -1446,6 +1537,7 @@ def test_team_standings_half_time_away():
     assert data[0]["stage"][0]["division"][0]["type"] == type_
 
 
+@pytest.mark.local
 @pytest.mark.vcr
 def test_team_standings_attendance():
     """
@@ -1463,6 +1555,7 @@ def test_team_standings_attendance():
     assert data[0]["stage"][0]["division"][0]["type"] == type_
 
 
+@pytest.mark.local
 @pytest.mark.vcr
 def test_team_standings_over_under():
     """
@@ -1480,6 +1573,7 @@ def test_team_standings_over_under():
     assert data[0]["stage"][0]["division"][0]["type"] == type_
 
 
+@pytest.mark.local
 @pytest.mark.vcr
 def test_team_standings_relegation():
     """
@@ -1497,6 +1591,7 @@ def test_team_standings_relegation():
     assert "division" in data[0]["stage"][0]
 
 
+@pytest.mark.local
 @pytest.mark.vcr
 def test_team_standings_championship():
     """
