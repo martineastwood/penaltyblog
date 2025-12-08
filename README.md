@@ -34,9 +34,9 @@
 ## Features
 
 - 🔄 **Streamline JSON Workflows with MatchFlow:** Process nested football data using a lazy, streaming pipeline built for JSON. Filter, select, flatten, join, group, and summarize large datasets without loading everything into memory.
-- 🔌 **Connect to Professional APIs:** Seamlessly stream and filter data directly from industry leader APIs, like StatsBomb and Opta. Query matches, events, and stats using lazy loading without handling massive JSON dumps.
+- 🔌 **Connect to Professional APIs:** Seamlessly stream and filter data directly from industry leaders, like StatsBomb and Opta. Query matches, events, and stats using lazy loading without handling massive JSON dumps.
 - 📊 **Model Matches Efficiently:** High-performance implementations of Poisson, Bivariate Poisson, Dixon-Coles, and other advanced statistical models, optimized with Cython for rapid analysis.
-- ⚽ **Scrape Data:** Collect match statistics from sources like FBRef, Understat, Club Elo, and Fantasy Premier League.
+- ⚽ **Scrape Data:** Collect match statistics from sources like Understat, Club Elo, and Fantasy Premier League.
 - 💰 **Bet Smarter:** Precisely estimate probabilities for Asian handicaps, over/under totals, match outcomes, and more.
 - 🏆 **Rank Teams:** Evaluate team strengths with sophisticated methods including Elo, Massey, Colley, and Pi ratings.
 - 📈 **Decode Bookmaker Odds:** Accurately extract implied probabilities by removing bookmaker margins (overrounds).
