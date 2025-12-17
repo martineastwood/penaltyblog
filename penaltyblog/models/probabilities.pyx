@@ -457,3 +457,172 @@ cpdef void compute_weibull_copula_probabilities(double home_attack,
             p_ij = compute_pxy(i, j, cdfH, cdfA, max_goals, kappa)
             idx = i * max_goals + j
             score_matrix[idx] = p_ij
+
+
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
+@cython.nonecheck(False)
+@cython.initializedcheck(False)
+def compute_posterior_predictive_dixon_coles(
+    double[:, :] chain,     # The entire chain (n_samples x n_params)
+    int home_idx,
+    int away_idx,
+    int n_teams,
+    int max_goals
+):
+    """
+    Computes the averaged probability grid over the entire MCMC chain in one C-loop.
+    """
+    cdef int n_samples = chain.shape[0]
+    cdef int s, i, j, idx
+    cdef double lh, la, p, factor
+    cdef double home_attack, away_attack, home_defense, away_defense, hfa, rho
+    cdef np.ndarray[np.float64_t, ndim=2] avg_grid = np.zeros((max_goals, max_goals), dtype=np.float64)
+    cdef double avg_lam_home = 0.0
+    cdef double avg_lam_away = 0.0
+    cdef double* home_probs = <double*> malloc(max_goals * sizeof(double))
+    cdef double* away_probs = <double*> malloc(max_goals * sizeof(double))
+
+    for s in range(n_samples):
+        home_attack = chain[s, home_idx]
+        away_attack = chain[s, away_idx]
+        home_defense = chain[s, home_idx + n_teams]
+        away_defense = chain[s, away_idx + n_teams]
+        hfa = chain[s, 2 * n_teams]
+        rho = chain[s, 2 * n_teams + 1]
+
+        lh = exp(hfa + home_attack + away_defense)
+        la = exp(away_attack + home_defense)
+
+        avg_lam_home += lh
+        avg_lam_away += la
+
+        for i in range(max_goals):
+            home_probs[i] = poisson_pmf(i, lh)
+            away_probs[i] = poisson_pmf(i, la)
+        for i in range(max_goals):
+            for j in range(max_goals):
+                p = home_probs[i] * away_probs[j]
+
+                factor = 1.0
+                if i == 0 and j == 0: factor = 1.0 - rho * lh * la
+                elif i == 0 and j == 1: factor = 1.0 + rho * lh
+                elif i == 1 and j == 0: factor = 1.0 + rho * la
+                elif i == 1 and j == 1: factor = 1.0 - rho
+
+                avg_grid[i, j] += p * factor
+
+    free(home_probs)
+    free(away_probs)
+
+    return (
+        avg_grid / n_samples,
+        avg_lam_home / n_samples,
+        avg_lam_away / n_samples
+    )
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
+def compute_posterior_predictive_hierarchical(
+    double[:, :] chain,     # n_samples x n_params
+    int home_idx,
+    int away_idx,
+    int n_teams,
+    int max_goals
+):
+    """
+    Computes the averaged probability grid for the Hierarchical model.
+    Handles the transformation from (Offset, Mu, Sigma) -> Rating inline.
+    """
+    cdef int n_samples = chain.shape[0]
+    cdef int s, i, j
+    cdef double lh, la, p, factor
+
+    # Temp variables for parameters
+    cdef double mu_att, log_sig_att, sig_att
+    cdef double mu_def, log_sig_def, sig_def
+    cdef double off_att_home, off_att_away, off_def_home, off_def_away
+    cdef double home_attack, away_attack, home_defense, away_defense
+    cdef double hfa, rho
+
+    # Output accumulators
+    cdef np.ndarray[np.float64_t, ndim=2] avg_grid = np.zeros((max_goals, max_goals), dtype=np.float64)
+    cdef double avg_lam_home = 0.0
+    cdef double avg_lam_away = 0.0
+
+    # Buffers
+    cdef double* home_probs = <double*> malloc(max_goals * sizeof(double))
+    cdef double* away_probs = <double*> malloc(max_goals * sizeof(double))
+
+    # Parameter Indices (Cached for readability)
+    cdef int idx_def_offsets = n_teams
+    cdef int idx_mu_att = 2 * n_teams
+    cdef int idx_log_sig_att = 2 * n_teams + 1
+    cdef int idx_mu_def = 2 * n_teams + 2
+    cdef int idx_log_sig_def = 2 * n_teams + 3
+    cdef int idx_hfa = 2 * n_teams + 4
+    cdef int idx_rho = 2 * n_teams + 5
+
+    for s in range(n_samples):
+        # 1. Unpack Hyperparameters
+        mu_att = chain[s, idx_mu_att]
+        log_sig_att = chain[s, idx_log_sig_att]
+        mu_def = chain[s, idx_mu_def]
+        log_sig_def = chain[s, idx_log_sig_def]
+        hfa = chain[s, idx_hfa]
+        rho = chain[s, idx_rho]
+
+        sig_att = exp(log_sig_att)
+        sig_def = exp(log_sig_def)
+
+        # 2. Unpack Offsets for specific teams
+        off_att_home = chain[s, home_idx]
+        off_att_away = chain[s, away_idx]
+        off_def_home = chain[s, idx_def_offsets + home_idx]
+        off_def_away = chain[s, idx_def_offsets + away_idx]
+
+        # 3. Transform to Real Ratings (Non-Centered Parameterization)
+        home_attack = mu_att + sig_att * off_att_home
+        away_attack = mu_att + sig_att * off_att_away
+        home_defense = mu_def + sig_def * off_def_home
+        away_defense = mu_def + sig_def * off_def_away
+
+        # 4. Compute Expected Goals (Standard Dixon-Coles logic)
+        lh = exp(hfa + home_attack + away_defense)
+        la = exp(away_attack + home_defense)
+
+        avg_lam_home += lh
+        avg_lam_away += la
+
+        # 5. Compute PMFs
+        for i in range(max_goals):
+            home_probs[i] = poisson_pmf(i, lh)
+            away_probs[i] = poisson_pmf(i, la)
+
+        # 6. Compute Grid & Add
+        for i in range(max_goals):
+            for j in range(max_goals):
+                p = home_probs[i] * away_probs[j]
+
+                # Dixon-Coles Adjustment
+                factor = 1.0
+                if i == 0 and j == 0: factor = 1.0 - rho * lh * la
+                elif i == 0 and j == 1: factor = 1.0 + rho * lh
+                elif i == 1 and j == 0: factor = 1.0 + rho * la
+                elif i == 1 and j == 1: factor = 1.0 - rho
+
+                avg_grid[i, j] += p * factor
+
+    free(home_probs)
+    free(away_probs)
+
+    return (
+        avg_grid / n_samples,
+        avg_lam_home / n_samples,
+        avg_lam_away / n_samples
+    )

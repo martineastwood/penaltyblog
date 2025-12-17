@@ -73,3 +73,10 @@ def compute_weibull_copula_probabilities(
     lambda_home: NDArray[np.float64],
     lambda_away: NDArray[np.float64],
 ) -> None: ...
+def compute_posterior_predictive_dixon_coles(
+    chain: np.ndarray,
+    home_idx: int,
+    away_idx: int,
+    n_teams: int,
+    max_goals: int,
+) -> None: ...

@@ -90,7 +90,7 @@ cpdef double dixon_coles_loss_function(long[:] goals_home,
                                          np.float64_t[:] attack,
                                          np.float64_t[:] defence,
                                          double hfa,
-                                         double rho):
+                                         double rho) nogil:
     """
     Computes the negative log-likelihood for a Dixon–Coles model.
 
@@ -110,34 +110,35 @@ cpdef double dixon_coles_loss_function(long[:] goals_home,
     cdef double lambda_home, lambda_away, llk_home, llk_away, adjustment
     cdef int home_idx, away_idx, k_home, k_away
 
-    for i in range(n):
-        home_idx = home_indices[i]
-        away_idx = away_indices[i]
+    with nogil:
+        for i in range(n):
+            home_idx = home_indices[i]
+            away_idx = away_indices[i]
 
-        # Compute expected goals using team parameters and home advantage.
-        lambda_home = exp(hfa + attack[home_idx] + defence[away_idx])
-        lambda_away = exp(attack[away_idx] + defence[home_idx])
+            # Compute expected goals using team parameters and home advantage.
+            lambda_home = exp(hfa + attack[home_idx] + defence[away_idx])
+            lambda_away = exp(attack[away_idx] + defence[home_idx])
 
-        k_home = goals_home[i]
-        k_away = goals_away[i]
+            k_home = goals_home[i]
+            k_away = goals_away[i]
 
-        # Standard Poisson log-likelihood terms.
-        llk_home = -lambda_home + k_home * log(lambda_home) - lgamma(k_home + 1)
-        llk_away = -lambda_away + k_away * log(lambda_away) - lgamma(k_away + 1)
+            # Standard Poisson log-likelihood terms.
+            llk_home = -lambda_home + k_home * log(lambda_home) - lgamma(k_home + 1)
+            llk_away = -lambda_away + k_away * log(lambda_away) - lgamma(k_away + 1)
 
-        # Dixon–Coles adjustment for low-scoring matches.
-        if k_home == 0 and k_away == 0:
-            adjustment = log(fmax(epsilon, 1 - rho * lambda_home * lambda_away))
-        elif k_home == 0 and k_away == 1:
-            adjustment = log(fmax(epsilon, 1 + rho * lambda_home))
-        elif k_home == 1 and k_away == 0:
-            adjustment = log(fmax(epsilon, 1 + rho * lambda_away))
-        elif k_home == 1 and k_away == 1:
-            adjustment = log(fmax(epsilon, 1 - rho))
-        else:
-            adjustment = 0.0
+            # Dixon–Coles adjustment for low-scoring matches.
+            if k_home == 0 and k_away == 0:
+                adjustment = log(fmax(epsilon, 1 - rho * lambda_home * lambda_away))
+            elif k_home == 0 and k_away == 1:
+                adjustment = log(fmax(epsilon, 1 + rho * lambda_home))
+            elif k_home == 1 and k_away == 0:
+                adjustment = log(fmax(epsilon, 1 + rho * lambda_away))
+            elif k_home == 1 and k_away == 1:
+                adjustment = log(fmax(epsilon, 1 - rho))
+            else:
+                adjustment = 0.0
 
-        total_llk += ((llk_home + llk_away) + adjustment) * weights[i]
+            total_llk += ((llk_home + llk_away) + adjustment) * weights[i]
 
     return -total_llk
 
