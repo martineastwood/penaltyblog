@@ -5,16 +5,38 @@ from .bayesian_base import BaseBayesianModel
 from .bayesian_loss import bayesian_dixon_coles_log_prob
 from .football_probability_grid import FootballProbabilityGrid
 from .loss import dixon_coles_loss_function
-from .probabilities import (
-    compute_dixon_coles_probabilities,
-    compute_posterior_predictive_dixon_coles,
-)
+from .probabilities import compute_posterior_predictive_dixon_coles
 
 
 # --- Top-level function for multiprocessing ---
 def log_probability_wrapper(
     params, home_idx, away_idx, goals_home, goals_away, weights, n_teams
-):
+) -> float:
+    """
+    Top-level wrapper for Dixon-Coles log probability to support multiprocessing.
+
+    Parameters:
+    -----------
+    params : np.ndarray
+        Model parameters
+    home_idx : np.ndarray
+        Indices of home teams
+    away_idx : np.ndarray
+        Indices of away teams
+    goals_home : np.ndarray
+        Goals scored by home teams
+    goals_away : np.ndarray
+        Goals scored by away teams
+    weights : np.ndarray
+        Match weights
+    n_teams : int
+        Number of teams
+
+    Returns:
+    --------
+    float
+        Log probability value
+    """
     return bayesian_dixon_coles_log_prob(
         params, home_idx, away_idx, goals_home, goals_away, weights, n_teams
     )
@@ -170,11 +192,23 @@ class BayesianDixonColesModel(BaseBayesianModel):
             )
         )
 
-    def _get_initial_params(self):
+    def _get_initial_params(self) -> np.ndarray:
+        """
+        Find smart starting parameters for MCMC sampling.
+
+        This method fits a frequentist Poisson model first and appends a default
+        rho value. This ensures the Bayesian model starts near the maximum
+        likelihood estimate.
+
+        Returns:
+        --------
+        np.ndarray
+            Initial parameter vector containing team ratings, home advantage, and rho.
+        """
         base_params = super()._get_initial_params()
         return np.concatenate([base_params, [-0.1]])
 
-    def _get_log_probability_function(self):
+    def _get_log_probability_function(self) -> callable:
         """
         Return the model-specific log probability function.
 
@@ -185,12 +219,14 @@ class BayesianDixonColesModel(BaseBayesianModel):
         """
         return log_probability_wrapper
 
-    def _get_param_names(self):
+    def _get_param_names(self) -> list[str]:
         """
-        Gets the ordered list of parameter names.
+        Return the names of all parameters in the model.
 
         Returns:
-            list: A list of strings corresponding to the parameter vector.
+        --------
+        list[str]
+            List of parameter names for team strengths, home advantage, and rho
         """
         return (
             [f"attack_{t}" for t in self.teams]
@@ -198,7 +234,7 @@ class BayesianDixonColesModel(BaseBayesianModel):
             + ["home_advantage", "rho"]
         )
 
-    def _unpack_params(self, params):
+    def _unpack_params(self, params) -> dict[str, np.ndarray]:
         """
         Unpack the flat parameter vector into named components.
 
@@ -216,7 +252,7 @@ class BayesianDixonColesModel(BaseBayesianModel):
 
         Returns:
         --------
-        dict
+        dict[str, np.ndarray]
             Dictionary with keys:
             - 'attack': array of attack strengths (length n_teams)
             - 'defense': array of defense strengths (length n_teams)
@@ -264,7 +300,7 @@ class BayesianDixonColesModel(BaseBayesianModel):
         self.loglikelihood = -neg_ll
         self.aic = 2 * neg_ll + 2 * self.n_params
 
-    def _calculate_log_likelihood(self, params):
+    def _calculate_log_likelihood(self, params) -> float:
         """
         Calculate total log-likelihood for given parameters.
 
@@ -292,7 +328,9 @@ class BayesianDixonColesModel(BaseBayesianModel):
         )
         return -neg_ll
 
-    def _compute_probabilities(self, home_idx, away_idx, max_goals, normalize=True):
+    def _compute_probabilities(
+        self, home_idx, away_idx, max_goals, normalize=True
+    ) -> FootballProbabilityGrid:
         """
         Generate the posterior predictive distribution for a match.
 
