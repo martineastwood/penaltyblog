@@ -213,8 +213,7 @@ class BaseBayesianModel(BaseGoalsModel):
 
         This method computes both frequentist (AIC) and Bayesian (WAIC) information
         criteria to provide comprehensive model comparison capabilities. AIC uses
-        posterior mean parameters for consistency with frequentist models, while
-        WAIC uses the full posterior distribution for proper Bayesian model comparison.
+        posterior mean parameters for consistency with frequentist models.
         """
         self._calculate_frequentist_metrics()
 
@@ -224,8 +223,6 @@ class BaseBayesianModel(BaseGoalsModel):
 
         This method provides compatibility with frequentist models for comparison purposes.
         """
-        # This should be implemented by subclasses to calculate model-specific
-        # frequentist metrics using the posterior mean parameters
         raise NotImplementedError(
             "Subclasses must implement _calculate_frequentist_metrics"
         )
