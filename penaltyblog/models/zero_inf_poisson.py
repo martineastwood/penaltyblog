@@ -9,11 +9,7 @@ from typing import Optional
 import numpy as np
 
 from penaltyblog.models.base_model import BaseGoalsModel
-from penaltyblog.models.custom_types import (
-    GoalInput,
-    TeamInput,
-    WeightInput,
-)
+from penaltyblog.models.custom_types import GoalInput, TeamInput, WeightInput
 from penaltyblog.models.football_probability_grid import (
     FootballProbabilityGrid,
 )
@@ -169,7 +165,6 @@ class ZeroInflatedPoissonGoalsModel(BaseGoalsModel):
             {"type": "eq", "fun": lambda x: sum(x[: self.n_teams]) - self.n_teams}
         ]
         # Zero inflation parameter should be unbounded since it's on probability scale (not logit)
-        # Based on the loss function, it appears to use direct probability, so keep bounds [0, 1]
         bounds = [(-3, 3)] * self.n_teams * 2 + [(0, 3)] + [(1e-6, 1 - 1e-6)]
 
         # Use gradient if requested and available

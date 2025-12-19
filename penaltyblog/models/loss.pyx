@@ -445,7 +445,7 @@ cpdef double random_intercept_loss_function(
                                          np.float64_t[:] defence,
                                          np.float64_t[:] match_intercepts,
                                          double hfa,
-                                         double rho):
+                                         double rho) nogil:
     """
     Computes the negative log-likelihood for a Dixon–Coles model
     with a per-match random intercept.
