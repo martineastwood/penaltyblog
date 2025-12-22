@@ -186,6 +186,82 @@ class TestWeibullCopulaParamIndices:
         assert indices["kappa"] == -1
 
 
+class TestParamIndicesConsistency:
+    """Tests that param_indices matches actual parameter layout.
+
+    These tests ensure that if the internal _params layout changes,
+    the _get_tail_param_indices() method is also updated.
+    """
+
+    def test_poisson_indices_match_param_names(self, sample_data):
+        """Verify Poisson indices match the documented param_names."""
+        model = pb.models.PoissonGoalsModel(**sample_data)
+        model.fit()
+
+        indices = model.param_indices()
+        param_names = model._get_param_names()
+
+        # home_advantage should be at index -1
+        assert param_names[indices["home_advantage"]] == "home_advantage"
+
+    def test_dixon_coles_indices_match_param_names(self, sample_data):
+        """Verify DixonColes indices match the documented param_names."""
+        model = pb.models.DixonColesGoalModel(**sample_data)
+        model.fit()
+
+        indices = model.param_indices()
+        param_names = model._get_param_names()
+
+        assert param_names[indices["home_advantage"]] == "home_advantage"
+        assert param_names[indices["rho"]] == "rho"
+
+    def test_negative_binomial_indices_match_param_names(self, sample_data):
+        """Verify NegativeBinomial indices match the documented param_names."""
+        model = pb.models.NegativeBinomialGoalModel(**sample_data)
+        model.fit()
+
+        indices = model.param_indices()
+        param_names = model._get_param_names()
+
+        assert param_names[indices["home_advantage"]] == "home_advantage"
+        assert param_names[indices["dispersion"]] == "dispersion"
+
+    def test_zip_indices_match_param_names(self, sample_data):
+        """Verify ZIP indices match the documented param_names."""
+        model = pb.models.ZeroInflatedPoissonGoalsModel(**sample_data)
+        model.fit()
+
+        indices = model.param_indices()
+        param_names = model._get_param_names()
+
+        assert param_names[indices["home_advantage"]] == "home_advantage"
+        assert param_names[indices["zero_inflation"]] == "zero_inflation"
+
+    def test_bivariate_indices_match_param_names(self, sample_data):
+        """Verify Bivariate indices match the documented param_names."""
+        model = pb.models.BivariatePoissonGoalModel(**sample_data)
+        model.fit()
+
+        indices = model.param_indices()
+        param_names = model._get_param_names()
+
+        assert param_names[indices["home_advantage"]] == "home_advantage"
+        # Note: param_names uses "correlation_log", indices uses "correlation"
+        assert "correlation" in param_names[indices["correlation"]]
+
+    def test_weibull_copula_indices_match_param_names(self, sample_data):
+        """Verify WeibullCopula indices match the documented param_names."""
+        model = pb.models.WeibullCopulaGoalsModel(**sample_data)
+        model.fit()
+
+        indices = model.param_indices()
+        param_names = model._get_param_names()
+
+        assert param_names[indices["home_advantage"]] == "home_advantage"
+        assert param_names[indices["shape"]] == "shape"
+        assert param_names[indices["kappa"]] == "kappa"
+
+
 class TestParamsArrayIntegration:
     """Integration tests demonstrating real-world usage patterns."""
 
