@@ -107,6 +107,9 @@ class ZeroInflatedPoissonGoalsModel(BaseGoalsModel):
             + ["home_advantage", "zero_inflation"]
         )
 
+    def _get_tail_param_indices(self) -> dict[str, int]:
+        return {"home_advantage": -2, "zero_inflation": -1}
+
     def _loss_function(self, params: np.ndarray) -> float:
         # Get params
         attack = np.asarray(params[: self.n_teams], dtype=np.double, order="C")

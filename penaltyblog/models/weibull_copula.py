@@ -129,6 +129,9 @@ class WeibullCopulaGoalsModel(BaseGoalsModel):
             + ["home_advantage", "shape", "kappa"]
         )
 
+    def _get_tail_param_indices(self) -> dict[str, int]:
+        return {"home_advantage": -3, "shape": -2, "kappa": -1}
+
     def _loss_function(self, params: NDArray) -> float:
         # Get params
         attack = np.asarray(params[: self.n_teams], dtype=np.double, order="C")

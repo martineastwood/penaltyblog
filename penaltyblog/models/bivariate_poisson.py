@@ -220,6 +220,9 @@ class BivariatePoissonGoalModel(BaseGoalsModel):
             + ["home_advantage", "correlation_log"]
         )
 
+    def _get_tail_param_indices(self) -> dict[str, int]:
+        return {"home_advantage": -2, "correlation": -1}
+
     def get_params(self) -> ParamsOutput:
         """
         Return the fitted parameters in a dictionary.

@@ -120,6 +120,9 @@ class DixonColesGoalModel(BaseGoalsModel):
             + ["home_advantage", "rho"]
         )
 
+    def _get_tail_param_indices(self) -> dict[str, int]:
+        return {"home_advantage": -2, "rho": -1}
+
     def _gradient(self, params):
         attack = np.asarray(params[: self.n_teams], dtype=np.double, order="C")
         defence = np.asarray(
