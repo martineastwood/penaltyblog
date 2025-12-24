@@ -109,6 +109,9 @@ class NegativeBinomialGoalModel(BaseGoalsModel):
             + ["home_advantage", "dispersion"]
         )
 
+    def _get_tail_param_indices(self) -> dict[str, int]:
+        return {"home_advantage": -2, "dispersion": -1}
+
     def _gradient(self, params):
         attack = np.asarray(params[: self.n_teams], dtype=np.double, order="C")
         defence = np.asarray(

@@ -116,6 +116,9 @@ class PoissonGoalsModel(BaseGoalsModel):
             + ["home_advantage"]
         )
 
+    def _get_tail_param_indices(self) -> dict[str, int]:
+        return {"home_advantage": -1}
+
     def _gradient(self, params):
         attack = np.asarray(params[: self.n_teams], dtype=np.double, order="C")
         defence = np.asarray(

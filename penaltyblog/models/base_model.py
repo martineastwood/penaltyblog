@@ -382,3 +382,101 @@ class BaseGoalsModel(ABC):
             If the model is not fitted.
         """
         return self.get_params()
+
+    @property
+    def params_array(self) -> np.ndarray:
+        """
+        Return a read-only copy of the fitted parameter vector.
+
+        This provides direct access to the underlying numpy array for
+        downstream tools that need to perform numerical operations on
+        the parameters (e.g., applying external adjustment factors).
+
+        Returns
+        -------
+        np.ndarray
+            Copy of the internal parameter array. Modifications do not
+            affect the model.
+
+        Raises
+        ------
+        ValueError
+            If the model is not fitted.
+
+        Notes
+        -----
+        Parameter layout: [attack_0, ..., attack_{n-1}, defense_0, ...,
+                           defense_{n-1}, <model_specific_params>]
+
+        Model-specific trailing parameters (use `param_indices()` for positions):
+
+        - Poisson: [home_advantage]
+        - DixonColes: [home_advantage, rho]
+        - NegativeBinomial: [home_advantage, dispersion]
+        - ZeroInflatedPoisson: [home_advantage, zero_inflation]
+        - BivariatePoisson: [home_advantage, correlation]
+        - WeibullCopula: [home_advantage, shape, kappa]
+
+        Examples
+        --------
+        >>> model.fit()
+        >>> p = model.params_array
+        >>> home_attack = p[model.team_to_idx["Arsenal"]]
+        """
+        if not self.fitted:
+            raise ValueError("Model is not yet fitted. Call `.fit()` first.")
+        return self._params.copy()
+
+    def param_indices(self) -> Dict[str, Any]:
+        """
+        Return indices for named parameter groups in the parameter array.
+
+        This method provides a stable API for accessing parameter positions,
+        enabling downstream code to work with model parameters without
+        relying on internal implementation details.
+
+        Returns
+        -------
+        dict
+            Keys are parameter group names, values are indices or slices:
+            - 'attack': slice for attack parameters (0 to n_teams)
+            - 'defense': slice for defense parameters (n_teams to 2*n_teams)
+            - Model-specific keys for trailing parameters (e.g., 'home_advantage', 'rho')
+
+        Raises
+        ------
+        ValueError
+            If the model is not fitted.
+
+        Examples
+        --------
+        >>> model.fit()
+        >>> idx = model.param_indices()
+        >>> attacks = model.params_array[idx['attack']]
+        >>> hfa = model.params_array[idx['home_advantage']]
+        """
+        if not self.fitted:
+            raise ValueError("Model is not yet fitted. Call `.fit()` first.")
+
+        n = self.n_teams
+        base_indices: Dict[str, Any] = {
+            "attack": slice(0, n),
+            "defense": slice(n, 2 * n),
+        }
+        base_indices.update(self._get_tail_param_indices())
+        return base_indices
+
+    @abstractmethod
+    def _get_tail_param_indices(self) -> Dict[str, int]:
+        """
+        Return indices for model-specific trailing parameters.
+
+        Subclasses must implement this to document their parameter layout.
+
+        Returns
+        -------
+        dict
+            Parameter names mapped to their index in the params array.
+            Use negative indices for trailing parameters (e.g., -1, -2).
+        """
+        raise NotImplementedError("Subclasses must implement this method.")
