@@ -7,6 +7,14 @@ Version Numbering
 ``penaltyblog`` follows the SemVer versioning guidelines. For more information,
 see `semver.org <http://semver.org/>`_
 
+v1.7.1 (2025-12-24)
+^^^^^^^^^^^^^^^^^^^^
+
+* **Goal Models**
+
+  * Added add public `params_array` and `param_indices` functions to all goal models. This makes it easier to work with a model's parameters without having to rely on its internal implementation details. Thank you to Sebastian Velandia for this contribution.
+
+
 v1.7.0 (2025-11-30)
 ^^^^^^^^^^^^^^^^^^^^
 
