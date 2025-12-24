@@ -1,5 +1,4 @@
 from abc import abstractmethod
-from multiprocessing import Pool
 from multiprocessing.pool import ThreadPool
 
 import emcee
@@ -60,11 +59,11 @@ class BaseBayesianModel(BaseGoalsModel):
 
     def fit(
         self,
-        n_walkers=None,
         n_steps=2000,
         n_burn=1000,
+        n_walkers=None,
         initial_params=None,
-        n_jobs=1,
+        n_jobs=-1,
     ):
         """
         Fit the Bayesian model using MCMC sampling.
@@ -81,8 +80,8 @@ class BaseBayesianModel(BaseGoalsModel):
             Total number of MCMC steps per walker. Default: 2000
         n_burn : int, optional
             Number of initial samples to discard as burn-in. Default: 1000
-        initial_params : array-like, optional
-            Starting parameter values for MCMC chains. If None, automatically finds
+        initial_pos : array-like, optional
+            Starting positions for MCMC chains. If None, automatically finds
             good starting point via MAP estimation
 
         n_jobs : int, optional
@@ -90,7 +89,7 @@ class BaseBayesianModel(BaseGoalsModel):
             1 means running sequentially (no pool).
             -1 means using all processors.
             >1 means using that number of processors.
-            Default: 1
+            Default: -1
 
         Returns:
         --------
@@ -100,23 +99,24 @@ class BaseBayesianModel(BaseGoalsModel):
 
         # Rule of thumb: use at least twice as many walkers as dimensions
         if n_walkers is None:
-            n_walkers = 2 * ndim
+            n_walkers = self._get_n_walkers()
 
         # Get model-specific log probability function
         log_prob_func = self._get_log_probability_function()
 
-        # Use the fast, analytical frequentist model to find starting params
+        # Cold start logic
         if initial_params is None:
             initial_params = self._get_initial_params()
-
-        # Initialize walkers in a small, random ball around the best-fit parameters
-        pos = initial_params + 1e-4 * np.random.randn(n_walkers, ndim)
+        pos = initial_params + 1e-1 * np.random.randn(n_walkers, ndim)
 
         # Run MCMC sampling
         self._run_mcmc_sampling(log_prob_func, pos, n_steps, n_jobs)
 
+        # Store the final position of the walkers
+        self.final_pos = self.sampler.get_last_sample().coords
+
         # Store the flattened chain, discarding the burn-in phase and thinning
-        self.chain = self.sampler.get_chain(discard=n_burn, thin=15, flat=True)
+        self.chain = self.sampler.get_chain(discard=n_burn, thin=5, flat=True)
 
         # Calculate posterior mean parameters
         self._params = np.mean(self.chain, axis=0)
@@ -124,6 +124,7 @@ class BaseBayesianModel(BaseGoalsModel):
         # Calculate metrics using posterior mean
         self._calculate_fit_metrics()
 
+        # Set the fitted flag
         self.fitted = True
 
     def _run_mcmc_sampling(self, log_prob_func, pos, n_steps, n_jobs=1):
@@ -148,11 +149,17 @@ class BaseBayesianModel(BaseGoalsModel):
         args = self._get_log_probability_args()
         n_walkers = pos.shape[0]
 
+        moves = [
+            (emcee.moves.DEMove(), 0.8),
+            (emcee.moves.DESnookerMove(), 0.2),
+        ]
+
         if n_jobs == 1:
             self.sampler = emcee.EnsembleSampler(
                 n_walkers,
                 len(self._params),
                 log_prob_func,
+                moves=moves,
                 args=args,
             )
             self.sampler.run_mcmc(
@@ -169,6 +176,7 @@ class BaseBayesianModel(BaseGoalsModel):
                     n_walkers,
                     len(self._params),
                     log_prob_func,
+                    moves=moves,
                     args=args,
                     pool=pool,
                 )
@@ -203,9 +211,9 @@ class BaseBayesianModel(BaseGoalsModel):
         Returns:
         --------
         int
-            Number of walkers (2 * number of parameters)
+            Number of walkers
         """
-        return 2 * len(self._params)
+        return 8 * len(self._params)
 
     def _calculate_fit_metrics(self) -> None:
         """
@@ -331,3 +339,161 @@ class BaseBayesianModel(BaseGoalsModel):
             Probability grid for the match
         """
         raise NotImplementedError("Subclasses must implement _compute_probabilities")
+
+    def get_diagnostics(self):
+        """
+        Compute convergence diagnostics (R-hat and Effective Sample Size).
+
+        Returns:
+        --------
+        dict
+            Dictionary containing 'r_hat' and 'ess' for each parameter.
+        """
+        if self.sampler is None:
+            raise ValueError("Model not fitted")
+
+        # Get the unflattened chain: (n_steps, n_walkers, n_params)
+        # We discard the first half as burn-in for the diagnostic check to be safe,
+        # or use the user's defined burn-in.
+        chain = self.get_centered_chain()
+        n_steps, n_walkers, n_params = chain.shape
+
+        # We need at least a few steps to calc diagnostics
+        if n_steps < 50:
+            return None
+
+        param_names = self._get_param_names()
+        diagnostics = {}
+
+        # 1. Calculate Autocorrelation Time (Tau) & ESS
+        # emcee has a built-in tool for this which is robust
+        try:
+            # tol=0 prevents it from raising an error if the chain is too short,
+            # allowing us to handle it gracefully
+            tau = self.sampler.get_autocorr_time(tol=0)
+            # ESS = Total Samples / Tau
+            # Total samples = n_walkers * n_steps
+            ess = (n_steps * n_walkers) / tau
+        except emcee.autocorr.AutocorrError:
+            # If chain is too short to estimate tau reliably
+            tau = np.full(n_params, np.nan)
+            ess = np.full(n_params, np.nan)
+
+        # 2. Calculate R-hat (Gelman-Rubin statistic) manually via Numpy
+        # We treat each walker as a "chain".
+        r_hat = np.zeros(n_params)
+
+        for p in range(n_params):
+            x = chain[:, :, p]  # (n_steps, n_walkers)
+
+            # Split-R-hat: Split each chain in half to detect non-stationarity
+            # Shape becomes (n_steps/2, n_walkers * 2)
+            n = n_steps // 2
+            m = n_walkers * 2
+
+            # Split data
+            first_half = x[:n, :]
+            second_half = x[n : 2 * n, :]
+            split_chain = np.concatenate([first_half, second_half], axis=1)
+
+            # Calculate Between-Chain Variance (B) and Within-Chain Variance (W)
+            chain_means = np.mean(split_chain, axis=0)
+            grand_mean = np.mean(chain_means)
+
+            # B: Variance of the chain means * n
+            B = n * np.var(chain_means, ddof=1)
+
+            # W: Average of the chain variances
+            chain_vars = np.var(split_chain, axis=0, ddof=1)
+            W = np.mean(chain_vars)
+
+            # Pooled Variance
+            var_theta = ((n - 1) / n) * W + (1 / n) * B
+
+            # R-hat
+            r_hat[p] = np.sqrt(var_theta / W)
+
+        # Pack results
+        for i, name in enumerate(param_names):
+            diagnostics[name] = {
+                "r_hat": r_hat[i],
+                "ess": ess[i],
+                "autocorr_time": tau[i],
+            }
+
+        return diagnostics
+
+    def print_diagnostics(self):
+        """
+        Print a formatted summary of convergence diagnostics.
+        """
+        diags = self.get_diagnostics()
+        if diags is None:
+            print("Chain too short to compute diagnostics.")
+            return
+
+        print("\nConvergence Diagnostics")
+        print("-" * 65)
+        print(f"{'Parameter':<20} {'R-hat':<10} {'ESS':<10} {'Autocorr':<10}")
+        print("-" * 65)
+
+        # Define thresholds
+        # R-hat < 1.1 is generally considered converged
+        # ESS > 400 is a common rule of thumb for reliable estimates
+
+        for param, stats in diags.items():
+            r = stats["r_hat"]
+            ess = stats["ess"]
+            tau = stats["autocorr_time"]
+
+            r_str = f"{r:.3f}"
+            ess_str = f"{ess:.1f}"
+            tau_str = f"{tau:.1f}"
+
+            # Visual flag for bad R-hat
+            if r > 1.1 or np.isnan(r):
+                r_str += " (!)"
+
+            print(f"{param:<20} {r_str:<10} {ess_str:<10} {tau_str:<10}")
+
+        print("-" * 65)
+        print("(!) indicates potential non-convergence (R-hat > 1.1)")
+
+    def get_centered_chain(self):
+        """
+        Returns the chain with the 'sum-to-zero' constraint applied to parameters.
+        This fixes the identifiability drift (floating baseline) issue.
+        """
+        # Get raw chain: (n_steps, n_walkers, n_params)
+        chain = self.sampler.get_chain(discard=0)
+        n_steps, n_walkers, n_params = chain.shape
+
+        # Copy to avoid modifying original
+        centered_chain = chain.copy()
+
+        # Indices (assuming your standard layout)
+        n_teams = self.n_teams
+        idx_att_start = 0
+        idx_def_start = n_teams
+
+        # Iterate over every sample and center it
+        for s in range(n_steps):
+            for w in range(n_walkers):
+                # Extract raw vectors
+                attacks = chain[s, w, idx_att_start : idx_att_start + n_teams]
+                defenses = chain[s, w, idx_def_start : idx_def_start + n_teams]
+
+                # Calculate the drift (mean of attacks)
+                drift = np.mean(attacks)
+
+                # Enforce Mean(Attack) = 0
+                # We subtract drift from Attack, add it to Defense
+                # This preserves the total lambda: (Att - C) + (Def + C) = Att + Def
+                centered_chain[s, w, idx_att_start : idx_att_start + n_teams] = (
+                    attacks - drift
+                )
+                centered_chain[s, w, idx_def_start : idx_def_start + n_teams] = (
+                    defenses + drift
+                )
+
+        return centered_chain

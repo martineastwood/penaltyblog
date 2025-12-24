@@ -1,5 +1,4 @@
 # penaltyblog/models/bayesian_loss.pyx
-# cython: language_level=3, boundscheck=False, wraparound=False, cdivision=True
 
 import numpy as np
 
@@ -12,6 +11,18 @@ from .loss cimport dixon_coles_loss_function
 
 # Pre-computed constants for log-PDF calculations
 cdef double LOG_SQRT_2_PI = 0.9189385332046727
+
+# Keep Sigma at 1.0 (Standard normal prior)
+cdef double PRIOR_SIGMA = 1.0
+cdef double LOG_PRIOR_CONST = 0.9189385332046727 # Same as LOG_SQRT_2_PI for sigma=1.0
+
+# Pre-calculated log(0.5) + LOG_SQRT_2_PI for global parameters (sigma=0.5)
+cdef double GLOBAL_PRIOR_CONST = 0.2257913526447274
+
+# Constraint: Strong enough to keep Sum~0, but not so strong it kills emcee.
+# 100,000 is the pragmatic sweet spot.
+cdef double CONSTRAINT_STRENGTH = 10000.0
+
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
@@ -35,23 +46,44 @@ cdef double _bayesian_dixon_coles_log_prob_c(
     cdef double hfa = params[2 * n_teams]
     cdef double rho = params[2 * n_teams + 1]
 
+    # Accumulators for priors and the sum-to-zero constraint
+    cdef double ss_attack = 0.0
+    cdef double ss_defense = 0.0
+    cdef double sum_attack = 0.0
+    cdef double sum_defense = 0.0
+
+    # 1. PHYSICAL BOUNDS CHECK (CRITICAL SAFETY)
+    # You must keep this. If rho explores > 1.0, the loss function crashes.
     if rho <= -1.0 or rho >= 1.0:
         return -INFINITY
 
-    for i in range(2 * n_teams):
-        if params[i] < -5.0 or params[i] > 5.0:
-            return -INFINITY
-
+    # 2. PRIORS & CONSTRAINT ACCUMULATION
     for i in range(n_teams):
-        log_prob += -0.5 * attack[i]**2 - LOG_SQRT_2_PI
+        # Accumulate values for prior calculation
+        ss_attack += attack[i] * attack[i]
+        ss_defense += defense[i] * defense[i]
 
-    for i in range(n_teams):
-        log_prob += -0.5 * defense[i]**2 - LOG_SQRT_2_PI
+        # Track sums for the constraint
+        sum_attack += attack[i]
+        sum_defense += defense[i]
 
-    log_prob += -0.5 * ((hfa - 0.25) / 0.5)**2 - (log(0.5) + LOG_SQRT_2_PI)
+    # Combine priors into log_prob
+    # Prior: Normal(0, 1.0) -> -0.5 * x^2 - log(sqrt(2*pi))
+    log_prob += -0.5 * (ss_attack + ss_defense) - (2 * n_teams * LOG_PRIOR_CONST)
 
-    log_prob += -0.5 * (rho / 0.5)**2 - (log(0.5) + LOG_SQRT_2_PI)
+    # 3. SOFT SUM-TO-ZERO CONSTRAINT
+    # Penalizes the model if the average rating drifts away from 0.0
+    log_prob -= 0.5 * CONSTRAINT_STRENGTH * (sum_attack * sum_attack)
+    log_prob -= 0.5 * CONSTRAINT_STRENGTH * (sum_defense * sum_defense)
 
+    # 4. GLOBAL PARAMETER PRIORS
+    # Home Advantage ~ Normal(0.25, 0.5) -> -2.0 * (hfa - 0.25)^2 - CONST
+    log_prob += -2.0 * ((hfa - 0.25) * (hfa - 0.25)) - GLOBAL_PRIOR_CONST
+
+    # Rho ~ Normal(0, 0.5) -> -2.0 * rho^2 - CONST
+    log_prob += -2.0 * (rho * rho) - GLOBAL_PRIOR_CONST
+
+    # 5. LIKELIHOOD CALCULATION
     cdef double neg_ll = dixon_coles_loss_function(
         goals_home,
         goals_away,

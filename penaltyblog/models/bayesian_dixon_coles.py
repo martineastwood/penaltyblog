@@ -37,9 +37,18 @@ def log_probability_wrapper(
     float
         Log probability value
     """
-    return bayesian_dixon_coles_log_prob(
+    # 1. Calculate Log Prob
+    result = bayesian_dixon_coles_log_prob(
         params, home_idx, away_idx, goals_home, goals_away, weights, n_teams
     )
+
+    # 2. THE FIX: The NaN Barrier
+    # If Cython returns NaN (due to overflow or math errors),
+    # we return -Infinity to tell the sampler "This place is invalid, go back."
+    if not np.isfinite(result):
+        return -np.inf
+
+    return result
 
 
 class BayesianDixonColesModel(BaseBayesianModel):
@@ -386,8 +395,6 @@ class BayesianDixonColesModel(BaseBayesianModel):
                 f"Number of parameters: {self.n_params}",
                 f"Log Likelihood: {round(self.loglikelihood, 3)}",
                 f"AIC: {round(self.aic, 3)}",
-                f"WAIC: {round(self.waic, 3)}",
-                f"Effective parameters (p_WAIC): {round(self.p_waic, 3)}",
                 "",
                 "{0: <20} {1:<20} {2:<20}".format("Team", "Attack", "Defence"),
                 "-" * 60,
