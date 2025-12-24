@@ -1,0 +1,353 @@
+import numpy as np
+
+from penaltyblog.bayes.diagnostics import compute_diagnostics
+from penaltyblog.bayes.likelihood import (
+    bayesian_predict_c,
+    football_log_prob_wrapper,
+)
+from penaltyblog.bayes.sampler_api import EnsembleSampler
+from penaltyblog.models.football_probability_grid import (
+    FootballProbabilityGrid,
+)
+
+
+class BayesianGoalModel:
+    def __init__(self, goals_home, goals_away, teams_home, teams_away, weights=None):
+        """
+        Hierarchical Bayesian Football Model (Dixon-Coles).
+        """
+        # 1. Data Prep
+        self.teams = sorted(list(set(teams_home) | set(teams_away)))
+        self.n_teams = len(self.teams)
+        self.team_map = {team: i for i, team in enumerate(self.teams)}
+
+        # --- FIX: Store original team lists for the helper model ---
+        self.teams_home = teams_home
+        self.teams_away = teams_away
+
+        # Convert names to integers
+        self.home_idx = np.array([self.team_map[t] for t in teams_home], dtype=np.int64)
+        self.away_idx = np.array([self.team_map[t] for t in teams_away], dtype=np.int64)
+
+        self.goals_home = np.array(goals_home, dtype=np.int64)
+        self.goals_away = np.array(goals_away, dtype=np.int64)
+
+        if weights is None:
+            self.weights = np.ones_like(self.goals_home, dtype=np.float64)
+        else:
+            self.weights = np.array(weights, dtype=np.float64)
+
+        # Placeholders for results
+        self.trace = None
+        self.trace_dict = None
+        self.sampler = None
+
+    def _generate_start_positions(self, n_walkers, mle_params=None):
+        """
+        Generate starting positions.
+        If mle_params is provided, cluster walkers around that solution
+        AFTER recentering to match Bayesian constraints.
+        """
+        ndim = (self.n_teams * 2) + 2
+        start_pos = np.zeros((n_walkers, ndim))
+
+        if mle_params is not None:
+            # === SMART START (Centered) ===
+            if len(mle_params) != ndim:
+                raise ValueError(
+                    f"MLE params shape {len(mle_params)} != Model ndim {ndim}"
+                )
+
+            # Decompose parameters
+            # Structure: [Att (n), Def (n), HFA, Rho]
+            att_mle = mle_params[: self.n_teams]
+            def_mle = mle_params[self.n_teams : 2 * self.n_teams]
+            hfa_rho = mle_params[2 * self.n_teams :]
+
+            # --- CRITICAL FIX: Recenter to Mean=0 ---
+            # MLE has Mean(Att)=1. Bayesian wants Mean(Att)=0.
+            # We subtract the mean from both Attack and Defense to satisfy
+            # the sum-to-zero priors.
+            att_centered = att_mle - np.mean(att_mle)
+            def_centered = def_mle - np.mean(def_mle)
+
+            # Reconstruct the vector
+            centered_params = np.concatenate([att_centered, def_centered, hfa_rho])
+
+            for w in range(n_walkers):
+                # Add small Gaussian noise to ensure walkers are distinct
+                start_pos[w, :] = centered_params + np.random.normal(0, 0.05, ndim)
+
+        else:
+            # === COLD START (Fallback) ===
+            start_pos = np.random.normal(0, 0.1, size=(n_walkers, ndim))
+            # HFA starts around 0.25, Rho around 0.0
+            start_pos[:, -2] = np.random.normal(0.25, 0.1, size=n_walkers)
+            start_pos[:, -1] = np.random.normal(0.0, 0.1, size=n_walkers)
+
+        return start_pos
+
+    def fit(self, n_samples=1000, burn=1000, n_chains=4, thin=5):
+        """
+        Fit the model using parallel MCMC chains.
+        """
+        # 1. Pack data for Cython (Must be pure types)
+        data_dict = {
+            "home_idx": self.home_idx,
+            "away_idx": self.away_idx,
+            "goals_home": self.goals_home,
+            "goals_away": self.goals_away,
+            "weights": self.weights,
+            "n_teams": self.n_teams,
+        }
+
+        # 1. Get Initial Parameters
+        mle_params = self._get_initial_params()
+        mle_params = np.concatenate([mle_params, [-0.1]])
+
+        # 2. Setup Sampler Manager
+        # Using 1 core per chain is standard
+        self.sampler = EnsembleSampler(
+            n_chains=n_chains,
+            n_cores=n_chains,
+            log_prob_wrapper_func=football_log_prob_wrapper,
+            data_dict=data_dict,
+        )
+
+        # 3. Generate Starting Positions
+        # Rule of thumb: Walkers > 2 * ndim
+        ndim = (self.n_teams * 2) + 2
+        n_walkers = max(50, 2 * ndim + 10)
+
+        start_positions = [
+            self._generate_start_positions(n_walkers, mle_params=mle_params)
+            for _ in range(n_chains)
+        ]
+
+        # 4. Run Execution
+        self.sampler.run_mcmc(start_positions, n_samples, burn)
+
+        # 5. Extract Results
+        self.trace = self.sampler.get_posterior(burn=burn, thin=thin)
+        self._map_trace_to_dict()
+
+        return self.trace_dict
+
+    def _map_trace_to_dict(self):
+        """Helper to convert raw matrix to user-friendly dict"""
+        self.trace_dict = {}
+
+        # Map Teams
+        for i, team in enumerate(self.teams):
+            self.trace_dict[f"attack_{team}"] = self.trace[:, i]
+            self.trace_dict[f"defence_{team}"] = self.trace[:, self.n_teams + i]
+
+        # Map Globals
+        self.trace_dict["home_advantage"] = self.trace[:, -2]
+        self.trace_dict["rho"] = self.trace[:, -1]
+
+    def predict(self, home_team, away_team, max_goals=15):
+        """
+        Predict match outcome using Posterior Predictive Integration.
+
+        This averages the probabilities from EVERY posterior sample,
+        accounting for parameter uncertainty.
+        """
+        if self.trace is None:
+            raise ValueError("Model has not been fitted. Call .fit() first.")
+
+        if home_team not in self.team_map or away_team not in self.team_map:
+            raise ValueError("Team not found in training data.")
+
+        home_idx = self.team_map[home_team]
+        away_idx = self.team_map[away_team]
+
+        # Call the fast Cython engine
+        # self.trace is shape (n_samples, n_params)
+        matrix, avg_lam_h, avg_lam_a = bayesian_predict_c(
+            self.trace, home_idx, away_idx, self.n_teams, max_goals
+        )
+
+        return FootballProbabilityGrid(matrix, avg_lam_h, avg_lam_a, normalize=True)
+
+    def get_diagnostics(self, burn=500, thin=1):
+        """
+        Returns a DataFrame of R-hat and ESS for all parameters.
+        """
+        # We need the internal sampler object.
+        # Ideally, you stored it in self.sampler during fit().
+        # If not, update fit() to save: self.sampler = sampler
+
+        if not hasattr(self, "sampler") or self.sampler is None:
+            raise ValueError("Model has not been fitted.")
+
+        df = compute_diagnostics(self.sampler, burn=burn, thin=thin)
+
+        # Add nice labels
+        labels = []
+        # Teams
+        for team in self.teams:
+            labels.append(f"Attack_{team}")
+        for team in self.teams:
+            labels.append(f"Defense_{team}")
+        # Globals
+        labels.append("Home_Advantage")
+        labels.append("Rho")
+
+        df.index = labels
+        return df
+
+    def _get_initial_params(self) -> np.ndarray:
+        """
+        Get initial parameters for MCMC sampling.
+
+        Returns:
+        --------
+        array-like
+            Initial parameter values
+        """
+        from penaltyblog.models import PoissonGoalsModel
+
+        simple_model = PoissonGoalsModel(
+            self.goals_home,
+            self.goals_away,
+            self.teams_home,
+            self.teams_away,
+            self.weights,
+        )
+        simple_model.fit()
+
+        return simple_model._params
+
+
+from penaltyblog.bayes.likelihood import hierarchical_log_prob_wrapper
+
+
+class HierarchicalBayesianGoalModel(BayesianGoalModel):
+    """
+    Advanced Bayesian Model with Hierarchical Priors.
+    Learns the 'variance' of the league automatically.
+    """
+
+    def fit(self, n_samples=1000, burn=1000, n_chains=4, thin=5):
+        # 1. Prepare Data (Same as base)
+        data_dict = {
+            "home_idx": self.home_idx,
+            "away_idx": self.away_idx,
+            "goals_home": self.goals_home,
+            "goals_away": self.goals_away,
+            "weights": self.weights,
+            "n_teams": self.n_teams,
+        }
+
+        # 2. Get MLE Init (Same as base)
+        mle_params = self._get_initial_params()
+        mle_params = np.concatenate([mle_params, [-0.1]])  # Add Rho
+
+        # 3. Setup Sampler with NEW Wrapper
+        self.sampler = EnsembleSampler(
+            n_chains=n_chains,
+            n_cores=n_chains,
+            log_prob_wrapper_func=hierarchical_log_prob_wrapper,  # <--- SWITCHED ENGINE
+            data_dict=data_dict,
+        )
+
+        # 4. Generate Starts (Hierarchical specific)
+        # We need 2 extra dimensions for Sigma_Att and Sigma_Def
+        ndim = (self.n_teams * 2) + 4
+        n_walkers = max(50, 2 * ndim + 10)
+
+        start_positions = [
+            self._generate_hierarchical_starts(n_walkers, mle_params)
+            for _ in range(n_chains)
+        ]
+
+        print(f"Fitting Hierarchical: {self.n_teams} teams, learned variance...")
+        self.sampler.run_mcmc(start_positions, n_samples, burn)
+
+        # 5. Extract
+        self.trace = self.sampler.get_posterior(burn=burn, thin=thin)
+        self._map_trace_to_dict()  # Will capture sigmas automatically? No, needs override.
+
+        return self.trace_dict
+
+    def _generate_hierarchical_starts(self, n_walkers, mle_params):
+        """Generates starts including the 2 extra Sigma parameters"""
+        ndim = (self.n_teams * 2) + 4
+        start_pos = np.zeros((n_walkers, ndim))
+
+        # Unpack MLE
+        att_mle = mle_params[: self.n_teams]
+        def_mle = mle_params[self.n_teams : 2 * self.n_teams]
+        hfa_rho = mle_params[2 * self.n_teams :]
+
+        # Center MLE
+        att_centered = att_mle - np.mean(att_mle)
+        def_centered = def_mle - np.mean(def_mle)
+
+        # Estimate Initial Sigmas from MLE spread
+        # (This helps the model start with a realistic "League Variance")
+        sig_att_est = np.std(att_centered)
+        sig_def_est = np.std(def_centered)
+
+        # Construct Vector: [Att, Def, HFA, Rho, SigAtt, SigDef]
+        base_params = np.concatenate(
+            [att_centered, def_centered, hfa_rho, [sig_att_est, sig_def_est]]
+        )
+
+        # Add Jitter
+        for w in range(n_walkers):
+            start_pos[w, :] = base_params + np.random.normal(0, 0.05, ndim)
+
+        return start_pos
+
+    def _map_trace_to_dict(self):
+        """Map including the new sigma parameters"""
+        # Call parent to do the heavy lifting
+        super()._map_trace_to_dict()
+
+        # Add the new stuff
+        # Indices: [Att(n), Def(n), HFA(1), Rho(1), SigAtt(1), SigDef(1)]
+        idx_sig_att = 2 * self.n_teams + 2
+        idx_sig_def = 2 * self.n_teams + 3
+
+        self.trace_dict["sigma_att"] = self.trace[:, idx_sig_att]
+        self.trace_dict["sigma_def"] = self.trace[:, idx_sig_def]
+
+    def get_diagnostics(self, burn=500, thin=1):
+        """
+        Returns a DataFrame of R-hat and ESS for all parameters,
+        including the hierarchical sigmas.
+        """
+        if not hasattr(self, "sampler") or self.sampler is None:
+            raise ValueError("Model has not been fitted.")
+
+        # 1. Compute raw stats (returns DF with 50 rows)
+        df = compute_diagnostics(self.sampler, burn=burn, thin=thin)
+
+        # 2. Generate Labels (Must match 50 rows)
+        labels = []
+        # Teams
+        for team in self.teams:
+            labels.append(f"Attack_{team}")
+        for team in self.teams:
+            labels.append(f"Defense_{team}")
+
+        # Globals
+        labels.append("Home_Advantage")
+        labels.append("Rho")
+
+        # --- NEW LABELS ---
+        labels.append("Sigma_Attack")
+        labels.append("Sigma_Defense")
+
+        # 3. Apply
+        if len(df) != len(labels):
+            # Fallback if something is misaligned to prevent crash
+            print(
+                f"Warning: Label mismatch ({len(df)} params vs {len(labels)} labels). Returning raw indices."
+            )
+            return df
+
+        df.index = labels
+        return df

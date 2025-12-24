@@ -42,6 +42,19 @@ for pyx_path in rps_pyx:
         )
     )
 
+# Process .pyx files in penaltyblog/bayes
+bayes_pyx = find_pyx_files("penaltyblog", "bayes")
+for pyx_path in bayes_pyx:
+    module_name = os.path.splitext(pyx_path.replace(os.sep, "."))[0]
+    extensions.append(
+        Extension(
+            module_name,
+            [pyx_path],
+            include_dirs=[np.get_include()],
+            extra_compile_args=["-O3"],
+        )
+    )
+
 setup(
     name="penaltyblog",
     version="1.5.0",
