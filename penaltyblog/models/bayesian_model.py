@@ -1,46 +1,62 @@
+from typing import Dict, List, Optional
+
 import numpy as np
+import pandas as pd
 
 from penaltyblog.bayes.diagnostics import compute_diagnostics
 from penaltyblog.bayes.likelihood import (
     bayesian_predict_c,
     football_log_prob_wrapper,
+    hierarchical_log_prob_wrapper,
 )
 from penaltyblog.bayes.sampler_api import EnsembleSampler
+from penaltyblog.models.base_model import BaseGoalsModel
+from penaltyblog.models.custom_types import GoalInput, TeamInput, WeightInput
 from penaltyblog.models.football_probability_grid import (
     FootballProbabilityGrid,
 )
 
 
-class BayesianGoalModel:
-    def __init__(self, goals_home, goals_away, teams_home, teams_away, weights=None):
-        """
-        Hierarchical Bayesian Football Model (Dixon-Coles).
-        """
-        # 1. Data Prep
-        self.teams = sorted(list(set(teams_home) | set(teams_away)))
-        self.n_teams = len(self.teams)
-        self.team_map = {team: i for i, team in enumerate(self.teams)}
+class BayesianGoalModel(BaseGoalsModel):
+    """
+    Bayesian Football Model using Dixon-Coles methodology.
 
-        # --- FIX: Store original team lists for the helper model ---
-        self.teams_home = teams_home
-        self.teams_away = teams_away
+    This class extends BaseGoalsModel to provide Bayesian inference for
+    football match predictions using MCMC sampling. Instead of point
+    estimates from MLE, this model produces full posterior distributions
+    for all parameters.
 
-        # Convert names to integers
-        self.home_idx = np.array([self.team_map[t] for t in teams_home], dtype=np.int64)
-        self.away_idx = np.array([self.team_map[t] for t in teams_away], dtype=np.int64)
+    Parameters
+    ----------
+    goals_home : GoalInput
+        Goals scored by the home team in each match.
+    goals_away : GoalInput
+        Goals scored by the away team in each match.
+    teams_home : TeamInput
+        Names of home teams for each match.
+    teams_away : TeamInput
+        Names of away teams for each match.
+    weights : WeightInput, optional
+        Match weights (e.g., from time decay). If None, all matches are weighted equally.
+    """
 
-        self.goals_home = np.array(goals_home, dtype=np.int64)
-        self.goals_away = np.array(goals_away, dtype=np.int64)
+    def __init__(
+        self,
+        goals_home: GoalInput,
+        goals_away: GoalInput,
+        teams_home: TeamInput,
+        teams_away: TeamInput,
+        weights: WeightInput = None,
+    ):
+        super().__init__(goals_home, goals_away, teams_home, teams_away, weights)
 
-        if weights is None:
-            self.weights = np.ones_like(self.goals_home, dtype=np.float64)
-        else:
-            self.weights = np.array(weights, dtype=np.float64)
+        # Bayesian-specific attributes
+        self.trace: Optional[np.ndarray] = None
+        self.trace_dict: Optional[Dict[str, np.ndarray]] = None
+        self.sampler: Optional[EnsembleSampler] = None
 
-        # Placeholders for results
-        self.trace = None
-        self.trace_dict = None
-        self.sampler = None
+        # team_map for backward compatibility (parent uses team_to_idx)
+        self.team_map = self.team_to_idx
 
     def _generate_start_positions(self, n_walkers, mle_params=None):
         """
@@ -52,7 +68,6 @@ class BayesianGoalModel:
         start_pos = np.zeros((n_walkers, ndim))
 
         if mle_params is not None:
-            # === SMART START (Centered) ===
             if len(mle_params) != ndim:
                 raise ValueError(
                     f"MLE params shape {len(mle_params)} != Model ndim {ndim}"
@@ -64,7 +79,7 @@ class BayesianGoalModel:
             def_mle = mle_params[self.n_teams : 2 * self.n_teams]
             hfa_rho = mle_params[2 * self.n_teams :]
 
-            # --- CRITICAL FIX: Recenter to Mean=0 ---
+            # --- Recenter to Mean=0 ---
             # MLE has Mean(Att)=1. Bayesian wants Mean(Att)=0.
             # We subtract the mean from both Attack and Defense to satisfy
             # the sum-to-zero priors.
@@ -79,9 +94,8 @@ class BayesianGoalModel:
                 start_pos[w, :] = centered_params + np.random.normal(0, 0.05, ndim)
 
         else:
-            # === COLD START (Fallback) ===
+            # === COLD START ===
             start_pos = np.random.normal(0, 0.1, size=(n_walkers, ndim))
-            # HFA starts around 0.25, Rho around 0.0
             start_pos[:, -2] = np.random.normal(0.25, 0.1, size=n_walkers)
             start_pos[:, -1] = np.random.normal(0.0, 0.1, size=n_walkers)
 
@@ -128,7 +142,7 @@ class BayesianGoalModel:
         self.sampler.run_mcmc(start_positions, n_samples, burn)
 
         # 5. Extract Results
-        self.trace = self.sampler.get_posterior(burn=burn, thin=thin)
+        self.trace = self.sampler.trim_samples(burn=burn, thin=thin)
         self._map_trace_to_dict()
 
         return self.trace_dict
@@ -170,14 +184,15 @@ class BayesianGoalModel:
 
         return FootballProbabilityGrid(matrix, avg_lam_h, avg_lam_a, normalize=True)
 
-    def get_diagnostics(self, burn=500, thin=1):
+    def get_diagnostics(self, burn: int = 0, thin: int = 1):
         """
         Returns a DataFrame of R-hat and ESS for all parameters.
-        """
-        # We need the internal sampler object.
-        # Ideally, you stored it in self.sampler during fit().
-        # If not, update fit() to save: self.sampler = sampler
 
+        Args:
+            burn (int, optional): Additional burn-in to discard. Defaults to 0 since
+                primary burn-in is handled during .fit().
+            thin (int, optional): Additional thinning factor. Defaults to 1.
+        """
         if not hasattr(self, "sampler") or self.sampler is None:
             raise ValueError("Model has not been fitted.")
 
@@ -219,8 +234,51 @@ class BayesianGoalModel:
 
         return simple_model._params
 
+    def _compute_probabilities(
+        self, home_idx: int, away_idx: int, max_goals: int, normalize: bool = True
+    ) -> FootballProbabilityGrid:
+        """
+        Compute posterior predictive probabilities for a fixture.
 
-from penaltyblog.bayes.likelihood import hierarchical_log_prob_wrapper
+        Uses the full posterior distribution to average over parameter uncertainty.
+        """
+        if self.trace is None:
+            raise ValueError("Model has not been fitted. Call .fit() first.")
+
+        matrix, avg_lam_h, avg_lam_a = bayesian_predict_c(
+            self.trace, home_idx, away_idx, self.n_teams, max_goals
+        )
+        return FootballProbabilityGrid(
+            matrix, avg_lam_h, avg_lam_a, normalize=normalize
+        )
+
+    def _get_param_names(self) -> List[str]:
+        """
+        Return the parameter names for this model.
+
+        Returns
+        -------
+        list[str]
+            Parameter names: attack_*, defense_*, home_advantage, rho
+        """
+        names = []
+        for team in self.teams:
+            names.append(f"attack_{team}")
+        for team in self.teams:
+            names.append(f"defense_{team}")
+        names.extend(["home_advantage", "rho"])
+        return names
+
+    def _get_tail_param_indices(self) -> Dict[str, int]:
+        """
+        Return indices for model-specific trailing parameters.
+
+        Returns
+        -------
+        dict
+            Parameter names mapped to their index in the params array.
+        """
+        return {"home_advantage": -2, "rho": -1}
 
 
 class HierarchicalBayesianGoalModel(BayesianGoalModel):
@@ -229,7 +287,7 @@ class HierarchicalBayesianGoalModel(BayesianGoalModel):
     Learns the 'variance' of the league automatically.
     """
 
-    def fit(self, n_samples=1000, burn=1000, n_chains=4, thin=5):
+    def fit(self, n_samples=1500, burn=1000, n_chains=4, thin=5):
         # 1. Prepare Data (Same as base)
         data_dict = {
             "home_idx": self.home_idx,
@@ -244,11 +302,11 @@ class HierarchicalBayesianGoalModel(BayesianGoalModel):
         mle_params = self._get_initial_params()
         mle_params = np.concatenate([mle_params, [-0.1]])  # Add Rho
 
-        # 3. Setup Sampler with NEW Wrapper
+        # 3. Setup Sampler
         self.sampler = EnsembleSampler(
             n_chains=n_chains,
             n_cores=n_chains,
-            log_prob_wrapper_func=hierarchical_log_prob_wrapper,  # <--- SWITCHED ENGINE
+            log_prob_wrapper_func=hierarchical_log_prob_wrapper,
             data_dict=data_dict,
         )
 
@@ -261,18 +319,25 @@ class HierarchicalBayesianGoalModel(BayesianGoalModel):
             self._generate_hierarchical_starts(n_walkers, mle_params)
             for _ in range(n_chains)
         ]
-
-        print(f"Fitting Hierarchical: {self.n_teams} teams, learned variance...")
         self.sampler.run_mcmc(start_positions, n_samples, burn)
 
         # 5. Extract
-        self.trace = self.sampler.get_posterior(burn=burn, thin=thin)
-        self._map_trace_to_dict()  # Will capture sigmas automatically? No, needs override.
+        self.trace = self.sampler.trim_samples(burn=burn, thin=thin)
+        self._map_trace_to_dict()
 
         return self.trace_dict
 
-    def _generate_hierarchical_starts(self, n_walkers, mle_params):
-        """Generates starts including the 2 extra Sigma parameters"""
+    def _generate_hierarchical_starts(self, n_walkers, mle_params) -> np.ndarray:
+        """
+        Generates starts including the 2 extra Sigma parameters
+
+        Args:
+            n_walkers (int): Number of walkers
+            mle_params (array-like): MLE parameters
+
+        Returns:
+            array-like: Start positions
+        """
         ndim = (self.n_teams * 2) + 4
         start_pos = np.zeros((n_walkers, ndim))
 
@@ -286,7 +351,6 @@ class HierarchicalBayesianGoalModel(BayesianGoalModel):
         def_centered = def_mle - np.mean(def_mle)
 
         # Estimate Initial Sigmas from MLE spread
-        # (This helps the model start with a realistic "League Variance")
         sig_att_est = np.std(att_centered)
         sig_def_est = np.std(def_centered)
 
@@ -302,11 +366,12 @@ class HierarchicalBayesianGoalModel(BayesianGoalModel):
         return start_pos
 
     def _map_trace_to_dict(self):
-        """Map including the new sigma parameters"""
+        """
+        Map including the new sigma parameters
+        """
         # Call parent to do the heavy lifting
         super()._map_trace_to_dict()
 
-        # Add the new stuff
         # Indices: [Att(n), Def(n), HFA(1), Rho(1), SigAtt(1), SigDef(1)]
         idx_sig_att = 2 * self.n_teams + 2
         idx_sig_def = 2 * self.n_teams + 3
@@ -314,15 +379,20 @@ class HierarchicalBayesianGoalModel(BayesianGoalModel):
         self.trace_dict["sigma_att"] = self.trace[:, idx_sig_att]
         self.trace_dict["sigma_def"] = self.trace[:, idx_sig_def]
 
-    def get_diagnostics(self, burn=500, thin=1):
+    def get_diagnostics(self, burn: int = 0, thin: int = 1) -> pd.DataFrame:
         """
         Returns a DataFrame of R-hat and ESS for all parameters,
         including the hierarchical sigmas.
+
+        Args:
+            burn (int, optional): Additional burn-in to discard. Defaults to 0 since
+                primary burn-in is handled during .fit().
+            thin (int, optional): Additional thinning factor. Defaults to 1.
         """
         if not hasattr(self, "sampler") or self.sampler is None:
             raise ValueError("Model has not been fitted.")
 
-        # 1. Compute raw stats (returns DF with 50 rows)
+        # 1. Compute raw stats
         df = compute_diagnostics(self.sampler, burn=burn, thin=thin)
 
         # 2. Generate Labels (Must match 50 rows)

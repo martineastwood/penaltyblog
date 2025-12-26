@@ -44,7 +44,7 @@ cdef inline double next_double(RngState *state) nogil:
 # It takes a generic double array and some data object (usually a dict)
 ctypedef double (*log_prob_fn)(object, object)
 
-cdef class MinimalSampler:
+cdef class DiffEvolEnsembleSampler:
     cdef:
         int nwalkers
         int ndim
@@ -54,6 +54,19 @@ cdef class MinimalSampler:
         RngState rng
 
     def __init__(self, int nwalkers, int ndim, log_prob_func, object data_obj, double a=2.0, int seed=1234):
+        if nwalkers < 2:
+            raise ValueError("nwalkers must be >= 2")
+        if nwalkers % 2 != 0:
+            raise ValueError("nwalkers must be an even integer")
+        if nwalkers < 2 * ndim:
+            # Note: This is a warning in some packages (like emcee),
+            # but we'll stick to a strict recommendation.
+            pass
+        if ndim <= 0:
+            raise ValueError("ndim must be positive")
+        if a <= 1.0:
+            raise ValueError("a_param must be > 1.0")
+
         self.nwalkers = nwalkers
         self.ndim = ndim
         self.log_prob_func = log_prob_func
@@ -67,14 +80,35 @@ cdef class MinimalSampler:
         self.rng.s[2] = seeds[2]
         self.rng.s[3] = seeds[3]
 
-    cdef inline double evaluate_log_prob(self, double[:] params) with gil:
+    cdef double evaluate_log_prob(self, double[:] params) with gil:
         """
         Calls the Python log-prob wrapper.
         We MUST acquire GIL here because we are calling a Python function.
+        We pass the memoryview directly without explicitly converting to np.asarray
+        to reduce Python overhead where possible.
         """
-        return self.log_prob_func(np.asarray(params), self.data_obj)
+        return self.log_prob_func(params, self.data_obj)
 
-    def run_mcmc(self, double[:, ::1] initial_state, int nsteps, double de_move_fraction=0.5):
+    cdef inline void _propose_stretch_move(self, double[:] q_new, double[:] x_i, double[:] x_j, double* log_accept_ratio) noexcept nogil:
+        cdef int dim
+        cdef double zz = ((self.a_param - 1.0) * next_double(&self.rng) + 1.0)
+        zz = zz * zz / self.a_param
+
+        for dim in range(self.ndim):
+            q_new[dim] = x_j[dim] + zz * (x_i[dim] - x_j[dim])
+
+        log_accept_ratio[0] = (self.ndim - 1) * log(zz)
+
+    cdef inline void _propose_de_move(self, double[:] q_new, double[:] x_i, double[:] x_j1, double[:] x_j2, double de_scale, double* log_accept_ratio) noexcept nogil:
+        cdef int dim
+        cdef double gamma_de = de_scale * (1.0 + 0.1 * (next_double(&self.rng) - 0.5))
+
+        for dim in range(self.ndim):
+            q_new[dim] = x_i[dim] + gamma_de * (x_j1[dim] - x_j2[dim])
+
+        log_accept_ratio[0] = 0.0
+
+    def run_mcmc(self, double[:, ::1] initial_state, int nsteps, double de_move_fraction=0.75):
         """
         Run MCMC with mixed moves (Stretch + Differential Evolution).
 
@@ -98,10 +132,8 @@ cdef class MinimalSampler:
             # Temporary state variables
             double[:, ::1] state = initial_state.copy()
             double[:] q_new = np.empty(self.ndim)
-            double ln_prob_new, zz, log_accept_ratio
-            double gamma_de
-
-            # DE Constant: Ideal scale is 2.38 / sqrt(2 * ndim)
+            double ln_prob_new
+            double log_accept_ratio
             double de_scale = 2.38 / sqrt(2 * self.ndim)
 
         # 1. Initialize log probs for starting positions
@@ -110,76 +142,59 @@ cdef class MinimalSampler:
 
         # 2. Main Loop
         for step in range(nsteps):
-
             # Store chain
             for k in range(self.nwalkers):
                 for dim in range(self.ndim):
                     chain[step, k, dim] = state[k, dim]
 
-            # Red-Blue Split (Enables vectorization logic, though we loop serially here)
+            # Red-Blue Split
             for split in range(2):
                 if split == 0:
-                    start_idx = 0
-                    end_idx = half
-                    comp_start = half
-                    comp_end = self.nwalkers
+                    start_idx, end_idx = 0, half
+                    comp_start, comp_end = half, self.nwalkers
                 else:
-                    start_idx = half
-                    end_idx = self.nwalkers
-                    comp_start = 0
-                    comp_end = half
+                    start_idx, end_idx = half, self.nwalkers
+                    comp_start, comp_end = 0, half
 
                 n_comp = comp_end - comp_start
 
                 # Loop walkers in this half
                 for k in range(start_idx, end_idx):
+                    with nogil:
+                        # --- CHOOSE MOVE TYPE ---
+                        if next_double(&self.rng) < de_move_fraction:
+                            # === DIFFERENTIAL EVOLUTION MOVE (Ridge Killer) ===
+                            # x_new = x_old + gamma * (x_r1 - x_r2)
 
-                    # --- CHOOSE MOVE TYPE ---
-                    if next_double(&self.rng) < de_move_fraction:
-                        # === DIFFERENTIAL EVOLUTION MOVE (Ridge Killer) ===
-                        # x_new = x_old + gamma * (x_r1 - x_r2)
-
-                        # Select two distinct random walkers from the complement
-                        j = <int>(next_double(&self.rng) * n_comp) + comp_start
-                        j2 = <int>(next_double(&self.rng) * n_comp) + comp_start
-                        while j2 == j:
+                            # Select two distinct random walkers from the complement
+                            j = <int>(next_double(&self.rng) * n_comp) + comp_start
                             j2 = <int>(next_double(&self.rng) * n_comp) + comp_start
+                            while j2 == j:
+                                j2 = <int>(next_double(&self.rng) * n_comp) + comp_start
 
-                        # Jitter gamma slightly
-                        gamma_de = de_scale * (1.0 + 0.1 * (next_double(&self.rng) - 0.5))
+                            self._propose_de_move(q_new, state[k], state[j], state[j2], de_scale, &log_accept_ratio)
 
-                        for dim in range(self.ndim):
-                            q_new[dim] = state[k, dim] + gamma_de * (state[j, dim] - state[j2, dim])
+                        else:
+                            # === STRETCH MOVE (Affine Invariant Standard) ===
+                            # Select one random walker from complement
+                            j = <int>(next_double(&self.rng) * n_comp) + comp_start
 
-                        log_accept_ratio = 0.0 # Symmetric move
+                            self._propose_stretch_move(q_new, state[k], state[j], &log_accept_ratio)
 
-                    else:
-                        # === STRETCH MOVE (Affine Invariant Standard) ===
-                        # Select one random walker from complement
-                        j = <int>(next_double(&self.rng) * n_comp) + comp_start
-
-                        # z ~ 1/sqrt(z) in [1/a, a]
-                        zz = ((self.a_param - 1.0) * next_double(&self.rng) + 1.0)
-                        zz = zz * zz / self.a_param
-
-                        for dim in range(self.ndim):
-                            q_new[dim] = state[j, dim] + zz * (state[k, dim] - state[j, dim])
-
-                        log_accept_ratio = (self.ndim - 1) * log(zz)
-
-                    # --- METROPOLIS UPDATE ---
+                    # --- METROPOLIS UPDATE (Needs GIL for log_prob_func) ---
                     ln_prob_new = self.evaluate_log_prob(q_new)
 
-                    # Handle safety bounds
-                    if ln_prob_new == -np.inf:
-                         log_accept_ratio = -np.inf
-                    else:
-                         log_accept_ratio += (ln_prob_new - current_log_prob[k])
+                    with nogil:
+                        # Handle safety bounds
+                        if ln_prob_new == -INFINITY:
+                             log_accept_ratio = -INFINITY
+                        else:
+                             log_accept_ratio += (ln_prob_new - current_log_prob[k])
 
-                    # Accept/Reject
-                    if log(next_double(&self.rng)) < log_accept_ratio:
-                        current_log_prob[k] = ln_prob_new
-                        for dim in range(self.ndim):
-                            state[k, dim] = q_new[dim]
+                        # Accept/Reject
+                        if log(next_double(&self.rng)) < log_accept_ratio:
+                            current_log_prob[k] = ln_prob_new
+                            for dim in range(self.ndim):
+                                state[k, dim] = q_new[dim]
 
         return np.asarray(chain), np.asarray(state), np.asarray(current_log_prob)

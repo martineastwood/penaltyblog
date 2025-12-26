@@ -49,14 +49,13 @@ def compute_diagnostics(sampler, burn=0, thin=1):
     tau_vals = []
 
     for p in range(n_params):
-        # Extract single parameter trace: (n_chains, n_samples)
         y = full_trace[:, :, p]
 
-        # A. R-Hat (Split Rank-Rhat is modern standard, but classic is fine here)
+        # r-hat
         r = _gelman_rubin(y)
         r_hats.append(r)
 
-        # B. Effective Sample Size
+        # ess and autocorrelation
         ess, tau = _effective_sample_size(y)
         ess_vals.append(ess)
         tau_vals.append(tau)
