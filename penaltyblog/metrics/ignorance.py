@@ -6,7 +6,7 @@ from .metrics import compute_ignorance_score
 
 def ignorance_score(y_prob: ArrayLike, y_true: ArrayLike) -> float:
     """
-    Calculates ignorance score.
+    Calculates ignorance score, which is a measure of the uncertainty of a model's predictions.
 
     Accepts Python lists or arrays and ensures correct shapes/dtypes.
 

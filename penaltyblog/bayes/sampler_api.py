@@ -59,7 +59,7 @@ class Chain:
         data_dict: Dict[str, Any],
         log_prob_wrapper_func: Callable,
         n_steps: int,
-        de_move_fraction: float = 0.75,
+        de_move_fraction: float = 0.8,
     ):
         """Initializes the Chain.
 
@@ -206,7 +206,7 @@ class EnsembleSampler:
         start_positions: List[np.ndarray],
         n_samples: int,
         burn: int,
-        de_move_fraction: float = 0.75,
+        de_move_fraction: float = 0.8,
     ) -> None:
         """Run the sampling across multiple chains in parallel.
 

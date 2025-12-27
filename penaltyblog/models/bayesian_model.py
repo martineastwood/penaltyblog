@@ -287,7 +287,7 @@ class HierarchicalBayesianGoalModel(BayesianGoalModel):
     Learns the 'variance' of the league automatically.
     """
 
-    def fit(self, n_samples=1500, burn=1000, n_chains=4, thin=5):
+    def fit(self, n_samples=3000, burn=1500, n_chains=4, thin=5):
         # 1. Prepare Data (Same as base)
         data_dict = {
             "home_idx": self.home_idx,
