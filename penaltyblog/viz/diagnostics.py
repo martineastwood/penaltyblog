@@ -280,8 +280,8 @@ def plot_trace(
         height=300 * n_subplots,
         hovermode="closest",
         font=dict(family="Arial, sans-serif"),
-        **kwargs,
     )
+    fig.update_layout(**kwargs)
 
     return fig
 
@@ -473,8 +473,8 @@ def plot_autocorr(
         height=300 * n_subplots,
         hovermode="closest",
         font=dict(family="Arial, sans-serif"),
-        **kwargs,
     )
+    fig.update_layout(**kwargs)
 
     return fig
 
@@ -690,8 +690,8 @@ def plot_posterior(
         height=300 * n_subplots,
         hovermode="closest",
         font=dict(family="Arial, sans-serif"),
-        **kwargs,
     )
+    fig.update_layout(**kwargs)
 
     return fig
 
@@ -812,8 +812,8 @@ def plot_convergence(
         height=max(400, len(diag_df) * 20),
         hovermode="closest",
         font=dict(family="Arial, sans-serif"),
-        **kwargs,
     )
+    fig.update_layout(**kwargs)
 
     return fig
 
@@ -1077,8 +1077,8 @@ def plot_diagnostics(
         height=300 * n_subplots,
         hovermode="closest",
         font=dict(family="Arial, sans-serif"),
-        **kwargs,
     )
+    fig.update_layout(**kwargs)
 
     return fig
 

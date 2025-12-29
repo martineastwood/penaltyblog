@@ -175,18 +175,21 @@ This creates a 3-column layout with trace, autocorrelation, and posterior plots 
 Customizing Plots
 -----------------
 
-All plotting methods accept additional keyword arguments that are passed to Plotly's layout:
+All plotting methods accept additional keyword arguments that are passed to Plotly's ``update_layout()`` method:
 
 .. code-block:: python
 
-    # Customize plot appearance
+    # Customize plot appearance using Plotly layout parameters
     fig = model.plot_trace(
         width=1200,
         height=800,
-        title_text="Custom Title"
+        title="Custom MCMC Trace Plot",
+        showlegend=True
     )
     fig.show()
 
     # Save to file
     fig.write_html("diagnostics.html")
     fig.write_image("diagnostics.png")  # Requires kaleido
+
+For a full list of available layout parameters, see the `Plotly documentation <https://plotly.com/python/reference/layout/>`_.
