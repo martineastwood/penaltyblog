@@ -101,7 +101,7 @@ class BayesianGoalModel(BaseGoalsModel):
 
         return start_pos
 
-    def fit(self, n_samples=1000, burn=1000, n_chains=4, thin=5):
+    def fit(self, n_samples=2000, burn=1000, n_chains=4, thin=5):
         """
         Fit the model using parallel MCMC chains.
         """
@@ -148,8 +148,6 @@ class BayesianGoalModel(BaseGoalsModel):
         # 6. Set fitted state and point estimates (posterior mean) for Base API compatibility
         self._params = np.mean(self.trace, axis=0)
         self.fitted = True
-
-        return self.trace_dict
 
     def _map_trace_to_dict(self):
         """Helper to convert raw matrix to user-friendly dict"""
@@ -260,6 +258,178 @@ class BayesianGoalModel(BaseGoalsModel):
         """
         return {"home_advantage": -2, "rho": -1}
 
+    # Diagnostic Plotting Methods
+    def plot_trace(
+        self,
+        params=None,
+        chains: bool = True,
+        **kwargs,
+    ):
+        """
+        Plot MCMC trace for convergence diagnostics.
+
+        Visualizes the evolution of parameter values across MCMC iterations.
+        Well-mixed chains should look like fuzzy caterpillars with no trends.
+
+        Parameters
+        ----------
+        params : str, list of str, optional
+            Parameter name(s) to plot. If None, plots key parameters.
+        chains : bool, default=True
+            If True, show individual chains. If False, combine all chains.        **kwargs
+            Additional keyword arguments passed to plotly layout.
+
+        Returns
+        -------
+        plotly.graph_objects.Figure
+            Interactive trace plot figure.
+
+        Examples
+        --------
+        >>> model.fit(n_samples=1000, burn=500)
+        >>> fig = model.plot_trace(params=['home_advantage', 'rho'])
+        >>> fig.show()
+        """
+        from penaltyblog.viz.diagnostics import plot_trace
+
+        return plot_trace(
+            self,
+            params=params,
+            chains=chains,
+            **kwargs,
+        )
+
+    def plot_autocorr(
+        self,
+        params=None,
+        max_lag: int = 50,
+        **kwargs,
+    ):
+        """
+        Plot autocorrelation function for MCMC parameters.
+
+        Helps identify the thinning interval needed for independent samples.
+        Autocorrelation should decay to near zero within a reasonable lag.
+
+        Parameters
+        ----------
+        params : str, list of str, optional
+            Parameter name(s) to plot. If None, plots key parameters.
+        max_lag : int, default=50
+            Maximum lag to compute autocorrelation for.        **kwargs
+            Additional keyword arguments passed to plotly layout.
+
+        Returns
+        -------
+        plotly.graph_objects.Figure
+            Interactive autocorrelation plot.
+
+        Examples
+        --------
+        >>> fig = model.plot_autocorr(params=['home_advantage'], max_lag=100)
+        >>> fig.show()
+        """
+        from penaltyblog.viz.diagnostics import plot_autocorr
+
+        return plot_autocorr(
+            self,
+            params=params,
+            max_lag=max_lag,
+            **kwargs,
+        )
+
+    def plot_posterior(
+        self,
+        params=None,
+        kind: str = "density",
+        **kwargs,
+    ):
+        """
+        Plot posterior distributions for model parameters.
+
+        Visualizes the marginal posterior distributions, showing the uncertainty
+        in parameter estimates.
+
+        Parameters
+        ----------
+        params : str, list of str, optional
+            Parameter name(s) to plot. If None, plots key parameters.
+        kind : str, default="density"
+            Type of plot: "density" for KDE or "histogram" for binned counts.        **kwargs
+            Additional keyword arguments passed to plotly layout.
+
+        Returns
+        -------
+        plotly.graph_objects.Figure
+            Interactive posterior distribution plot.
+
+        Examples
+        --------
+        >>> fig = model.plot_posterior(params=['home_advantage', 'rho'])
+        >>> fig.show()
+        """
+        from penaltyblog.viz.diagnostics import plot_posterior
+
+        return plot_posterior(
+            self,
+            params=params,
+            kind=kind,
+            **kwargs,
+        )
+
+    def plot_convergence(self, **kwargs):
+        """
+        Plot convergence diagnostics (R-hat and ESS) for all parameters.
+
+        Visualizes R-hat (Gelman-Rubin statistic) and effective sample size (ESS)
+        for all model parameters. R-hat < 1.1 indicates good convergence.
+
+        Parameters
+        ----------        **kwargs
+            Additional keyword arguments passed to plotly layout.
+
+        Returns
+        -------
+        plotly.graph_objects.Figure
+            Interactive convergence diagnostic plot.
+
+        Examples
+        --------
+        >>> fig = model.plot_convergence()
+        >>> fig.show()
+        """
+        from penaltyblog.viz.diagnostics import plot_convergence
+
+        return plot_convergence(self, **kwargs)
+
+    def plot_diagnostics(self, params=None, **kwargs):
+        """
+        Create a comprehensive diagnostic dashboard.
+
+        Combines trace plots, autocorrelation, posterior distributions, and
+        convergence metrics into a single multi-panel figure.
+
+        Parameters
+        ----------
+        params : str, list of str, optional
+            Parameter name(s) to include in detailed plots. If None, uses key parameters.        **kwargs
+            Additional keyword arguments passed to plotly layout.
+
+        Returns
+        -------
+        plotly.graph_objects.Figure
+            Comprehensive diagnostic dashboard.
+
+        Examples
+        --------
+        >>> model.fit(n_samples=1000, burn=500)
+        >>> fig = model.plot_diagnostics()
+        >>> fig.show()
+        """
+        from penaltyblog.viz.diagnostics import plot_diagnostics
+
+        return plot_diagnostics(self, params=params, **kwargs)
+
 
 class HierarchicalBayesianGoalModel(BayesianGoalModel):
     """
@@ -360,8 +530,8 @@ class HierarchicalBayesianGoalModel(BayesianGoalModel):
         idx_sig_att = 2 * self.n_teams + 2
         idx_sig_def = 2 * self.n_teams + 3
 
-        self.trace_dict["sigma_att"] = self.trace[:, idx_sig_att]
-        self.trace_dict["sigma_def"] = self.trace[:, idx_sig_def]
+        self.trace_dict["sigma_attack"] = self.trace[:, idx_sig_att]
+        self.trace_dict["sigma_defense"] = self.trace[:, idx_sig_def]
 
     def get_diagnostics(self, burn: int = 0, thin: int = 1) -> pd.DataFrame:
         """
