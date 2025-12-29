@@ -1,4 +1,5 @@
 from .bayesian_model import (  # noqa
+    BaseBayesianModel,
     BayesianGoalModel,
     HierarchicalBayesianGoalModel,
 )
@@ -13,6 +14,7 @@ from .weibull_copula import WeibullCopulaGoalsModel  # noqa
 from .zero_inf_poisson import ZeroInflatedPoissonGoalsModel  # noqa
 
 __all__ = [
+    "BaseBayesianModel",
     "BayesianGoalModel",
     "BivariatePoissonGoalModel",
     "DixonColesGoalModel",
