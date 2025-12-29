@@ -145,6 +145,10 @@ class BayesianGoalModel(BaseGoalsModel):
         self.trace = self.sampler.trim_samples(burn=burn, thin=thin)
         self._map_trace_to_dict()
 
+        # 6. Set fitted state and point estimates (posterior mean) for Base API compatibility
+        self._params = np.mean(self.trace, axis=0)
+        self.fitted = True
+
         return self.trace_dict
 
     def _map_trace_to_dict(self):
@@ -159,30 +163,6 @@ class BayesianGoalModel(BaseGoalsModel):
         # Map Globals
         self.trace_dict["home_advantage"] = self.trace[:, -2]
         self.trace_dict["rho"] = self.trace[:, -1]
-
-    def predict(self, home_team, away_team, max_goals=15):
-        """
-        Predict match outcome using Posterior Predictive Integration.
-
-        This averages the probabilities from EVERY posterior sample,
-        accounting for parameter uncertainty.
-        """
-        if self.trace is None:
-            raise ValueError("Model has not been fitted. Call .fit() first.")
-
-        if home_team not in self.team_map or away_team not in self.team_map:
-            raise ValueError("Team not found in training data.")
-
-        home_idx = self.team_map[home_team]
-        away_idx = self.team_map[away_team]
-
-        # Call the fast Cython engine
-        # self.trace is shape (n_samples, n_params)
-        matrix, avg_lam_h, avg_lam_a = bayesian_predict_c(
-            self.trace, home_idx, away_idx, self.n_teams, max_goals
-        )
-
-        return FootballProbabilityGrid(matrix, avg_lam_h, avg_lam_a, normalize=True)
 
     def get_diagnostics(self, burn: int = 0, thin: int = 1):
         """
@@ -325,6 +305,10 @@ class HierarchicalBayesianGoalModel(BayesianGoalModel):
         self.trace = self.sampler.trim_samples(burn=burn, thin=thin)
         self._map_trace_to_dict()
 
+        # 6. Set fitted state and point estimates (posterior mean) for Base API compatibility
+        self._params = np.mean(self.trace, axis=0)
+        self.fitted = True
+
         return self.trace_dict
 
     def _generate_hierarchical_starts(self, n_walkers, mle_params) -> np.ndarray:
@@ -421,3 +405,25 @@ class HierarchicalBayesianGoalModel(BayesianGoalModel):
 
         df.index = labels
         return df
+
+    def _get_param_names(self) -> List[str]:
+        """
+        Return the parameter names for this model, including hierarchical sigmas.
+        """
+        names = super()._get_param_names()
+        names.extend(["sigma_attack", "sigma_defense"])
+        return names
+
+    def _get_tail_param_indices(self) -> Dict[str, int]:
+        """
+        Return indices for hierarchical-specific trailing parameters.
+        """
+        indices = super()._get_tail_param_indices()
+        indices.update({"sigma_attack": -2, "sigma_defense": -1})
+
+        # Update base indices because hierarchical adds params at the end
+        # Base indices were -2 (hfa) and -1 (rho)
+        # Now they are -4 (hfa) and -3 (rho)
+        indices["home_advantage"] = -4
+        indices["rho"] = -3
+        return indices
