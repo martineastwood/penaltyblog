@@ -279,6 +279,106 @@ Example
    print(model.fitted, model.loglikelihood, model.aic)
    print(model.params)
 
+Accessing Parameters Directly
+==============================
+
+For advanced use cases, you can access the model's parameters directly via **NumPy arrays** and **parameter indices**. This is useful when you need to perform numerical operations on the parameters, integrate with external tools, or apply custom adjustments.
+
+``params_array`` Property
+--------------------------
+
+The ``params_array`` property returns a **read-only copy** of the fitted parameter vector as a NumPy array. This provides direct access to the underlying parameter values for downstream tools that need to perform numerical calculations.
+
+The parameter layout follows a consistent pattern:
+
+.. code-block:: text
+
+   [attack_0, ..., attack_{n-1}, defense_0, ..., defense_{n-1}, <model_specific_params>]
+
+Where ``n`` is the number of teams in the training data.
+
+Model-specific trailing parameters:
+
+- **Poisson**: ``[home_advantage]``
+- **DixonColes**: ``[home_advantage, rho]``
+- **NegativeBinomial**: ``[home_advantage, dispersion]``
+- **ZeroInflatedPoisson**: ``[home_advantage, zero_inflation]``
+- **BivariatePoisson**: ``[home_advantage, correlation]``
+- **WeibullCopula**: ``[home_advantage, shape, kappa]``
+
+Example:
+
+.. code-block:: python
+
+   model.fit()
+   p = model.params_array
+
+   # Access a team's attack strength
+   arsenal_attack = p[model.team_to_idx["Arsenal"]]
+
+   # Access home advantage (always at position -2 for most models)
+   hfa = p[-2]
+
+.. note::
+   ``params_array`` returns a **copy**, so modifications to the array do not affect the model.
+
+``param_indices()`` Method
+--------------------------
+
+The ``param_indices()`` method returns a dictionary that maps **parameter group names** to their positions in the parameter array. This provides a stable API for accessing parameters without relying on internal implementation details.
+
+Returns:
+
+- ``'attack'``: slice for attack parameters (0 to n_teams)
+- ``'defense'``: slice for defense parameters (n_teams to 2*n_teams)
+- Model-specific keys for trailing parameters
+
+Example:
+
+.. code-block:: python
+
+   model.fit()
+   idx = model.param_indices()
+
+   # Get all attack parameters
+   attacks = model.params_array[idx['attack']]
+
+   # Get all defense parameters
+   defenses = model.params_array[idx['defense']]
+
+   # Get model-specific parameters
+   hfa = model.params_array[idx['home_advantage']]
+   rho = model.params_array[idx['rho']]  # DixonColes only
+
+   # Print all available indices
+   print(idx)
+   # Output: {'attack': slice(0, 20), 'defense': slice(20, 40), 'home_advantage': -2, 'rho': -1}
+
+Use Cases
+----------
+
+These tools are particularly useful for:
+
+- **External adjustments**: Apply custom factors to parameters (e.g., scaling attack strengths)
+- **Model comparison**: Extract parameters from multiple models for statistical analysis
+- **Integration**: Pass parameter arrays to external optimization or simulation tools
+- **Diagnostics**: Analyze parameter distributions across teams
+
+Example: Scaling Attack Parameters
+--------------------------------
+
+.. code-block:: python
+
+   model.fit()
+   idx = model.param_indices()
+
+   # Scale all attack strengths by 10%
+   p = model.params_array.copy()
+   p[idx['attack']] *= 1.1
+
+   # Use the scaled parameters in your own calculations
+   print(f"Scaled attacks: {p[idx['attack']]}")
+
 Saving and Loading Models
 =========================
 
