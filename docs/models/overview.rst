@@ -59,6 +59,24 @@ A more flexible alternative to Poisson-based models, using a Weibull distributio
 - **Weaknesses**: Statistically and computationally intensive, not always worth the added complexity.
 - **Best for**: Advanced modelling in leagues with unusual scoring patterns.
 
+7. Bayesian Goal Models
+=======================
+
+Uses MCMC sampling to estimate the full posterior distribution of parameters.
+
+- **Strengths**: Captures parameter uncertainty, avoids over-fitting, provides full distributions.
+- **Weaknesses**: Computationally expensive (slow to fit), requires convergence diagnostics.
+- **Best for**: Small datasets, understanding uncertainty.
+
+8. Hierarchical Bayesian Goal Model
+===================================
+
+An advanced Bayesian model that learns league-wide priors for team strengths.
+
+- **Strengths**: Automatically adjusts shrinkage, excellent for multi-league or sparse data.
+- **Weaknesses**: Most computationally intensive model.
+- **Best for**: Professional-grade modeling where capturing uncertainty is critical.
+
 Model Comparison
 ================
 
@@ -76,6 +94,10 @@ Model Comparison
 | **Negative Binomial**      | Handles overdispersion, realistic extreme scores | Still independent goal counts                   | High-scoring, volatile leagues |
 +----------------------------+---------------------------------------------------+-------------------------------------------------+---------------+
 | **Weibull + Copula**       | Flexible distribution & correlation modelling    | Highly complex, slow to fit                     | Complex goal patterns |
++----------------------------+---------------------------------------------------+-------------------------------------------------+---------------+
+| **Bayesian**               | Captures parameter uncertainty                   | Slow to fit, requires convergence checks       | Small data, uncertainty |
++----------------------------+---------------------------------------------------+-------------------------------------------------+---------------+
+| **Hierarchical Bayesian**  | Learns priors, automatic shrinkage               | Very slow to fit                               | Sparse data, multi-league |
 +----------------------------+---------------------------------------------------+-------------------------------------------------+---------------+
 
 Consistent API Across Models

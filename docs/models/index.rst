@@ -15,6 +15,7 @@ For users interested in understanding the underlying theory of these models, lin
    football_prob_grid
    example
    goal_expectancy
+   bayesian
 
 
 .. _`pena.lt/y/blog`: http://www.pena.lt/y/blog.html
