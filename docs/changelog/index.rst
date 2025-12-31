@@ -7,6 +7,19 @@ Version Numbering
 ``penaltyblog`` follows the SemVer versioning guidelines. For more information,
 see `semver.org <http://semver.org/>`_
 
+v1.8.0 (xxxx)
+^^^^^^^^^^^^^^^^^^^^
+
+* **Goal Models**
+
+  * Added new ``BayesianGoalModel`` and ``HierarchicalBayesianGoalModel`` models
+  * Added Cythonized MCMC sampler for Bayesian Modelling
+
+* **Scraping**
+
+  * Fixed Understat scraper to use new API endpoints (getLeagueData, getMatchData, getPlayerData) instead of parsing embedded JavaScript from HTML pages
+
+
 v1.7.1 (2025-12-24)
 ^^^^^^^^^^^^^^^^^^^^
 
