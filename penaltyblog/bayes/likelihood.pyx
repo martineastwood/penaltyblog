@@ -4,13 +4,17 @@
 import numpy as np
 
 cimport numpy as np
-from libc.math cimport INFINITY, exp, fmax, lgamma, log, pow
+from libc.math cimport INFINITY, exp, fmax, fmin, lgamma, log, pow
 
 import cython
 
 
 # Small epsilon to prevent log(0)
 cdef double epsilon = 1e-10
+
+# Clipping constants for numerical stability
+cdef double MAX_EXP_VAL = 709.0
+cdef double MIN_LAMBDA = 1e-10
 
 # -----------------------------------------------------------------------------
 # MODEL 1. BAYESIAN DIXON AND COLES
@@ -37,8 +41,13 @@ cdef double dixon_coles_neg_ll_c(
         away_idx = away_indices[i]
 
         # Expected goals
-        lambda_home = exp(hfa + attack[home_idx] + defence[away_idx])
-        lambda_away = exp(attack[away_idx] + defence[home_idx])
+        # 1. Clip exponent to prevent overflow in exp()
+        # 2. Clip result to prevent underflow in log() (min lambda)
+        lambda_home = exp(fmin(MAX_EXP_VAL, hfa + attack[home_idx] + defence[away_idx]))
+        lambda_home = fmax(MIN_LAMBDA, lambda_home)
+
+        lambda_away = exp(fmin(MAX_EXP_VAL, attack[away_idx] + defence[home_idx]))
+        lambda_away = fmax(MIN_LAMBDA, lambda_away)
 
         k_home = goals_home[i]
         k_away = goals_away[i]
@@ -194,8 +203,11 @@ def bayesian_predict_c(
             rho   = trace[s, n_params - 1]
 
             # Lambdas
-            lambda_h = exp(hfa + att_h + def_a)
-            lambda_a = exp(att_a + def_h)
+            lambda_h = exp(fmin(MAX_EXP_VAL, hfa + att_h + def_a))
+            lambda_h = fmax(MIN_LAMBDA, lambda_h)
+
+            lambda_a = exp(fmin(MAX_EXP_VAL, att_a + def_h))
+            lambda_a = fmax(MIN_LAMBDA, lambda_a)
 
             avg_lambda_home += lambda_h
             avg_lambda_away += lambda_a
