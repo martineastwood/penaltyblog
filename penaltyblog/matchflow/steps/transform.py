@@ -2,7 +2,7 @@ import copy
 import itertools
 import random
 from collections import OrderedDict, defaultdict
-from typing import TYPE_CHECKING, Any, Dict, Iterator, List, Union
+from typing import TYPE_CHECKING, Any, Dict, Iterator, List, Optional, Union
 
 from .utils import (
     fast_get_field,
@@ -533,8 +533,8 @@ def _apply_sort_merge_join(records: RecordStream, step: dict) -> RecordStream:
 
     # Convert to iterators we can peek at
     try:
-        left_key_val, left_group = next(left_grouped)
-        left_group = list(left_group)  # Materialize group
+        left_key_val, left_group_iter = next(left_grouped)
+        left_group = list(left_group_iter)  # Materialize group
         left_has_data = True
     except StopIteration:
         left_has_data = False
@@ -542,8 +542,8 @@ def _apply_sort_merge_join(records: RecordStream, step: dict) -> RecordStream:
         left_group = []
 
     try:
-        right_key_val, right_group = next(right_grouped)
-        right_group = list(right_group)  # Materialize group
+        right_key_val, right_group_iter = next(right_grouped)
+        right_group = list(right_group_iter)  # Materialize group
         right_has_data = True
     except StopIteration:
         right_has_data = False
@@ -571,8 +571,8 @@ def _apply_sort_merge_join(records: RecordStream, step: dict) -> RecordStream:
 
             # Advance left
             try:
-                left_key_val, left_group = next(left_grouped)
-                left_group = list(left_group)
+                left_key_val, left_group_iter = next(left_grouped)
+                left_group = list(left_group_iter)
             except StopIteration:
                 left_has_data = False
 
@@ -589,8 +589,8 @@ def _apply_sort_merge_join(records: RecordStream, step: dict) -> RecordStream:
 
             # Advance right
             try:
-                right_key_val, right_group = next(right_grouped)
-                right_group = list(right_group)
+                right_key_val, right_group_iter = next(right_grouped)
+                right_group = list(right_group_iter)
             except StopIteration:
                 right_has_data = False
 
@@ -611,14 +611,14 @@ def _apply_sort_merge_join(records: RecordStream, step: dict) -> RecordStream:
 
             # Advance both
             try:
-                left_key_val, left_group = next(left_grouped)
-                left_group = list(left_group)
+                left_key_val, left_group_iter = next(left_grouped)
+                left_group = list(left_group_iter)
             except StopIteration:
                 left_has_data = False
 
             try:
-                right_key_val, right_group = next(right_grouped)
-                right_group = list(right_group)
+                right_key_val, right_group_iter = next(right_grouped)
+                right_group = list(right_group_iter)
             except StopIteration:
                 right_has_data = False
 
@@ -734,7 +734,9 @@ def _apply_hash_join(records: RecordStream, step: dict) -> RecordStream:
         return
 
     # Track matched right keys for outer join
-    matched_right_keys = set() if how == "outer" else None
+    matched_right_keys: Optional[set[tuple[Any, ...]]] = (
+        set() if how == "outer" else None
+    )
 
     # Process left records
     for left in records:

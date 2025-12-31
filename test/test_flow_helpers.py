@@ -216,12 +216,12 @@ def test_fast_get_field_invalid_type_for_index():
     assert fast_get_field(record, ["coords", "0"]) is None
 
 
-def test_get_index_basic():
+def test_get_index_basic_utils():
     f = get_index("location", 0)
     assert f({"location": [10, 20]}) == 10
 
 
-def test_get_index_out_of_bounds():
+def test_get_index_out_of_bounds_utils():
     f = get_index("location", 5)
     assert f({"location": [10, 20]}) is None
 

@@ -1,8 +1,8 @@
-# penaltyblog/viz/theme.py
+from typing import Any, Dict
 
 
 class Theme:
-    PRESETS = {
+    PRESETS: Dict[str, Dict[str, Any]] = {
         "classic": {
             "pitch_color": "#a8bc95",  # grass green
             "line_color": "#ffffff",  # field lines
@@ -128,7 +128,7 @@ class Theme:
         """
         self.name = name
         # look up the preset (or fall back to "classic")
-        self.styles = self.PRESETS.get(name, self.PRESETS["minimal"])
+        self.styles: Dict[str, Any] = self.PRESETS.get(name, self.PRESETS["minimal"])
 
     # ––– Simple accessors for your plot code –––––––––––––––––––––––––––––––––
     @property
@@ -141,7 +141,7 @@ class Theme:
         str
             The hex color code for the pitch background.
         """
-        return self.styles["pitch_color"]
+        return str(self.styles["pitch_color"])
 
     @property
     def line_color(self) -> str:
@@ -153,7 +153,7 @@ class Theme:
         str
             The hex color code for the pitch lines.
         """
-        return self.styles["line_color"]
+        return str(self.styles["line_color"])
 
     @property
     def marker_color(self) -> str:
@@ -165,7 +165,7 @@ class Theme:
         str
             The hex color code for the pitch markers.
         """
-        return self.styles["marker_color"]
+        return str(self.styles["marker_color"])
 
     @property
     def heatmap_colorscale(self) -> str:
@@ -177,7 +177,7 @@ class Theme:
         str
             The name of the color scale used for heatmaps.
         """
-        return self.styles["heatmap_colorscale"]
+        return str(self.styles["heatmap_colorscale"])
 
     @property
     def heatmap_opacity(self) -> float:
@@ -189,7 +189,7 @@ class Theme:
         float
             The opacity of the heatmap.
         """
-        return self.styles["heatmap_opacity"]
+        return float(self.styles["heatmap_opacity"])
 
     @property
     def line_width(self) -> float:
@@ -201,7 +201,7 @@ class Theme:
         float
             The width of the pitch lines.
         """
-        return self.styles["line_width"]
+        return float(self.styles["line_width"])
 
     @property
     def marker_size(self) -> float:
@@ -213,7 +213,7 @@ class Theme:
         float
             The size of the pitch markers.
         """
-        return self.styles["marker_size"]
+        return float(self.styles["marker_size"])
 
     @property
     def spot_size(self) -> float:
@@ -225,7 +225,7 @@ class Theme:
         float
             The size of the pitch spots.
         """
-        return self.styles["spot_size"]
+        return float(self.styles["spot_size"])
 
     @property
     def font_family(self) -> str:
@@ -238,7 +238,7 @@ class Theme:
             The font family used for text.
         """
         # if the theme forgot to specify it, use our default fallback
-        return self.styles.get("font_family", self.DEFAULT_FONT_FAMILY)
+        return str(self.styles.get("font_family", self.DEFAULT_FONT_FAMILY))
 
     @property
     def hover_font_color(self) -> str:
@@ -250,7 +250,7 @@ class Theme:
         str
             The color of the hover font.
         """
-        return self.styles.get("hover_font_color", "black")
+        return str(self.styles.get("hover_font_color", "black"))
 
     @property
     def hover_border_color(self) -> str:
@@ -262,7 +262,7 @@ class Theme:
         str
             The color of the border of the hover box.
         """
-        return self.styles.get("hover_border_color", "#ccc")
+        return str(self.styles.get("hover_border_color", "#ccc"))
 
     @property
     def hover_font_family(self) -> str:
@@ -274,7 +274,7 @@ class Theme:
         str
             The font family used for hover text.
         """
-        return self.styles.get("hover_font_family", "Arial, sans‐serif")
+        return str(self.styles.get("hover_font_family", "Arial, sans‐serif"))
 
     @property
     def hover_font_size(self) -> float:
@@ -286,7 +286,7 @@ class Theme:
         float
             The font size of the hover text.
         """
-        return self.styles.get("hover_font_size", 11)
+        return float(self.styles.get("hover_font_size", 11))
 
     @property
     def title_margin(self) -> float:
@@ -298,7 +298,7 @@ class Theme:
         float
             The margin for the title.
         """
-        return self.styles.get("title_margin", 50)
+        return float(self.styles.get("title_margin", 50))
 
     @property
     def subtitle_margin(self) -> float:
@@ -310,7 +310,7 @@ class Theme:
         float
             The margin for the subtitle.
         """
-        return self.styles.get("subtitle_margin", 30)
+        return float(self.styles.get("subtitle_margin", 30))
 
     @property
     def subnote_margin(self) -> float:
@@ -322,7 +322,7 @@ class Theme:
         float
             The margin for the subnote.
         """
-        return self.styles.get("subnote_margin", 50)
+        return float(self.styles.get("subnote_margin", 50))
 
     @property
     def subtitle_font_size(self) -> float:
@@ -334,7 +334,7 @@ class Theme:
         float
             The font size for the subtitle.
         """
-        return self.styles.get("subtitle_font_size", 16)
+        return float(self.styles.get("subtitle_font_size", 16))
 
     @property
     def subnote_font_size(self) -> float:
@@ -346,11 +346,11 @@ class Theme:
         float
             The font size for the subnote.
         """
-        return self.styles.get("subnote_font_size", 14)
+        return float(self.styles.get("subnote_font_size", 14))
 
     @property
     def hover_bgcolor(self) -> str:
-        return self.styles.get("hover_bgcolor", "rgba(50,50,50,0.8)")
+        return str(self.styles.get("hover_bgcolor", "rgba(50,50,50,0.8)"))
 
     @classmethod
     def from_dict(cls, style_dict: dict, base: str = "minimal") -> "Theme":

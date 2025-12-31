@@ -65,6 +65,9 @@ class BaseBayesianModel(BaseGoalsModel):
         Converts the raw trace matrix into a dictionary with meaningful
         parameter names as keys.
         """
+        if self.trace is None:
+            raise ValueError("Model must be fitted before mapping trace.")
+
         self.trace_dict = {}
 
         for i, team in enumerate(self.teams):
@@ -380,13 +383,20 @@ class BayesianGoalModel(BaseBayesianModel):
         return start_pos
 
     def fit(
-        self, n_samples: int = 2000, burn: int = 1000, n_chains: int = 4, thin: int = 5
+        self,
+        minimizer_options: Optional[dict] = None,
+        n_samples: int = 2000,
+        burn: int = 1000,
+        n_chains: int = 4,
+        thin: int = 5,
     ) -> None:
         """
         Fit the model using parallel MCMC chains.
 
         Parameters
         ----------
+        minimizer_options : dict, optional
+            Options to pass to the minimizer. Ignored for Bayesian models.
         n_samples : int, default=2000
             Number of MCMC samples per chain.
         burn : int, default=1000
@@ -428,8 +438,9 @@ class BayesianGoalModel(BaseBayesianModel):
         self.trace = self.sampler.trim_samples(burn=burn, thin=thin)
         self._map_trace_to_dict()
 
-        self.trace_dict["home_advantage"] = self.trace[:, -2]
-        self.trace_dict["rho"] = self.trace[:, -1]
+        if self.trace_dict is not None and self.trace is not None:
+            self.trace_dict["home_advantage"] = self.trace[:, -2]
+            self.trace_dict["rho"] = self.trace[:, -1]
 
         self._params = np.mean(self.trace, axis=0)
         self.fitted = True
@@ -559,16 +570,19 @@ class HierarchicalBayesianGoalModel(BayesianGoalModel):
 
     def fit(
         self,
+        minimizer_options: Optional[dict] = None,
         n_samples: int = 3000,
         burn: int = 1500,
         n_chains: int = 4,
         thin: int = 5,
-    ) -> Dict[str, np.ndarray]:
+    ) -> None:
         """
         Fit the hierarchical model using parallel MCMC chains.
 
         Parameters
         ----------
+        minimizer_options : dict, optional
+            Options to pass to the optimiser. Ignored for Bayesian models.
         n_samples : int, default=3000
             Number of MCMC samples per chain.
         burn : int, default=1500
@@ -577,11 +591,6 @@ class HierarchicalBayesianGoalModel(BayesianGoalModel):
             Number of parallel MCMC chains to run.
         thin : int, default=5
             Thinning interval to reduce autocorrelation.
-
-        Returns
-        -------
-        Dict[str, np.ndarray]
-            Dictionary of parameter traces including sigma parameters.
         """
         data_dict = {
             "home_idx": self.home_idx,
@@ -616,8 +625,6 @@ class HierarchicalBayesianGoalModel(BayesianGoalModel):
 
         self._params = np.mean(self.trace, axis=0)
         self.fitted = True
-
-        return self.trace_dict
 
     def _generate_hierarchical_starts(
         self, n_walkers: int, mle_params: np.ndarray
@@ -671,8 +678,9 @@ class HierarchicalBayesianGoalModel(BayesianGoalModel):
         idx_sig_att = 2 * self.n_teams + 2
         idx_sig_def = 2 * self.n_teams + 3
 
-        self.trace_dict["sigma_attack"] = self.trace[:, idx_sig_att]
-        self.trace_dict["sigma_defense"] = self.trace[:, idx_sig_def]
+        if self.trace_dict is not None and self.trace is not None:
+            self.trace_dict["sigma_attack"] = self.trace[:, idx_sig_att]
+            self.trace_dict["sigma_defense"] = self.trace[:, idx_sig_def]
 
     def get_diagnostics(self, burn: int = 0, thin: int = 1) -> pd.DataFrame:
         """

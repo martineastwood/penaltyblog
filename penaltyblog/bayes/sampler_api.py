@@ -235,7 +235,7 @@ class EnsembleSampler:
         ss = np.random.SeedSequence()
         child_seeds = ss.generate_state(self.n_chains)
         # Mask to 32-bit integer to avoid OverflowError in Cython
-        child_seeds = child_seeds & 0x7FFFFFFF
+        child_seeds = (child_seeds & 0x7FFFFFFF).astype(child_seeds.dtype)
 
         tasks = []
         for i in range(self.n_chains):

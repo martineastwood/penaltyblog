@@ -87,16 +87,6 @@ def list_of_dicts_record():
     return {"events": [{"type": "pass"}, {"type": "shot"}]}
 
 
-@pytest.fixture
-def dict_record():
-    return {"meta": {"provider": {"name": "StatsBomb"}}}
-
-
-@pytest.fixture
-def list_of_dicts_record():
-    return {"players": [{"id": 1}, {"id": 2}]}
-
-
 def test_plan(data):
     flow = Flow()
     assert flow.plan == []
@@ -1600,13 +1590,13 @@ def test_where_in_list(list_record):
 
 
 def test_where_in_raises_on_dict(dict_record):
-    pred = where_in("meta.info", ["StatsBomb"])(dict_record)
+    pred = where_in("meta.info", ["StatsBomb"])
     with pytest.raises(TypeError):
         pred(dict_record)
 
 
 def test_where_in_raises_on_list_of_dicts(list_of_dicts_record):
-    pred = where_in("events", ["pass"])(list_of_dicts_record)
+    pred = where_in("events", ["pass"])
     with pytest.raises(TypeError):
         pred(list_of_dicts_record)
 
@@ -1629,13 +1619,13 @@ def test_where_not_in_list(list_record):
 
 
 def test_where_not_in_raises_on_dict(dict_record):
-    pred = where_not_in("meta.info", ["StatsBomb"])(dict_record)
+    pred = where_not_in("meta.info", ["StatsBomb"])
     with pytest.raises(TypeError):
         pred(dict_record)
 
 
 def test_where_not_in_raises_on_list_of_dicts(list_of_dicts_record):
-    pred = where_not_in("events", ["pass"])(list_of_dicts_record)
+    pred = where_not_in("events", ["pass"])
     with pytest.raises(TypeError):
         pred(list_of_dicts_record)
 
@@ -1662,7 +1652,7 @@ def test_where_gt_missing_field(scalar_record):
 
 
 def test_where_gt_invalid_type_ignored(dict_record):
-    pred = where_gt("meta.provider", 1.0)
+    pred = where_gt("meta.info", 1.0)
     with pytest.raises(TypeError):
         assert pred(dict_record) is False
 

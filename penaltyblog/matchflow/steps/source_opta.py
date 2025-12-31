@@ -48,7 +48,7 @@ def from_opta(step: Dict[str, Any]) -> Iterator[Dict[Any, Any]]:
         OptaRequestError: If API request fails
         OptaAPIError: If API returns an error
     """
-    source = step.get("source")
+    source_str = str(step.get("source", ""))
     args = step.get("args", {})
 
     # Extract credentials and validate
@@ -61,23 +61,25 @@ def from_opta(step: Dict[str, Any]) -> Iterator[Dict[Any, Any]]:
 
         # Build endpoint details
         endpoint_builder = OptaEndpointBuilder(
-            base_url=step["base_url"],
-            asset_type=step["asset_type"],
-            auth_key=creds["auth_key"],
+            base_url=str(step.get("base_url", "")),
+            asset_type=str(step.get("asset_type", "")),
+            auth_key=str(creds.get("auth_key", "")),
         )
 
-        url, params = endpoint_builder.build_request_details(source, args)
-        headers = {}
+        url, params = endpoint_builder.build_request_details(source_str, args)
+        headers: Dict[str, str] = {}
 
         # Add rt_mode parameter for authentication
-        params["_rt"] = creds["rt_mode"]
+        params["_rt"] = str(creds.get("rt_mode", ""))
 
         # Handle paginated vs non-paginated endpoints
-        if OptaPaginator.is_paginated(source, args):
-            yield from _handle_paginated_endpoint(client, source, url, params, headers)
+        if OptaPaginator.is_paginated(source_str, args):
+            yield from _handle_paginated_endpoint(
+                client, source_str, url, params, headers
+            )
         else:
             yield from _handle_non_paginated_endpoint(
-                client, source, url, params, headers, args
+                client, source_str, url, params, headers, args
             )
 
 

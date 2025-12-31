@@ -179,8 +179,10 @@ def parse_match_stats_basic(
         matches = [data]
 
     # Check 2: Is it a list under "matchStats" key? (like MA1 multi-match sample)
-    elif isinstance(data.get("matchStats"), list):
-        matches = data.get("matchStats")
+    else:
+        match_stats = data.get("matchStats")
+        if isinstance(match_stats, list):
+            matches = match_stats
 
     for match in matches:
         if include_players:
@@ -198,8 +200,10 @@ def parse_match_stats_player(data: Dict[str, Any]) -> Iterator[Dict[str, Any]]:
         matches = [data]
 
     # Check 2: Is it a list under "matchStats" key?
-    elif isinstance(data.get("matchStats"), list):
-        matches = data.get("matchStats")
+    else:
+        match_stats = data.get("matchStats")
+        if isinstance(match_stats, list):
+            matches = match_stats
 
     for match in matches:
         yield from extract_player_stats(match)
@@ -214,8 +218,10 @@ def parse_match_stats_team(data: Dict[str, Any]) -> Iterator[Dict[str, Any]]:
         matches = [data]
 
     # Check 2: Is it a list under "matchStats" key?
-    elif isinstance(data.get("matchStats"), list):
-        matches = data.get("matchStats")
+    else:
+        match_stats = data.get("matchStats")
+        if isinstance(match_stats, list):
+            matches = match_stats
 
     for match in matches:
         yield from extract_team_stats(match)

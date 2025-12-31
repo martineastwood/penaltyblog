@@ -110,7 +110,7 @@ class Flow:
         Returns:
             Flow: A new Flow pointing to the records.
         """
-        plan_step = {"op": "from_folder", "path": path}
+        plan_step: Dict[str, Any] = {"op": "from_folder", "path": path}
         if storage_options:
             plan_step["storage_options"] = storage_options
         return Flow(plan=[plan_step], optimize=optimize)
@@ -133,7 +133,7 @@ class Flow:
         Returns:
             Flow: A new Flow pointing to the records.
         """
-        plan_step = {"op": "from_json", "path": path}
+        plan_step: Dict[str, Any] = {"op": "from_json", "path": path}
         if storage_options:
             plan_step["storage_options"] = storage_options
         return Flow(plan=[plan_step], optimize=optimize)
@@ -156,7 +156,7 @@ class Flow:
         Returns:
             Flow: A new Flow pointing to the records.
         """
-        plan_step = {"op": "from_jsonl", "path": path}
+        plan_step: Dict[str, Any] = {"op": "from_jsonl", "path": path}
         if storage_options:
             plan_step["storage_options"] = storage_options
         return Flow(plan=[plan_step], optimize=optimize)
@@ -181,7 +181,30 @@ class Flow:
         Returns:
             Flow: A new Flow streaming matching files.
         """
-        plan_step = {"op": "from_glob", "pattern": pattern}
+        plan_step: Dict[str, Any] = {"op": "from_glob", "pattern": pattern}
+        if storage_options:
+            plan_step["storage_options"] = storage_options
+        return Flow(plan=[plan_step], optimize=optimize)
+
+    @staticmethod
+    def from_list(
+        records: List[dict],
+        optimize: bool = False,
+        storage_options: Optional[Dict[str, Any]] = None,
+    ) -> "Flow":
+        """
+        Create a Flow from a list of records.
+        Args:
+            records (List[dict]): The list of records to create a Flow from.
+            optimize (bool): Whether to optimize the flow.
+            storage_options (dict, optional): Additional options for cloud storage backends.
+                For S3: {"key": "access_key", "secret": "secret_key", "endpoint_url": "url"}
+                For GCS: {"token": "path/to/token.json"}
+                For Azure: {"account_name": "name", "account_key": "key"}
+        Returns:
+            Flow: A new Flow with the records.
+        """
+        plan_step: Dict[str, Any] = {"op": "from_list", "records": records}
         if storage_options:
             plan_step["storage_options"] = storage_options
         return Flow(plan=[plan_step], optimize=optimize)
@@ -607,7 +630,7 @@ class Flow:
             )
 
         # Prepare step parameters
-        step_params = {
+        step_params: Dict[str, Any] = {
             "op": "join",
             "right_plan": other.plan,
             "how": how,
@@ -988,7 +1011,7 @@ class Flow:
         if op == "from_opta":
             from .steps.opta.endpoints import OptaEndpointBuilder
 
-            source = step.get("source")
+            source = str(step.get("source", ""))
             args = step.get("args", {})
             creds = args.get("creds", {})
 
@@ -996,8 +1019,8 @@ class Flow:
             rt_mode = creds.get("rt_mode", "b")
 
             endpoint_builder = OptaEndpointBuilder(
-                base_url=step["base_url"],
-                asset_type=step["asset_type"],
+                base_url=str(step.get("base_url", "")),
+                asset_type=str(step.get("asset_type", "")),
                 auth_key=auth_key,
             )
 

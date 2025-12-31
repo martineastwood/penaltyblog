@@ -1331,7 +1331,7 @@ class Opta:
     def team_season_stats(
         self,
         tournament_calendar_uuid: str,
-        contestant_uuid: str = None,
+        contestant_uuid: Optional[str] = None,
         detailed: bool = True,
         creds: Optional[dict] = None,
         proxies: Optional[dict] = None,
@@ -1373,7 +1373,7 @@ class Opta:
 
     def contestant_participation(
         self,
-        contestant_uuid: Union[str, List[str]],
+        contestant_uuid: Optional[str] = None,
         active: bool = False,
         creds: Optional[dict] = None,
         proxies: Optional[dict] = None,

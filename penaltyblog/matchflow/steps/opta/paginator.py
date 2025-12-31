@@ -2,7 +2,7 @@
 Pagination handling for Opta API requests.
 """
 
-from typing import Any, Dict, Iterator, List
+from typing import Any, Dict, Iterator, List, Optional
 
 from .client import OptaClient
 from .config import (
@@ -108,7 +108,7 @@ class OptaPaginator:
                 if "." in key_path:
                     # Handle nested keys like "matches.match"
                     keys = key_path.split(".")
-                    current = data
+                    current: Optional[Any] = data
                     for key in keys:
                         if isinstance(current, dict) and key in current:
                             current = current[key]
@@ -120,9 +120,9 @@ class OptaPaginator:
                         return current
                 else:
                     # Handle simple keys
-                    records = data.get(key_path)
-                    if records and isinstance(records, list):
-                        return records
+                    records_val = data.get(key_path)
+                    if isinstance(records_val, list):
+                        return records_val
 
             # If no records found, return empty list
             return []
