@@ -84,5 +84,6 @@ setup(
         "statsbombpy",
         "tabulate",
         "tqdm",
+        "wrapper-tls-requests",
     ],
 )

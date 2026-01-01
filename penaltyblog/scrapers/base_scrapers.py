@@ -87,3 +87,22 @@ class RequestsScraper(BaseScraper):
             return requests.get(url, headers=self.headers, cookies=self.cookies).text
         else:
             return requests.get(url, headers=self.headers).text
+
+
+class TLSRequestsScraper(BaseScraper):
+    """
+    Base scraper for sites with Cloudflare protection.
+
+    Uses wrapper-tls-requests to bypass Cloudflare's TLS fingerprinting
+    by mimicking real browser TLS signatures.
+    """
+
+    def __init__(self, team_mappings=None):
+        import tls_requests
+
+        self._session = tls_requests.Client()
+        super().__init__(team_mappings=team_mappings)
+
+    def get(self, url: str) -> str:
+        response = self._session.get(url)
+        return response.text

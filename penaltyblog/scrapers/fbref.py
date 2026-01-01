@@ -1,8 +1,9 @@
 import io
+import time
 
 import pandas as pd
 
-from .base_scrapers import RequestsScraper
+from .base_scrapers import TLSRequestsScraper
 from .common import (
     COMPETITION_MAPPINGS,
     create_game_id,
@@ -11,7 +12,7 @@ from .common import (
 )
 
 
-class FBRef(RequestsScraper):
+class FBRef(TLSRequestsScraper):
     """
     Scrapes data from FBRef and returns as a pandas dataframes
 
@@ -44,7 +45,22 @@ class FBRef(RequestsScraper):
             "slug"
         ]
 
+        # Rate limiting to be respectful to the server
+        self._last_request_time = 0
+        self._min_request_interval = 3  # seconds between requests
+
         super().__init__(team_mappings=team_mappings)
+
+    def get(self, url: str) -> str:
+        """Override get method to add rate limiting."""
+        # Rate limiting
+        time_since_last = time.time() - self._last_request_time
+        if time_since_last < self._min_request_interval:
+            time.sleep(self._min_request_interval - time_since_last)
+
+        result = super().get(url)
+        self._last_request_time = time.time()
+        return result
 
     def _map_season(self, season) -> str:
         """
