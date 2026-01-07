@@ -13,17 +13,29 @@ from .sampler import DiffEvolEnsembleSampler
 # On Windows, we must use 'spawn'.
 # On macOS (Python 3.8+), spawn is the default due to fork safety issues.
 # On Linux, we prefer 'fork' for performance.
-if sys.platform == "win32":
-    _MP_CONTEXT = multiprocessing.get_context("spawn")
-elif sys.platform == "darwin":
-    # macOS: Use spawn (required in Python 3.8+ for safety)
-    _MP_CONTEXT = multiprocessing.get_context("spawn")
-else:
-    # Linux and others: try fork, fall back to spawn
-    try:
-        _MP_CONTEXT = multiprocessing.get_context("fork")
-    except ValueError:
-        _MP_CONTEXT = multiprocessing.get_context("spawn")
+# NOTE: Context creation is delayed until first use to avoid import-time issues
+_MP_CONTEXT = None
+
+
+def _get_mp_context():
+    """Get or create the multiprocessing context (lazy initialization).
+
+    This is done lazily to avoid issues with module import in spawned processes.
+    """
+    global _MP_CONTEXT
+    if _MP_CONTEXT is None:
+        if sys.platform == "win32":
+            _MP_CONTEXT = multiprocessing.get_context("spawn")
+        elif sys.platform == "darwin":
+            # macOS: Use spawn (required in Python 3.8+ for safety)
+            _MP_CONTEXT = multiprocessing.get_context("spawn")
+        else:
+            # Linux and others: try fork, fall back to spawn
+            try:
+                _MP_CONTEXT = multiprocessing.get_context("fork")
+            except ValueError:
+                _MP_CONTEXT = multiprocessing.get_context("spawn")
+    return _MP_CONTEXT
 
 
 # -----------------------------------------------------------------------------
@@ -285,8 +297,25 @@ class EnsembleSampler:
             tasks.append(chain)
 
         # Use the appropriate multiprocessing context
-        with _MP_CONTEXT.Pool(processes=self.n_cores) as pool:
+        # On Windows/macOS (spawn mode), we need explicit pool cleanup to avoid hangs
+        pool = None
+        try:
+            mp_context = _get_mp_context()
+            pool = mp_context.Pool(processes=self.n_cores)
+            # Use imap_unordered for better performance and add explicit list conversion
+            # to ensure all tasks complete before proceeding
             self.chains = list(pool.imap(_worker_proxy, tasks, chunksize=1))
+        finally:
+            # Explicitly close and join the pool to ensure clean termination
+            # This is critical on Windows/macOS to prevent test hangs
+            if pool is not None:
+                try:
+                    pool.close()
+                    pool.join()
+                except Exception:
+                    # If normal cleanup fails, terminate forcefully
+                    pool.terminate()
+                    raise
 
     def get_posterior(self, burn: int = 0, thin: int = 1) -> np.ndarray:
         """Aggregates samples from all chains.
