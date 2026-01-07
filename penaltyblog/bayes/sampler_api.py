@@ -121,6 +121,7 @@ class Chain:
         log_prob_wrapper_func: Callable,
         n_steps: int,
         de_move_fraction: float = 0.8,
+        validate_picklable: bool = False,
     ):
         """Initializes the Chain.
 
@@ -130,21 +131,22 @@ class Chain:
             start_pos: Shape (n_walkers, n_dim).
             data_dict: The data to be used in likelihood.
             log_prob_wrapper_func: The likelihood function wrapper. Must be picklable on
-                Windows/macOS (no lambdas or closures from local functions).
+                Windows/macOS when using multiprocessing (n_cores > 1).
             n_steps: Number of steps to run.
             de_move_fraction: Fraction of DE moves. Defaults to 0.8.
+            validate_picklable: If True, validate function is picklable. Used internally
+                when multiprocessing will be used.
 
         Raises:
-            TypeError: If log_prob_wrapper_func is not picklable (on Windows/macOS).
+            TypeError: If validate_picklable=True and function is not picklable.
         """
-        # Validate function is picklable (critical for spawn mode on Windows/macOS)
-        if sys.platform in ("win32", "darwin") and not _is_function_picklable(
-            log_prob_wrapper_func
-        ):
+        # Validate function is picklable only when multiprocessing will be used
+        # This avoids rejecting valid test code that uses lambdas with n_cores=1
+        if validate_picklable and not _is_function_picklable(log_prob_wrapper_func):
             raise TypeError(
-                "log_prob_wrapper_func must be picklable on Windows/macOS. "
-                "Use a top-level function instead of a lambda or local function. "
-                f"Received: {type(log_prob_wrapper_func).__name__}"
+                "log_prob_wrapper_func must be picklable when using multiprocessing "
+                "(n_cores > 1) on Windows/macOS. Use a top-level function instead of "
+                f"a lambda or local function. Received: {type(log_prob_wrapper_func).__name__}"
             )
 
         # Configuration
@@ -321,6 +323,9 @@ class EnsembleSampler:
         # Mask to 32-bit integer to avoid OverflowError in Cython
         child_seeds = (child_seeds & 0x7FFFFFFF).astype(child_seeds.dtype)
 
+        # Validate picklable when using multiprocessing on Windows/macOS
+        validate_picklable = self.n_cores > 1 and sys.platform in ("win32", "darwin")
+
         tasks = []
         for i in range(self.n_chains):
             chain = Chain(
@@ -331,6 +336,7 @@ class EnsembleSampler:
                 log_prob_wrapper_func=self.log_prob_func,
                 n_steps=total_steps,
                 de_move_fraction=de_move_fraction,
+                validate_picklable=validate_picklable,
             )
             tasks.append(chain)
 
