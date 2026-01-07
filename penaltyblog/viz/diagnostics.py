@@ -11,9 +11,11 @@ import numpy as np
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 
+from ..models import BayesianGoalModel, HierarchicalBayesianGoalModel
+
 
 def plot_trace(
-    model,
+    model: Union[BayesianGoalModel, HierarchicalBayesianGoalModel],
     params: Optional[Union[str, List[str]]] = None,
     chains: bool = True,
     **kwargs,
@@ -26,7 +28,7 @@ def plot_trace(
 
     Parameters
     ----------
-    model : BayesianGoalModel
+    model : BayesianGoalModel or a HierarchicalBayesianGoalModel
         A fitted Bayesian model with trace data.
     params : str, list of str, optional
         Parameter name(s) to plot. If None, plots key parameters
@@ -287,7 +289,7 @@ def plot_trace(
 
 
 def plot_autocorr(
-    model,
+    model: Union[BayesianGoalModel, HierarchicalBayesianGoalModel],
     params: Optional[Union[str, List[str]]] = None,
     max_lag: int = 50,
     **kwargs,
@@ -300,7 +302,7 @@ def plot_autocorr(
 
     Parameters
     ----------
-    model : BayesianGoalModel
+    model : BayesianGoalModel or HierarchicalBayesianGoalModel
         A fitted Bayesian model with trace data.
     params : str, list of str, optional
         Parameter name(s) to plot. If None, plots key parameters.
@@ -480,7 +482,7 @@ def plot_autocorr(
 
 
 def plot_posterior(
-    model,
+    model: Union[BayesianGoalModel, HierarchicalBayesianGoalModel],
     params: Optional[Union[str, List[str]]] = None,
     kind: str = "density",
     **kwargs,
@@ -493,7 +495,7 @@ def plot_posterior(
 
     Parameters
     ----------
-    model : BayesianGoalModel
+    model : BayesianGoalModel or HierarchicalBayesianGoalModel
         A fitted Bayesian model with trace data.
     params : str, list of str, optional
         Parameter name(s) to plot. If None, plots key parameters.
@@ -697,7 +699,7 @@ def plot_posterior(
 
 
 def plot_convergence(
-    model,
+    model: Union[BayesianGoalModel, HierarchicalBayesianGoalModel],
     **kwargs,
 ) -> go.Figure:
     """
@@ -708,7 +710,7 @@ def plot_convergence(
 
     Parameters
     ----------
-    model : BayesianGoalModel
+    model : BayesianGoalModel or HierarchicalBayesianGoalModel
         A fitted Bayesian model with trace data.    **kwargs
         Additional keyword arguments passed to plotly layout.
 
@@ -819,7 +821,7 @@ def plot_convergence(
 
 
 def plot_diagnostics(
-    model,
+    model: Union[BayesianGoalModel, HierarchicalBayesianGoalModel],
     params: Optional[Union[str, List[str]]] = None,
     **kwargs,
 ) -> go.Figure:
@@ -831,7 +833,7 @@ def plot_diagnostics(
 
     Parameters
     ----------
-    model : BayesianGoalModel
+    model : BayesianGoalModel or HierarchicalBayesianGoalModel
         A fitted Bayesian model with trace data.
     params : str, list of str, optional
         Parameter name(s) to include in detailed plots. If None, uses key parameters.    **kwargs
