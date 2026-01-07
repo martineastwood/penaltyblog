@@ -368,13 +368,7 @@ class EnsembleSampler:
                 if pool is not None:
                     try:
                         pool.close()
-                        # Add timeout to join to prevent indefinite hangs in CI
-                        pool.join(timeout=300)
-                        if pool._pool and any(p.is_alive() for p in pool._pool):
-                            logger.warning(
-                                "Pool did not terminate cleanly, forcing termination"
-                            )
-                            pool.terminate()
+                        pool.join()
                     except Exception as e:
                         # If normal cleanup fails, terminate forcefully
                         logger.error(f"Pool cleanup failed: {e}, terminating")
