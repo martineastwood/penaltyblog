@@ -296,26 +296,30 @@ class EnsembleSampler:
             )
             tasks.append(chain)
 
-        # Use the appropriate multiprocessing context
-        # On Windows/macOS (spawn mode), we need explicit pool cleanup to avoid hangs
-        pool = None
-        try:
-            mp_context = _get_mp_context()
-            pool = mp_context.Pool(processes=self.n_cores)
-            # Use imap_unordered for better performance and add explicit list conversion
-            # to ensure all tasks complete before proceeding
-            self.chains = list(pool.imap(_worker_proxy, tasks, chunksize=1))
-        finally:
-            # Explicitly close and join the pool to ensure clean termination
-            # This is critical on Windows/macOS to prevent test hangs
-            if pool is not None:
-                try:
-                    pool.close()
-                    pool.join()
-                except Exception:
-                    # If normal cleanup fails, terminate forcefully
-                    pool.terminate()
-                    raise
+        # Run chains: use multiprocessing for n_cores > 1, otherwise run directly
+        # This avoids spawn mode overhead and potential deadlocks on Windows/macOS
+        if self.n_cores == 1:
+            # Run sequentially in the main process (no multiprocessing overhead)
+            self.chains = [_worker_proxy(chain) for chain in tasks]
+        else:
+            # Use multiprocessing for parallel execution
+            # On Windows/macOS (spawn mode), we need explicit pool cleanup to avoid hangs
+            pool = None
+            try:
+                mp_context = _get_mp_context()
+                pool = mp_context.Pool(processes=self.n_cores)
+                self.chains = list(pool.imap(_worker_proxy, tasks, chunksize=1))
+            finally:
+                # Explicitly close and join the pool to ensure clean termination
+                # This is critical on Windows/macOS to prevent test hangs
+                if pool is not None:
+                    try:
+                        pool.close()
+                        pool.join()
+                    except Exception:
+                        # If normal cleanup fails, terminate forcefully
+                        pool.terminate()
+                        raise
 
     def get_posterior(self, burn: int = 0, thin: int = 1) -> np.ndarray:
         """Aggregates samples from all chains.
