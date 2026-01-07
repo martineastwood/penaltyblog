@@ -388,7 +388,7 @@ class BayesianGoalModel(BaseBayesianModel):
         n_samples: int = 2000,
         burn: int = 1000,
         n_chains: int = 4,
-        thin: int = 5,
+        thin: int = 1,
     ) -> None:
         """
         Fit the model using parallel MCMC chains.
@@ -403,7 +403,7 @@ class BayesianGoalModel(BaseBayesianModel):
             Number of burn-in samples to discard.
         n_chains : int, default=4
             Number of parallel MCMC chains to run.
-        thin : int, default=5
+        thin : int, default=1
             Thinning interval to reduce autocorrelation.
         """
         data_dict = {
@@ -574,7 +574,7 @@ class HierarchicalBayesianGoalModel(BayesianGoalModel):
         n_samples: int = 3000,
         burn: int = 1500,
         n_chains: int = 4,
-        thin: int = 5,
+        thin: int = 1,
     ) -> None:
         """
         Fit the hierarchical model using parallel MCMC chains.
@@ -589,7 +589,7 @@ class HierarchicalBayesianGoalModel(BayesianGoalModel):
             Number of burn-in samples to discard.
         n_chains : int, default=4
             Number of parallel MCMC chains to run.
-        thin : int, default=5
+        thin : int, default=1
             Thinning interval to reduce autocorrelation.
         """
         data_dict = {

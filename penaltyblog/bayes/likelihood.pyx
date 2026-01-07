@@ -137,13 +137,15 @@ cdef double _bayesian_log_prob_c(
         ss_def += defense[i] * defense[i]
 
     # Add priors for all team stats (Centered at 0, Scale=10.0)
-    log_prob += -0.5 * (ss_att / PRIOR_VAR) - (n_teams * LOG_NORM_CONST)
-    log_prob += -0.5 * (ss_def / PRIOR_VAR) - (n_teams * LOG_NORM_CONST)
+    log_prob += -0.5 * (ss_att / PRIOR_VAR) + (n_teams * LOG_NORM_CONST)
+    log_prob += -0.5 * (ss_def / PRIOR_VAR) + (n_teams * LOG_NORM_CONST)
 
     # Soft Constraint: Sum of Attack/Defense should be ~0
     # This keeps the model identifiable (prevents drift)
-    log_prob += -0.5 * (sum_att * sum_att) * 1000.0
-    log_prob += -0.5 * (sum_def * sum_def) * 1000.0
+    # Variance = 0.001 (very strong constraint to ensure identifiability)
+    cdef double CONSTRAINT_VARIANCE = 0.001
+    log_prob += -0.5 * (sum_att * sum_att) / CONSTRAINT_VARIANCE
+    log_prob += -0.5 * (sum_def * sum_def) / CONSTRAINT_VARIANCE
 
     # HFA Prior ~ Normal(0.25, 0.5)
     # Keeps HFA physically grounded
@@ -314,8 +316,10 @@ cdef double _hierarchical_log_prob_c(
     log_prob += (-n_teams * log(sigma_def)) - (0.5 * ss_def / (sigma_def * sigma_def))
 
     # Constraints & Globals
-    log_prob += -0.5 * (sum_att * sum_att) * 1000.0
-    log_prob += -0.5 * (sum_def * sum_def) * 1000.0
+    # Variance = 0.001 (very strong constraint to ensure identifiability)
+    cdef double CONSTRAINT_VARIANCE = 0.001
+    log_prob += -0.5 * (sum_att * sum_att) / CONSTRAINT_VARIANCE
+    log_prob += -0.5 * (sum_def * sum_def) / CONSTRAINT_VARIANCE
     log_prob += -((hfa - 0.25) * (hfa - 0.25)) / 0.5
     log_prob += -0.5 * (rho * rho)
 

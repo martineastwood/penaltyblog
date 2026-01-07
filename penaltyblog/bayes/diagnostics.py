@@ -1,19 +1,26 @@
 import numpy as np
 import pandas as pd
 
+from .sampler import DiffEvolEnsembleSampler
 
-def compute_diagnostics(sampler, burn=0, thin=1):
+
+def compute_diagnostics(
+    sampler: DiffEvolEnsembleSampler, burn=0, thin=1, rho_threshold=0.05
+):
     """
-    Computes R-hat and ESS for a fitted EnsembleSampler.
+    Computes R-hat and ESS for a fitted DiffEvolEnsembleSampler.
 
     Parameters
     ----------
-    sampler : EnsembleSampler
+    sampler : DiffEvolEnsembleSampler
         The fitted sampler instance containing the chains.
     burn : int
         Number of steps to discard from the beginning.
     thin : int
         Thinning factor.
+    rho_threshold : float, optional
+        Autocorrelation threshold for ESS calculation. The sum of autocorrelations
+        is truncated when rho falls below this value. Default is 0.05.
 
     Returns
     -------
@@ -22,10 +29,6 @@ def compute_diagnostics(sampler, burn=0, thin=1):
     """
     if not sampler.chains:
         raise ValueError("Sampler has not been run yet.")
-
-    # 1. Aggregating Chains
-    # We treat every walker in every process as a distinct chain.
-    # Structure: List of (steps, walkers, ndim) -> (total_chains, steps, ndim)
 
     extracted = []
     for chain in sampler.chains:
@@ -41,7 +44,6 @@ def compute_diagnostics(sampler, burn=0, thin=1):
 
     n_chains, n_samples, n_params = full_trace.shape
 
-    # 2. Calculate Diagnostics per parameter
     print(f"Diagnostics: Analyzing {n_chains} chains of {n_samples} samples...")
 
     r_hats = []
@@ -56,7 +58,7 @@ def compute_diagnostics(sampler, burn=0, thin=1):
         r_hats.append(r)
 
         # ess and autocorrelation
-        ess, tau = _effective_sample_size(y)
+        ess, tau = _effective_sample_size(y, rho_threshold)
         ess_vals.append(ess)
         tau_vals.append(tau)
 
@@ -74,36 +76,37 @@ def _gelman_rubin(chain_data):
     if m < 2:
         return np.nan
 
-    # 1. Calculate Between-Chain Variance (B)
-    # Mean of each chain
     chain_means = np.mean(chain_data, axis=1)
-    # Grand mean
-    grand_mean = np.mean(chain_means)
-    # B = n * Variance of chain means
     B = n * np.var(chain_means, ddof=1)
 
-    # 2. Calculate Within-Chain Variance (W)
-    # Variance of each chain
     chain_vars = np.var(chain_data, axis=1, ddof=1)
     W = np.mean(chain_vars)
 
-    # 3. Pooled Variance
-    # Var_hat = (n-1)/n * W + 1/n * B
     var_plus = ((n - 1) / n) * W + (B / n)
-
-    # 4. R-hat
-    # sqrt(Var_hat / W)
     if W == 0:
-        return 0.0
+        return np.nan
 
     r_hat = np.sqrt(var_plus / W)
     return r_hat
 
 
-def _effective_sample_size(chain_data):
+def _effective_sample_size(chain_data, rho_threshold=0.05):
     """
     Approximates ESS using autocorrelation.
-    chain_data: (n_chains, n_samples)
+
+    Parameters
+    ----------
+    chain_data : np.ndarray
+        Array of shape (n_chains, n_samples) containing chain traces.
+    rho_threshold : float, optional
+        Autocorrelation threshold for truncating the sum. Default is 0.05.
+
+    Returns
+    -------
+    ess : float
+        Effective sample size.
+    tau : float
+        Integrated autocorrelation time.
     """
     m, n = chain_data.shape
 
@@ -121,7 +124,7 @@ def _effective_sample_size(chain_data):
     # Find cutoff where rho goes negative or noise dominates
     cutoff = n - 1
     for k in range(1, n):
-        if rhos[k] < 0.05:  # Threshold near zero
+        if rhos[k] < rho_threshold:
             cutoff = k
             break
 

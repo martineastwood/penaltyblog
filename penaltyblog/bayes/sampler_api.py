@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import multiprocessing
 import traceback
 from typing import Any, Callable, Dict, List, Optional
@@ -10,7 +12,7 @@ from .sampler import DiffEvolEnsembleSampler
 # -----------------------------------------------------------------------------
 # WORKER PROXY (Must be top-level for Windows Multiprocessing)
 # -----------------------------------------------------------------------------
-def _worker_proxy(chain_instance: "Chain") -> "Chain":
+def _worker_proxy(chain_instance: Chain) -> Chain:
     """Multiprocessing helper.
 
     Receives a 'dormant' Chain object, runs it, and returns the 'completed' Chain object.

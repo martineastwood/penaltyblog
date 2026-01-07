@@ -162,3 +162,5 @@ notebook.ipynb
 test/fixtures
 .agent
 notes/
+.claude/
+.vscode/

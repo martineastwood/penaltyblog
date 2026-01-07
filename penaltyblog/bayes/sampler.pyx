@@ -40,10 +40,6 @@ cdef inline double next_double(RngState *state) nogil:
 # SAMPLER ENGINE
 # -----------------------------------------------------------------------------
 
-# Typedef for the Python log-prob function wrapper
-# It takes a generic double array and some data object (usually a dict)
-ctypedef double (*log_prob_fn)(object, object)
-
 cdef class DiffEvolEnsembleSampler:
     cdef:
         int nwalkers
@@ -106,35 +102,6 @@ cdef class DiffEvolEnsembleSampler:
         for dim in range(self.ndim):
             q_new[dim] = x_i[dim] + gamma_de * (x_j1[dim] - x_j2[dim])
 
-        log_accept_ratio[0] = 0.0
-
-    cdef inline void _propose_de_move_with_crossover(
-        self,
-        double[:] q_new,
-        double[:] x_i,
-        double[:] x_j1,
-        double[:] x_j2,
-        double de_scale,
-        double crossover_prob,
-        double* log_accept_ratio
-    ) noexcept nogil:
-
-        cdef int dim
-        cdef int changed = 0
-        cdef int force_change_idx = <int>(next_double(&self.rng) * self.ndim)
-
-        # Standard DE Gamma scaling
-        cdef double gamma_de = de_scale * (1.0 + 0.1 * (next_double(&self.rng) - 0.5))
-
-        for dim in range(self.ndim):
-            # Apply move if random < CR OR if this is the forced index
-            if (next_double(&self.rng) < crossover_prob) or (dim == force_change_idx):
-                q_new[dim] = x_i[dim] + gamma_de * (x_j1[dim] - x_j2[dim])
-                changed = 1
-            else:
-                q_new[dim] = x_i[dim]
-
-        # In DE, the proposal is symmetric, so log(q|x) - log(x|q) = 0
         log_accept_ratio[0] = 0.0
 
     def run_mcmc(self, double[:, ::1] initial_state, int nsteps, double de_move_fraction=0.75):
