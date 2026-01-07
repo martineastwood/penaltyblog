@@ -1,12 +1,29 @@
 from __future__ import annotations
 
 import multiprocessing
+import sys
 import traceback
 from typing import Any, Callable, Dict, List, Optional
 
 import numpy as np
 
 from .sampler import DiffEvolEnsembleSampler
+
+# Choose the best multiprocessing context for the platform
+# On Windows, we must use 'spawn'.
+# On macOS (Python 3.8+), spawn is the default due to fork safety issues.
+# On Linux, we prefer 'fork' for performance.
+if sys.platform == "win32":
+    _MP_CONTEXT = multiprocessing.get_context("spawn")
+elif sys.platform == "darwin":
+    # macOS: Use spawn (required in Python 3.8+ for safety)
+    _MP_CONTEXT = multiprocessing.get_context("spawn")
+else:
+    # Linux and others: try fork, fall back to spawn
+    try:
+        _MP_CONTEXT = multiprocessing.get_context("fork")
+    except ValueError:
+        _MP_CONTEXT = multiprocessing.get_context("spawn")
 
 
 # -----------------------------------------------------------------------------
@@ -23,7 +40,13 @@ def _worker_proxy(chain_instance: Chain) -> Chain:
     Returns:
         Chain: The completed chain instance.
     """
+    import sys
+
     try:
+        # Verify the chain instance is properly initialized
+        if chain_instance is None:
+            raise RuntimeError("chain_instance is None")
+
         # We call the internal run method of the chain instance
         # This runs inside the subprocess
         chain_instance._execute()
@@ -32,7 +55,7 @@ def _worker_proxy(chain_instance: Chain) -> Chain:
         error_msg = (
             f"Error in chain {chain_instance.id}: {str(e)}\n{traceback.format_exc()}"
         )
-        print(error_msg)
+        print(error_msg, file=sys.stderr)
         raise RuntimeError(error_msg) from e
 
 
@@ -85,6 +108,15 @@ class Chain:
 
         # Results (initially None)
         self.raw_trace: Optional[np.ndarray] = None
+
+    def __getstate__(self) -> Dict[str, Any]:
+        """Get state for pickling (needed for spawn mode on Windows/macOS)."""
+        state = self.__dict__.copy()
+        return state
+
+    def __setstate__(self, state: Dict[str, Any]) -> None:
+        """Restore state after unpickling (needed for spawn mode on Windows/macOS)."""
+        self.__dict__.update(state)
 
     def _execute(self) -> "Chain":
         """Internal method run by the subprocess.
@@ -252,8 +284,9 @@ class EnsembleSampler:
             )
             tasks.append(chain)
 
-        with multiprocessing.Pool(processes=self.n_cores) as pool:
-            self.chains = pool.map(_worker_proxy, tasks)
+        # Use the appropriate multiprocessing context
+        with _MP_CONTEXT.Pool(processes=self.n_cores) as pool:
+            self.chains = list(pool.imap(_worker_proxy, tasks, chunksize=1))
 
     def get_posterior(self, burn: int = 0, thin: int = 1) -> np.ndarray:
         """Aggregates samples from all chains.
