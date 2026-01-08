@@ -44,7 +44,7 @@ Fitting a Bayesian model follows the same consistent API as other ``penaltyblog`
     # burn: samples to discard at the start
     # n_chains: number of parallel chains
     # thin: thinning factor to reduce autocorrelation
-    results = model.fit(n_samples=1000, burn=1000, n_chains=4, thin=5)
+    model.fit(n_samples=1000, burn=1000, n_chains=4, thin=5)
 
     # Predict probabilities for a fixture
     # This automatically integrates over the posterior distribution
@@ -67,7 +67,7 @@ Generally, you want **R-hat values close to 1.0** (typically < 1.1) and a suffic
 Inspecting the Posterior
 ========================
 
-The ``fit()`` method returns a dictionary containing the traces for all parameters. You can use these to visualize the uncertainty in team strengths.
+After calling the ``fit()`` method, the ``trace_dict`` attribute contains the traces for all parameters. You can use these to visualize the uncertainty in team strengths.
 
 .. code-block:: python
 
