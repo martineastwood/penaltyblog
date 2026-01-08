@@ -1,0 +1,38 @@
+name: Update llms.txt
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: write
+
+jobs:
+  update-llms-txt:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+
+      - name: Generate llms.txt for penaltyblog
+        run: python .github/scripts/generate_llms_penaltyblog.py
+
+      - name: Commit and push changes
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add llms.txt
+          # Only commit if there are actual changes to the file to avoid empty commits
+          if git diff --staged --quiet; then
+            echo "No changes to llms.txt to commit."
+          else
+            git commit -m "chore: Automatically update llms.txt"
+            git push
+          fi

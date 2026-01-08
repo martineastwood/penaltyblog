@@ -157,7 +157,10 @@ docs/y
 
 /benchmarks
 repomix-output.xml
-roadmap.md
 notebook.ipynb
 .clinerules
 test/fixtures
+.agent
+notes/
+.claude/
+.vscode/

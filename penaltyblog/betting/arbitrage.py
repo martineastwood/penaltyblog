@@ -115,7 +115,9 @@ def _solve_hedge_lp(
     c = [0.0] * n + [-1.0]
 
     # Bounds: h_i >= 0 unless allow_lay True, G unbounded unless target_profit provided
-    bounds = [(None, None)] * n if allow_lay else [(0, None)] * n
+    bounds: List[Tuple[Optional[float], Optional[float]]] = (
+        [(None, None)] * n if allow_lay else [(0.0, None)] * n
+    )
     if target_profit is not None:
         # fix G to target_profit via bounds
         bounds.append((target_profit, target_profit))

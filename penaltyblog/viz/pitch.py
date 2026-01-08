@@ -143,17 +143,6 @@ class Pitch:
         # Draw
         self._draw_base_pitch()
 
-    def _apply_orientation(
-        self,
-        df: pd.DataFrame,
-        x: str = "x",
-        y: str = "y",
-    ) -> pd.DataFrame:
-        if self.orientation == "vertical":
-            df = df.copy()
-            df[[x, y]] = df[[y, x]]  # swap the two columns
-        return df
-
     def _apply_orientation_raw(
         self,
         xs: list[float],

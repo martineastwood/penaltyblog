@@ -250,6 +250,7 @@ def apply_group_time_bucket(
 
         # Time-based mode: must be datetime or timedelta
         if not numeric_mode:
+            local_origin: Optional[Union[datetime, timedelta]] = None
             if isinstance(sample, datetime):
                 local_origin = sample
             elif isinstance(sample, timedelta):
@@ -280,7 +281,11 @@ def apply_group_time_bucket(
                 and isinstance(local_origin, datetime)
             ):
                 total = (t - local_origin).total_seconds()
-            elif not numeric_mode and isinstance(t, timedelta):
+            elif (
+                not numeric_mode
+                and isinstance(t, timedelta)
+                and local_origin is not None
+            ):
                 total = t.total_seconds()
             else:
                 total = float(t) if t is not None else 0.0

@@ -4,18 +4,14 @@ import numpy as np
 from numpy.typing import NDArray
 
 from penaltyblog.models.base_model import BaseGoalsModel
-from penaltyblog.models.custom_types import (
-    GoalInput,
-    TeamInput,
-    WeightInput,
-)
+from penaltyblog.models.custom_types import GoalInput, TeamInput, WeightInput
 from penaltyblog.models.football_probability_grid import (
     FootballProbabilityGrid,
 )
 
-from .gradients import weibull_copula_gradient  # noqa
-from .loss import compute_weibull_copula_loss  # noqa
-from .probabilities import compute_weibull_copula_probabilities  # noqa
+from .gradients import weibull_copula_gradient
+from .loss import compute_weibull_copula_loss
+from .probabilities import compute_weibull_copula_probabilities
 
 
 class WeibullCopulaGoalsModel(BaseGoalsModel):
@@ -194,7 +190,7 @@ class WeibullCopulaGoalsModel(BaseGoalsModel):
 
         """
         # create bounds
-        bnds = []
+        bnds: list[tuple[float, float]] = []
         # Attack in [-3,3]
         for _ in range(self.n_teams):
             bnds.append((-3, 3))

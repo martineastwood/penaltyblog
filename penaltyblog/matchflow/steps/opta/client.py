@@ -2,7 +2,7 @@
 HTTP client for Opta API requests.
 """
 
-from typing import Any, Dict, Optional, Tuple
+from typing import Any, Dict, Optional, Tuple, cast
 
 import requests
 
@@ -24,7 +24,7 @@ class OptaClient:
             proxies: Optional proxy configuration for requests
         """
         self.proxies = proxies
-        self._session = None
+        self._session: Optional[requests.Session] = None
 
     @property
     def session(self) -> requests.Session:
@@ -33,7 +33,7 @@ class OptaClient:
             self._session = requests.Session()
             if self.proxies:
                 self._session.proxies = self.proxies
-        return self._session
+        return cast(requests.Session, self._session)
 
     def validate_credentials(self, creds: Dict[str, Any]) -> None:
         """

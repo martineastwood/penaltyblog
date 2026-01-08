@@ -1,4 +1,6 @@
-OPTA_EVENT_DEFINITIONS = {
+from typing import Any, Dict
+
+OPTA_EVENT_DEFINITIONS: Dict[int, Dict[str, Any]] = {
     1: {
         "name": "Pass",
         "description": "The attempted delivery of the ball from one player to another player on the same team. Event categorization includes open play passes, goal kicks, corners and free kicks played as passes. Crosses, keeper throws, and throw ins do not count as passes. outcome: 0 = Unsuccessful, 1 = Successful.",
@@ -1154,7 +1156,7 @@ OPTA_EVENT_DEFINITIONS = {
 }
 
 
-OPTA_QUALIFIER_DEFINITIONS = {
+OPTA_QUALIFIER_DEFINITIONS: Dict[int, Dict[str, Any]] = {
     1: {
         "name": "Long ball",
         "description": "A pass over 32 metres in length",

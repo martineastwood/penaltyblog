@@ -5,7 +5,17 @@ Calculates the Kelly Criterion for a given set of odds and probabilities.
 """
 
 from dataclasses import dataclass
-from typing import Any, Dict, List, Literal, Optional, Union
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    List,
+    Literal,
+    Optional,
+    Tuple,
+    Union,
+    cast,
+)
 
 import numpy as np
 from numpy.typing import NDArray
@@ -37,12 +47,12 @@ class KellyResult:
     expected_growth: Union[float, NDArray]
     edge: Union[float, NDArray]
     is_favorable: Union[bool, NDArray]
-    risk_of_ruin: Union[float, NDArray]
+    risk_of_ruin: Union[float, NDArray[Any]]
     risk_metrics: Optional[RiskMetrics]
 
     # Metadata
-    decimal_odds: Union[float, NDArray]
-    true_prob: Union[float, NDArray]
+    decimal_odds: Union[float, NDArray[Any], List[float]]
+    true_prob: Union[float, NDArray[Any], List[float]]
     fraction: float
     warnings: List[str]
 
@@ -64,8 +74,8 @@ class MultipleKellyResult:
     optimization_details: Optional[Dict[str, Any]]
 
     # Input metadata
-    decimal_odds: List[float]
-    true_probs: List[float]
+    decimal_odds: Union[List[float], NDArray[Any]]
+    true_probs: Union[List[float], NDArray[Any]]
     fraction: float
     max_total_stake: float
     warnings: List[str]
@@ -226,16 +236,16 @@ def _calculate_risk_metrics(
         final_wealth_outcomes.append(final_wealth_lose)
         outcome_probabilities.append(1.0 - prob)
 
-    final_wealth_outcomes = np.array(final_wealth_outcomes)
-    outcome_probabilities = np.array(outcome_probabilities)
+    wealth_outcomes = np.array(final_wealth_outcomes)
+    probs_outcomes = np.array(outcome_probabilities)
 
     # Normalize probabilities (should sum to 1)
-    prob_sum = np.sum(outcome_probabilities)
+    prob_sum = np.sum(probs_outcomes)
     if prob_sum > 0:
-        outcome_probabilities = outcome_probabilities / prob_sum
+        probs_outcomes = probs_outcomes / prob_sum
 
     # Calculate expected final wealth and profit
-    expected_wealth = np.sum(final_wealth_outcomes * outcome_probabilities)
+    expected_wealth = np.sum(wealth_outcomes * probs_outcomes)
     expected_profit = (
         expected_wealth - 1.0
     )  # Profit = final_wealth - initial_wealth(1.0)
@@ -245,22 +255,18 @@ def _calculate_risk_metrics(
 
     # Calculate log wealth once (used for both Kelly growth rate and log-return volatility)
     with np.errstate(divide="ignore", invalid="ignore"):
-        log_wealth = np.log(final_wealth_outcomes)
+        log_wealth = np.log(wealth_outcomes)
         log_wealth = np.where(np.isfinite(log_wealth), log_wealth, -np.inf)
 
     # Kelly growth rate (expected log of final wealth)
-    kelly_growth_rate = np.sum(outcome_probabilities * log_wealth)
+    kelly_growth_rate = np.sum(probs_outcomes * log_wealth)
 
     # Volatility (standard deviation of final wealth)
-    wealth_variance = np.sum(
-        outcome_probabilities * (final_wealth_outcomes - expected_wealth) ** 2
-    )
+    wealth_variance = np.sum(probs_outcomes * (wealth_outcomes - expected_wealth) ** 2)
     volatility = np.sqrt(wealth_variance)
 
     # Log-return volatility (standard deviation of log returns for Kelly)
-    log_return_variance = np.sum(
-        outcome_probabilities * (log_wealth - kelly_growth_rate) ** 2
-    )
+    log_return_variance = np.sum(probs_outcomes * (log_wealth - kelly_growth_rate) ** 2)
     log_return_volatility = np.sqrt(log_return_variance)
 
     # Sharpe ratio (log return over log return volatility - same units)
@@ -269,28 +275,26 @@ def _calculate_risk_metrics(
     )
 
     # Win probability (probability of any profit)
-    win_probability = np.sum(outcome_probabilities[final_wealth_outcomes > 1.0])
+    win_probability = np.sum(probs_outcomes[wealth_outcomes > 1.0])
 
     # Probability of ruin (losing all staked capital this round)
     # This is probability that final wealth <= (1 - total_stake)
     ruin_threshold = 1.0 - total_stake
-    probability_of_ruin = np.sum(
-        outcome_probabilities[final_wealth_outcomes <= ruin_threshold]
-    )
+    probability_of_ruin = np.sum(probs_outcomes[wealth_outcomes <= ruin_threshold])
 
     # Value at Risk (95th percentile loss)
     # Calculate 5th percentile of wealth distribution
-    sorted_indices = np.argsort(final_wealth_outcomes)
-    cumulative_probs = np.cumsum(outcome_probabilities[sorted_indices])
+    sorted_indices = np.argsort(wealth_outcomes)
+    cumulative_probs = np.cumsum(probs_outcomes[sorted_indices])
     var_95_idx = np.searchsorted(cumulative_probs, 0.05)
-    if var_95_idx < len(final_wealth_outcomes):
-        wealth_5th_percentile = final_wealth_outcomes[sorted_indices[var_95_idx]]
+    if var_95_idx < len(wealth_outcomes):
+        wealth_5th_percentile = wealth_outcomes[sorted_indices[var_95_idx]]
         value_at_risk_95 = 1.0 - wealth_5th_percentile  # Loss = 1 - final_wealth
     else:
         value_at_risk_95 = 0.0
 
     # Maximum loss (worst case scenario)
-    min_final_wealth = np.min(final_wealth_outcomes)
+    min_final_wealth = np.min(wealth_outcomes)
     max_loss = 1.0 - min_final_wealth
 
     return RiskMetrics(
@@ -400,7 +404,9 @@ def kelly_criterion(
     risk_metrics = None
     if np.isscalar(decimal_odds) and np.isscalar(true_prob) and np.any(stake_array > 0):
         try:
-            risk_metrics = _calculate_risk_metrics(stake, decimal_odds, true_prob)
+            risk_metrics = _calculate_risk_metrics(
+                cast(float, stake), cast(float, decimal_odds), cast(float, true_prob)
+            )
         except Exception as e:
             input_warnings.append(f"Risk metrics calculation failed: {str(e)}")
 

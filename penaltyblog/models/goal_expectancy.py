@@ -1,5 +1,5 @@
 import warnings
-from typing import Optional
+from typing import Any, Optional
 
 import numpy as np
 from scipy.optimize import minimize
@@ -175,7 +175,7 @@ def goal_expectancy(
     )
     mass = float(mat.sum())
 
-    out = {
+    out: dict[str, Any] = {
         "home_exp": float(mu_h),
         "away_exp": float(mu_a),
         "error": float(res.fun),

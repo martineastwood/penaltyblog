@@ -1,7 +1,7 @@
 import ast
 import re
 from datetime import date, datetime
-from typing import Any, Callable, Dict, Optional
+from typing import Any, Callable, Dict, Optional, Tuple, cast
 
 from .predicates_helpers import (
     and_,
@@ -49,7 +49,7 @@ def parse_query_expr(expr: str, local_vars: dict[str, Any]) -> Callable:
     return _convert_ast(tree.body, local_vars=scoped_vars)
 
 
-def _parse_field_expr(node: ast.AST) -> tuple[str, Callable | None]:
+def _parse_field_expr(node: ast.AST) -> Tuple[str, Callable | None]:
     """
     Parses a node that can be a field or a simple method call on a field.
     Returns (field_name, transform_function).
@@ -95,25 +95,25 @@ def _convert_ast(node, local_vars: Optional[Dict[str, Any]] = None):
     """
     local_vars = local_vars or {}
     if isinstance(node, ast.BoolOp):
-        op = node.op
+        bool_op = node.op
         values = [_convert_ast(v, local_vars) for v in node.values]
-        if isinstance(op, ast.And):
+        if isinstance(bool_op, ast.And):
             return and_(*values)
-        elif isinstance(op, ast.Or):
+        elif isinstance(bool_op, ast.Or):
             return or_(*values)
         else:
-            raise ValueError(f"Unsupported boolean op: {ast.dump(op)}")
+            raise ValueError(f"Unsupported boolean op: {ast.dump(bool_op)}")
 
     elif isinstance(node, ast.Compare):
         # Handle chained comparisons by breaking them into a series of `and`ed comparisons
         if len(node.ops) > 1:
             predicates = []
             all_parts = [node.left] + node.comparators
-            for i, op in enumerate(node.ops):
+            for i, cmp_op in enumerate(node.ops):
                 left_node = all_parts[i]
                 right_node = all_parts[i + 1]
                 sub_compare_node = ast.Compare(
-                    left=left_node, ops=[op], comparators=[right_node]
+                    left=left_node, ops=[cmp_op], comparators=[right_node]
                 )
                 predicates.append(_convert_ast(sub_compare_node, local_vars))
             return and_(*predicates)
@@ -138,7 +138,7 @@ def _convert_ast(node, local_vars: Optional[Dict[str, Any]] = None):
         try:
             field, transform = _parse_field_expr(left)
             value = _eval_literal(right, local_vars)
-            op_to_use = op
+            op_to_use: ast.cmpop = op
         except ValueError:
             if isinstance(op, (ast.In, ast.NotIn)):
                 raise ValueError(

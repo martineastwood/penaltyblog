@@ -1,10 +1,10 @@
 [project]
 name = "penaltyblog"
-version = "1.7.1"
+version = "1.8.0"
 description = "Football (soccer) Data & Modelling Made Easy"
 authors = [{ name = "Martin Eastwood", email = "martin.eastwood@gmx.com" }]
 readme = "README.md"
-license = { file = "LICENSE" }
+license-files = ["LICENCE"]
 keywords = [
     "football",
     "soccer",
@@ -42,6 +42,7 @@ dependencies = [
     "statsbombpy",
     "tabulate",
     "tqdm",
+    "wrapper-tls-requests",
 ]
 
 classifiers = [

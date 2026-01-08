@@ -9,12 +9,7 @@ import numpy as np
 import numpy.typing as npt
 from scipy import optimize
 
-from .models import (
-    ImpliedMethod,
-    ImpliedProbabilities,
-    OddsFormat,
-    OddsInput,
-)
+from .models import ImpliedMethod, ImpliedProbabilities, OddsFormat, OddsInput
 
 
 def calculate_implied(
@@ -88,10 +83,11 @@ def calculate_implied(
                 raise ValueError(f"Unknown odds format: {odds_format}")
 
         if isinstance(odds, list):
+            odds_values: List[Union[float, str]]
             if all(isinstance(x, (int, float)) for x in odds):
-                odds_values: List[Union[float, str]] = [float(x) for x in odds]
+                odds_values = [float(x) for x in odds]
             else:
-                odds_values: List[Union[float, str]] = [str(x) for x in odds]
+                odds_values = [str(x) for x in odds]
         else:
             # This should not happen due to the isinstance check above
             raise TypeError(f"Expected list, got {type(odds)}")

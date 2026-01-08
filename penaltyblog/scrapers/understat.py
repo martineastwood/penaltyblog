@@ -3,6 +3,7 @@ import re
 from typing import Any, Dict
 
 import pandas as pd
+import requests
 from lxml import html
 
 from .base_scrapers import RequestsScraper
@@ -74,32 +75,34 @@ class Understat(RequestsScraper):
         """
         Gets the fixtures / results for the selected competition / season
         """
+        # Use the API endpoint which requires specific headers
         url = (
             self.base_url
-            + "league/"
+            + "getLeagueData/"
             + self.mapped_competition
             + "/"
             + self.mapped_season
         )
 
-        content = self.get(url)
-        tree = html.fromstring(content)
-        events = None
-        for s in tree.cssselect("script"):
-            if s.text and "datesData" in s.text:
-                script_text = s.text
-                script_text = " ".join(script_text.split())
-                script_text = str(script_text.encode(), "unicode-escape")
-                match = re.match(
-                    r"var datesData = JSON\.parse\('(?P<json>.*?)'\)", script_text
-                )
-                if match is not None:
-                    json_str = match.group("json")
-                    events = json.loads(json_str)
-                    break
+        # The API requires X-Requested-With and Referer headers
+        headers = self.headers.copy()
+        headers["X-Requested-With"] = "XMLHttpRequest"
+        headers["Referer"] = (
+            f"{self.base_url}league/{self.mapped_competition}/{self.mapped_season}"
+        )
 
-        if events is None:
-            raise ValueError("Error: no data found")
+        response = requests.get(url, headers=headers, cookies=self.cookies)
+        response.raise_for_status()
+
+        # The API returns gzip-compressed JSON
+        try:
+            data = response.json()
+            # The response is a dict with 'dates', 'teams', 'players' keys
+            events = data.get("dates", [])
+            if not events:
+                raise ValueError("No dates data found in response")
+        except json.JSONDecodeError:
+            raise ValueError("Error: no data found or invalid JSON response")
 
         fixtures = list()
         for e in events:
@@ -144,26 +147,24 @@ class Understat(RequestsScraper):
             Id for the match of interest,
             Ids can be found using the `get_fixtures()` function
         """
-        url = "https://understat.com/match/{}".format(understat_id)
-        content = self.get(url)
-        tree = html.fromstring(content)
-        events = None
+        url = f"{self.base_url}getMatchData/{understat_id}"
 
-        for s in tree.cssselect("script"):
-            if s.text and "shotsData" in s.text:
-                script_text = s.text
-                script_text = " ".join(script_text.split())
-                script_text = str(script_text.encode(), "unicode-escape")
-                match = re.match(
-                    r"var shotsData = JSON\.parse\('(?P<json>.*?)'\)", script_text
-                )
-                if match is not None:
-                    json_str = match.group("json")
-                    events = json.loads(json_str)
-                    break
+        # The API requires X-Requested-With and Referer headers
+        headers = self.headers.copy()
+        headers["X-Requested-With"] = "XMLHttpRequest"
+        headers["Referer"] = f"{self.base_url}match/{understat_id}"
 
-        if events is None:
-            raise ValueError("Error: no data found")
+        response = requests.get(url, headers=headers, cookies=self.cookies)
+        response.raise_for_status()
+
+        try:
+            data = response.json()
+            # The response has 'shots' key containing home and away shots
+            events = data.get("shots", {})
+            if not events:
+                raise ValueError("No shots data found in response")
+        except json.JSONDecodeError:
+            raise ValueError("Error: no data found or invalid JSON response")
 
         shots = list()
         shots.extend(events["h"])
@@ -275,26 +276,26 @@ class Understat(RequestsScraper):
         player_id : str
             Id for the player of interest,
         """
-        url = "https://understat.com/player/{}".format(player_id)
-        content = self.get(url)
-        tree = html.fromstring(content)
-        events = None
+        import requests
 
-        for s in tree.cssselect("script"):
-            if s.text and "groupsData" in s.text:
-                script_text = s.text
-                script_text = " ".join(script_text.split())
-                script_text = str(script_text.encode(), "unicode-escape")
-                match = re.match(
-                    r"var groupsData = JSON\.parse\('(?P<json>.*?)'\)", script_text
-                )
-                if match is not None:
-                    json_str = match.group("json")
-                    events = json.loads(json_str)
-                    break
+        url = f"{self.base_url}getPlayerData/{player_id}"
 
-        if events is None:
-            raise ValueError("Error: no data found")
+        # The API requires X-Requested-With and Referer headers
+        headers = self.headers.copy()
+        headers["X-Requested-With"] = "XMLHttpRequest"
+        headers["Referer"] = f"{self.base_url}player/{player_id}"
+
+        response = requests.get(url, headers=headers, cookies=self.cookies)
+        response.raise_for_status()
+
+        try:
+            data = response.json()
+            # The response has 'groups' key containing season data
+            events = data.get("groups", {})
+            if not events:
+                raise ValueError("No groups data found in response")
+        except json.JSONDecodeError:
+            raise ValueError("Error: no data found or invalid JSON response")
 
         df = (
             pd.DataFrame(events["season"])
@@ -316,30 +317,26 @@ class Understat(RequestsScraper):
         player_id : str
             Id for the player of interest,
         """
-        url = "https://understat.com/player/{}".format(player_id)
-        content = self.get(url)
-        tree = html.fromstring(content)
-        events = None
+        import requests
 
-        for s in tree.cssselect("script"):
-            if s.text and "shotsData" in s.text:
-                script_text = s.text
-                script_text = " ".join(script_text.split())
-                script_text = str(script_text.encode(), "unicode-escape")
-                # The check below is redundant since script_text is already a string
-                # but we'll keep the error handling logic
-                if not script_text:
-                    raise ValueError("Failed to parse script data")
-                match = re.match(
-                    r"var shotsData = JSON\.parse\('(?P<json>.*?)'\)", script_text
-                )
-                if match is not None:
-                    json_str = match.group("json")
-                    events = json.loads(json_str)
-                break
+        url = f"{self.base_url}getPlayerData/{player_id}"
 
-        if events is None:
-            raise ValueError("Error: no data found")
+        # The API requires X-Requested-With and Referer headers
+        headers = self.headers.copy()
+        headers["X-Requested-With"] = "XMLHttpRequest"
+        headers["Referer"] = f"{self.base_url}player/{player_id}"
+
+        response = requests.get(url, headers=headers, cookies=self.cookies)
+        response.raise_for_status()
+
+        try:
+            data = response.json()
+            # The response has 'shots' key containing shot data
+            events = data.get("shots", [])
+            if not events:
+                raise ValueError("No shots data found in response")
+        except json.JSONDecodeError:
+            raise ValueError("Error: no data found or invalid JSON response")
 
         col_renames = {
             "h_team": "team_home",
