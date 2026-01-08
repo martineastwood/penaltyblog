@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 
 import penaltyblog as pb
-from penaltyblog.models.bayesian_model import BayesianGoalModel
+from penaltyblog.models import BayesianGoalModel
 
 
 def test_bayesian_automatic_burn_thinning():
