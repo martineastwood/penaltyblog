@@ -1,9 +1,9 @@
 from __future__ import annotations
 
+import concurrent.futures
 import logging
-import multiprocessing
+import os
 import sys
-import threading
 import traceback
 from typing import Any, Callable, Dict, List, Optional
 
@@ -12,39 +12,6 @@ import numpy as np
 from .sampler import DiffEvolEnsembleSampler
 
 logger = logging.getLogger(__name__)
-
-# Choose the best multiprocessing context for the platform
-# On Windows, we must use 'spawn'.
-# On macOS (Python 3.8+), spawn is the default due to fork safety issues.
-# On Linux, we prefer 'fork' for performance.
-# NOTE: Context creation is delayed until first use to avoid import-time issues
-_MP_CONTEXT = None
-_MP_CONTEXT_LOCK = threading.Lock()
-
-
-def _get_mp_context():
-    """Get or create the multiprocessing context (lazy initialization).
-
-    This is done lazily to avoid issues with module import in spawned processes.
-    Thread-safe to prevent race conditions during concurrent access.
-    """
-    global _MP_CONTEXT
-    if _MP_CONTEXT is None:
-        with _MP_CONTEXT_LOCK:
-            # Double-check after acquiring lock
-            if _MP_CONTEXT is None:
-                if sys.platform == "win32":
-                    _MP_CONTEXT = multiprocessing.get_context("spawn")
-                elif sys.platform == "darwin":
-                    # macOS: Use spawn (required in Python 3.8+ for safety)
-                    _MP_CONTEXT = multiprocessing.get_context("spawn")
-                else:
-                    # Linux and others: try fork, fall back to spawn
-                    try:
-                        _MP_CONTEXT = multiprocessing.get_context("fork")
-                    except ValueError:
-                        _MP_CONTEXT = multiprocessing.get_context("spawn")
-    return _MP_CONTEXT
 
 
 def _is_function_picklable(func: Callable) -> bool:
@@ -269,7 +236,7 @@ class EnsembleSampler:
 
         # Safely get CPU count with fallback for restricted environments
         try:
-            max_cores = multiprocessing.cpu_count()
+            max_cores = os.cpu_count() or 1
         except (NotImplementedError, OSError):
             # Fallback for platforms where cpu_count() is not available or fails
             max_cores = 1
@@ -341,45 +308,21 @@ class EnsembleSampler:
             tasks.append(chain)
 
         # Run chains: use multiprocessing for n_cores > 1, otherwise run directly
-        # This avoids spawn mode overhead and potential deadlocks on Windows/macOS
         if self.n_cores == 1:
-            # Run sequentially in the main process (no multiprocessing overhead)
+            # Run sequentially in the main process
             try:
                 self.chains = [_worker_proxy(chain) for chain in tasks]
             except Exception as e:
-                # Maintain consistent error handling with multiprocessing path
+                # Maintain consistent error handling
                 raise RuntimeError(f"Chain execution failed: {e}") from e
         else:
-            # Calculate optimal chunksize for better load balancing
-            # For uniform tasks (MCMC chains), use larger chunks for efficiency
-            chunksize = max(1, len(tasks) // (2 * self.n_cores))
-
-            # Use multiprocessing for parallel execution
-            # On Windows/macOS (spawn mode), we need explicit pool cleanup to avoid hangs
-            pool = None
             try:
-                mp_context = _get_mp_context()
-                pool = mp_context.Pool(processes=self.n_cores)
-
-                # Use imap with no timeout per task, but wrap in try/except for safety
-                self.chains = list(pool.imap(_worker_proxy, tasks, chunksize=chunksize))
+                with concurrent.futures.ProcessPoolExecutor(
+                    max_workers=self.n_cores
+                ) as executor:
+                    self.chains = list(executor.map(_worker_proxy, tasks))
             except Exception as e:
-                # Ensure cleanup happens on error
-                if pool is not None:
-                    pool.terminate()
-                raise RuntimeError(f"Multiprocessing pool failed: {e}") from e
-            finally:
-                # Explicitly close and join the pool to ensure clean termination
-                # This is critical on Windows/macOS to prevent test hangs
-                if pool is not None:
-                    try:
-                        pool.close()
-                        pool.join()
-                    except Exception as e:
-                        # If normal cleanup fails, terminate forcefully
-                        logger.error(f"Pool cleanup failed: {e}, terminating")
-                        pool.terminate()
-                        raise
+                raise RuntimeError(f"Multiprocessing execution failed: {e}") from e
 
     def get_posterior(self, burn: int = 0, thin: int = 1) -> np.ndarray:
         """Aggregates samples from all chains.
