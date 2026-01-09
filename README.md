@@ -81,16 +81,11 @@ Unlike many football analytics resources that are academic, one-off, or hard to 
 
 It combines advanced statistical models (including **Bayesian** and **Hierarchical Bayesian** variants), efficient implementations (via **Cython**), and real-world workflows, from scraping public data to modelling outcomes and optimising fantasy teams.
 
-Built by [Martin Eastwood](https://pena.lt/y/about), who has worked with football clubs, governing bodies, player agencies and betting syndicates worldwide, `penaltyblog` is the foundation for football analytics.
+The project is maintained by [Martin Eastwood](https://pena.lt/y/about), a data scientist focused on the intersection of high-performance computing and sports analytics. `penaltyblog` aims to provide the community with a robust, audited foundation for advanced modeling.
 
-Whether you're a club analyst, independent researcher, or just data-curious, `penaltyblog` gives you the tools to go from data to insight - fast, flexibly, and with confidence.
+## Community & Contributions
 
-## Support & Collaboration
+I am always interested in seeing how `penaltyblog` is being applied in research and industry. If you have feedback, bug reports, or want to collaborate on new features, feel free to:
 
-If you're working at a football club, agency, or organisation and want help applying these tools to your own data or workflows, I'm open to:
-
-- 📂 Integration support
-- 🔧 Custom model development
-- 🧠 Technical collaboration on football analytics projects
-
-➡️ Get in touch [here](https://pena.lt/y/contact)
+- Open an Issue [here](https://github.com/martineastwood/penaltyblog/issues)
+- Get in touch [here](https://pena.lt/y/contact)
