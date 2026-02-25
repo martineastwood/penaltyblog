@@ -617,3 +617,88 @@ def test_goal_expectancy_dc_adj():
     assert "predicted" in exp
     assert "mass" in exp
     assert abs(exp["mass"] - 1.0) < 0.1  # Should be close to 1
+
+
+class TestGoalExpectancyExtended:
+    """Test extended goal expectancy functionality (with Over/Under 2.5)."""
+
+    @pytest.fixture
+    def extended_probs(self):
+        """Standard valid probabilities for 1X2 and U/O."""
+        return (0.5, 0.25, 0.25, 0.55, 0.45)
+
+    def test_basic_functionality(self, extended_probs):
+        """Test basic functionality with default parameters."""
+        home, draw, away, over25, under25 = extended_probs
+        result = pb.models.goal_expectancy_extended(home, draw, away, over25, under25)
+
+        assert isinstance(result, dict)
+        assert "home_exp" in result
+        assert "away_exp" in result
+        assert "implied_rho" in result
+        assert "error" in result
+        assert "success" in result
+
+        assert "predicted_1x2" in result
+        assert "predicted_ou" in result
+
+        assert result["success"] is True
+
+        assert result["home_exp"] > result["away_exp"]
+        assert -0.5 <= result["implied_rho"] <= 0.5
+        assert result["error"] >= 0
+
+    def test_negative_probabilities(self):
+        """Test that negative probabilities raise ValueError."""
+        with pytest.raises(ValueError, match="Probabilities must be >= 0."):
+            pb.models.goal_expectancy_extended(-0.1, 0.5, 0.5, 0.5, 0.5)
+
+        with pytest.raises(ValueError, match="Probabilities must be >= 0."):
+            pb.models.goal_expectancy_extended(0.5, 0.25, 0.25, -0.1, 0.6)
+
+    def test_remove_overround(self, extended_probs):
+        """Test remove_overround normalizes probabilities."""
+        home, draw, away, over25, under25 = extended_probs
+        home, draw, away = home * 1.1, draw * 1.1, away * 1.1
+        over25, under25 = over25 * 1.1, under25 * 1.1
+
+        result = pb.models.goal_expectancy_extended(
+            home, draw, away, over25, under25, remove_overround=True
+        )
+        assert result["success"] is True
+        # Since we use overround but with same ratios, expect similar result
+        assert result["home_exp"] > result["away_exp"]
+
+    def test_objective_functions(self, extended_probs):
+        """Test both objective functions."""
+        home, draw, away, over25, under25 = extended_probs
+        result_brier = pb.models.goal_expectancy_extended(
+            home, draw, away, over25, under25, objective="brier"
+        )
+        result_ce = pb.models.goal_expectancy_extended(
+            home, draw, away, over25, under25, objective="cross_entropy"
+        )
+
+        assert result_brier["success"] is True
+        assert result_ce["success"] is True
+
+    def test_invalid_objective(self, extended_probs):
+        """Test that invalid objective raises ValueError."""
+        home, draw, away, over25, under25 = extended_probs
+        with pytest.raises(
+            ValueError, match="objective must be 'brier' or 'cross_entropy'"
+        ):
+            pb.models.goal_expectancy_extended(
+                home, draw, away, over25, under25, objective="invalid"  # type: ignore
+            )
+
+    def test_return_details_false(self, extended_probs):
+        """Test return_details behavior."""
+        home, draw, away, over25, under25 = extended_probs
+        result = pb.models.goal_expectancy_extended(
+            home, draw, away, over25, under25, return_details=False
+        )
+
+        assert "predicted_1x2" not in result
+        assert "predicted_ou" not in result
+        assert "home_exp" in result
