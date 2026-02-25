@@ -2,7 +2,10 @@ from .base_bayesian_model import BaseBayesianModel  # noqa
 from .bayesian_goal_model import BayesianGoalModel  # noqa
 from .bivariate_poisson import BivariatePoissonGoalModel  # noqa
 from .dixon_coles import DixonColesGoalModel  # noqa
-from .football_probability_grid import FootballProbabilityGrid  # noqa
+from .football_probability_grid import (  # noqa
+    FootballProbabilityGrid,
+    create_dixon_coles_grid,
+)
 from .goal_expectancy import goal_expectancy, goal_expectancy_extended  # noqa
 from .hierarchical_bayesian_goal_model import (  # noqa
     HierarchicalBayesianGoalModel,
@@ -17,6 +20,7 @@ __all__ = [
     "BaseBayesianModel",
     "BayesianGoalModel",
     "BivariatePoissonGoalModel",
+    "create_dixon_coles_grid",
     "DixonColesGoalModel",
     "FootballProbabilityGrid",
     "goal_expectancy",
