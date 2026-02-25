@@ -132,3 +132,52 @@ This function reverse-engineers μ_home and μ_away via a small **non-linear opt
 - The returned ``mass`` is the sum of all probabilities in the truncated grid.
   If ``max_goals`` is too low, ``mass`` < 1.0 means you've cut off a non-negligible tail - increasing ``max_goals`` will reduce this.
 - With ``normalize_after_dc=False``, residuals may include both truncation error and DC-induced mass shifts.
+
+
+Extended Goal Expectancy Inference
+==================================
+
+If you have both the 1X2 market probabilities and the Over/Under 2.5 probabilities available, you can use ``goal_expectancy_extended`` to simultaneously reverse-engineer the implied expected goals (μ_home, μ_away) and a custom Dixon-Coles adjustment parameter (``rho``) that matches all constraints.
+
+.. code-block:: python
+
+   from penaltyblog.models import goal_expectancy_extended
+
+   # Assuming you derived the following market probabilities:
+   p_home, p_draw, p_away = 0.45, 0.28, 0.29
+   p_over25, p_under25 = 0.48, 0.52
+
+   est_ext = goal_expectancy_extended(
+       home=p_home,
+       draw=p_draw,
+       away=p_away,
+       over25=p_over25,
+       under25=p_under25,
+       remove_overround=True
+   )
+
+   print(est_ext["home_exp"])     # Implied home lambda
+   print(est_ext["away_exp"])     # Implied away lambda
+   print(est_ext["implied_rho"])  # Implied Dixon-Coles rho
+
+Generating Full Match Probabilities
+===================================
+
+Once you have inferred the implied goal expectancies (and optionally the Dixon-Coles ``rho`` parameter) using either ``goal_expectancy`` or ``goal_expectancy_extended``, you can feed these parameters directly into ``create_dixon_coles_grid``. This allows you to generate a complete probability grid and extract odds for any other market (e.g., Asian Handicaps, Both Teams to Score, exact correct scores) from just basic 1X2 and Over/Under prices.
+
+.. code-block:: python
+
+   from penaltyblog.models import create_dixon_coles_grid
+
+   # Using the results from goal_expectancy_extended above
+   home_lambda = est_ext["home_exp"]
+   away_lambda = est_ext["away_exp"]
+   rho = est_ext["implied_rho"]
+
+   # Create the full probability grid
+   pred = create_dixon_coles_grid(home_lambda, away_lambda, rho)
+
+   # Now you can query any market
+   print(pred.btts_yes)                           # Both Teams to Score (Yes)
+   print(pred.asian_handicap_probs("home", -0.5)) # Asian Handicap
+   print(pred.exact_score(2, 1))                  # Probability of a 2-1 exact score

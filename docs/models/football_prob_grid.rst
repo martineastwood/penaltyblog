@@ -195,3 +195,21 @@ Because all markets derive from ``pred.grid``, you can export or visualise it fo
    grid_df.to_csv("score_grid.csv", index_label="home_goals")
 
 This makes it easy to trace any market probability back to the underlying score distribution.
+
+Creating Grids Directly
+=======================
+
+You can circumvent fitting models using historical match data and instead create a grid directly from your own expected goals (lambdas). This is useful if your expected goals predictions derive from external ML models (such as an XGBoost model fit on xG event data) rather than standard Poisson regression.
+
+.. code-block:: python
+
+   from penaltyblog.models import create_dixon_coles_grid
+
+   # Build a grid by providing expectation parameters
+   pred = create_dixon_coles_grid(home_lambda=1.5, away_lambda=1.2, rho=0.01)
+
+   # Use the grid normally
+   pred.home_win
+   pred.totals(2.5)
+
+The ``create_dixon_coles_grid`` function calculates independent probabilities and applies the low-score correlation adjustment defined by ``rho``.
