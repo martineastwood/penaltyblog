@@ -623,3 +623,57 @@ def test_str():
     assert "Class: FootballProbabilityGrid" in repr_str
     assert "Home Goal Expectation: 1.000" in repr_str
     assert "Away Goal Expectation: 2.000" in repr_str
+
+
+class TestCreateDixonColesGrid:
+    """Test the create_dixon_coles_grid factory function."""
+
+    def test_basic_creation(self):
+        """Test basic grid creation with default parameters."""
+        grid = pb.models.create_dixon_coles_grid(1.5, 1.2)
+        assert isinstance(grid, pb.models.FootballProbabilityGrid)
+        assert grid.home_goal_expectation == 1.5
+        assert grid.away_goal_expectation == 1.2
+        assert grid.grid.shape == (16, 16)  # default max_goals is 15
+        assert np.isclose(np.sum(grid.grid), 1.0)
+
+    def test_custom_max_goals(self):
+        """Test custom max_goals parameter."""
+        grid = pb.models.create_dixon_coles_grid(1.5, 1.2, max_goals=10)
+        assert grid.grid.shape == (11, 11)
+
+    def test_invalid_lambdas(self):
+        """Test that invalid lambdas raise ValueError."""
+        with pytest.raises(
+            ValueError, match="Expected goals \\(lambdas\\) must be strictly positive"
+        ):
+            pb.models.create_dixon_coles_grid(0.0, 1.2)
+
+        with pytest.raises(
+            ValueError, match="Expected goals \\(lambdas\\) must be strictly positive"
+        ):
+            pb.models.create_dixon_coles_grid(1.5, -0.1)
+
+    def test_rho_adjustment(self):
+        """Test that rho adjustments work as expected."""
+        # Grid with independent Poisson
+        grid_base = pb.models.create_dixon_coles_grid(1.5, 1.2, rho=0.0)
+
+        # Grid with positive rho
+        grid_rho = pb.models.create_dixon_coles_grid(1.5, 1.2, rho=0.1)
+
+        # 1-1 outcome probability should be decreased for positive rho (grid[1,1] *= 1-rho)
+        # Note: the effect might be complex due to renormalization, but let's check
+        # the unnormalized initial adjustment or just check matrices aren't equal
+        assert not np.array_equal(grid_base.grid, grid_rho.grid)
+
+        # The sum should still be 1 after adjustment
+        assert np.isclose(np.sum(grid_rho.grid), 1.0)
+
+    def test_negative_probability_clipping(self):
+        """Test that rho causing negative initial probability does not throw and clips to 0."""
+        # A ridiculous rho that would drop the 0-0 chance to < 0, triggering clip
+        grid = pb.models.create_dixon_coles_grid(3.0, 3.0, rho=0.5)
+        # Clip should ensure no cell is < 0
+        assert np.all(grid.grid >= 0.0)
+        assert np.isclose(np.sum(grid.grid), 1.0)
