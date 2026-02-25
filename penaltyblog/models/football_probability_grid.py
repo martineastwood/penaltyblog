@@ -69,7 +69,6 @@ class FootballProbabilityGrid:
             # Allow slight deviations if user disabled normalization.
             if not np.isclose(total, 1.0, atol=1e-6):
                 # Soft fail: keep as is to preserve backward behaviour.
-                # In future, I may add a warning in here?
                 pass
 
         self.grid = grid  # keep original attribute name for back-compat
@@ -129,7 +128,7 @@ class FootballProbabilityGrid:
         return 1.0 - self.btts_yes
 
     # ---------------------------------------------------------------------
-    # Convenience markets often used by analysts
+    # Convenience markets
     # ---------------------------------------------------------------------
     @property
     def double_chance_1x(self) -> float:
@@ -443,3 +442,65 @@ class FootballProbabilityGrid:
         if key not in self._cache:
             self._cache[key] = float(self.grid[mask].sum())
         return self._cache[key]
+
+
+def create_dixon_coles_grid(
+    home_lambda: float, away_lambda: float, rho: float = 0.0, max_goals: int = 15
+) -> FootballProbabilityGrid:
+    """
+    Creates a FootballProbabilityGrid using a Dixon-Coles adjusted Poisson model,
+    incorporating the correlation adjustment for low-scoring draws.
+
+    Parameters
+    ----------
+    home_lambda : float
+        The expected number of goals for the home team.
+    away_lambda : float
+        The expected number of goals for the away team.
+    rho : float, optional (default=0.0)
+        The Dixon-Coles correlation parameter to adjust 0-0, 1-0, 0-1, and 1-1
+        probabilities. A value of 0.0 falls back to standard independent Poisson.
+    max_goals : int, optional (default=15)
+        The maximum number of goals to calculate probabilities for.
+
+    Returns
+    -------
+    FootballProbabilityGrid
+        An initialized probability grid ready for market pricing.
+    """
+    if home_lambda <= 0 or away_lambda <= 0:
+        raise ValueError("Expected goals (lambdas) must be strictly positive.")
+
+    # Calculate independent Poisson PMFs for 0 to max_goals
+    h_goals = np.arange(max_goals + 1)
+    a_goals = np.arange(max_goals + 1)
+
+    home_probs = poisson.pmf(h_goals, home_lambda)
+    away_probs = poisson.pmf(a_goals, away_lambda)
+
+    # Outer product creates the base independent probability matrix
+    # grid[i, j] = P(Home=i) * P(Away=j)
+    grid = np.outer(home_probs, away_probs)
+
+    # Apply the Dixon-Coles tau adjustment (the secret sauce)
+    if rho != 0.0:
+        # The tau adjustment function from Dixon and Coles (1997)
+        # It inflates the 0-0 and 1-1 draws, and deflates the 1-0 and 0-1 results
+        grid[0, 0] *= 1.0 - rho * home_lambda * away_lambda
+        grid[1, 0] *= 1.0 + rho * home_lambda
+        grid[0, 1] *= 1.0 + rho * away_lambda
+        grid[1, 1] *= 1.0 - rho
+
+        # Prevent mathematically impossible negative probabilities
+        grid = np.clip(grid, 0.0, None)
+
+        # Renormalize the matrix so the sum exactly equals 1.0 after adjustments
+        grid /= np.sum(grid)
+
+    # Wrap the matrix in our unified market pricing class
+    return FootballProbabilityGrid(
+        goal_matrix=grid,
+        home_goal_expectation=home_lambda,
+        away_goal_expectation=away_lambda,
+        normalize=True,
+    )
