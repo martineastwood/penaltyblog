@@ -20,6 +20,11 @@ v1.9.0 (2026-02-28)
   * Fixed ``FootballProbabilityGrid.totals()`` to correctly handle quarter lines (e.g., 2.25, 2.75) with split-stake logic. Previously, push probability was incorrectly 0 for quarter lines.
   * Fixed ``FootballProbabilityGrid.asian_handicap_probs()`` where handicap signs were inverted. Negative lines (e.g., -0.5) and positive lines (e.g., +0.5) could produce swapped win/lose probabilities.
 
+* **Performance**
+
+  * Precomputed total goals grid in ``FootballProbabilityGrid.__post_init__`` to avoid redundant calculation in repeated ``totals()`` calls.
+  * Removed redundant negative fraction handling code in ``totals()`` and ``asian_handicap_probs()`` methods.
+
 * **Documentation**
 
   * Updated documentation to reflect quarter line support in the ``totals()`` method.

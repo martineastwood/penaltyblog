@@ -75,6 +75,7 @@ class FootballProbabilityGrid:
         self.grid = grid  # keep original attribute name for back-compat
         # Precompute index grids for fast vectorised masks
         self._I, self._J = np.indices(self.grid.shape)
+        self._S = self._I + self._J  # Precomputed total goals grid
         # Simple cache for frequently used sums
         self._cache: Dict[str, float] = {}
 
@@ -190,7 +191,7 @@ class FootballProbabilityGrid:
         Quarter lines (0.25, 0.75, etc.) are treated as half-stakes on the
         adjacent lines (e.g., 2.25 = 50% at 2.0 and 50% at 2.5).
         """
-        s = self._I + self._J
+        s = self._S
 
         def single_line_probs(l: float) -> Tuple[float, float, float]:
             under = self.grid[s < l].sum()
@@ -198,13 +199,8 @@ class FootballProbabilityGrid:
             over = self.grid[s > l].sum()
             return float(under), float(push), float(over)
 
-        frac = line - np.floor(line)
-        # Handle negative fractions consistently (e.g., -0.25)
-        if frac < 0:
-            frac += 1.0
-            base = np.floor(line) - 1.0
-        else:
-            base = np.floor(line)
+        base = np.floor(line)
+        frac = line - base
 
         # Quarter-line handling (split across neighbouring lines)
         if np.isclose(frac, 0.25) or np.isclose(frac, 0.75):
@@ -295,13 +291,8 @@ class FootballProbabilityGrid:
             lose = self.grid[gd < -l].sum()
             return float(win), float(push), float(lose)
 
-        frac = line - np.floor(line)
-        # Handle negative fractions consistently (e.g., -0.25)
-        if frac < 0:
-            frac += 1.0
-            base = np.floor(line) - 1.0
-        else:
-            base = np.floor(line)
+        base = np.floor(line)
+        frac = line - base
 
         # Quarter-line handling (split across neighbouring half-lines)
         if np.isclose(frac, 0.25) or np.isclose(frac, 0.75):
@@ -524,6 +515,17 @@ def create_dixon_coles_grid(
     if home_lambda <= 0 or away_lambda <= 0:
         raise ValueError("Expected goals (lambdas) must be strictly positive.")
 
+    # Calculate the strict mathematical bounds for rho
+    rho_min = max(-1.0 / home_lambda, -1.0 / away_lambda)
+    rho_max = min(1.0, 1.0 / (home_lambda * away_lambda))
+
+    # Check and enforce bounds (Raise an error, or strictly clamp it)
+    if not (rho_min <= rho <= rho_max):
+        raise ValueError(
+            f"Dixon-Coles rho={rho} is out of bounds for the given lambdas. "
+            f"Must be between {rho_min:.4f} and {rho_max:.4f}."
+        )
+
     # Calculate independent Poisson PMFs for 0 to max_goals
     h_goals = np.arange(max_goals + 1)
     a_goals = np.arange(max_goals + 1)
@@ -541,13 +543,6 @@ def create_dixon_coles_grid(
         grid[0, 1] *= 1.0 + rho * away_lambda
         grid[1, 1] *= 1.0 - rho
 
-        # Prevent mathematically impossible negative probabilities
-        grid = np.clip(grid, 0.0, None)
-
-        # Renormalize the matrix so the sum exactly equals 1.0 after adjustments
-        grid /= np.sum(grid)
-
-    # Wrap the matrix in the unified market pricing class
     return FootballProbabilityGrid(
         goal_matrix=grid,
         home_goal_expectation=home_lambda,
