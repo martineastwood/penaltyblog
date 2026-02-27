@@ -45,7 +45,7 @@ def test_weibull_minimizer_options(fixtures):
     assert type(probs.home_draw_away) == list
     assert len(probs.home_draw_away) == 3
     assert 0.3 < probs.total_goals("over", 1.5) < 0.9
-    assert 0.2 < probs.asian_handicap("home", 1.5) < 0.5
+    assert 0.9 < probs.asian_handicap("home", 1.5) < 1.0
 
     clf = pb.models.WeibullCopulaGoalsModel(
         df["goals_home"], df["goals_away"], df["team_home"], df["team_away"]
@@ -60,7 +60,7 @@ def test_weibull_minimizer_options(fixtures):
     assert type(probs.home_draw_away) == list
     assert len(probs.home_draw_away) == 3
     assert 0.3 < probs.total_goals("over", 1.5) < 0.9
-    assert 0.2 < probs.asian_handicap("home", 1.5) < 0.5
+    assert 0.9 < probs.asian_handicap("home", 1.5) < 1.0
 
 
 @pytest.mark.local

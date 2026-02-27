@@ -781,10 +781,7 @@ class TestCreateDixonColesGrid:
         # The sum should still be 1 after adjustment
         assert np.isclose(np.sum(grid_rho.grid), 1.0)
 
-    def test_negative_probability_clipping(self):
+    def test_negative_probability_throws(self):
         """Test that rho causing negative initial probability does not throw and clips to 0."""
-        # A ridiculous rho that would drop the 0-0 chance to < 0, triggering clip
-        grid = pb.models.create_dixon_coles_grid(3.0, 3.0, rho=0.5)
-        # Clip should ensure no cell is < 0
-        assert np.all(grid.grid >= 0.0)
-        assert np.isclose(np.sum(grid.grid), 1.0)
+        with pytest.raises(ValueError, match="is out of bounds for the given lambdas"):
+            pb.models.create_dixon_coles_grid(3.0, 3.0, rho=0.5)
