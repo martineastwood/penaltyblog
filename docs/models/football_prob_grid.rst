@@ -78,7 +78,7 @@ API Summary
 +--------------------------------------------------------------+-------------------------------------------------------------------------+
 | ``btts_yes``, ``btts_no``                                    | BTTS Yes/No probabilities                                               |
 +--------------------------------------------------------------+-------------------------------------------------------------------------+
-| ``totals(line)``                                             | Returns ``(under, push, over)`` for integer/half lines (e.g., 2.0, 2.5) |
+| ``totals(line)``                                             | Returns ``(under, push, over)`` for integer/half/**quarter** lines (e.g., 2.0, 2.5, 2.25) |
 +--------------------------------------------------------------+-------------------------------------------------------------------------+
 | ``total_goals(side, line)``                                  | Back-compat Over/Under prob (push excluded)                             |
 +--------------------------------------------------------------+-------------------------------------------------------------------------+
@@ -115,6 +115,7 @@ Totals lines can **push** when the line is an integer (e.g., 2.0). Use ``totals(
 
 - Half-lines (e.g., **2.5**) cannot push → push = 0.
 - Integer lines (e.g., **2.0**) can push → non-zero push.
+- **Quarter lines** (e.g., **2.25**, **2.75**) split the stake across neighbouring lines, so push can be non-zero. For example, ``totals(2.25)`` is equivalent to 50% on ``2.0`` and 50% on ``2.5``.
 
 Asian Handicap: Integer, Half, and Quarter Lines
 ================================================

@@ -299,6 +299,70 @@ class TestTotalsMarkets:
         assert np.isclose(push, expected_push, atol=1e-10)
         assert np.isclose(over, expected_over, atol=1e-10)
 
+    def test_totals_quarter_lines(self, normalized_grid):
+        """Test totals with quarter lines (split stakes)."""
+        fpg = pb.models.FootballProbabilityGrid(normalized_grid, 1.5, 1.2)
+
+        # Test 2.25 line (should be 50% on 2.0, 50% on 2.5)
+        under_225, push_225, over_225 = fpg.totals(2.25)
+
+        # Get the individual line probabilities
+        under_20, push_20, over_20 = fpg.totals(2.0)
+        under_25, push_25, over_25 = fpg.totals(2.5)
+
+        # Quarter line should be average of the two
+        expected_under = 0.5 * (under_20 + under_25)
+        expected_push = 0.5 * (push_20 + push_25)
+        expected_over = 0.5 * (over_20 + over_25)
+
+        assert np.isclose(under_225, expected_under, atol=1e-10)
+        assert np.isclose(push_225, expected_push, atol=1e-10)
+        assert np.isclose(over_225, expected_over, atol=1e-10)
+
+        # Should still sum to 1.0
+        assert np.isclose(under_225 + push_225 + over_225, 1.0, atol=1e-10)
+
+    def test_totals_quarter_lines_075(self, normalized_grid):
+        """Test totals with 0.75 quarter line."""
+        fpg = pb.models.FootballProbabilityGrid(normalized_grid, 1.5, 1.2)
+
+        # Test 1.75 line (should be 50% on 1.5, 50% on 2.0)
+        under_175, push_175, over_175 = fpg.totals(1.75)
+
+        under_15, push_15, over_15 = fpg.totals(1.5)
+        under_20, push_20, over_20 = fpg.totals(2.0)
+
+        expected_under = 0.5 * (under_15 + under_20)
+        expected_push = 0.5 * (push_15 + push_20)
+        expected_over = 0.5 * (over_15 + over_20)
+
+        assert np.isclose(under_175, expected_under, atol=1e-10)
+        assert np.isclose(push_175, expected_push, atol=1e-10)
+        assert np.isclose(over_175, expected_over, atol=1e-10)
+
+    def test_totals_quarter_line_push_probability(self):
+        """Test that quarter lines correctly return non-zero push probability."""
+        # Create a grid where we know exactly what the push probability should be
+        matrix = np.array(
+            [
+                [0.1, 0.1, 0.1],  # Total goals: 0, 1, 2
+                [0.1, 0.1, 0.1],  # Total goals: 1, 2, 3
+                [0.1, 0.1, 0.1],  # Total goals: 2, 3, 4
+            ]
+        )
+        fpg = pb.models.FootballProbabilityGrid(matrix, 1.0, 1.0)
+
+        # Matrix sums to 0.9, so after normalization each 0.1 becomes 0.1/0.9 = 1/9
+        # For line 1.25: 50% on 1.0, 50% on 1.5
+        # Push on 1.0 = probability of exactly 1 goal = (0,1) + (1,0) = 2/9
+        # Push on 1.5 = 0 (half line)
+        # Expected push for 1.25 = 0.5 * (2/9 + 0) = 1/9
+        under, push, over = fpg.totals(1.25)
+
+        # Verify push is non-zero (the bug we're fixing)
+        assert push > 0.0
+        assert np.isclose(push, 1.0 / 9.0, atol=1e-10)
+
 
 class TestAsianHandicapMarkets:
     """Test Asian handicap markets."""
@@ -364,6 +428,53 @@ class TestAsianHandicapMarkets:
 
         with pytest.raises(ValueError, match="home_away must be 'home' or 'away'"):
             fpg.asian_handicap("wrong", 0.5)
+
+    def test_asian_handicap_sign_correctness(self):
+        """Test that Asian handicap signs are correctly interpreted.
+
+        Verifies that:
+        - Negative line (e.g., -0.5): side gives goals, must win for bet to win
+        - Positive line (e.g., +0.5): side receives goals, draw also wins
+        """
+        # Create a grid with known 1X2 probabilities
+        matrix = np.array(
+            [
+                [0.1, 0.1, 0.1],  # (0,0)=draw, (0,1)=away, (0,2)=away
+                [0.2, 0.1, 0.05],  # (1,0)=home, (1,1)=draw, (1,2)=away
+                [0.1, 0.1, 0.05],  # (2,0)=home, (2,1)=home, (2,2)=draw
+            ]
+        )
+        fpg = pb.models.FootballProbabilityGrid(matrix, 1.0, 1.0)
+
+        # Home -0.5: home gives 0.5 goals, must win for bet to win
+        probs = fpg.asian_handicap_probs("home", -0.5)
+        assert np.isclose(probs["win"], fpg.home_win, atol=1e-10)
+        assert np.isclose(probs["push"], 0.0, atol=1e-10)
+        assert np.isclose(probs["lose"], fpg.draw + fpg.away_win, atol=1e-10)
+
+        # Home +0.5: home receives 0.5 goals, draw also wins
+        probs = fpg.asian_handicap_probs("home", 0.5)
+        assert np.isclose(probs["win"], fpg.home_win + fpg.draw, atol=1e-10)
+        assert np.isclose(probs["push"], 0.0, atol=1e-10)
+        assert np.isclose(probs["lose"], fpg.away_win, atol=1e-10)
+
+        # Home 0.0 (DNB): win=home_win, push=draw, lose=away_win
+        probs = fpg.asian_handicap_probs("home", 0.0)
+        assert np.isclose(probs["win"], fpg.home_win, atol=1e-10)
+        assert np.isclose(probs["push"], fpg.draw, atol=1e-10)
+        assert np.isclose(probs["lose"], fpg.away_win, atol=1e-10)
+
+        # Away -0.5: away gives 0.5 goals, must win for bet to win
+        probs = fpg.asian_handicap_probs("away", -0.5)
+        assert np.isclose(probs["win"], fpg.away_win, atol=1e-10)
+        assert np.isclose(probs["push"], 0.0, atol=1e-10)
+        assert np.isclose(probs["lose"], fpg.draw + fpg.home_win, atol=1e-10)
+
+        # Away +0.5: away receives 0.5 goals, draw also wins
+        probs = fpg.asian_handicap_probs("away", 0.5)
+        assert np.isclose(probs["win"], fpg.away_win + fpg.draw, atol=1e-10)
+        assert np.isclose(probs["push"], 0.0, atol=1e-10)
+        assert np.isclose(probs["lose"], fpg.home_win, atol=1e-10)
 
 
 class TestExactScoresAndDistributions:

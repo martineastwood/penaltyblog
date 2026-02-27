@@ -7,6 +7,24 @@ Version Numbering
 ``penaltyblog`` follows the SemVer versioning guidelines. For more information,
 see `semver.org <http://semver.org/>`_
 
+v1.9.0 (2026-02-28)
+^^^^^^^^^^^^^^^^^^^^
+
+* **New Features**
+
+  * Added ``create_dixon_coles_grid()`` function to create a ``FootballProbabilityGrid`` directly from expected goals (lambdas) and optional Dixon-Coles rho parameter. Useful when expected goals come from external ML models rather than fitted goal models.
+  * Added ``goal_expectancy_extended()`` function to infer implied goal expectancies AND the Dixon-Coles correlation parameter (rho) simultaneously from 1X2 and Over/Under 2.5 probabilities.
+
+* **Bug Fixes**
+
+  * Fixed ``FootballProbabilityGrid.totals()`` to correctly handle quarter lines (e.g., 2.25, 2.75) with split-stake logic. Previously, push probability was incorrectly 0 for quarter lines.
+  * Fixed ``FootballProbabilityGrid.asian_handicap_probs()`` where handicap signs were inverted. Negative lines (e.g., -0.5) and positive lines (e.g., +0.5) could produce swapped win/lose probabilities.
+
+* **Documentation**
+
+  * Updated documentation to reflect quarter line support in the ``totals()`` method.
+
+
 v1.8.0 (2026-01-08)
 ^^^^^^^^^^^^^^^^^^^^
 

@@ -172,22 +172,53 @@ class FootballProbabilityGrid:
         """
         Compute Under/Push/Over probabilities for a totals line.
 
+        Supports integer, half, and quarter lines (split stakes).
+
         Parameters
         ----------
         line : float
-            Totals line (e.g., 2.0, 2.5, 3.0). Integer lines can push.
+            Totals line (e.g., 2.0, 2.5, 2.25, 2.75). Integer lines can push.
 
         Returns
         -------
         (under, push, over) : tuple of float
             Probabilities that total goals are < line, == line (if integer),
             or > line, respectively. For half-lines, push = 0.
+
+        Notes
+        -----
+        Quarter lines (0.25, 0.75, etc.) are treated as half-stakes on the
+        adjacent lines (e.g., 2.25 = 50% at 2.0 and 50% at 2.5).
         """
         s = self._I + self._J
-        under = self.grid[s < line].sum()
-        push = self.grid[s == line].sum() if float(line).is_integer() else 0.0
-        over = self.grid[s > line].sum()
-        return float(under), float(push), float(over)
+
+        def single_line_probs(l: float) -> Tuple[float, float, float]:
+            under = self.grid[s < l].sum()
+            push = self.grid[s == l].sum() if float(l).is_integer() else 0.0
+            over = self.grid[s > l].sum()
+            return float(under), float(push), float(over)
+
+        frac = line - np.floor(line)
+        # Handle negative fractions consistently (e.g., -0.25)
+        if frac < 0:
+            frac += 1.0
+            base = np.floor(line) - 1.0
+        else:
+            base = np.floor(line)
+
+        # Quarter-line handling (split across neighbouring lines)
+        if np.isclose(frac, 0.25) or np.isclose(frac, 0.75):
+            lower = base + (0.0 if frac < 0.5 else 0.5)
+            upper = lower + 0.5
+            u1, p1, o1 = single_line_probs(lower)
+            u2, p2, o2 = single_line_probs(upper)
+            return (
+                0.5 * (u1 + u2),
+                0.5 * (p1 + p2),
+                0.5 * (o1 + o2),
+            )
+        else:
+            return single_line_probs(line)
 
     def total_goals(self, over_under: str, strike: float) -> float:
         """
@@ -255,9 +286,13 @@ class FootballProbabilityGrid:
 
         def single_line_probs(l: float) -> Tuple[float, float, float]:
             # Settlement against a single line (win/push/lose)
-            win = self.grid[gd > l].sum()
-            push = self.grid[gd == l].sum() if float(l).is_integer() else 0.0
-            lose = self.grid[gd < l].sum()
+            # The handicap line is applied to the chosen side:
+            # - Negative line (e.g., -0.5): side gives goals, must win by more
+            # - Positive line (e.g., +0.5): side receives goals, can afford to lose by less
+            # Win if gd - l > 0, i.e., gd > -l (after handicap adjustment)
+            win = self.grid[gd > -l].sum()
+            push = self.grid[gd == -l].sum() if float(l).is_integer() else 0.0
+            lose = self.grid[gd < -l].sum()
             return float(win), float(push), float(lose)
 
         frac = line - np.floor(line)
