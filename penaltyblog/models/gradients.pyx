@@ -2,15 +2,18 @@ import numpy as np
 
 cimport cython
 cimport numpy as cnp
-from libc.math cimport exp, log
+from libc.math cimport exp, fabs, log
 
 import scipy.special
 
 from .utils cimport (
     cdf_from_pmf,
     compute_pxy,
+    compute_pxy_dkappa,
     precompute_alpha_table,
+    precompute_alpha_table_and_d_shape,
     weibull_count_pmf,
+    weibull_count_pmf_d_alpha,
 )
 
 
@@ -429,11 +432,9 @@ def weibull_copula_gradient(
     """
     Compute the gradient of the negative log-likelihood for the Weibull Copula model.
 
-    This model uses Weibull count distributions for marginals coupled with a Frank copula.
-    The gradient computation involves:
-    1. Computing Weibull PMFs and their derivatives w.r.t. lambda and shape
-    2. Computing Frank copula derivatives w.r.t. kappa and marginal CDFs
-    3. Applying chain rule for all parameters
+    Uses analytical derivatives for shape (via digamma-based alpha table
+    differentiation) and kappa (closed-form Frank copula derivative),
+    with lightweight numerical finite differences for the lambda parameters.
     """
     cdef int n_teams = attack.shape[0]
     cdef int n_games = home_idx.shape[0]
@@ -447,22 +448,25 @@ def weibull_copula_gradient(
 
     cdef int i, h, a, x_i, y_i
     cdef double lambda_home, lambda_away, w
-    cdef double p_xy, grad_lambda_h, grad_lambda_a
+    cdef double p_xy, grad_factor
     cdef double grad_p_xy_lambda_h, grad_p_xy_lambda_a, grad_p_xy_shape, grad_p_xy_kappa
     cdef double eps = 1e-6
-    cdef double lambda_home_plus, lambda_away_plus, shape_plus, p_xy_plus
-    cdef double grad_factor
+    cdef double lambda_home_plus, lambda_away_plus, p_xy_plus
     cdef list pmf_home, pmf_away, cdf_home, cdf_away
-    cdef list pmf_home_plus, pmf_away_plus, cdf_home_plus, cdf_away_plus
-    cdef list alpha_table_plus
+    cdef list pmf_home_plus, cdf_home_plus
+    cdef list pmf_away_plus, cdf_away_plus
+    cdef list dpmf_home_shape, dpmf_away_shape, dcdf_home_shape, dcdf_away_shape
 
-    # Precompute alpha table for Weibull distribution
+    # --- Precompute alpha table and its shape derivative (ONCE, outside the loop) ---
     if shape <= 0:
-        # Return large gradients to push away from invalid region
         grad_shape = 1e6
         return np.concatenate([grad_attack, grad_defence, [grad_hfa, grad_shape, grad_kappa]])
 
-    cdef list alpha_table = precompute_alpha_table(shape, max_goals)
+    # Get both alpha table and its derivative in a single pass
+    cdef tuple alpha_result = precompute_alpha_table_and_d_shape(shape, max_goals)
+    cdef list alpha_table = alpha_result[0]
+    cdef list d_alpha_table = alpha_result[1]
+
     if alpha_table is None:
         grad_shape = 1e6
         return np.concatenate([grad_attack, grad_defence, [grad_hfa, grad_shape, grad_kappa]])
@@ -478,21 +482,21 @@ def weibull_copula_gradient(
         lambda_home = exp(hfa + attack[h] + defence[a])
         lambda_away = exp(attack[a] + defence[h])
 
-        # Compute Weibull PMFs and CDFs
+        # Compute Weibull PMFs and CDFs at current params
         pmf_home = weibull_count_pmf(lambda_home, alpha_table, max_goals)
         pmf_away = weibull_count_pmf(lambda_away, alpha_table, max_goals)
         cdf_home = cdf_from_pmf(pmf_home)
         cdf_away = cdf_from_pmf(pmf_away)
 
-        # Compute joint probability for observed outcome
+        # Joint probability for observed outcome
         p_xy = compute_pxy(x_i, y_i, cdf_home, cdf_away, max_goals, kappa)
         if p_xy < 1e-10:
             p_xy = 1e-10
 
-        # Compute gradients of p_xy w.r.t. parameters using finite differences
-        # This is a numerical approximation due to the complexity of the Weibull-Frank copula
-
-        # Gradient w.r.t. lambda_home
+        # --- Gradient w.r.t. lambda_home (numerical finite difference) ---
+        # Cheaper than analytical for small max_goals because the copula
+        # partial derivative chain (4× _frank_copula_du) costs more than
+        # a single compute_pxy call.
         lambda_home_plus = lambda_home + eps
         pmf_home_plus = weibull_count_pmf(lambda_home_plus, alpha_table, max_goals)
         cdf_home_plus = cdf_from_pmf(pmf_home_plus)
@@ -501,7 +505,7 @@ def weibull_copula_gradient(
             p_xy_plus = 1e-10
         grad_p_xy_lambda_h = (p_xy_plus - p_xy) / eps
 
-        # Gradient w.r.t. lambda_away
+        # --- Gradient w.r.t. lambda_away (numerical finite difference) ---
         lambda_away_plus = lambda_away + eps
         pmf_away_plus = weibull_count_pmf(lambda_away_plus, alpha_table, max_goals)
         cdf_away_plus = cdf_from_pmf(pmf_away_plus)
@@ -510,36 +514,24 @@ def weibull_copula_gradient(
             p_xy_plus = 1e-10
         grad_p_xy_lambda_a = (p_xy_plus - p_xy) / eps
 
-        # Gradient w.r.t. kappa
-        p_xy_plus = compute_pxy(x_i, y_i, cdf_home, cdf_away, max_goals, kappa + eps)
-        if p_xy_plus < 1e-10:
-            p_xy_plus = 1e-10
-        grad_p_xy_kappa = (p_xy_plus - p_xy) / eps
+        # --- Gradient w.r.t. kappa (ANALYTICAL - Frank copula closed form) ---
+        grad_p_xy_kappa = compute_pxy_dkappa(x_i, y_i, cdf_home, cdf_away, max_goals, kappa)
 
-        # Gradient w.r.t. shape (more complex - affects alpha table)
-        shape_plus = shape + eps
-        if shape_plus > 0:
-            alpha_table_plus = precompute_alpha_table(shape_plus, max_goals)
-            if alpha_table_plus is not None:
-                pmf_home_plus = weibull_count_pmf(lambda_home, alpha_table_plus, max_goals)
-                pmf_away_plus = weibull_count_pmf(lambda_away, alpha_table_plus, max_goals)
-                cdf_home_plus = cdf_from_pmf(pmf_home_plus)
-                cdf_away_plus = cdf_from_pmf(pmf_away_plus)
-                p_xy_plus = compute_pxy(x_i, y_i, cdf_home_plus, cdf_away_plus, max_goals, kappa)
-                if p_xy_plus < 1e-10:
-                    p_xy_plus = 1e-10
-                grad_p_xy_shape = (p_xy_plus - p_xy) / eps
-            else:
-                grad_p_xy_shape = 0.0
-        else:
-            grad_p_xy_shape = 0.0
+        # --- Gradient w.r.t. shape (ANALYTICAL - digamma-based alpha table derivative) ---
+        # Shape affects BOTH marginals (both PMFs depend on the alpha table)
+        dpmf_home_shape = weibull_count_pmf_d_alpha(lambda_home, alpha_table, d_alpha_table, max_goals)
+        dpmf_away_shape = weibull_count_pmf_d_alpha(lambda_away, alpha_table, d_alpha_table, max_goals)
+        dcdf_home_shape = cdf_from_pmf(dpmf_home_shape)
+        dcdf_away_shape = cdf_from_pmf(dpmf_away_shape)
+        grad_p_xy_shape = _compute_pxy_d_shape(
+            x_i, y_i, cdf_home, cdf_away, dcdf_home_shape, dcdf_away_shape, max_goals, kappa
+        )
 
         # Apply chain rule: d(-log L)/dp_xy = -1/p_xy
-        # Then d(-log L)/d(param) = d(-log L)/dp_xy * dp_xy/d(param)
         grad_factor = -w / p_xy
 
-        # Update parameter gradients using chain rule
-        # d(lambda)/d(param) = lambda for attack, defence, hfa parameters
+        # Update parameter gradients
+        # d(lambda)/d(param) = lambda for attack, defence, hfa
         grad_attack[h] += grad_factor * grad_p_xy_lambda_h * lambda_home
         grad_attack[a] += grad_factor * grad_p_xy_lambda_a * lambda_away
         grad_defence[a] += grad_factor * grad_p_xy_lambda_h * lambda_home
@@ -551,3 +543,127 @@ def weibull_copula_gradient(
         grad_kappa += grad_factor * grad_p_xy_kappa
 
     return np.concatenate([grad_attack, grad_defence, [grad_hfa, grad_shape, grad_kappa]])
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
+@cython.nonecheck(False)
+@cython.initializedcheck(False)
+cdef double _frank_copula_du(double u, double v, double kappa):
+    """
+    Partial derivative of C(u,v;kappa) w.r.t. u.
+    dC/du = exp(-kappa*u) / (exp(-kappa*u) + exp(-kappa*v) - exp(-kappa*(u+v)) - exp(-kappa)
+                              + exp(-kappa) - 1 + ... )
+    Using Z = 1 + A*B/D:
+    dC/du = (1/Z) * (-1/D) * (-kappa * exp(-ku)) * (exp(-kv)-1)
+          = (kappa * exp(-ku) * (exp(-kv)-1)) / (D * Z * kappa)
+    Simplification:
+    dC/du = exp(-ku)*(exp(-kv)-1) / (D*Z)
+    where the sign is adjusted since C = -(1/k)*log(Z).
+    """
+    if fabs(kappa) < 1e-8:
+        return v  # Independence: C(u,v)=u*v => dC/du = v
+
+    cdef double eku = exp(-kappa * u)
+    cdef double ekv = exp(-kappa * v)
+    cdef double ek = exp(-kappa)
+    cdef double D = ek - 1.0
+    cdef double Z = 1.0 + (eku - 1.0) * (ekv - 1.0) / D
+
+    if Z <= 1e-14:
+        return v
+
+    # d(Z)/du = (d(eku-1)/du * (ekv-1)) / D = (-kappa*eku*(ekv-1)) / D
+    # dC/du = -(1/k) * (1/Z) * dZ/du = -(1/k) * (1/Z) * (-kappa*eku*(ekv-1)/D)
+    #       = eku*(ekv-1) / (D*Z)
+    return eku * (ekv - 1.0) / (D * Z)
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
+@cython.nonecheck(False)
+@cython.initializedcheck(False)
+cdef double _frank_copula_dv(double u, double v, double kappa):
+    """Partial derivative of C(u,v;kappa) w.r.t. v. By symmetry of the Frank copula."""
+    if fabs(kappa) < 1e-8:
+        return u  # Independence: C(u,v)=u*v => dC/dv = u
+
+    cdef double eku = exp(-kappa * u)
+    cdef double ekv = exp(-kappa * v)
+    cdef double ek = exp(-kappa)
+    cdef double D = ek - 1.0
+    cdef double Z = 1.0 + (eku - 1.0) * (ekv - 1.0) / D
+
+    if Z <= 1e-14:
+        return u
+
+    return ekv * (eku - 1.0) / (D * Z)
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
+@cython.nonecheck(False)
+@cython.initializedcheck(False)
+cdef double _compute_pxy_d_shape(
+    int x, int y,
+    list cdfX, list cdfY,
+    list dcdfX, list dcdfY,
+    int maxGoals, double kappa
+):
+    """
+    Compute dp(x,y)/d(shape) analytically.
+
+    p(x,y) = C(u,v) - C(u',v) - C(u,v') + C(u',v')
+
+    where u = F_X(x), v = F_Y(y), u' = F_X(x-1), v' = F_Y(y-1).
+
+    dp/dc = dC/du*du/dc + dC/dv*dv/dc  for each of the four copula terms.
+    du/dc = dF_X(x)/dc, dv/dc = dF_Y(y)/dc, etc.
+    """
+    cdef double u, v, u_prev, v_prev
+    cdef double du, dv, du_prev, dv_prev
+    cdef double result = 0.0
+
+    # Get CDF values (with boundary handling)
+    if x < 0:
+        u = 0.0; du = 0.0
+    elif x > maxGoals:
+        u = 1.0; du = 0.0
+    else:
+        u = cdfX[x]; du = dcdfX[x]
+
+    if y < 0:
+        v = 0.0; dv = 0.0
+    elif y > maxGoals:
+        v = 1.0; dv = 0.0
+    else:
+        v = cdfY[y]; dv = dcdfY[y]
+
+    if x - 1 < 0:
+        u_prev = 0.0; du_prev = 0.0
+    elif x - 1 > maxGoals:
+        u_prev = 1.0; du_prev = 0.0
+    else:
+        u_prev = cdfX[x - 1]; du_prev = dcdfX[x - 1]
+
+    if y - 1 < 0:
+        v_prev = 0.0; dv_prev = 0.0
+    elif y - 1 > maxGoals:
+        v_prev = 1.0; dv_prev = 0.0
+    else:
+        v_prev = cdfY[y - 1]; dv_prev = dcdfY[y - 1]
+
+    # For each copula term C(a,b), contribution = dC/da * da/dc + dC/db * db/dc
+    # Term +C(u, v)
+    result += _frank_copula_du(u, v, kappa) * du + _frank_copula_dv(u, v, kappa) * dv
+    # Term -C(u_prev, v)
+    result -= _frank_copula_du(u_prev, v, kappa) * du_prev + _frank_copula_dv(u_prev, v, kappa) * dv
+    # Term -C(u, v_prev)
+    result -= _frank_copula_du(u, v_prev, kappa) * du + _frank_copula_dv(u, v_prev, kappa) * dv_prev
+    # Term +C(u_prev, v_prev)
+    result += _frank_copula_du(u_prev, v_prev, kappa) * du_prev + _frank_copula_dv(u_prev, v_prev, kappa) * dv_prev
+
+    return result
