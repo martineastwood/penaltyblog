@@ -118,6 +118,7 @@ Every model implements the following core methods:
 
 - ``fit(minimizer_options)``: Train the model using your dataset.
 - ``predict(home_team, away_team, max_goals, normalize)``: Predict scoreline probabilities for a given fixture.
+- ``predict_many(home_teams, away_teams, max_goals, normalize)``: Predict scoreline probabilities for multiple fixtures in one call.
 - ``get_params()``: Retrieve the model's fitted parameters.
 - ``save(filepath)``: Save the model to disk as a pickled file.
 - ``load(filepath)``: Load the saved model.
@@ -152,6 +153,14 @@ Switching from a Poisson model to a Dixon and Coles model is as simple as:
    # Predict probabilities for a fixture
    prediction = model.predict("Arsenal", "Manchester City")
    print(prediction.home_draw_away)
+
+   # Predict probabilities for multiple fixtures
+   batch = model.predict_many(
+       ["Arsenal", "Liverpool"],
+       ["Manchester City", "Chelsea"],
+       max_goals=10,
+   )
+   print(batch[0].home_draw_away)
 
 Because the API is consistent, you can automate model testing and tuning. For example, by looping through a list of model classes, fitting each one, and comparing metrics like Ranked Probability Score (RPS) without special-case code.
 
