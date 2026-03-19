@@ -50,6 +50,10 @@ Take your football analytics and betting strategy to the next level with **penal
 pip install penaltyblog
 ```
 
+## Agent Support
+
+If you are using a coding agent such as Claude Code, Cursor, or Copilot, the repository includes a skill file at [`.claude/skills/penaltyblog/SKILL.md`](.claude/skills/penaltyblog/SKILL.md) that gives your agent full context about the penaltyblog API. The file is self-contained and covers all public modules — no additional files are needed.
+
 ## 🚀 Quick Start - Try it Now!
 
 Run these examples directly in your browser (no installation required):
