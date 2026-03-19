@@ -51,6 +51,15 @@ def test_zip_minimizer_options(fixtures):
     assert 0.6 < probs.total_goals("over", 1.5) < 0.8
     assert 0.9 < probs.asian_handicap("home", 1.5) < 1.0
 
+    batch = clf.predict_many(
+        ["Liverpool", "Chelsea"], ["Wolves", "Everton"], max_goals=6
+    )
+    assert isinstance(batch, list)
+    assert len(batch) == 2
+    assert all(isinstance(p, pb.models.FootballProbabilityGrid) for p in batch)
+    single = clf.predict("Liverpool", "Wolves", max_goals=6)
+    assert np.allclose(batch[0].grid, single.grid)
+
     clf = pb.models.ZeroInflatedPoissonGoalsModel(
         df["goals_home"], df["goals_away"], df["team_home"], df["team_away"]
     )

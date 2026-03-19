@@ -20,6 +20,15 @@ def test_dc_model(fixtures):
     assert type(probs.home_draw_away) == list
     assert len(probs.home_draw_away) == 3
 
+    batch = clf.predict_many(
+        ["Liverpool", "Chelsea"], ["Wolves", "Everton"], max_goals=6
+    )
+    assert isinstance(batch, list)
+    assert len(batch) == 2
+    assert all(isinstance(p, pb.models.FootballProbabilityGrid) for p in batch)
+    single = clf.predict("Liverpool", "Wolves", max_goals=6)
+    assert np.allclose(batch[0].grid, single.grid)
+
 
 @pytest.mark.local
 def test_dixon_coles_minimizer_options(fixtures):

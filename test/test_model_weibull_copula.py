@@ -176,6 +176,16 @@ class TestWeibullCopulaGoalsModel:
         total_prob = probs.home_win + probs.draw + probs.away_win
         assert np.isclose(total_prob, 1.0, atol=1e-6)
 
+        batch = self.model.predict_many(
+            [self.teams[0], self.teams[2]],
+            [self.teams[1], self.teams[3]],
+            max_goals=4,
+        )
+        assert isinstance(batch, list)
+        assert len(batch) == 2
+        assert all(p.grid.shape == (4, 4) for p in batch)
+        assert np.allclose(batch[0].grid, probs.grid)
+
     def test_model_representation(self):
         """Test model string representation."""
         # Before fitting

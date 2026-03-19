@@ -248,3 +248,65 @@ class DixonColesGoalModel(BaseGoalsModel):
             float(lambda_away.item()),
             normalize=normalize,
         )
+
+    def _compute_probabilities_many(
+        self,
+        home_idx: np.ndarray,
+        away_idx: np.ndarray,
+        max_goals: int,
+        normalize: bool = True,
+    ):
+        """
+        Batch probability computation for multiple fixtures.
+
+        Returns a list of FootballProbabilityGrid objects, built from a
+        single preallocated 3D grid for efficiency.
+        """
+        n = len(home_idx)
+        grids = np.empty((n, max_goals, max_goals), dtype=np.float64)
+        lambda_home_all = np.empty(n, dtype=np.float64)
+        lambda_away_all = np.empty(n, dtype=np.float64)
+
+        # Reuse small scratch buffers per iteration.
+        score_matrix = np.empty(max_goals * max_goals, dtype=np.float64)
+        lambda_home = np.empty(1, dtype=np.float64)
+        lambda_away = np.empty(1, dtype=np.float64)
+
+        rho = self._params[-1]
+        home_advantage = self._params[-2]
+
+        for i in range(n):
+            h_idx = int(home_idx[i])
+            a_idx = int(away_idx[i])
+
+            home_attack = self._params[h_idx]
+            away_attack = self._params[a_idx]
+            home_defense = self._params[h_idx + self.n_teams]
+            away_defense = self._params[a_idx + self.n_teams]
+
+            compute_dixon_coles_probabilities(
+                float(home_attack),
+                float(away_attack),
+                float(home_defense),
+                float(away_defense),
+                float(home_advantage),
+                float(rho),
+                int(max_goals),
+                score_matrix,
+                lambda_home,
+                lambda_away,
+            )
+
+            grids[i, :, :] = score_matrix.reshape(max_goals, max_goals)
+            lambda_home_all[i] = float(lambda_home[0])
+            lambda_away_all[i] = float(lambda_away[0])
+
+        return [
+            FootballProbabilityGrid(
+                grids[i],
+                lambda_home_all[i],
+                lambda_away_all[i],
+                normalize=normalize,
+            )
+            for i in range(n)
+        ]

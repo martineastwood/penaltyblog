@@ -295,6 +295,49 @@ class BaseGoalsModel(ABC):
         away_idx = self.team_to_idx[away_team]
         return home_idx, away_idx
 
+    def _predict_many(
+        self, home_teams: TeamInput, away_teams: TeamInput
+    ) -> tuple[np.ndarray, np.ndarray]:
+        """
+        Vectorized validation and index lookup for multiple fixtures.
+
+        Parameters
+        ----------
+        home_teams : TeamInput
+            Names of home teams for each fixture.
+        away_teams : TeamInput
+            Names of away teams for each fixture.
+
+        Returns
+        -------
+        tuple[np.ndarray, np.ndarray]
+            Arrays of home and away team indices.
+        """
+        if not self.fitted:
+            raise ValueError("Model is not yet fitted. Call `.fit()` first.")
+
+        home_teams_arr = np.asarray(home_teams, dtype=str, order="C")
+        away_teams_arr = np.asarray(away_teams, dtype=str, order="C")
+
+        if len(home_teams_arr) != len(away_teams_arr):
+            raise ValueError("Home and away team arrays must have the same length.")
+
+        # Ensure all teams were seen in training data.
+        if (np.isin(home_teams_arr, self.teams) == 0).any() or (
+            np.isin(away_teams_arr, self.teams) == 0
+        ).any():
+            raise ValueError("All teams must have been in the training data.")
+
+        cython_long_dtype = _get_cython_long_dtype()
+        home_idx = np.searchsorted(self.teams, home_teams_arr).astype(
+            cython_long_dtype, copy=False
+        )
+        away_idx = np.searchsorted(self.teams, away_teams_arr).astype(
+            cython_long_dtype, copy=False
+        )
+
+        return home_idx, away_idx
+
     def predict(
         self,
         home_team: str,
@@ -323,6 +366,60 @@ class BaseGoalsModel(ABC):
         """
         home_idx, away_idx = self._predict(home_team, away_team)
         return self._compute_probabilities(home_idx, away_idx, max_goals, normalize)
+
+    def _compute_probabilities_many(
+        self,
+        home_idx: np.ndarray,
+        away_idx: np.ndarray,
+        max_goals: int,
+        normalize: bool = True,
+    ):
+        """
+        Optional fast-path for batch probability computation.
+
+        Subclasses can override this method to provide a faster
+        vectorized or Cython-backed implementation. The default
+        implementation signals that no fast path is available.
+        """
+        raise NotImplementedError
+
+    def predict_many(
+        self,
+        home_teams: TeamInput,
+        away_teams: TeamInput,
+        max_goals: int = 15,
+        normalize: bool = True,
+    ):
+        """
+        Predict outcome probabilities for multiple fixtures.
+
+        Parameters
+        ----------
+        home_teams : TeamInput
+            Home team names for each fixture.
+        away_teams : TeamInput
+            Away team names for each fixture.
+        max_goals : int, default 15
+            Maximum goals per team to consider.
+        normalize : bool, default True
+            Whether to normalise each probability grid.
+
+        Returns
+        -------
+        list[FootballProbabilityGrid] or model-specific fast-path output
+            By default returns a list of probability grids. If a subclass
+            implements `_compute_probabilities_many`, its output is returned.
+        """
+        home_idx, away_idx = self._predict_many(home_teams, away_teams)
+        try:
+            return self._compute_probabilities_many(
+                home_idx, away_idx, max_goals, normalize
+            )
+        except NotImplementedError:
+            return [
+                self._compute_probabilities(h, a, max_goals, normalize)
+                for h, a in zip(home_idx, away_idx)
+            ]
 
     @abstractmethod
     def _compute_probabilities(
