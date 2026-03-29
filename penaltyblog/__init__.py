@@ -9,5 +9,6 @@ from . import (
     ratings,
     scrapers,
     viz,
+    xt,
 )
 from .version import __version__

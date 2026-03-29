@@ -1,2 +1,3 @@
 prune test
 prune docs
+recursive-include penaltyblog/xt/data *.npz

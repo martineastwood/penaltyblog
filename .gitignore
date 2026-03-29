@@ -165,3 +165,4 @@ notes/
 .claude/*
 !.claude/skills/
 .vscode/
+*.parquet

@@ -14,3 +14,4 @@ API Reference
    ratings
    scrapers
    viz
+   xt
