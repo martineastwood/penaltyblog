@@ -729,6 +729,77 @@ def test_score_returns_original_columns():
     assert "type" in scored.columns
 
 
+def test_fit_accepts_raw_dataframe():
+    df = simple_pass_shot_df()
+    model = XTModel(l=2, w=1).fit(df)
+    assert model.fitted_ is True
+    assert model.surface_.shape == (1, 2)
+
+
+def test_fit_accepts_raw_dataframe_with_column_mapping_and_ranges():
+    df = pd.DataFrame(
+        {
+            "loc_x": [10, 10, 90],
+            "loc_y": [10, 10, 10],
+            "dest_x": [90, np.nan, np.nan],
+            "dest_y": [10, np.nan, np.nan],
+            "etype": ["Pass", "Shot", "Shot"],
+            "outcome": ["Complete", "Saved", "Goal"],
+        }
+    )
+    model = XTModel(l=2, w=1).fit(
+        df,
+        x="loc_x",
+        y="loc_y",
+        event_type="etype",
+        end_x="dest_x",
+        end_y="dest_y",
+        is_success="outcome",
+        x_range=(0, 120),
+        y_range=(0, 80),
+        event_map={"Pass": "pass", "Shot": "shot"},
+        success_map={"Complete": True, "Saved": False, "Goal": True},
+    )
+    assert model.fitted_ is True
+
+
+def test_score_accepts_raw_dataframe_with_column_mapping():
+    df = pd.DataFrame(
+        {
+            "loc_x": [10, 90],
+            "loc_y": [10, 10],
+            "dest_x": [90, np.nan],
+            "dest_y": [10, np.nan],
+            "etype": ["Pass", "Shot"],
+            "outcome": ["Complete", "Goal"],
+        }
+    )
+    model = XTModel(l=2, w=1).fit(
+        df,
+        x="loc_x",
+        y="loc_y",
+        event_type="etype",
+        end_x="dest_x",
+        end_y="dest_y",
+        is_success="outcome",
+        event_map={"Pass": "pass", "Shot": "shot"},
+        success_map={"Complete": True, "Goal": True},
+    )
+    scored = model.score(
+        df,
+        x="loc_x",
+        y="loc_y",
+        event_type="etype",
+        end_x="dest_x",
+        end_y="dest_y",
+        is_success="outcome",
+        event_map={"Pass": "pass", "Shot": "shot"},
+        success_map={"Complete": True, "Goal": True},
+    )
+    assert "xt_added" in scored.columns
+    assert scored["xt_added"].notna().sum() == 1
+
+
 # ---------------------------------------------------------------------------
 # Save/load round trip
 # ---------------------------------------------------------------------------

@@ -127,6 +127,21 @@ successfully; for shots it means a goal was scored.
 ``"False"``, ``"Incomplete"``, or ``"0"`` are correctly interpreted
 rather than treated as truthy non-empty strings.
 
+Why this coercion exists
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+The canonical schema expects ``is_success`` to be boolean, and that is
+still the recommended format. However, many real event feeds encode
+success as strings or numeric-like labels (for example ``"Complete"``,
+``"Incomplete"``, ``"Goal"``, ``"Saved"``, ``"1"``, ``"0"``).
+
+xT therefore applies defensive coercion for common truthy/falsy labels.
+This avoids silent logic errors from Python truthiness on non-empty
+strings and keeps provider integration practical.
+
+For maximum control, you can map your provider labels explicitly with
+``XTData.map_events(..., success_map=...)`` before fitting/scoring.
+
 Coordinate ranges and normalization
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -164,8 +179,43 @@ This applies in both ``fit`` and ``score``.
 Usage
 -----
 
-Fit on custom data
-^^^^^^^^^^^^^^^^^^
+Fit on a raw DataFrame (quick path)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+You can pass a DataFrame directly to ``fit``/``score``.
+If your columns already use canonical names (``x``, ``y``, ``event_type``,
+``end_x``, ``end_y``, ``is_success``), no extra arguments are needed:
+
+.. code-block:: python
+
+   from penaltyblog.xt import XTModel
+
+   xt = XTModel(l=16, w=12, coord_policy="warn")
+   xt.fit(df)
+   scored = xt.score(df)
+
+For non-canonical column names, ranges, or label mapping, pass the mapping
+arguments directly:
+
+.. code-block:: python
+
+   xt = XTModel(l=16, w=12, coord_policy="warn")
+   xt.fit(
+       df,
+       x="location_x",
+       y="location_y",
+       event_type="type_primary",
+       end_x="end_location_x",
+       end_y="end_location_y",
+       is_success="is_successful",
+       x_range=(0, 120),
+       y_range=(0, 80),
+       event_map={"Pass": "pass", "Shot": "shot"},
+       success_map={"Complete": True, "Incomplete": False, "Goal": True},
+   )
+
+Fit on XTData (explicit path)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. code-block:: python
 

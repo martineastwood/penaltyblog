@@ -6,7 +6,7 @@ __all__ = ["get_field", "resolve_path", "get_index"]
 
 from typing import Any, Callable, Optional
 
-from tabulate import tabulate
+from tabulate import tabulate  # type: ignore[import-untyped]
 
 from .steps.utils import flatten_dict
 

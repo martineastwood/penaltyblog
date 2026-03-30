@@ -1,4 +1,4 @@
-from typing import Dict, List
+from typing import Dict, List, Optional
 
 import numpy as np
 import pandas as pd
@@ -33,7 +33,7 @@ class HierarchicalBayesianGoalModel(BayesianGoalModel):
 
     def fit(
         self,
-        minimizer_options: dict = None,
+        minimizer_options: Optional[dict] = None,
         n_samples: int = 3000,
         burn: int = 1500,
         n_chains: int = 4,

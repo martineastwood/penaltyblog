@@ -26,6 +26,6 @@ def load_pretrained_xt(name: str = "default") -> XTModel:
         )
 
     filename = _PRETRAINED_FILES[name]
-    data_path = resources.files("penaltyblog.xt").joinpath("data", filename)
+    data_path = resources.files("penaltyblog.xt").joinpath("data").joinpath(filename)
     with resources.as_file(data_path) as path:
         return XTModel.load(str(path))

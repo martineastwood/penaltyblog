@@ -4,6 +4,7 @@ import numpy as np
 import pandas as pd
 
 from penaltyblog.bayes.diagnostics import compute_diagnostics
+from penaltyblog.bayes.sampler_api import EnsembleSampler
 from penaltyblog.models.base_model import BaseGoalsModel
 from penaltyblog.models.custom_types import GoalInput, TeamInput, WeightInput
 

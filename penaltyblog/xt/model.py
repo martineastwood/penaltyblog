@@ -148,6 +148,57 @@ class XTModel:
         if self.coord_policy == "warn":
             warnings.warn(f"{msg} Values will be clipped.", UserWarning, stacklevel=2)
 
+    def _as_xtdata(
+        self,
+        data: XTData | pd.DataFrame,
+        *,
+        x: str = "x",
+        y: str = "y",
+        event_type: str = "event_type",
+        end_x: str | None = "end_x",
+        end_y: str | None = "end_y",
+        is_success: str | None = "is_success",
+        x_range: tuple[float, float] = (0.0, 100.0),
+        y_range: tuple[float, float] = (0.0, 100.0),
+        event_map: dict[str, str] | None = None,
+        success_map: dict[str, bool] | None = None,
+    ) -> XTData:
+        if isinstance(data, XTData):
+            return data
+        if not isinstance(data, pd.DataFrame):
+            raise TypeError("data must be XTData or pandas DataFrame")
+
+        resolved_end_x = end_x
+        resolved_end_y = end_y
+        resolved_is_success = is_success
+
+        if (
+            end_x == "end_x"
+            and end_y == "end_y"
+            and end_x not in data.columns
+            and end_y not in data.columns
+        ):
+            resolved_end_x = None
+            resolved_end_y = None
+
+        if is_success == "is_success" and is_success not in data.columns:
+            resolved_is_success = None
+
+        xt_data = XTData(
+            events=data,
+            x=x,
+            y=y,
+            event_type=event_type,
+            end_x=resolved_end_x,
+            end_y=resolved_end_y,
+            is_success=resolved_is_success,
+            x_range=x_range,
+            y_range=y_range,
+        )
+        if event_map or success_map:
+            xt_data = xt_data.map_events(event_map=event_map, success_map=success_map)
+        return xt_data
+
     def _classify_events(self, df: pd.DataFrame) -> pd.Series:
         """
         Classify each row as move, shot, or ignore.
@@ -180,11 +231,38 @@ class XTModel:
 
         return role
 
-    def fit(self, data: XTData) -> "XTModel":
+    def fit(
+        self,
+        data: XTData | pd.DataFrame,
+        *,
+        x: str = "x",
+        y: str = "y",
+        event_type: str = "event_type",
+        end_x: str | None = "end_x",
+        end_y: str | None = "end_y",
+        is_success: str | None = "is_success",
+        x_range: tuple[float, float] = (0.0, 100.0),
+        y_range: tuple[float, float] = (0.0, 100.0),
+        event_map: dict[str, str] | None = None,
+        success_map: dict[str, bool] | None = None,
+    ) -> "XTModel":
         """
         Fit one unified xT surface from all included attacking events.
         """
-        df = data.df.copy()
+        xt_data = self._as_xtdata(
+            data,
+            x=x,
+            y=y,
+            event_type=event_type,
+            end_x=end_x,
+            end_y=end_y,
+            is_success=is_success,
+            x_range=x_range,
+            y_range=y_range,
+            event_map=event_map,
+            success_map=success_map,
+        )
+        df = xt_data.df.copy()
 
         # Convert coordinates to float
         for col in ["x", "y", "end_x", "end_y"]:
@@ -383,7 +461,21 @@ class XTModel:
         self.fitted_ = True
         return self
 
-    def score(self, data: XTData) -> pd.DataFrame:
+    def score(
+        self,
+        data: XTData | pd.DataFrame,
+        *,
+        x: str = "x",
+        y: str = "y",
+        event_type: str = "event_type",
+        end_x: str | None = "end_x",
+        end_y: str | None = "end_y",
+        is_success: str | None = "is_success",
+        x_range: tuple[float, float] = (0.0, 100.0),
+        y_range: tuple[float, float] = (0.0, 100.0),
+        event_map: dict[str, str] | None = None,
+        success_map: dict[str, bool] | None = None,
+    ) -> pd.DataFrame:
         """
         Score successful move actions by xT delta.
 
@@ -391,7 +483,20 @@ class XTModel:
         ``xt_end``, and ``xt_added`` columns. Non-scoreable rows get NaN.
         """
         self._ensure_fitted()
-        df = data.df.copy()
+        xt_data = self._as_xtdata(
+            data,
+            x=x,
+            y=y,
+            event_type=event_type,
+            end_x=end_x,
+            end_y=end_y,
+            is_success=is_success,
+            x_range=x_range,
+            y_range=y_range,
+            event_map=event_map,
+            success_map=success_map,
+        )
+        df = xt_data.df.copy()
 
         for col in ["x", "y", "end_x", "end_y"]:
             df[col] = pd.to_numeric(df[col], errors="coerce")
@@ -423,7 +528,7 @@ class XTModel:
             xt_end[valid] = surface_flat[end_cells[valid]]
             xt_added[valid] = xt_end[valid] - xt_start[valid]
 
-        result = data.events.copy()
+        result = xt_data.events.copy()
         result["xt_start"] = xt_start
         result["xt_end"] = xt_end
         result["xt_added"] = xt_added

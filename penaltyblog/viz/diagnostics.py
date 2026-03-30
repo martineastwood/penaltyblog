@@ -5,17 +5,17 @@ This module provides interactive diagnostic plots for assessing MCMC convergence
 including trace plots, autocorrelation, posterior distributions, and convergence metrics.
 """
 
-from typing import List, Optional, Union
+from typing import Any, List, Optional, Union
 
 import numpy as np
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 
-from ..models import BayesianGoalModel, HierarchicalBayesianGoalModel
+from ..models import BaseBayesianModel
 
 
 def plot_trace(
-    model: Union[BayesianGoalModel, HierarchicalBayesianGoalModel],
+    model: BaseBayesianModel,
     params: Optional[Union[str, List[str]]] = None,
     chains: bool = True,
     **kwargs,
@@ -28,8 +28,8 @@ def plot_trace(
 
     Parameters
     ----------
-    model : BayesianGoalModel or a HierarchicalBayesianGoalModel
-        A fitted Bayesian model with trace data.
+    model : BaseBayesianModel
+        A fitted Bayesian model.
     params : str, list of str, optional
         Parameter name(s) to plot. If None, plots key parameters
         (home_advantage, rho, hierarchical sigmas if present, and all team parameters).
@@ -56,6 +56,8 @@ def plot_trace(
     """
     if not hasattr(model, "sampler") or model.sampler is None:
         raise ValueError("Model has not been fitted. Call .fit() first.")
+
+    trace = _require_trace(model)
 
     if not model.sampler.chains:
         raise ValueError("No MCMC chains found in sampler.")
@@ -139,7 +141,8 @@ def plot_trace(
                 if chains:
                     # Plot each chain
                     for chain_id, chain in enumerate(model.sampler.chains):
-                        trace_data = chain.raw_trace[:, :, param_idx]
+                        chain_trace = _require_chain_trace(chain)
+                        trace_data = chain_trace[:, :, param_idx]
                         # Average across walkers for cleaner overlay
                         mean_trace = trace_data.mean(axis=1)
                         fig.add_trace(
@@ -159,7 +162,8 @@ def plot_trace(
                     # Combine all chains
                     all_traces = []
                     for chain in model.sampler.chains:
-                        trace_data = chain.raw_trace[:, :, param_idx]
+                        chain_trace = _require_chain_trace(chain)
+                        trace_data = chain_trace[:, :, param_idx]
                         all_traces.append(trace_data.mean(axis=1))
                     combined = np.vstack(all_traces).mean(axis=0)
 
@@ -187,7 +191,8 @@ def plot_trace(
                 if chains:
                     # Plot each chain
                     for chain_id, chain in enumerate(model.sampler.chains):
-                        trace_data = chain.raw_trace[:, :, param_idx]
+                        chain_trace = _require_chain_trace(chain)
+                        trace_data = chain_trace[:, :, param_idx]
                         # Average across walkers for cleaner overlay
                         mean_trace = trace_data.mean(axis=1)
                         fig.add_trace(
@@ -207,7 +212,8 @@ def plot_trace(
                     # Combine all chains
                     all_traces = []
                     for chain in model.sampler.chains:
-                        trace_data = chain.raw_trace[:, :, param_idx]
+                        chain_trace = _require_chain_trace(chain)
+                        trace_data = chain_trace[:, :, param_idx]
                         all_traces.append(trace_data.mean(axis=1))
                     combined = np.vstack(all_traces).mean(axis=0)
 
@@ -231,7 +237,8 @@ def plot_trace(
                 for chain_id, chain in enumerate(model.sampler.chains):
                     # Extract trace for this parameter across all walkers
                     # Shape: (n_steps, n_walkers)
-                    trace_data = chain.raw_trace[:, :, param_idx]
+                    chain_trace = _require_chain_trace(chain)
+                    trace_data = chain_trace[:, :, param_idx]
 
                     # Plot each walker
                     for walker_id in range(trace_data.shape[1]):
@@ -252,7 +259,8 @@ def plot_trace(
                 # Combine all chains
                 all_traces = []
                 for chain in model.sampler.chains:
-                    trace_data = chain.raw_trace[:, :, param_idx]
+                    chain_trace = _require_chain_trace(chain)
+                    trace_data = chain_trace[:, :, param_idx]
                     all_traces.append(trace_data)
 
                 # Concatenate along walker dimension
@@ -289,7 +297,7 @@ def plot_trace(
 
 
 def plot_autocorr(
-    model: Union[BayesianGoalModel, HierarchicalBayesianGoalModel],
+    model: BaseBayesianModel,
     params: Optional[Union[str, List[str]]] = None,
     max_lag: int = 50,
     **kwargs,
@@ -302,8 +310,8 @@ def plot_autocorr(
 
     Parameters
     ----------
-    model : BayesianGoalModel or HierarchicalBayesianGoalModel
-        A fitted Bayesian model with trace data.
+    model : BaseBayesianModel
+        A fitted Bayesian model.
     params : str, list of str, optional
         Parameter name(s) to plot. If None, plots key parameters.
     max_lag : int, default=50
@@ -327,6 +335,8 @@ def plot_autocorr(
     """
     if not hasattr(model, "sampler") or model.sampler is None:
         raise ValueError("Model has not been fitted. Call .fit() first.")
+
+    trace = _require_trace(model)
 
     # Get parameter names
     param_names = model._get_param_names()
@@ -404,7 +414,8 @@ def plot_autocorr(
                 # Collect samples from all chains
                 all_samples = []
                 for chain in model.sampler.chains:
-                    trace_data = chain.raw_trace[:, :, param_idx].flatten()
+                    chain_trace = _require_chain_trace(chain)
+                    trace_data = chain_trace[:, :, param_idx].flatten()
                     all_samples.append(trace_data)
                 combined_samples = np.concatenate(all_samples)
 
@@ -432,7 +443,8 @@ def plot_autocorr(
             # Collect samples from all chains
             all_samples = []
             for chain in model.sampler.chains:
-                trace_data = chain.raw_trace[:, :, param_idx].flatten()
+                chain_trace = _require_chain_trace(chain)
+                trace_data = chain_trace[:, :, param_idx].flatten()
                 all_samples.append(trace_data)
             combined_samples = np.concatenate(all_samples)
 
@@ -482,7 +494,7 @@ def plot_autocorr(
 
 
 def plot_posterior(
-    model: Union[BayesianGoalModel, HierarchicalBayesianGoalModel],
+    model: BaseBayesianModel,
     params: Optional[Union[str, List[str]]] = None,
     kind: str = "density",
     **kwargs,
@@ -495,8 +507,8 @@ def plot_posterior(
 
     Parameters
     ----------
-    model : BayesianGoalModel or HierarchicalBayesianGoalModel
-        A fitted Bayesian model with trace data.
+    model : BaseBayesianModel
+        A fitted Bayesian model.
     params : str, list of str, optional
         Parameter name(s) to plot. If None, plots key parameters.
     kind : str, default="density"
@@ -518,8 +530,7 @@ def plot_posterior(
     >>> fig = plot_posterior(model, params=['home_advantage', 'rho'])
     >>> fig.show()
     """
-    if not hasattr(model, "trace") or model.trace is None:
-        raise ValueError("Model has not been fitted. Call .fit() first.")
+    trace = _require_trace(model)
 
     # Get parameter names
     param_names = model._get_param_names()
@@ -593,7 +604,7 @@ def plot_posterior(
                 param_full_name = f"{param_type}_{team}"
                 param_idx = param_names.index(param_full_name)
                 color = colors[team_idx % len(colors)]
-                samples = model.trace[:, param_idx]
+                samples = trace[:, param_idx]
 
                 if kind == "histogram":
                     fig.add_trace(
@@ -630,7 +641,7 @@ def plot_posterior(
         else:
             # Individual parameter
             param_idx = param_names.index(param_name)
-            samples = model.trace[:, param_idx]
+            samples = trace[:, param_idx]
 
             if kind == "histogram":
                 fig.add_trace(
@@ -699,7 +710,7 @@ def plot_posterior(
 
 
 def plot_convergence(
-    model: Union[BayesianGoalModel, HierarchicalBayesianGoalModel],
+    model: BaseBayesianModel,
     **kwargs,
 ) -> go.Figure:
     """
@@ -710,8 +721,8 @@ def plot_convergence(
 
     Parameters
     ----------
-    model : BayesianGoalModel or HierarchicalBayesianGoalModel
-        A fitted Bayesian model with trace data.    **kwargs
+    model : BaseBayesianModel
+        A fitted Bayesian model.    **kwargs
         Additional keyword arguments passed to plotly layout.
 
     Returns
@@ -821,7 +832,7 @@ def plot_convergence(
 
 
 def plot_diagnostics(
-    model: Union[BayesianGoalModel, HierarchicalBayesianGoalModel],
+    model: BaseBayesianModel,
     params: Optional[Union[str, List[str]]] = None,
     **kwargs,
 ) -> go.Figure:
@@ -833,8 +844,8 @@ def plot_diagnostics(
 
     Parameters
     ----------
-    model : BayesianGoalModel or HierarchicalBayesianGoalModel
-        A fitted Bayesian model with trace data.
+    model : BaseBayesianModel
+        A fitted Bayesian model.
     params : str, list of str, optional
         Parameter name(s) to include in detailed plots. If None, uses key parameters.    **kwargs
         Additional keyword arguments passed to plotly layout.
@@ -856,6 +867,8 @@ def plot_diagnostics(
     """
     if not hasattr(model, "sampler") or model.sampler is None:
         raise ValueError("Model has not been fitted. Call .fit() first.")
+
+    trace = _require_trace(model)
 
     # Get parameter names
     param_names = model._get_param_names()
@@ -943,7 +956,8 @@ def plot_diagnostics(
 
                 # Trace plot (column 1)
                 for chain in model.sampler.chains:
-                    trace_data = chain.raw_trace[:, :, param_idx]
+                    chain_trace = _require_chain_trace(chain)
+                    trace_data = chain_trace[:, :, param_idx]
                     mean_trace = trace_data.mean(axis=1)
                     fig.add_trace(
                         go.Scatter(
@@ -962,7 +976,8 @@ def plot_diagnostics(
                 # Autocorrelation plot (column 2)
                 all_samples = []
                 for chain in model.sampler.chains:
-                    trace_data = chain.raw_trace[:, :, param_idx].flatten()
+                    chain_trace = _require_chain_trace(chain)
+                    trace_data = chain_trace[:, :, param_idx].flatten()
                     all_samples.append(trace_data)
                 combined_samples = np.concatenate(all_samples)
                 acf = _compute_autocorr(combined_samples, max_lag=50)
@@ -983,7 +998,7 @@ def plot_diagnostics(
                 )
 
                 # Posterior plot (column 3)
-                samples = model.trace[:, param_idx]
+                samples = trace[:, param_idx]
                 from scipy import stats
 
                 kde = stats.gaussian_kde(samples)
@@ -1010,7 +1025,8 @@ def plot_diagnostics(
 
             # Trace plot (column 1)
             for chain in model.sampler.chains:
-                trace_data = chain.raw_trace[:, :, param_idx]
+                chain_trace = _require_chain_trace(chain)
+                trace_data = chain_trace[:, :, param_idx]
                 for walker_id in range(trace_data.shape[1]):
                     fig.add_trace(
                         go.Scatter(
@@ -1027,7 +1043,8 @@ def plot_diagnostics(
             # Autocorrelation plot (column 2)
             all_samples = []
             for chain in model.sampler.chains:
-                trace_data = chain.raw_trace[:, :, param_idx].flatten()
+                chain_trace = _require_chain_trace(chain)
+                trace_data = chain_trace[:, :, param_idx].flatten()
                 all_samples.append(trace_data)
             combined_samples = np.concatenate(all_samples)
             acf = _compute_autocorr(combined_samples, max_lag=50)
@@ -1046,7 +1063,7 @@ def plot_diagnostics(
             )
 
             # Posterior plot (column 3)
-            samples = model.trace[:, param_idx]
+            samples = trace[:, param_idx]
             from scipy import stats
 
             kde = stats.gaussian_kde(samples)
@@ -1086,6 +1103,20 @@ def plot_diagnostics(
 
 
 # Helper functions
+def _require_chain_trace(chain: Any) -> np.ndarray:
+    trace = getattr(chain, "raw_trace", None)
+    if trace is None:
+        raise ValueError("Chain has not been run; trace data is missing.")
+    return trace
+
+
+def _require_trace(model: BaseBayesianModel) -> np.ndarray:
+    trace = model.trace
+    if trace is None:
+        raise ValueError("Model has not been fitted; trace data is missing.")
+    return trace
+
+
 def _compute_autocorr(x: np.ndarray, max_lag: int) -> np.ndarray:
     """
     Compute autocorrelation function using FFT.
