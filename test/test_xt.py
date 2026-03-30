@@ -800,6 +800,33 @@ def test_score_accepts_raw_dataframe_with_column_mapping():
     assert scored["xt_added"].notna().sum() == 1
 
 
+def test_score_reuses_fit_schema_by_default():
+    df = pd.DataFrame(
+        {
+            "loc_x": [10, 90],
+            "loc_y": [10, 10],
+            "dest_x": [90, np.nan],
+            "dest_y": [10, np.nan],
+            "etype": ["Pass", "Shot"],
+            "outcome": ["Complete", "Goal"],
+        }
+    )
+    model = XTModel(l=2, w=1).fit(
+        df,
+        x="loc_x",
+        y="loc_y",
+        event_type="etype",
+        end_x="dest_x",
+        end_y="dest_y",
+        is_success="outcome",
+        event_map={"Pass": "pass", "Shot": "shot"},
+        success_map={"Complete": True, "Goal": True},
+    )
+    scored = model.score(df)
+    assert "xt_added" in scored.columns
+    assert scored["xt_added"].notna().sum() == 1
+
+
 # ---------------------------------------------------------------------------
 # Save/load round trip
 # ---------------------------------------------------------------------------
@@ -917,6 +944,20 @@ def test_fit_empty_dataset_raises():
         XTModel(l=2, w=1).fit(data)
 
 
+def test_fit_missing_is_success_raises():
+    df = pd.DataFrame(
+        {
+            "x": [10, 90],
+            "y": [10, 10],
+            "end_x": [90, np.nan],
+            "end_y": [10, np.nan],
+            "event_type": ["pass", "shot"],
+        }
+    )
+    with pytest.raises(ValueError, match="Missing success information"):
+        XTModel(l=2, w=1).fit(df)
+
+
 def test_fit_warns_on_out_of_bounds_coords():
     df = pd.DataFrame(
         {
@@ -977,6 +1018,29 @@ def test_score_errors_on_out_of_bounds_coords():
     score_df.loc[0, "end_x"] = 150.0
     with pytest.raises(ValueError, match="outside expected 0..100"):
         model.score(make_xtdata(score_df))
+
+
+def test_value_at_error_policy_raises_on_out_of_bounds():
+    df = simple_pass_shot_df()
+    model = XTModel(l=2, w=1, coord_policy="error").fit(df)
+    with pytest.raises(ValueError, match="outside expected 0..100"):
+        model.value_at(-1, 50)
+
+
+def test_value_at_warn_policy_warns_on_out_of_bounds():
+    df = simple_pass_shot_df()
+    model = XTModel(l=2, w=1, coord_policy="warn").fit(df)
+    with pytest.warns(UserWarning, match="outside expected 0..100"):
+        model.value_at(-1, 50)
+
+
+def test_value_at_rejects_non_finite_inputs():
+    df = simple_pass_shot_df()
+    model = XTModel(l=2, w=1).fit(df)
+    with pytest.raises(ValueError, match="finite numbers"):
+        model.value_at(np.inf, 50)
+    with pytest.raises(ValueError, match="finite numbers"):
+        model.value_at(50, -np.inf)
 
 
 # ---------------------------------------------------------------------------
@@ -1102,6 +1166,29 @@ def test_save_load_preserves_families(tmp_path):
 
     assert loaded.included_move_families_ == model.included_move_families_
     assert loaded.included_shot_families_ == model.included_shot_families_
+
+
+def test_save_handles_numpy_scalars_in_fit_schema_maps(tmp_path):
+    df = pd.DataFrame(
+        {
+            "x": [10, 90],
+            "y": [10, 10],
+            "end_x": [90, np.nan],
+            "end_y": [10, np.nan],
+            "event_type": ["Pass", "Shot"],
+            "is_success": ["Complete", "Goal"],
+        }
+    )
+    model = XTModel(l=2, w=1).fit(
+        df,
+        event_map={"Pass": "pass", "Shot": "shot"},
+        success_map={"Complete": np.bool_(True), "Goal": np.bool_(True)},
+    )
+
+    path = tmp_path / "xt_json_scalars.npz"
+    model.save(str(path))
+    loaded = XTModel.load(str(path))
+    assert loaded.fitted_
 
 
 # ---------------------------------------------------------------------------

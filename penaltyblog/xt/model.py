@@ -123,6 +123,7 @@ class XTModel:
         if self.coord_policy not in {"warn", "error", "clip"}:
             raise ValueError("coord_policy must be one of: 'warn', 'error', 'clip'")
         self.fitted_: bool = False
+        self._fit_schema_: dict[str, object] | None = None
 
     def _validate_coords(self, df: pd.DataFrame, context: str) -> None:
         counts = {}
@@ -249,6 +250,48 @@ class XTModel:
         """
         Fit one unified xT surface from all included attacking events.
         """
+        fit_schema: dict[str, object] | None = None
+        if isinstance(data, XTData):
+            fit_schema = {
+                "x": data.x,
+                "y": data.y,
+                "event_type": data.event_type,
+                "end_x": data.end_x,
+                "end_y": data.end_y,
+                "is_success": data.is_success,
+                "x_range": list(data.x_range),
+                "y_range": list(data.y_range),
+                "event_map": None,
+                "success_map": None,
+            }
+        elif isinstance(data, pd.DataFrame):
+            resolved_end_x = end_x
+            resolved_end_y = end_y
+            resolved_is_success = is_success
+            if (
+                end_x == "end_x"
+                and end_y == "end_y"
+                and end_x not in data.columns
+                and end_y not in data.columns
+            ):
+                resolved_end_x = None
+                resolved_end_y = None
+            if is_success == "is_success" and is_success not in data.columns:
+                resolved_is_success = None
+
+            fit_schema = {
+                "x": x,
+                "y": y,
+                "event_type": event_type,
+                "end_x": resolved_end_x,
+                "end_y": resolved_end_y,
+                "is_success": resolved_is_success,
+                "x_range": list(x_range),
+                "y_range": list(y_range),
+                "event_map": event_map or None,
+                "success_map": success_map or None,
+            }
+
         xt_data = self._as_xtdata(
             data,
             x=x,
@@ -262,6 +305,11 @@ class XTModel:
             event_map=event_map,
             success_map=success_map,
         )
+        if xt_data.is_success is None:
+            raise ValueError(
+                "Missing success information. Provide an is_success column "
+                "(or mapping) where moves use completion status and shots use goal status."
+            )
         df = xt_data.df.copy()
 
         # Convert coordinates to float
@@ -457,7 +505,9 @@ class XTModel:
             "goal_probability_smoothing": {"alpha": alpha, "beta": beta},
             "included_move_families": self.included_move_families_,
             "included_shot_families": self.included_shot_families_,
+            "fit_schema": fit_schema,
         }
+        self._fit_schema_ = self.metadata_["fit_schema"]
         self.fitted_ = True
         return self
 
@@ -483,6 +533,37 @@ class XTModel:
         ``xt_end``, and ``xt_added`` columns. Non-scoreable rows get NaN.
         """
         self._ensure_fitted()
+        use_fitted_schema = (
+            isinstance(data, pd.DataFrame)
+            and self._fit_schema_ is not None
+            and x == "x"
+            and y == "y"
+            and event_type == "event_type"
+            and end_x == "end_x"
+            and end_y == "end_y"
+            and is_success == "is_success"
+            and x_range == (0.0, 100.0)
+            and y_range == (0.0, 100.0)
+            and event_map is None
+            and success_map is None
+        )
+        if use_fitted_schema:
+            schema = self._fit_schema_
+            x = str(schema["x"])
+            y = str(schema["y"])
+            event_type = str(schema["event_type"])
+            end_x = schema["end_x"] if schema["end_x"] is None else str(schema["end_x"])
+            end_y = schema["end_y"] if schema["end_y"] is None else str(schema["end_y"])
+            is_success = (
+                schema["is_success"]
+                if schema["is_success"] is None
+                else str(schema["is_success"])
+            )
+            x_range = tuple(schema["x_range"])
+            y_range = tuple(schema["y_range"])
+            event_map = schema["event_map"]
+            success_map = schema["success_map"]
+
         xt_data = self._as_xtdata(
             data,
             x=x,
@@ -496,6 +577,11 @@ class XTModel:
             event_map=event_map,
             success_map=success_map,
         )
+        if xt_data.is_success is None:
+            raise ValueError(
+                "Missing success information. Provide an is_success column "
+                "(or mapping) where moves use completion status and shots use goal status."
+            )
         df = xt_data.df.copy()
 
         for col in ["x", "y", "end_x", "end_y"]:
@@ -537,8 +623,25 @@ class XTModel:
     def value_at(self, x: float, y: float) -> float:
         """Return the xT value at the given (x, y) coordinate."""
         self._ensure_fitted()
-        x_arr = _clip_coords(np.array([float(x)]))
-        y_arr = _clip_coords(np.array([float(y)]))
+        x_val = float(x)
+        y_val = float(y)
+        if (not np.isfinite(x_val)) or (not np.isfinite(y_val)):
+            raise ValueError("x and y must be finite numbers")
+
+        out_of_bounds = (
+            (x_val < 0.0) or (x_val > 100.0) or (y_val < 0.0) or (y_val > 100.0)
+        )
+        if out_of_bounds and self.coord_policy == "error":
+            raise ValueError("xT value_at received coordinates outside expected 0..100")
+        if out_of_bounds and self.coord_policy == "warn":
+            warnings.warn(
+                "xT value_at received coordinates outside expected 0..100. Values will be clipped.",
+                UserWarning,
+                stacklevel=2,
+            )
+
+        x_arr = _clip_coords(np.array([x_val]))
+        y_arr = _clip_coords(np.array([y_val]))
         cell = _coords_to_cell(x_arr, y_arr, self.l, self.w)[0]
         return float(self.surface_.reshape(-1)[cell])
 
@@ -580,6 +683,7 @@ class XTModel:
         model.metadata_ = metadata
         model.included_move_families_ = metadata.get("included_move_families", [])
         model.included_shot_families_ = metadata.get("included_shot_families", [])
+        model._fit_schema_ = metadata.get("fit_schema")
         model.fitted_ = True
         return model
 

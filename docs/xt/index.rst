@@ -123,6 +123,8 @@ name mappings. A single ``is_success`` column has consistent meaning
 across event types: for moves it means the action was completed
 successfully; for shots it means a goal was scored.
 
+This success signal is required when fitting or scoring xT.
+
 ``XTData`` handles boolean coercion safely — string values like
 ``"False"``, ``"Incomplete"``, or ``"0"`` are correctly interpreted
 rather than treated as truthy non-empty strings.
@@ -213,6 +215,10 @@ arguments directly:
        event_map={"Pass": "pass", "Shot": "shot"},
        success_map={"Complete": True, "Incomplete": False, "Goal": True},
    )
+   scored = xt.score(df)
+
+If you call ``score`` with default mapping arguments, it reuses the schema
+from ``fit`` so you do not need to repeat column mappings.
 
 Fit on XTData (explicit path)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
