@@ -24,26 +24,24 @@ def make_xtdata(df, **kwargs):
         x="x",
         y="y",
         event_type="event_type",
-        pass_end_x="pass_end_x",
-        pass_end_y="pass_end_y",
-        move_success="move_success",
-        shot_goal="shot_goal",
+        end_x="end_x",
+        end_y="end_y",
+        is_success="is_success",
     )
     defaults.update(kwargs)
     return XTData(**defaults)
 
 
 def simple_pass_shot_df():
-    """Minimal dataset: 1 pass + 1 failed shot + 1 goal."""
+    """Minimal dataset: 1 successful pass + 1 missed shot + 1 goal."""
     return pd.DataFrame(
         {
             "x": [10, 10, 90],
             "y": [10, 10, 10],
-            "pass_end_x": [90, np.nan, np.nan],
-            "pass_end_y": [10, np.nan, np.nan],
+            "end_x": [90, np.nan, np.nan],
+            "end_y": [10, np.nan, np.nan],
             "event_type": ["pass", "shot", "shot"],
-            "move_success": [True, False, False],
-            "shot_goal": [False, False, True],
+            "is_success": [True, False, True],
         }
     )
 
@@ -99,7 +97,7 @@ def test_xtdata_validates_required_columns():
 def test_xtdata_validates_paired_end_coords():
     df = pd.DataFrame({"x": [1], "y": [2], "event_type": ["pass"], "ex": [3]})
     with pytest.raises(ValueError, match="Both or neither"):
-        XTData(events=df, x="x", y="y", event_type="event_type", pass_end_x="ex")
+        XTData(events=df, x="x", y="y", event_type="event_type", end_x="ex")
 
 
 def test_xtdata_normalized_df_adds_missing_columns():
@@ -107,13 +105,9 @@ def test_xtdata_normalized_df_adds_missing_columns():
     data = XTData(events=df, x="x", y="y", event_type="event_type")
     ndf = data.df
     for col in [
-        "event_subtype",
-        "pass_end_x",
-        "pass_end_y",
-        "carry_end_x",
-        "carry_end_y",
-        "move_success",
-        "shot_goal",
+        "end_x",
+        "end_y",
+        "is_success",
     ]:
         assert col in ndf.columns
 
@@ -124,11 +118,9 @@ def test_xtdata_map_events():
             "x": [10],
             "y": [20],
             "raw_type": ["Pass"],
-            "raw_sub": ["regular"],
             "ex": [30],
             "ey": [40],
             "success": [True],
-            "goal": [False],
         }
     )
     data = XTData(
@@ -136,11 +128,9 @@ def test_xtdata_map_events():
         x="x",
         y="y",
         event_type="raw_type",
-        event_subtype="raw_sub",
-        pass_end_x="ex",
-        pass_end_y="ey",
-        move_success="success",
-        shot_goal="goal",
+        end_x="ex",
+        end_y="ey",
+        is_success="success",
     ).map_events(event_map={"Pass": "pass"})
     assert data.df["event_type"].iloc[0] == "pass"
 
@@ -155,7 +145,7 @@ def test_classification_pass_is_move():
     data = make_xtdata(df)
     model = XTModel(l=2, w=1)
     ndf = data.df
-    role, _, _ = model._classify_events(ndf)
+    role = model._classify_events(ndf)
     assert role.iloc[0] == "move"
 
 
@@ -163,7 +153,7 @@ def test_classification_shot_is_shot():
     df = simple_pass_shot_df()
     data = make_xtdata(df)
     model = XTModel(l=2, w=1)
-    role, _, _ = model._classify_events(data.df)
+    role = model._classify_events(data.df)
     assert role.iloc[1] == "shot"
     assert role.iloc[2] == "shot"
 
@@ -173,32 +163,16 @@ def test_classification_carry():
         {
             "x": [10],
             "y": [10],
-            "pass_end_x": [np.nan],
-            "pass_end_y": [np.nan],
-            "carry_end_x": [80.0],
-            "carry_end_y": [50.0],
+            "end_x": [80.0],
+            "end_y": [50.0],
             "event_type": ["carry"],
-            "move_success": [True],
-            "shot_goal": [False],
+            "is_success": [True],
         }
     )
-    data = XTData(
-        events=df,
-        x="x",
-        y="y",
-        event_type="event_type",
-        pass_end_x="pass_end_x",
-        pass_end_y="pass_end_y",
-        carry_end_x="carry_end_x",
-        carry_end_y="carry_end_y",
-        move_success="move_success",
-        shot_goal="shot_goal",
-    )
+    data = make_xtdata(df)
     model = XTModel(l=2, w=1, include_carries=True)
-    role, end_x, end_y = model._classify_events(data.df)
+    role = model._classify_events(data.df)
     assert role.iloc[0] == "move"
-    assert end_x.iloc[0] == 80.0
-    assert end_y.iloc[0] == 50.0
 
 
 def test_classification_carry_excluded():
@@ -206,16 +180,15 @@ def test_classification_carry_excluded():
         {
             "x": [10],
             "y": [10],
-            "pass_end_x": [np.nan],
-            "pass_end_y": [np.nan],
+            "end_x": [np.nan],
+            "end_y": [np.nan],
             "event_type": ["carry"],
-            "move_success": [True],
-            "shot_goal": [False],
+            "is_success": [True],
         }
     )
     data = make_xtdata(df)
     model = XTModel(l=2, w=1, include_carries=False)
-    role, _, _ = model._classify_events(data.df)
+    role = model._classify_events(data.df)
     assert role.iloc[0] == "ignore"
 
 
@@ -224,16 +197,15 @@ def test_classification_throw_in():
         {
             "x": [30],
             "y": [0],
-            "pass_end_x": [50],
-            "pass_end_y": [30],
+            "end_x": [50],
+            "end_y": [30],
             "event_type": ["throw_in"],
-            "move_success": [True],
-            "shot_goal": [False],
+            "is_success": [True],
         }
     )
     data = make_xtdata(df)
     model = XTModel(l=2, w=1, include_throw_ins=True)
-    role, _, _ = model._classify_events(data.df)
+    role = model._classify_events(data.df)
     assert role.iloc[0] == "move"
 
 
@@ -242,16 +214,15 @@ def test_classification_throw_in_excluded():
         {
             "x": [30],
             "y": [0],
-            "pass_end_x": [50],
-            "pass_end_y": [30],
+            "end_x": [50],
+            "end_y": [30],
             "event_type": ["throw_in"],
-            "move_success": [True],
-            "shot_goal": [False],
+            "is_success": [True],
         }
     )
     data = make_xtdata(df)
     model = XTModel(l=2, w=1, include_throw_ins=False)
-    role, _, _ = model._classify_events(data.df)
+    role = model._classify_events(data.df)
     assert role.iloc[0] == "ignore"
 
 
@@ -260,59 +231,51 @@ def test_classification_free_kick_pass_vs_shot():
         {
             "x": [30, 30],
             "y": [50, 50],
-            "pass_end_x": [60, np.nan],
-            "pass_end_y": [50, np.nan],
-            "event_type": ["free_kick", "free_kick"],
-            "event_subtype": ["", "shot"],
-            "move_success": [True, False],
-            "shot_goal": [False, False],
+            "end_x": [60, np.nan],
+            "end_y": [50, np.nan],
+            "event_type": ["free_kick", "free_kick_shot"],
+            "is_success": [True, False],
         }
     )
-    data = XTData(
-        events=df,
-        x="x",
-        y="y",
-        event_type="event_type",
-        event_subtype="event_subtype",
-        pass_end_x="pass_end_x",
-        pass_end_y="pass_end_y",
-        move_success="move_success",
-        shot_goal="shot_goal",
-    )
+    data = make_xtdata(df)
     model = XTModel(l=2, w=1, include_free_kicks=True)
-    role, _, _ = model._classify_events(data.df)
-    assert role.iloc[0] == "move"  # free_kick pass
-    assert role.iloc[1] == "shot"  # free_kick shot
-
-
-def test_classification_corner_pass_vs_shot():
-    df = pd.DataFrame(
-        {
-            "x": [0, 0],
-            "y": [0, 0],
-            "pass_end_x": [80, np.nan],
-            "pass_end_y": [50, np.nan],
-            "event_type": ["corner", "corner"],
-            "event_subtype": ["", "shot"],
-            "move_success": [True, False],
-            "shot_goal": [False, False],
-        }
-    )
-    data = XTData(
-        events=df,
-        x="x",
-        y="y",
-        event_type="event_type",
-        event_subtype="event_subtype",
-        pass_end_x="pass_end_x",
-        pass_end_y="pass_end_y",
-        move_success="move_success",
-        shot_goal="shot_goal",
-    )
-    model = XTModel(l=2, w=1, include_corners=True)
-    role, _, _ = model._classify_events(data.df)
+    role = model._classify_events(data.df)
     assert role.iloc[0] == "move"
     assert role.iloc[1] == "shot"
+
+
+def test_classification_corner_is_move():
+    df = pd.DataFrame(
+        {
+            "x": [0],
+            "y": [0],
+            "end_x": [80],
+            "end_y": [50],
+            "event_type": ["corner"],
+            "is_success": [True],
+        }
+    )
+    data = make_xtdata(df)
+    model = XTModel(l=2, w=1, include_corners=True)
+    role = model._classify_events(data.df)
+    assert role.iloc[0] == "move"
+
+
+def test_classification_corner_excluded():
+    df = pd.DataFrame(
+        {
+            "x": [0],
+            "y": [0],
+            "end_x": [80],
+            "end_y": [50],
+            "event_type": ["corner"],
+            "is_success": [True],
+        }
+    )
+    data = make_xtdata(df)
+    model = XTModel(l=2, w=1, include_corners=False)
+    role = model._classify_events(data.df)
+    assert role.iloc[0] == "ignore"
 
 
 def test_classification_penalty_ignored():
@@ -320,16 +283,15 @@ def test_classification_penalty_ignored():
         {
             "x": [88],
             "y": [50],
-            "pass_end_x": [np.nan],
-            "pass_end_y": [np.nan],
+            "end_x": [np.nan],
+            "end_y": [np.nan],
             "event_type": ["penalty"],
-            "move_success": [False],
-            "shot_goal": [True],
+            "is_success": [True],
         }
     )
     data = make_xtdata(df)
     model = XTModel(l=2, w=1)
-    role, _, _ = model._classify_events(data.df)
+    role = model._classify_events(data.df)
     assert role.iloc[0] == "ignore"
 
 
@@ -343,11 +305,10 @@ def test_inclusion_flags_affect_fit():
         {
             "x": [10, 10, 10, 90],
             "y": [10, 10, 10, 10],
-            "pass_end_x": [90, 90, np.nan, np.nan],
-            "pass_end_y": [10, 10, np.nan, np.nan],
+            "end_x": [90, 90, np.nan, np.nan],
+            "end_y": [10, 10, np.nan, np.nan],
             "event_type": ["pass", "throw_in", "shot", "shot"],
-            "move_success": [True, True, False, False],
-            "shot_goal": [False, False, False, True],
+            "is_success": [True, True, False, True],
         }
     )
     data = make_xtdata(df)
@@ -371,11 +332,10 @@ def test_goal_probability_smoothing():
         {
             "x": [10],
             "y": [10],
-            "pass_end_x": [np.nan],
-            "pass_end_y": [np.nan],
+            "end_x": [np.nan],
+            "end_y": [np.nan],
             "event_type": ["shot"],
-            "move_success": [False],
-            "shot_goal": [False],
+            "is_success": [False],
         }
     )
     data = make_xtdata(df)
@@ -391,11 +351,10 @@ def test_goal_probability_with_goal():
         {
             "x": [90, 90],
             "y": [50, 50],
-            "pass_end_x": [np.nan, np.nan],
-            "pass_end_y": [np.nan, np.nan],
+            "end_x": [np.nan, np.nan],
+            "end_y": [np.nan, np.nan],
             "event_type": ["shot", "shot"],
-            "move_success": [False, False],
-            "shot_goal": [False, True],
+            "is_success": [False, True],
         }
     )
     data = make_xtdata(df)
@@ -416,11 +375,10 @@ def test_transition_matrix_row_normalization():
         {
             "x": [10, 10],
             "y": [10, 10],
-            "pass_end_x": [90, 90],
-            "pass_end_y": [10, 10],
+            "end_x": [90, 90],
+            "end_y": [10, 10],
             "event_type": ["pass", "pass"],
-            "move_success": [True, True],
-            "shot_goal": [False, False],
+            "is_success": [True, True],
         }
     )
     data = make_xtdata(df)
@@ -438,11 +396,10 @@ def test_transition_matrix_zero_row():
         {
             "x": [90],
             "y": [10],
-            "pass_end_x": [np.nan],
-            "pass_end_y": [np.nan],
+            "end_x": [np.nan],
+            "end_y": [np.nan],
             "event_type": ["shot"],
-            "move_success": [False],
-            "shot_goal": [True],
+            "is_success": [True],
         }
     )
     data = make_xtdata(df)
@@ -463,11 +420,10 @@ def test_per_family_transitions():
         {
             "x": [10, 10, 90],
             "y": [50, 50, 50],
-            "pass_end_x": [90, 40, np.nan],
-            "pass_end_y": [50, 50, np.nan],
+            "end_x": [90, 40, np.nan],
+            "end_y": [50, 50, np.nan],
             "event_type": ["pass", "throw_in", "shot"],
-            "move_success": [True, True, False],
-            "shot_goal": [False, False, True],
+            "is_success": [True, True, True],
         }
     )
     data = make_xtdata(df)
@@ -499,11 +455,10 @@ def test_sparse_family_shrinks_toward_pooled():
             {
                 "x": 10,
                 "y": 50,
-                "pass_end_x": 90,
-                "pass_end_y": 50,
+                "end_x": 90,
+                "end_y": 50,
                 "event_type": "pass",
-                "move_success": True,
-                "shot_goal": False,
+                "is_success": True,
             }
         )
     # One sparse throw-in to a different destination
@@ -511,23 +466,21 @@ def test_sparse_family_shrinks_toward_pooled():
         {
             "x": 10,
             "y": 50,
-            "pass_end_x": 40,
-            "pass_end_y": 50,
+            "end_x": 40,
+            "end_y": 50,
             "event_type": "throw_in",
-            "move_success": True,
-            "shot_goal": False,
+            "is_success": True,
         }
     )
-    # Shot in cell 2 so there's xT value
+    # Shot in cell 2 so there's xT value (goal)
     rows.append(
         {
             "x": 90,
             "y": 50,
-            "pass_end_x": np.nan,
-            "pass_end_y": np.nan,
+            "end_x": np.nan,
+            "end_y": np.nan,
             "event_type": "shot",
-            "move_success": False,
-            "shot_goal": True,
+            "is_success": True,
         }
     )
 
@@ -579,11 +532,10 @@ def test_trivial_one_cell_case():
         {
             "x": [10, 20],
             "y": [10, 20],
-            "pass_end_x": [10, np.nan],
-            "pass_end_y": [10, np.nan],
+            "end_x": [10, np.nan],
+            "end_y": [10, np.nan],
             "event_type": ["pass", "shot"],
-            "move_success": [True, False],
-            "shot_goal": [False, True],
+            "is_success": [True, True],
         }
     )
     data = make_xtdata(df)
@@ -602,11 +554,10 @@ def test_two_cell_transition():
         {
             "x": [10, 10, 10, 90, 90],
             "y": [10, 10, 10, 10, 10],
-            "pass_end_x": [90, 90, np.nan, np.nan, np.nan],
-            "pass_end_y": [10, 10, np.nan, np.nan, np.nan],
+            "end_x": [90, 90, np.nan, np.nan, np.nan],
+            "end_y": [10, 10, np.nan, np.nan, np.nan],
             "event_type": ["pass", "pass", "shot", "shot", "shot"],
-            "move_success": [True, True, False, False, False],
-            "shot_goal": [False, False, False, False, True],
+            "is_success": [True, True, False, False, True],
         }
     )
     data = make_xtdata(df)
@@ -690,11 +641,10 @@ def test_score_mixed_event_families():
         {
             "x": [10, 10, 90],
             "y": [10, 10, 10],
-            "pass_end_x": [90, 90, np.nan],
-            "pass_end_y": [10, 10, np.nan],
+            "end_x": [90, 90, np.nan],
+            "end_y": [10, 10, np.nan],
             "event_type": ["pass", "throw_in", "shot"],
-            "move_success": [True, True, False],
-            "shot_goal": [False, False, True],
+            "is_success": [True, True, True],
         }
     )
     data = make_xtdata(df)
@@ -718,8 +668,7 @@ def test_score_returns_original_columns():
             "pass_dest_x": [90, np.nan],
             "pass_dest_y": [10, np.nan],
             "type": ["pass", "shot"],
-            "success": [True, False],
-            "is_goal": [False, True],
+            "success": [True, True],
         }
     )
     data = XTData(
@@ -727,10 +676,9 @@ def test_score_returns_original_columns():
         x="loc_x",
         y="loc_y",
         event_type="type",
-        pass_end_x="pass_dest_x",
-        pass_end_y="pass_dest_y",
-        move_success="success",
-        shot_goal="is_goal",
+        end_x="pass_dest_x",
+        end_y="pass_dest_y",
+        is_success="success",
     )
     model = XTModel(l=2, w=1).fit(data)
     scored = model.score(data)
@@ -838,11 +786,10 @@ def test_fit_empty_dataset_raises():
         {
             "x": [10],
             "y": [10],
-            "pass_end_x": [np.nan],
-            "pass_end_y": [np.nan],
+            "end_x": [np.nan],
+            "end_y": [np.nan],
             "event_type": ["penalty"],
-            "move_success": [False],
-            "shot_goal": [False],
+            "is_success": [False],
         }
     )
     data = make_xtdata(df)
@@ -876,11 +823,10 @@ def test_included_families_tracked():
         {
             "x": [10, 10, 90],
             "y": [10, 10, 10],
-            "pass_end_x": [90, 90, np.nan],
-            "pass_end_y": [10, 10, np.nan],
+            "end_x": [90, 90, np.nan],
+            "end_y": [10, 10, np.nan],
             "event_type": ["pass", "throw_in", "shot"],
-            "move_success": [True, True, False],
-            "shot_goal": [False, False, True],
+            "is_success": [True, True, True],
         }
     )
     data = make_xtdata(df)
@@ -931,22 +877,21 @@ def test_fit_with_string_success_column():
         {
             "x": [10, 10, 90],
             "y": [10, 10, 10],
-            "pass_end_x": [90, 90, np.nan],
-            "pass_end_y": [10, 10, np.nan],
+            "end_x": [90, 90, np.nan],
+            "end_y": [10, 10, np.nan],
             "event_type": ["pass", "pass", "shot"],
-            "move_success": ["True", "False", "False"],
-            "shot_goal": ["False", "False", "True"],
+            "is_success": ["True", "False", "True"],
         }
     )
     data = make_xtdata(df)
     model = XTModel(l=2, w=1).fit(data)
-    # Only 1 of 2 passes should count (the "True" one), not both
+    # 1 successful + 1 failed pass from cell 0, 0 shots
+    # total = 0 shots + 2 move attempts = 2
+    # move_prob = 1 successful / 2 total = 0.5
     cell0 = _coords_to_cell(np.array([10.0]), np.array([10.0]), 2, 1)[0]
     mp = model.move_probability_.reshape(-1)[cell0]
     sp = model.shot_probability_.reshape(-1)[cell0]
-    # 1 successful pass + 0 shots from cell 0 => move_prob = 1/1 = 1.0
-    # (the "False" pass is excluded from counts)
-    assert np.isclose(mp, 1.0)
+    assert np.isclose(mp, 0.5)
     assert np.isclose(sp, 0.0)
 
 
@@ -960,11 +905,10 @@ def test_save_load_preserves_families(tmp_path):
         {
             "x": [10, 10, 90],
             "y": [10, 10, 10],
-            "pass_end_x": [90, 90, np.nan],
-            "pass_end_y": [10, 10, np.nan],
+            "end_x": [90, 90, np.nan],
+            "end_y": [10, 10, np.nan],
             "event_type": ["pass", "throw_in", "shot"],
-            "move_success": [True, True, False],
-            "shot_goal": [False, False, True],
+            "is_success": [True, True, True],
         }
     )
     data = make_xtdata(df)
@@ -988,32 +932,30 @@ def test_postmatch_penalty_ignored():
         {
             "x": [88],
             "y": [50],
-            "pass_end_x": [np.nan],
-            "pass_end_y": [np.nan],
+            "end_x": [np.nan],
+            "end_y": [np.nan],
             "event_type": ["postmatch_penalty"],
-            "move_success": [False],
-            "shot_goal": [True],
+            "is_success": [True],
         }
     )
     data = make_xtdata(df)
     model = XTModel(l=2, w=1)
-    role, _, _ = model._classify_events(data.df)
+    role = model._classify_events(data.df)
     assert role.iloc[0] == "ignore"
 
 
 # ---------------------------------------------------------------------------
-# map_events with success_map / goal_map
+# map_events with success_map
 # ---------------------------------------------------------------------------
 
 
-def test_map_events_success_and_goal():
+def test_map_events_success():
     df = pd.DataFrame(
         {
             "x": [10, 90],
             "y": [10, 10],
             "raw_type": ["Pass", "Shot"],
             "outcome": ["Complete", "Goal"],
-            "is_goal": ["no", "yes"],
             "ex": [90, np.nan],
             "ey": [10, np.nan],
         }
@@ -1023,15 +965,13 @@ def test_map_events_success_and_goal():
         x="x",
         y="y",
         event_type="raw_type",
-        pass_end_x="ex",
-        pass_end_y="ey",
-        move_success="outcome",
-        shot_goal="is_goal",
+        end_x="ex",
+        end_y="ey",
+        is_success="outcome",
     ).map_events(
         event_map={"Pass": "pass", "Shot": "shot"},
-        success_map={"Complete": True, "Incomplete": False},
-        goal_map={"yes": True, "no": False},
+        success_map={"Complete": True, "Incomplete": False, "Goal": True},
     )
     ndf = data.df
-    assert ndf["move_success"].iloc[0] == True  # noqa: E712
-    assert ndf["shot_goal"].iloc[1] == True  # noqa: E712
+    assert ndf["is_success"].iloc[0] == True  # noqa: E712
+    assert ndf["is_success"].iloc[1] == True  # noqa: E712

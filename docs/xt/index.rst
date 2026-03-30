@@ -23,44 +23,105 @@ Key characteristics
 - Position-based xT on a normalized ``0-100`` pitch.
 - Grid discretization with a practical default of ``16x12``.
 - **One unified xT surface** from all included attacking event families.
-- Passes, carries, throw-ins, goal kicks, corner passes, and free-kick
-  passes are pooled as **move** actions.
-- Shots, direct free-kick shots, and corner shots are treated as **shot**
-  actions.
+- Passes, carries, throw-ins, goal kicks, corners, and free kicks
+  are treated as **move** actions.
+- Shots and direct free-kick shots are treated as **shot** actions.
+- Each move family maintains its own transition matrix, with sparse
+  families shrunk toward the pooled baseline (see
+  :ref:`per-family transitions <per-family-transitions>` below).
+- Failed actions act as an implicit **turnover discount** — they consume
+  probability without contributing transitions, so distant cells have
+  lower xT (see :ref:`turnover discount <turnover-discount>` below).
 - Successful moves are scored by the delta ``xT(end) - xT(start)``.
-- Failed actions are ignored.
 - Goal probability is estimated **per cell** with light beta-binomial smoothing.
 - Plotting integrates with :class:`penaltyblog.viz.Pitch`.
 
 Supported event families
 ------------------------
 
-Move events (pooled into one transition process):
+Move events:
 
 - ``pass`` — always included
 - ``carry`` — included by default (``include_carries=True``)
 - ``throw_in`` — included by default (``include_throw_ins=True``)
 - ``goal_kick`` — included by default (``include_goal_kicks=True``)
-- ``free_kick`` (pass-like) — included by default (``include_free_kicks=True``)
-- ``corner`` (pass-like) — included by default (``include_corners=True``)
+- ``free_kick`` — included by default (``include_free_kicks=True``)
+- ``corner`` — included by default (``include_corners=True``)
 
 Shot events:
 
 - ``shot`` — always included
-- ``free_kick`` (shot) — included when ``include_free_kicks=True``
-- ``corner`` (shot) — included when ``include_corners=True``
+- ``free_kick_shot`` — included when ``include_free_kicks=True``
 
 Ignored events:
 
-- ``penalty``, ``own_goal``, ``shot_against``, ``shootout``
+- ``penalty``, ``penalty_kick``, ``own_goal``, ``shot_against``,
+  ``shootout``, ``postmatch_penalty``
 - Any event not classifiable into a move or shot
+
+.. _turnover-discount:
+
+Turnover discount
+-----------------
+
+The denominator for action probabilities includes **all move attempts**
+(successful and failed), not just successful ones. This means:
+
+.. math::
+
+   \text{move\_prob}(i) = \frac{\text{successful\_moves}(i)}{\text{shots}(i) + \text{all\_moves}(i)}
+
+The gap :math:`1 - \text{shot\_prob} - \text{move\_prob}` is the per-cell
+probability of losing possession without progressing the ball. This acts
+as a natural discount: cells far from goal need many successful transitions
+to reach a shooting position, and each step has a chance of failure that
+compounds multiplicatively through the linear solve.
+
+Without this, the xT surface has an artificially high floor in the
+defensive half because ``move_prob ≈ 1.0`` everywhere and value propagates
+freely across the pitch.
+
+.. _per-family-transitions:
+
+Per-family transitions
+----------------------
+
+Rather than pooling all move events into a single transition matrix, the
+model builds a **separate transition matrix per move family**. This means
+a throw-in from a cell near the touchline has a different destination
+distribution from an open-play pass originating in the same cell.
+
+To handle sparse families (e.g. free kicks, which may have very few
+observations from any single cell), each family's transition row is
+**shrunk toward the pooled transition**:
+
+.. math::
+
+   T_f^{smooth}(i) = \frac{counts_f(i) + k \cdot T_{pooled}(i)}{n_f(i) + k}
+
+With the default ``k = 5``, a family needs roughly 5+ events from a cell
+before its pattern meaningfully diverges from the pooled baseline.
+
+The combined move-transition product used in the solve is:
+
+.. math::
+
+   MT = \sum_f \operatorname{diag}(p_f) \cdot T_f^{smooth}
+
+where :math:`p_f(cell)` is the fraction of all actions (shots + all move
+attempts) from that cell that are successful moves of family *f*.
 
 Provider-agnostic schema
 ------------------------
 
 The :class:`~penaltyblog.xt.XTData` class wraps a DataFrame with column
-mappings, supporting providers where passes and carries have different
-destination columns, and goals are indicated by a dedicated boolean column.
+name mappings. A single ``is_success`` column has consistent meaning
+across event types: for moves it means the action was completed
+successfully; for shots it means a goal was scored.
+
+``XTData`` handles boolean coercion safely — string values like
+``"False"``, ``"Incomplete"``, or ``"0"`` are correctly interpreted
+rather than treated as truthy non-empty strings.
 
 Usage
 -----
@@ -77,24 +138,27 @@ Fit on custom data
        x="location_x",
        y="location_y",
        event_type="type_primary",
-       event_subtype="type_secondary",
-       pass_end_x="pass_end_location_x",
-       pass_end_y="pass_end_location_y",
-       carry_end_x="carry_end_location_x",
-       carry_end_y="carry_end_location_y",
-       move_success="pass_accurate",
-       shot_goal="shot_is_goal",
+       end_x="end_location_x",
+       end_y="end_location_y",
+       is_success="is_successful",
    ).map_events(
        event_map={
            "Pass": "pass",
            "Throw-in": "throw_in",
            "Goal kick": "goal_kick",
-           "Corner": "corner",
-           "Free kick": "free_kick",
+           "Corner kick": "corner",
+           "Free kick pass": "free_kick",
+           "Free kick shot": "free_kick_shot",
            "Shot": "shot",
-           "Acceleration": "carry",
+           "Carry": "carry",
        },
-       subtype_map={"carry": "carry"},
+       success_map={
+           "Complete": True,
+           "Incomplete": False,
+           "Goal": True,
+           "Saved": False,
+           "Blocked": False,
+       },
    )
 
    xt = XTModel(
@@ -118,6 +182,10 @@ Load a pretrained surface
 
    model = load_pretrained_xt(name="default")
 
+The bundled ``"default"`` artifact is fit on ~14 million events
+across multiple seasons, including passes, throw-ins, free kicks, corners,
+and shots taken from the big five European leagues.
+
 Scoring
 ^^^^^^^
 
@@ -140,9 +208,10 @@ Plotting uses :class:`penaltyblog.viz.Pitch` under the hood:
 Notes
 -----
 
-- This is a v1 implementation focused on simplicity and portability.
-- All included move families are pooled into a single transition process.
-- No action-value, turnover, or possession-chain model is included.
+- Each move family has its own transition matrix, shrunk toward the pooled
+  baseline for sparse cells.
+- Failed actions act as a turnover discount — they reduce ``move_prob``
+  without contributing transitions.
 - Goal probability is estimated per cell with light smoothing.
-- Ambiguous event types (``free_kick``, ``corner``) are classified as
-  move or shot based on ``event_subtype``.
+- Each event type maps unambiguously to a role — e.g. ``corner``
+  is always a move, ``free_kick_shot`` is always a shot.

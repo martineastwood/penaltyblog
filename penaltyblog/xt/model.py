@@ -115,20 +115,14 @@ class XTModel:
             raise ValueError("l and w must be positive")
         self.fitted_: bool = False
 
-    def _classify_events(self, df: pd.DataFrame):
+    def _classify_events(self, df: pd.DataFrame) -> pd.Series:
         """
         Classify each row as move, shot, or ignore.
 
-        Returns (role, end_x, end_y) where role is a Series of
-        'move', 'shot', or 'ignore', and end_x/end_y are the resolved
-        end coordinates for move events.
+        Returns a Series of 'move', 'shot', or 'ignore'.
         """
         role = pd.Series("ignore", index=df.index, dtype=object)
-        end_x = pd.Series(np.nan, index=df.index, dtype=float)
-        end_y = pd.Series(np.nan, index=df.index, dtype=float)
-
         et = df["event_type"]
-        sub = df["event_subtype"].fillna("")
 
         # Always-included families
         role.loc[et == "pass"] = "move"
@@ -141,43 +135,17 @@ class XTModel:
             role.loc[et == "throw_in"] = "move"
         if self.include_goal_kicks:
             role.loc[et == "goal_kick"] = "move"
-
-        # Ambiguous families: free_kick and corner can be move or shot
         if self.include_free_kicks:
-            fk = et == "free_kick"
-            role.loc[fk & (sub == "shot")] = "shot"
-            role.loc[fk & (sub != "shot")] = "move"
-
+            role.loc[et == "free_kick"] = "move"
+            role.loc[et == "free_kick_shot"] = "shot"
         if self.include_corners:
-            co = et == "corner"
-            role.loc[co & (sub == "shot")] = "shot"
-            role.loc[co & (sub != "shot")] = "move"
+            role.loc[et == "corner"] = "move"
 
         # Always ignore
         for fam in _ALWAYS_IGNORE:
             role.loc[et == fam] = "ignore"
 
-        # Resolve end coordinates for move events
-        move_mask = role == "move"
-        carry_mask = move_mask & (et == "carry")
-        non_carry_move = move_mask & ~carry_mask
-
-        # Non-carry moves use pass_end coordinates
-        end_x.loc[non_carry_move] = df.loc[non_carry_move, "pass_end_x"]
-        end_y.loc[non_carry_move] = df.loc[non_carry_move, "pass_end_y"]
-
-        # Carries: prefer carry_end, fall back to pass_end
-        if carry_mask.any():
-            has_carry_end = df["carry_end_x"].notna() & df["carry_end_y"].notna()
-            use_carry = carry_mask & has_carry_end
-            use_pass = carry_mask & ~has_carry_end
-
-            end_x.loc[use_carry] = df.loc[use_carry, "carry_end_x"]
-            end_y.loc[use_carry] = df.loc[use_carry, "carry_end_y"]
-            end_x.loc[use_pass] = df.loc[use_pass, "pass_end_x"]
-            end_y.loc[use_pass] = df.loc[use_pass, "pass_end_y"]
-
-        return role, end_x, end_y
+        return role
 
     def fit(self, data: XTData) -> "XTModel":
         """
@@ -186,23 +154,25 @@ class XTModel:
         df = data.df.copy()
 
         # Convert coordinates to float
-        for col in ["x", "y", "pass_end_x", "pass_end_y", "carry_end_x", "carry_end_y"]:
+        for col in ["x", "y", "end_x", "end_y"]:
             df[col] = pd.to_numeric(df[col], errors="coerce")
 
         # Classify events
-        role, resolved_end_x, resolved_end_y = self._classify_events(df)
+        role = self._classify_events(df)
 
-        # Determine move success and goals (safe coercion for string data)
-        move_success = _coerce_bool(df["move_success"], default=True)
-        is_goal = _coerce_bool(df["shot_goal"], default=False)
+        # is_success: for moves means completed, for shots means goal
+        is_success = _coerce_bool(df["is_success"], default=True)
 
         # Build masks
         valid_start = df["x"].notna() & df["y"].notna()
-        valid_end = resolved_end_x.notna() & resolved_end_y.notna()
+        valid_end = df["end_x"].notna() & df["end_y"].notna()
 
         shot_mask = (role == "shot") & valid_start
-        goal_mask = shot_mask & is_goal
-        move_mask = (role == "move") & move_success & valid_start & valid_end
+        goal_mask = shot_mask & is_success
+        # All move attempts (successful + failed) for the denominator
+        all_move_mask = (role == "move") & valid_start
+        # Only successful moves contribute transitions
+        move_mask = all_move_mask & is_success & valid_end
 
         if not shot_mask.any() and not move_mask.any():
             raise ValueError("No relevant events to fit the model")
@@ -213,18 +183,22 @@ class XTModel:
         x_arr = _clip_coords(df["x"].to_numpy(dtype=float))
         y_arr = _clip_coords(df["y"].to_numpy(dtype=float))
         ex_arr = _clip_coords(
-            np.where(resolved_end_x.isna(), 0.0, resolved_end_x.to_numpy(dtype=float))
+            np.where(df["end_x"].isna(), 0.0, df["end_x"].to_numpy(dtype=float))
         )
         ey_arr = _clip_coords(
-            np.where(resolved_end_y.isna(), 0.0, resolved_end_y.to_numpy(dtype=float))
+            np.where(df["end_y"].isna(), 0.0, df["end_y"].to_numpy(dtype=float))
         )
 
         shot_idx = shot_mask.to_numpy()
         goal_idx = goal_mask.to_numpy()
+        all_move_idx = all_move_mask.to_numpy()
         move_idx = move_mask.to_numpy()
 
         shot_cells = _coords_to_cell(x_arr[shot_idx], y_arr[shot_idx], self.l, self.w)
         goal_cells = _coords_to_cell(x_arr[goal_idx], y_arr[goal_idx], self.l, self.w)
+        all_move_cells = _coords_to_cell(
+            x_arr[all_move_idx], y_arr[all_move_idx], self.l, self.w
+        )
         move_start_cells = _coords_to_cell(
             x_arr[move_idx], y_arr[move_idx], self.l, self.w
         )
@@ -232,15 +206,21 @@ class XTModel:
         # Count matrices
         shot_count = np.bincount(shot_cells, minlength=num_cells).astype(float)
         goal_count = np.bincount(goal_cells, minlength=num_cells).astype(float)
-        move_count = np.bincount(move_start_cells, minlength=num_cells).astype(float)
+        all_move_count = np.bincount(all_move_cells, minlength=num_cells).astype(float)
+        successful_move_count = np.bincount(
+            move_start_cells, minlength=num_cells
+        ).astype(float)
 
         # Action probabilities
-        total = shot_count + move_count
+        # Denominator includes ALL moves (successful + failed) so that
+        # failed moves consume probability without contributing transitions.
+        # The gap (1 - shot_prob - move_prob) is the implicit turnover rate.
+        total = shot_count + all_move_count
         shot_probability = np.divide(
             shot_count, total, out=np.zeros(num_cells), where=total > 0
         )
         move_probability = np.divide(
-            move_count, total, out=np.zeros(num_cells), where=total > 0
+            successful_move_count, total, out=np.zeros(num_cells), where=total > 0
         )
 
         # Per-cell goal probability with beta-binomial smoothing
@@ -378,18 +358,18 @@ class XTModel:
         self._ensure_fitted()
         df = data.df.copy()
 
-        for col in ["x", "y", "pass_end_x", "pass_end_y", "carry_end_x", "carry_end_y"]:
+        for col in ["x", "y", "end_x", "end_y"]:
             df[col] = pd.to_numeric(df[col], errors="coerce")
 
-        role, resolved_end_x, resolved_end_y = self._classify_events(df)
+        role = self._classify_events(df)
 
-        move_success = _coerce_bool(df["move_success"], default=True)
-        score_mask = (role == "move") & move_success
+        is_success = _coerce_bool(df["is_success"], default=True)
+        score_mask = (role == "move") & is_success
 
         x_arr = _clip_coords(df["x"].to_numpy(dtype=float, na_value=np.nan))
         y_arr = _clip_coords(df["y"].to_numpy(dtype=float, na_value=np.nan))
-        ex_arr = _clip_coords(resolved_end_x.to_numpy(dtype=float, na_value=np.nan))
-        ey_arr = _clip_coords(resolved_end_y.to_numpy(dtype=float, na_value=np.nan))
+        ex_arr = _clip_coords(df["end_x"].to_numpy(dtype=float, na_value=np.nan))
+        ey_arr = _clip_coords(df["end_y"].to_numpy(dtype=float, na_value=np.nan))
 
         start_cells = _safe_cell_index(x_arr, y_arr, self.l, self.w)
         end_cells = _safe_cell_index(ex_arr, ey_arr, self.l, self.w)
