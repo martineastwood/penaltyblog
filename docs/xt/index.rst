@@ -35,6 +35,10 @@ Key characteristics
 - Successful moves are scored by the delta ``xT(end) - xT(start)``.
 - Goal probability is estimated **per cell** with light beta-binomial smoothing.
 - Plotting integrates with :class:`penaltyblog.viz.Pitch`.
+- Provider-specific coordinate ranges can be normalized into the internal
+  ``0-100`` xT coordinate system via :class:`~penaltyblog.xt.XTData`.
+- Out-of-bounds coordinate handling is explicit and configurable via
+  ``XTModel(coord_policy=...)``.
 
 Supported event families
 ------------------------
@@ -123,6 +127,40 @@ successfully; for shots it means a goal was scored.
 ``"False"``, ``"Incomplete"``, or ``"0"`` are correctly interpreted
 rather than treated as truthy non-empty strings.
 
+Coordinate ranges and normalization
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Internally, xT uses a normalized ``0-100`` pitch for both axes.
+If your provider uses different ranges (for example ``x=0..120``,
+``y=0..80``), declare them in ``XTData`` and the data is scaled once
+during normalization:
+
+.. code-block:: python
+
+   data = XTData(
+       events=df,
+       x="x",
+       y="y",
+       event_type="event_type",
+       end_x="end_x",
+       end_y="end_y",
+       is_success="is_success",
+       x_range=(0, 120),
+       y_range=(0, 80),
+   )
+
+Coordinate validation policy
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+After normalization, ``XTModel`` validates coordinates before clipping.
+Use ``coord_policy`` to control behavior when values fall outside ``0..100``:
+
+- ``"warn"`` (default): emit a warning and clip.
+- ``"error"``: raise ``ValueError``.
+- ``"clip"``: silently clip.
+
+This applies in both ``fit`` and ``score``.
+
 Usage
 -----
 
@@ -141,6 +179,8 @@ Fit on custom data
        end_x="end_location_x",
        end_y="end_location_y",
        is_success="is_successful",
+       x_range=(0, 120),  # optional (default is (0, 100))
+       y_range=(0, 80),   # optional (default is (0, 100))
    ).map_events(
        event_map={
            "Pass": "pass",
@@ -169,6 +209,7 @@ Fit on custom data
        include_goal_kicks=True,
        include_corners=True,
        include_free_kicks=True,
+       coord_policy="warn",  # "warn" | "error" | "clip"
    )
    xt.fit(data)
    scored = xt.score(data)

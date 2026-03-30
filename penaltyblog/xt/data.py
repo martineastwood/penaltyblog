@@ -1,9 +1,22 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Dict, Iterable, Optional
+from typing import Dict, Iterable, Optional, Tuple
 
 import pandas as pd
+
+
+def _validate_range(name: str, value: Tuple[float, float]) -> None:
+    low, high = value
+    if pd.isna(low) or pd.isna(high):
+        raise ValueError(f"{name} cannot contain NaN")
+    if high <= low:
+        raise ValueError(f"{name} must be an increasing tuple (min, max)")
+
+
+def _scale_to_100(series: pd.Series, low: float, high: float) -> pd.Series:
+    numeric = pd.to_numeric(series, errors="coerce")
+    return (numeric - low) * 100.0 / (high - low)
 
 
 @dataclass(frozen=True)
@@ -33,6 +46,8 @@ class XTData:
     end_x: Optional[str] = None
     end_y: Optional[str] = None
     is_success: Optional[str] = None
+    x_range: Tuple[float, float] = (0.0, 100.0)
+    y_range: Tuple[float, float] = (0.0, 100.0)
 
     def __post_init__(self) -> None:
         required = [self.x, self.y, self.event_type]
@@ -46,6 +61,9 @@ class XTData:
         ]
         if optional:
             _validate_columns(self.events, optional)
+
+        _validate_range("x_range", self.x_range)
+        _validate_range("y_range", self.y_range)
 
     @property
     def df(self) -> pd.DataFrame:
@@ -76,6 +94,13 @@ class XTData:
         ]:
             if col not in result.columns:
                 result[col] = fill
+
+        x_low, x_high = self.x_range
+        y_low, y_high = self.y_range
+        result["x"] = _scale_to_100(result["x"], x_low, x_high)
+        result["end_x"] = _scale_to_100(result["end_x"], x_low, x_high)
+        result["y"] = _scale_to_100(result["y"], y_low, y_high)
+        result["end_y"] = _scale_to_100(result["end_y"], y_low, y_high)
 
         return result
 
@@ -114,6 +139,8 @@ class XTData:
             end_x="end_x",
             end_y="end_y",
             is_success="is_success",
+            x_range=(0.0, 100.0),
+            y_range=(0.0, 100.0),
         )
 
 

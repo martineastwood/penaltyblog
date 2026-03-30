@@ -1,3 +1,5 @@
+import warnings
+
 import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
@@ -110,6 +112,47 @@ def test_xtdata_normalized_df_adds_missing_columns():
         "is_success",
     ]:
         assert col in ndf.columns
+
+
+def test_xtdata_normalizes_custom_coordinate_ranges():
+    df = pd.DataFrame(
+        {
+            "x": [0.0, 60.0, 120.0],
+            "y": [0.0, 40.0, 80.0],
+            "end_x": [120.0, np.nan, 0.0],
+            "end_y": [80.0, np.nan, 0.0],
+            "event_type": ["pass", "shot", "pass"],
+        }
+    )
+    data = XTData(
+        events=df,
+        x="x",
+        y="y",
+        event_type="event_type",
+        end_x="end_x",
+        end_y="end_y",
+        x_range=(0.0, 120.0),
+        y_range=(0.0, 80.0),
+    )
+    ndf = data.df
+    assert np.allclose(ndf["x"].to_numpy(), [0.0, 50.0, 100.0])
+    assert np.allclose(ndf["y"].to_numpy(), [0.0, 50.0, 100.0])
+    assert np.isclose(ndf["end_x"].iloc[0], 100.0)
+    assert np.isclose(ndf["end_y"].iloc[0], 100.0)
+    assert np.isnan(ndf["end_x"].iloc[1])
+    assert np.isnan(ndf["end_y"].iloc[1])
+
+
+def test_xtdata_rejects_invalid_coordinate_range():
+    df = pd.DataFrame({"x": [0], "y": [0], "event_type": ["pass"]})
+    with pytest.raises(ValueError, match="x_range"):
+        XTData(
+            events=df,
+            x="x",
+            y="y",
+            event_type="event_type",
+            x_range=(100.0, 0.0),
+        )
 
 
 def test_xtdata_map_events():
@@ -712,13 +755,14 @@ def test_save_load_round_trip(tmp_path):
 def test_save_load_preserves_metadata(tmp_path):
     df = simple_pass_shot_df()
     data = make_xtdata(df)
-    model = XTModel(l=4, w=3, include_carries=False).fit(data)
+    model = XTModel(l=4, w=3, include_carries=False, coord_policy="clip").fit(data)
 
     path = tmp_path / "xt.npz"
     model.save(str(path))
     loaded = XTModel.load(str(path))
 
     assert loaded.include_carries is False
+    assert loaded.coord_policy == "clip"
     assert loaded.metadata_["grid"] == [4, 3]
 
 
@@ -767,6 +811,11 @@ def test_invalid_grid_size():
         XTModel(l=0, w=12)
 
 
+def test_invalid_coord_policy():
+    with pytest.raises(ValueError, match="coord_policy"):
+        XTModel(coord_policy="invalid")
+
+
 def test_score_before_fit_raises():
     df = simple_pass_shot_df()
     data = make_xtdata(df)
@@ -795,6 +844,68 @@ def test_fit_empty_dataset_raises():
     data = make_xtdata(df)
     with pytest.raises(ValueError, match="No relevant events"):
         XTModel(l=2, w=1).fit(data)
+
+
+def test_fit_warns_on_out_of_bounds_coords():
+    df = pd.DataFrame(
+        {
+            "x": [10, 120, 90],
+            "y": [10, 10, 10],
+            "end_x": [90, 90, np.nan],
+            "end_y": [10, 10, np.nan],
+            "event_type": ["pass", "pass", "shot"],
+            "is_success": [True, True, True],
+        }
+    )
+    data = make_xtdata(df)
+    model = XTModel(l=2, w=1, coord_policy="warn")
+    with pytest.warns(UserWarning, match="outside expected 0..100"):
+        model.fit(data)
+
+
+def test_fit_errors_on_out_of_bounds_coords():
+    df = pd.DataFrame(
+        {
+            "x": [10, 120, 90],
+            "y": [10, 10, 10],
+            "end_x": [90, 90, np.nan],
+            "end_y": [10, 10, np.nan],
+            "event_type": ["pass", "pass", "shot"],
+            "is_success": [True, True, True],
+        }
+    )
+    data = make_xtdata(df)
+    model = XTModel(l=2, w=1, coord_policy="error")
+    with pytest.raises(ValueError, match="outside expected 0..100"):
+        model.fit(data)
+
+
+def test_fit_clip_policy_no_warning():
+    df = pd.DataFrame(
+        {
+            "x": [10, 120, 90],
+            "y": [10, 10, 10],
+            "end_x": [90, 90, np.nan],
+            "end_y": [10, 10, np.nan],
+            "event_type": ["pass", "pass", "shot"],
+            "is_success": [True, True, True],
+        }
+    )
+    data = make_xtdata(df)
+    model = XTModel(l=2, w=1, coord_policy="clip")
+    with warnings.catch_warnings(record=True) as record:
+        warnings.simplefilter("always")
+        model.fit(data)
+    assert len(record) == 0
+
+
+def test_score_errors_on_out_of_bounds_coords():
+    train_df = simple_pass_shot_df()
+    model = XTModel(l=2, w=1, coord_policy="error").fit(make_xtdata(train_df))
+    score_df = train_df.copy()
+    score_df.loc[0, "end_x"] = 150.0
+    with pytest.raises(ValueError, match="outside expected 0..100"):
+        model.score(make_xtdata(score_df))
 
 
 # ---------------------------------------------------------------------------

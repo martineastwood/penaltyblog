@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import warnings
 from dataclasses import dataclass
 
 import numpy as np
@@ -93,6 +94,11 @@ def _safe_cell_index(x: np.ndarray, y: np.ndarray, l: int, w: int) -> np.ndarray
     return out
 
 
+def _out_of_bounds_count(values: np.ndarray) -> int:
+    mask = (~np.isnan(values)) & ((values < 0.0) | (values > 100.0))
+    return int(mask.sum())
+
+
 @dataclass
 class XTModel:
     """
@@ -109,11 +115,38 @@ class XTModel:
     include_goal_kicks: bool = True
     include_corners: bool = True
     include_free_kicks: bool = True
+    coord_policy: str = "warn"
 
     def __post_init__(self) -> None:
         if self.l <= 0 or self.w <= 0:
             raise ValueError("l and w must be positive")
+        if self.coord_policy not in {"warn", "error", "clip"}:
+            raise ValueError("coord_policy must be one of: 'warn', 'error', 'clip'")
         self.fitted_: bool = False
+
+    def _validate_coords(self, df: pd.DataFrame, context: str) -> None:
+        counts = {}
+        for col in ["x", "y", "end_x", "end_y"]:
+            arr = df[col].to_numpy(dtype=float, copy=False)
+            count = _out_of_bounds_count(arr)
+            if count > 0:
+                counts[col] = count
+
+        if not counts:
+            return
+
+        counts_str = ", ".join(
+            f"{col}={count}" for col, count in sorted(counts.items())
+        )
+        msg = (
+            f"xT {context} received coordinates outside expected 0..100; "
+            f"out-of-bounds counts: {counts_str}. "
+            "Set XTData(x_range=..., y_range=...) for provider-specific scaling."
+        )
+        if self.coord_policy == "error":
+            raise ValueError(msg)
+        if self.coord_policy == "warn":
+            warnings.warn(f"{msg} Values will be clipped.", UserWarning, stacklevel=2)
 
     def _classify_events(self, df: pd.DataFrame) -> pd.Series:
         """
@@ -156,6 +189,7 @@ class XTModel:
         # Convert coordinates to float
         for col in ["x", "y", "end_x", "end_y"]:
             df[col] = pd.to_numeric(df[col], errors="coerce")
+        self._validate_coords(df, context="fit")
 
         # Classify events
         role = self._classify_events(df)
@@ -339,6 +373,7 @@ class XTModel:
             "include_goal_kicks": self.include_goal_kicks,
             "include_corners": self.include_corners,
             "include_free_kicks": self.include_free_kicks,
+            "coord_policy": self.coord_policy,
             "coordinate_system": "0_100",
             "orientation": "left_to_right",
             "goal_probability_smoothing": {"alpha": alpha, "beta": beta},
@@ -360,6 +395,7 @@ class XTModel:
 
         for col in ["x", "y", "end_x", "end_y"]:
             df[col] = pd.to_numeric(df[col], errors="coerce")
+        self._validate_coords(df, context="score")
 
         role = self._classify_events(df)
 
@@ -429,6 +465,7 @@ class XTModel:
             include_goal_kicks=metadata.get("include_goal_kicks", True),
             include_corners=metadata.get("include_corners", True),
             include_free_kicks=metadata.get("include_free_kicks", True),
+            coord_policy=metadata.get("coord_policy", "warn"),
         )
         model.surface_ = arrays["surface"]
         model.shot_probability_ = arrays["shot_probability"]
