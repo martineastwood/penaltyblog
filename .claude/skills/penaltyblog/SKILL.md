@@ -1,6 +1,6 @@
 ---
 name: penaltyblog
-description: Use when helping users write code with the penaltyblog Python package — goal models, betting math, MatchFlow pipelines, implied odds, scrapers, FPL, ratings, backtesting, visualizations, and scoring metrics. Focus on the public API and provide minimal runnable examples.
+description: Use when helping users write code with the penaltyblog Python package — goal models, xT, betting math, MatchFlow pipelines, implied odds, scrapers, FPL, ratings, backtesting, visualizations, and scoring metrics. Focus on the public API and provide minimal runnable examples.
 ---
 
 # Penaltyblog Agent Skill
@@ -10,6 +10,7 @@ description: Use when helping users write code with the penaltyblog Python packa
 This skill is for coding assistants helping users with the `penaltyblog` Python package. Prioritize the public API and stable workflows for:
 
 - Goal and betting models in `penaltyblog.models`
+- Expected Threat (xT) in `penaltyblog.xt`
 - Betting mathematics in `penaltyblog.betting`
 - MatchFlow pipelines in `penaltyblog.matchflow`
 - Implied odds calculations in `penaltyblog.implied`
@@ -25,7 +26,7 @@ Internal modules (`penaltyblog.bayes`, `penaltyblog.utils`) are not part of the 
 ## Quick Orientation
 
 - Import pattern: `import penaltyblog as pb`
-- Public modules: `pb.models`, `pb.betting`, `pb.matchflow`, `pb.implied`, `pb.scrapers`, `pb.fpl`, `pb.ratings`, `pb.backtest`, `pb.viz`, `pb.metrics`
+- Public modules: `pb.models`, `pb.xt`, `pb.betting`, `pb.matchflow`, `pb.implied`, `pb.scrapers`, `pb.fpl`, `pb.ratings`, `pb.backtest`, `pb.viz`, `pb.metrics`
 - Package root: `penaltyblog/`
 
 ## How To Respond
@@ -209,6 +210,72 @@ for shot in flow.head(5):
 - `where_gt`, `where_gte`, `where_lt`, `where_lte`
 - `where_exists`, `where_is_null`, `where_contains`
 - Combine with `and_`, `or_`, `not_`
+
+---
+
+## xT (Expected Threat)
+
+Use this when a user asks to fit or score position-based expected threat models from event data.
+
+### Public Entry Points
+
+- `pb.xt.XTModel`
+- `pb.xt.XTData`
+- `pb.xt.load_pretrained_xt`
+
+### Input Types
+
+- `XTModel.fit(...)` and `XTModel.score(...)` accept:
+  - `XTData`
+  - `pandas.DataFrame`
+  - `penaltyblog.matchflow.Flow`
+- `XTData(events=...)` accepts:
+  - `pandas.DataFrame`
+  - `penaltyblog.matchflow.Flow`
+
+### Minimal Example
+
+```python
+import penaltyblog as pb
+
+xt = pb.xt.XTModel(l=16, w=12, coord_policy="warn")
+xt.fit(df)
+scored = xt.score(df)
+print(scored[["xt_start", "xt_end", "xt_added"]].head())
+```
+
+### With MatchFlow
+
+```python
+from penaltyblog.matchflow import Flow
+from penaltyblog.xt import XTModel
+
+flow = Flow.from_records(records)
+xt = XTModel()
+xt.fit(flow)
+scored = xt.score(flow)
+```
+
+### XTData Mapping Example
+
+```python
+from penaltyblog.xt import XTData, XTModel
+
+data = XTData(
+    events=df,
+    x="location_x",
+    y="location_y",
+    event_type="type",
+    end_x="end_x",
+    end_y="end_y",
+    is_success="outcome",
+).map_events(
+    event_map={"Pass": "pass", "Shot": "shot"},
+    success_map={"Complete": True, "Incomplete": False, "Goal": True},
+)
+
+model = XTModel().fit(data)
+```
 
 ---
 
