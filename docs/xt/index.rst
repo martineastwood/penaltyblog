@@ -118,8 +118,9 @@ attempts) from that cell that are successful moves of family *f*.
 Provider-agnostic schema
 ------------------------
 
-The :class:`~penaltyblog.xt.XTData` class wraps a DataFrame with column
-name mappings. A single ``is_success`` column has consistent meaning
+The :class:`~penaltyblog.xt.XTData` class wraps a DataFrame (or
+``penaltyblog.matchflow.Flow``) with column name mappings. A single
+``is_success`` column has consistent meaning
 across event types: for moves it means the action was completed
 successfully; for shots it means a goal was scored.
 
@@ -181,10 +182,11 @@ This applies in both ``fit`` and ``score``.
 Usage
 -----
 
-Fit on a raw DataFrame (quick path)
+Fit on a raw DataFrame or MatchFlow Flow (quick path)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-You can pass a DataFrame directly to ``fit``/``score``.
+You can pass a DataFrame or ``penaltyblog.matchflow.Flow`` directly to
+``fit``/``score``.
 If your columns already use canonical names (``x``, ``y``, ``event_type``,
 ``end_x``, ``end_y``, ``is_success``), no extra arguments are needed:
 
@@ -195,6 +197,18 @@ If your columns already use canonical names (``x``, ``y``, ``event_type``,
    xt = XTModel(l=16, w=12, coord_policy="warn")
    xt.fit(df)
    scored = xt.score(df)
+
+With MatchFlow:
+
+.. code-block:: python
+
+   from penaltyblog.matchflow import Flow
+   from penaltyblog.xt import XTModel
+
+   flow = Flow.from_records(records)
+   xt = XTModel(l=16, w=12, coord_policy="warn")
+   xt.fit(flow)
+   scored = xt.score(flow)
 
 For non-canonical column names, ranges, or label mapping, pass the mapping
 arguments directly:
@@ -222,6 +236,9 @@ from ``fit`` so you do not need to repeat column mappings.
 
 Fit on XTData (explicit path)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+``XTData(events=...)`` accepts either a DataFrame or
+``penaltyblog.matchflow.Flow``.
 
 .. code-block:: python
 

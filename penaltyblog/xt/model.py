@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import warnings
 from dataclasses import dataclass
+from typing import TYPE_CHECKING
 
 import numpy as np
 import pandas as pd
@@ -9,6 +10,9 @@ import pandas as pd
 from .data import XTData
 from .io import load_xt_npz, save_xt_npz
 from .plotting import plot_xt_surface
+
+if TYPE_CHECKING:
+    from ..matchflow.flow import Flow
 
 _ALWAYS_IGNORE = {
     "penalty",
@@ -151,7 +155,7 @@ class XTModel:
 
     def _as_xtdata(
         self,
-        data: XTData | pd.DataFrame,
+        data: XTData | pd.DataFrame | Flow,
         *,
         x: str = "x",
         y: str = "y",
@@ -166,8 +170,12 @@ class XTModel:
     ) -> XTData:
         if isinstance(data, XTData):
             return data
+        if self._is_matchflow_flow(data):
+            data = data.to_pandas()
         if not isinstance(data, pd.DataFrame):
-            raise TypeError("data must be XTData or pandas DataFrame")
+            raise TypeError(
+                "data must be XTData, pandas DataFrame, or penaltyblog.matchflow.Flow"
+            )
 
         resolved_end_x = end_x
         resolved_end_y = end_y
@@ -234,7 +242,7 @@ class XTModel:
 
     def fit(
         self,
-        data: XTData | pd.DataFrame,
+        data: XTData | pd.DataFrame | Flow,
         *,
         x: str = "x",
         y: str = "y",
@@ -251,6 +259,7 @@ class XTModel:
         Fit one unified xT surface from all included attacking events.
         """
         fit_schema: dict[str, object] | None = None
+        tabular_data = data.to_pandas() if self._is_matchflow_flow(data) else data
         if isinstance(data, XTData):
             fit_schema = {
                 "x": data.x,
@@ -264,19 +273,19 @@ class XTModel:
                 "event_map": None,
                 "success_map": None,
             }
-        elif isinstance(data, pd.DataFrame):
+        elif isinstance(tabular_data, pd.DataFrame):
             resolved_end_x = end_x
             resolved_end_y = end_y
             resolved_is_success = is_success
             if (
                 end_x == "end_x"
                 and end_y == "end_y"
-                and end_x not in data.columns
-                and end_y not in data.columns
+                and end_x not in tabular_data.columns
+                and end_y not in tabular_data.columns
             ):
                 resolved_end_x = None
                 resolved_end_y = None
-            if is_success == "is_success" and is_success not in data.columns:
+            if is_success == "is_success" and is_success not in tabular_data.columns:
                 resolved_is_success = None
 
             fit_schema = {
@@ -293,7 +302,7 @@ class XTModel:
             }
 
         xt_data = self._as_xtdata(
-            data,
+            tabular_data,
             x=x,
             y=y,
             event_type=event_type,
@@ -513,7 +522,7 @@ class XTModel:
 
     def score(
         self,
-        data: XTData | pd.DataFrame,
+        data: XTData | pd.DataFrame | Flow,
         *,
         x: str = "x",
         y: str = "y",
@@ -533,8 +542,9 @@ class XTModel:
         ``xt_end``, and ``xt_added`` columns. Non-scoreable rows get NaN.
         """
         self._ensure_fitted()
+        tabular_data = data.to_pandas() if self._is_matchflow_flow(data) else data
         use_fitted_schema = (
-            isinstance(data, pd.DataFrame)
+            isinstance(tabular_data, pd.DataFrame)
             and self._fit_schema_ is not None
             and x == "x"
             and y == "y"
@@ -565,7 +575,7 @@ class XTModel:
             success_map = schema["success_map"]
 
         xt_data = self._as_xtdata(
-            data,
+            tabular_data,
             x=x,
             y=y,
             event_type=event_type,
@@ -619,6 +629,12 @@ class XTModel:
         result["xt_end"] = xt_end
         result["xt_added"] = xt_added
         return result
+
+    @staticmethod
+    def _is_matchflow_flow(data: object) -> bool:
+        from ..matchflow.flow import Flow
+
+        return isinstance(data, Flow)
 
     def value_at(self, x: float, y: float) -> float:
         """Return the xT value at the given (x, y) coordinate."""

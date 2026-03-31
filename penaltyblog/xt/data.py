@@ -1,9 +1,12 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Dict, Iterable, Optional, Tuple
+from typing import TYPE_CHECKING, Dict, Iterable, Optional, Tuple
 
 import pandas as pd
+
+if TYPE_CHECKING:
+    from ..matchflow.flow import Flow
 
 
 def _validate_range(name: str, value: Tuple[float, float]) -> None:
@@ -39,7 +42,7 @@ class XTData:
     Shot families: ``shot``, ``free_kick_shot``
     """
 
-    events: pd.DataFrame
+    events: pd.DataFrame | Flow
     x: str
     y: str
     event_type: str
@@ -50,8 +53,11 @@ class XTData:
     y_range: Tuple[float, float] = (0.0, 100.0)
 
     def __post_init__(self) -> None:
+        events_df = _coerce_events_dataframe(self.events)
+        object.__setattr__(self, "events", events_df)
+
         required = [self.x, self.y, self.event_type]
-        _validate_columns(self.events, required)
+        _validate_columns(events_df, required)
 
         if (self.end_x is None) != (self.end_y is None):
             raise ValueError("Both or neither end_x and end_y must be provided")
@@ -60,7 +66,7 @@ class XTData:
             c for c in [self.end_x, self.end_y, self.is_success] if c is not None
         ]
         if optional:
-            _validate_columns(self.events, optional)
+            _validate_columns(events_df, optional)
 
         _validate_range("x_range", self.x_range)
         _validate_range("y_range", self.y_range)
@@ -148,3 +154,13 @@ def _validate_columns(df: pd.DataFrame, cols: Iterable[str]) -> None:
     missing = [c for c in cols if c not in df.columns]
     if missing:
         raise ValueError(f"Missing required columns: {missing}")
+
+
+def _coerce_events_dataframe(events: object) -> pd.DataFrame:
+    if isinstance(events, pd.DataFrame):
+        return events
+    from ..matchflow.flow import Flow
+
+    if isinstance(events, Flow):
+        return events.to_pandas()
+    raise TypeError("events must be a pandas DataFrame or penaltyblog.matchflow.Flow")

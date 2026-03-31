@@ -5,6 +5,7 @@ import pandas as pd
 import plotly.graph_objects as go
 import pytest
 
+from penaltyblog.matchflow import Flow
 from penaltyblog.viz.pitch import Pitch
 from penaltyblog.xt import XTData, XTModel, load_pretrained_xt
 from penaltyblog.xt.model import (
@@ -112,6 +113,16 @@ def test_xtdata_normalized_df_adds_missing_columns():
         "is_success",
     ]:
         assert col in ndf.columns
+
+
+def test_xtdata_accepts_matchflow_flow_events():
+    flow = Flow.from_records(
+        [{"x": 10, "y": 20, "event_type": "pass", "end_x": 30, "end_y": 40}]
+    )
+    data = XTData(events=flow, x="x", y="y", event_type="event_type")
+    assert isinstance(data.events, pd.DataFrame)
+    ndf = data.df
+    assert ndf["event_type"].iloc[0] == "pass"
 
 
 def test_xtdata_normalizes_custom_coordinate_ranges():
@@ -736,6 +747,13 @@ def test_fit_accepts_raw_dataframe():
     assert model.surface_.shape == (1, 2)
 
 
+def test_fit_accepts_matchflow_flow():
+    flow = Flow.from_records(simple_pass_shot_df().to_dict(orient="records"))
+    model = XTModel(l=2, w=1).fit(flow)
+    assert model.fitted_ is True
+    assert model.surface_.shape == (1, 2)
+
+
 def test_fit_accepts_raw_dataframe_with_column_mapping_and_ranges():
     df = pd.DataFrame(
         {
@@ -823,6 +841,15 @@ def test_score_reuses_fit_schema_by_default():
         success_map={"Complete": True, "Goal": True},
     )
     scored = model.score(df)
+    assert "xt_added" in scored.columns
+    assert scored["xt_added"].notna().sum() == 1
+
+
+def test_score_accepts_matchflow_flow():
+    df = simple_pass_shot_df()
+    model = XTModel(l=2, w=1).fit(df)
+    flow = Flow.from_records(df.to_dict(orient="records"))
+    scored = model.score(flow)
     assert "xt_added" in scored.columns
     assert scored["xt_added"].notna().sum() == 1
 
