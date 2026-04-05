@@ -1142,11 +1142,10 @@ def test_coerce_bool_numeric():
     assert _coerce_bool(s, default=False).tolist() == [True, False, True, False]
 
 
-def test_coerce_bool_string_false():
-    """The key bug: 'False' as a string must NOT become True."""
-    s = pd.Series(["True", "False", "success", "fail", "Incomplete", "0", "Yes", "No"])
-    result = _coerce_bool(s, default=True).tolist()
-    assert result == [True, False, True, False, False, False, True, False]
+def test_coerce_bool_rejects_strings():
+    s = pd.Series(["True", "False", "Goal"])
+    with pytest.raises(ValueError, match="Invalid values found in is_success"):
+        _coerce_bool(s, default=True)
 
 
 def test_coerce_bool_nan_uses_default():
@@ -1155,15 +1154,13 @@ def test_coerce_bool_nan_uses_default():
     assert _coerce_bool(s, default=True).tolist() == [True, True, True]
 
 
-def test_coerce_bool_case_insensitive():
-    s = pd.Series(["TRUE", "false", "SUCCESS", "FAIL"])
-    result = _coerce_bool(s, default=False).tolist()
-    assert result == [True, False, True, False]
+def test_coerce_bool_rejects_non_binary_numeric():
+    s = pd.Series([1, 2, 0])
+    with pytest.raises(ValueError, match="Expected booleans or numeric 0/1"):
+        _coerce_bool(s, default=False)
 
 
-def test_fit_with_string_success_column():
-    """Fitting with string success values should not silently treat
-    'False'/'Incomplete' as successful moves."""
+def test_fit_with_string_success_column_raises():
     df = pd.DataFrame(
         {
             "x": [10, 10, 90],
@@ -1175,10 +1172,25 @@ def test_fit_with_string_success_column():
         }
     )
     data = make_xtdata(df)
-    model = XTModel(l=2, w=1).fit(data)
-    # 1 successful + 1 failed pass from cell 0, 0 shots
-    # total = 0 shots + 2 move attempts = 2
-    # move_prob = 1 successful / 2 total = 0.5
+    with pytest.raises(ValueError, match="pass success_map"):
+        XTModel(l=2, w=1).fit(data)
+
+
+def test_fit_with_string_success_column_via_success_map():
+    df = pd.DataFrame(
+        {
+            "x": [10, 10, 90],
+            "y": [10, 10, 10],
+            "end_x": [90, 90, np.nan],
+            "end_y": [10, 10, np.nan],
+            "event_type": ["pass", "pass", "shot"],
+            "is_success": ["True", "False", "True"],
+        }
+    )
+    model = XTModel(l=2, w=1).fit(
+        df,
+        success_map={"True": True, "False": False},
+    )
     cell0 = _coords_to_cell(np.array([10.0]), np.array([10.0]), 2, 1)[0]
     mp = model.move_probability_.reshape(-1)[cell0]
     sp = model.shot_probability_.reshape(-1)[cell0]

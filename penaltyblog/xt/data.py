@@ -1,8 +1,10 @@
+"""Provider-agnostic schema wrapper for xT event data."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass
 from functools import cached_property
-from typing import TYPE_CHECKING, Dict, Iterable, Optional, Tuple
+from typing import TYPE_CHECKING
 
 import pandas as pd
 
@@ -10,7 +12,7 @@ if TYPE_CHECKING:
     from ..matchflow.flow import Flow
 
 
-def _validate_range(name: str, value: Tuple[float, float]) -> None:
+def _validate_range(name: str, value: tuple[float, float]) -> None:
     low, high = value
     if pd.isna(low) or pd.isna(high):
         raise ValueError(f"{name} cannot contain NaN")
@@ -34,6 +36,10 @@ class XTData:
     The ``is_success`` column has a consistent meaning across event types:
     for moves (passes, carries, etc.) it means the action was completed
     successfully; for shots it means a goal was scored.
+
+    ``is_success`` should ideally be boolean. Numeric ``0``/``1`` is also
+    accepted. Provider-specific string labels should be mapped explicitly
+    with ``success_map`` before fitting or scoring.
 
     Canonical event types
     ---------------------
@@ -128,7 +134,8 @@ class XTData:
         success_map : dict, optional
             Mapping from raw is_success values to booleans
             (e.g. ``{"Complete": True, "Incomplete": False, "Goal": True,
-            "Saved": False}``).
+            "Saved": False}``). This is the recommended path for provider
+            feeds that encode outcomes as strings.
         """
         df = self._normalized_df()
         if event_map:

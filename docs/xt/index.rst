@@ -126,24 +126,31 @@ successfully; for shots it means a goal was scored.
 
 This success signal is required when fitting or scoring xT.
 
-``XTData`` handles boolean coercion safely — string values like
-``"False"``, ``"Incomplete"``, or ``"0"`` are correctly interpreted
-rather than treated as truthy non-empty strings.
+``XTData`` and ``XTModel`` are strict about success labels by default.
+The recommended input is a boolean ``is_success`` column. Numeric ``0``/``1``
+is also accepted. Provider-specific strings such as ``"Complete"``,
+``"Incomplete"``, ``"Goal"``, or ``"Saved"`` must be mapped explicitly with
+``success_map``.
 
-Why this coercion exists
-^^^^^^^^^^^^^^^^^^^^^^^^
+Why strict validation is the default
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-The canonical schema expects ``is_success`` to be boolean, and that is
-still the recommended format. However, many real event feeds encode
-success as strings or numeric-like labels (for example ``"Complete"``,
-``"Incomplete"``, ``"Goal"``, ``"Saved"``, ``"1"``, ``"0"``).
+The canonical schema expects ``is_success`` to be boolean, and that remains
+the recommended format. Many real event feeds encode success as strings
+or provider-specific labels, but guessing those labels is error-prone and
+can silently corrupt xT values.
 
-xT therefore applies defensive coercion for common truthy/falsy labels.
-This avoids silent logic errors from Python truthiness on non-empty
-strings and keeps provider integration practical.
+xT therefore rejects non-boolean string labels by default and tells you
+to provide an explicit ``success_map``. This is safer for analysts,
+new Python users, and coding agents because incorrect labels fail fast
+instead of producing plausible but wrong results.
 
-For maximum control, you can map your provider labels explicitly with
-``XTData.map_events(..., success_map=...)`` before fitting/scoring.
+For maximum control, map provider labels explicitly with
+``XTData.map_events(..., success_map=...)`` or pass ``success_map`` directly
+to ``XTModel.fit(...)`` / ``XTModel.score(...)``.
+
+If xT encounters unsupported values, it raises a ``ValueError`` that shows
+the offending labels and points you to ``success_map``.
 
 Coordinate ranges and normalization
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -198,6 +205,10 @@ If your columns already use canonical names (``x``, ``y``, ``event_type``,
    xt.fit(df)
    scored = xt.score(df)
 
+This quick path assumes ``is_success`` is already boolean (or numeric ``0``/``1``).
+If your provider uses strings such as ``"Complete"`` or ``"Goal"``, use
+``success_map`` as shown below.
+
 With MatchFlow:
 
 .. code-block:: python
@@ -230,6 +241,15 @@ arguments directly:
        success_map={"Complete": True, "Incomplete": False, "Goal": True},
    )
    scored = xt.score(df)
+
+For many users this is the best default workflow:
+
+1. Start with a raw provider DataFrame.
+2. Pass explicit column mappings.
+3. Pass ``event_map`` for event labels.
+4. Pass ``success_map`` for success/outcome labels.
+
+That keeps the transformation visible and reproducible.
 
 If you call ``score`` with default mapping arguments, it reuses the schema
 from ``fit`` so you do not need to repeat column mappings.
