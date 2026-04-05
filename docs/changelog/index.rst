@@ -16,6 +16,7 @@ v1.10.0 (2026-03-20)
   * Added optional batch fast-path hook ``_compute_probabilities_many()`` for model-specific optimizations.
   * Implemented batch fast-paths for Poisson, Dixon-Coles, Bivariate Poisson, Zero-Inflated Poisson, Negative Binomial, and Weibull Copula models.
   * Added analytical derivatives for Weibull Copula NLL gradients shape and kappa parameters giving 4x speedup for this model.
+  * Documentation now available via Context7 MCP.
 
 * **Testing**
 

@@ -298,6 +298,8 @@ class XTModel:
         success_map: dict[str, bool] | None = None,
     ) -> XTData:
         if isinstance(data, XTData):
+            if event_map or success_map:
+                return data.map_events(event_map=event_map, success_map=success_map)
             return data
         if self._is_matchflow_flow(data):
             data = data.to_pandas()
@@ -478,8 +480,8 @@ class XTModel:
                 "is_success": data.is_success,
                 "x_range": list(data.x_range),
                 "y_range": list(data.y_range),
-                "event_map": None,
-                "success_map": None,
+                "event_map": event_map or None,
+                "success_map": success_map or None,
             }
         elif isinstance(tabular_data, pd.DataFrame):
             resolved_end_x, resolved_end_y, resolved_is_success = self._resolve_columns(
@@ -904,7 +906,10 @@ class XTModel:
             xt_end[valid_score] = surface_flat[end_cells[valid_score]]
             xt_added[valid_score] = xt_end[valid_score] - xt_start[valid_score]
 
-        result = xt_data.events.copy()
+        if isinstance(tabular_data, XTData):
+            result = tabular_data.events.copy()
+        else:
+            result = tabular_data.copy()
         result["xt_start"] = xt_start
         result["xt_end"] = xt_end
         result["xt_added"] = xt_added

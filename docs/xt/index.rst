@@ -201,7 +201,7 @@ If your columns already use canonical names (``x``, ``y``, ``event_type``,
 
    from penaltyblog.xt import XTModel
 
-   xt = XTModel(l=16, w=12, coord_policy="warn")
+   xt = XTModel(n_cols=16, n_rows=12, coord_policy="warn")
    xt.fit(df)
    scored = xt.score(df)
 
@@ -217,7 +217,7 @@ With MatchFlow:
    from penaltyblog.xt import XTModel
 
    flow = Flow.from_records(records)
-   xt = XTModel(l=16, w=12, coord_policy="warn")
+   xt = XTModel(n_cols=16, n_rows=12, coord_policy="warn")
    xt.fit(flow)
    scored = xt.score(flow)
 
@@ -226,7 +226,7 @@ arguments directly:
 
 .. code-block:: python
 
-   xt = XTModel(l=16, w=12, coord_policy="warn")
+   xt = XTModel(n_cols=16, n_rows=12, coord_policy="warn")
    xt.fit(
        df,
        x="location_x",
@@ -295,8 +295,8 @@ Fit on XTData (explicit path)
    )
 
    xt = XTModel(
-       l=16,
-       w=12,
+       n_cols=16,
+       n_rows=12,
        include_carries=True,
        include_throw_ins=True,
        include_goal_kicks=True,
