@@ -30,16 +30,42 @@ class XTData:
     """
     Provider-agnostic schema wrapper for xT event data.
 
-    Wraps a DataFrame with column name mappings so that ``XTModel``
+    Wraps a DataFrame with column name mappings so that :class:`XTModel`
     can work with any provider's column naming conventions.
 
     The ``is_success`` column has a consistent meaning across event types:
     for moves (passes, carries, etc.) it means the action was completed
     successfully; for shots it means a goal was scored.
 
-    ``is_success`` should ideally be boolean. Numeric ``0``/``1`` is also
-    accepted. Provider-specific string labels should be mapped explicitly
-    with ``success_map`` before fitting or scoring.
+    ``is_success`` should ideally be boolean.  Numeric ``0``/``1`` is also
+    accepted.  Provider-specific string labels should be mapped explicitly
+    with ``success_map`` in :meth:`map_events` before fitting or scoring.
+
+    Parameters
+    ----------
+    events : pandas.DataFrame or penaltyblog.matchflow.Flow
+        Raw event data from any provider.
+    x : str
+        Column name for the start x-coordinate of each event.
+    y : str
+        Column name for the start y-coordinate of each event.
+    event_type : str
+        Column containing event-type labels (e.g. ``"pass"``, ``"shot"``).
+    end_x : str, optional
+        Column name for the end x-coordinate of move events (pass, carry, …).
+        Must be provided together with *end_y*, or omitted entirely.
+    end_y : str, optional
+        Column name for the end y-coordinate of move events.
+    is_success : str, optional
+        Column indicating completion (for moves) or goal (for shots).
+        If omitted, all events are assumed to have succeeded.
+    x_range : tuple of (float, float)
+        The (min, max) coordinate range used by your provider for the x-axis.
+        Default ``(0.0, 100.0)`` means coordinates are already normalised.
+        For StatsBomb data use ``(0, 120)``; for Opta use ``(0, 100)``.
+    y_range : tuple of (float, float)
+        The (min, max) coordinate range used by your provider for the y-axis.
+        Default ``(0.0, 100.0)``.  For StatsBomb data use ``(0, 80)``.
 
     Canonical event types
     ---------------------
@@ -47,17 +73,46 @@ class XTData:
     ``corner``, ``free_kick``
 
     Shot families: ``shot``, ``free_kick_shot``
+
+    Examples
+    --------
+    Create an :class:`XTData` object from a DataFrame that already uses
+    canonical column names:
+
+    >>> data = pb.xt.XTData(
+    ...     events=df,
+    ...     x="x",
+    ...     y="y",
+    ...     event_type="event_type",
+    ...     end_x="end_x",
+    ...     end_y="end_y",
+    ...     is_success="is_success",
+    ... )
+
+    StatsBomb data with non-standard coordinate ranges:
+
+    >>> data = pb.xt.XTData(
+    ...     events=df,
+    ...     x="location_x",
+    ...     y="location_y",
+    ...     event_type="type_name",
+    ...     end_x="pass_end_x",
+    ...     end_y="pass_end_y",
+    ...     is_success="pass_outcome",
+    ...     x_range=(0, 120),
+    ...     y_range=(0, 80),
+    ... )
     """
 
     events: pd.DataFrame | Flow
     x: str
     y: str
     event_type: str
-    end_x: Optional[str] = None
-    end_y: Optional[str] = None
-    is_success: Optional[str] = None
-    x_range: Tuple[float, float] = (0.0, 100.0)
-    y_range: Tuple[float, float] = (0.0, 100.0)
+    end_x: str | None = None
+    end_y: str | None = None
+    is_success: str | None = None
+    x_range: tuple[float, float] = (0.0, 100.0)
+    y_range: tuple[float, float] = (0.0, 100.0)
 
     def __post_init__(self) -> None:
         events_df = _coerce_events_dataframe(self.events)
