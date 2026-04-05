@@ -87,7 +87,7 @@ def _coerce_bool(series: pd.Series, default: bool) -> pd.Series:
     )
 
     if bool_mask.any():
-        result[bool_mask] = series[bool_mask].astype(bool)
+        result[bool_mask.to_numpy()] = series[bool_mask].astype(bool).to_numpy()
 
     invalid_numeric = pd.Series(False, index=series.index)
     if numeric_mask.any():
@@ -96,7 +96,9 @@ def _coerce_bool(series: pd.Series, default: bool) -> pd.Series:
         if valid_01.any():
             valid_mask = numeric_mask.copy()
             valid_mask[numeric_mask] = valid_01
-            result[valid_mask] = as_float[valid_01].astype(int).astype(bool)
+            result[valid_mask.to_numpy()] = (
+                as_float[valid_01].astype(int).astype(bool).to_numpy()
+            )
         invalid_numeric[numeric_mask] = ~valid_01
 
     invalid_mask = (notna_mask & ~bool_mask & ~numeric_mask) | invalid_numeric
@@ -226,14 +228,14 @@ class XTModel:
 
     # Attributes populated by fit() — declared here so type-checkers and IDEs
     # can see them without requiring a fitted instance.
-    surface_: np.ndarray
-    shot_probability_: np.ndarray
-    goal_probability_: np.ndarray
-    move_probability_: np.ndarray
-    transition_matrix_: np.ndarray
-    metadata_: dict[str, object]
-    included_move_families_: list[str]
-    included_shot_families_: list[str]
+    surface_: np.ndarray = field(default=None, init=False, repr=False)  # type: ignore[assignment]
+    shot_probability_: np.ndarray = field(default=None, init=False, repr=False)  # type: ignore[assignment]
+    goal_probability_: np.ndarray = field(default=None, init=False, repr=False)  # type: ignore[assignment]
+    move_probability_: np.ndarray = field(default=None, init=False, repr=False)  # type: ignore[assignment]
+    transition_matrix_: np.ndarray = field(default=None, init=False, repr=False)  # type: ignore[assignment]
+    metadata_: dict[str, object] = field(default=None, init=False, repr=False)  # type: ignore[assignment]
+    included_move_families_: list[str] = field(default=None, init=False, repr=False)  # type: ignore[assignment]
+    included_shot_families_: list[str] = field(default=None, init=False, repr=False)  # type: ignore[assignment]
 
     def __post_init__(self) -> None:
         # Handle deprecated l/w aliases
