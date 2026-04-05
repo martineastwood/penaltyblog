@@ -151,7 +151,7 @@ class XTData:
         if self.is_success is not None:
             rename[self.is_success] = "is_success"
 
-        df = self.events.rename(columns=rename, errors="ignore")
+        df = self.events.rename(columns=rename)
         keep = list(rename.values())
         result = df[keep].copy()
 
@@ -174,23 +174,33 @@ class XTData:
 
     def map_events(
         self,
-        event_map: Optional[Dict[str, str]] = None,
-        success_map: Optional[Dict[str, bool]] = None,
+        event_map: dict[str, str] | None = None,
+        success_map: dict[str, bool] | None = None,
     ) -> "XTData":
         """
-        Return a new XTData with raw labels mapped to canonical labels.
+        Return a new :class:`XTData` with raw labels mapped to canonical labels.
+
+        This is the recommended way to handle provider-specific event names and
+        success indicators before passing data to :meth:`XTModel.fit` or
+        :meth:`XTModel.score`.
 
         Parameters
         ----------
         event_map : dict, optional
-            Mapping from raw event_type values to canonical types
-            (e.g. ``{"Pass": "pass", "Shot": "shot", "Throw-in": "throw_in",
-            "Corner kick": "corner"}``).
+            Mapping from raw ``event_type`` values to canonical xT event families.
+            Any values not present in the map are kept as-is.
+            Example: ``{"Pass": "pass", "Shot": "shot", "Throw-in": "throw_in"}``.
         success_map : dict, optional
-            Mapping from raw is_success values to booleans
-            (e.g. ``{"Complete": True, "Incomplete": False, "Goal": True,
-            "Saved": False}``). This is the recommended path for provider
-            feeds that encode outcomes as strings.
+            Mapping from raw ``is_success`` values to booleans.
+            This is the recommended path for provider feeds that encode
+            outcomes as strings.
+            Example: ``{"Complete": True, "Incomplete": False, "Goal": True}``.
+
+        Returns
+        -------
+        XTData
+            A new :class:`XTData` instance with canonical column values.
+            The original instance is not modified.
         """
         df = self._normalized_df()
         if event_map:
@@ -213,7 +223,7 @@ class XTData:
         )
 
 
-def _validate_columns(df: pd.DataFrame, cols: Iterable[str]) -> None:
+def _validate_columns(df: pd.DataFrame, cols: list[str]) -> None:
     missing = [c for c in cols if c not in df.columns]
     if missing:
         raise ValueError(
