@@ -31,6 +31,7 @@ def _normalize_json_value(value: Any) -> Any:
 def save_xt_npz(
     path: str, arrays: Dict[str, np.ndarray], metadata: Dict[str, Any]
 ) -> None:
+    """Save xT model arrays and JSON-serializable metadata to ``.npz``."""
     normalized_metadata = _normalize_json_value(metadata)
     meta_json = json.dumps(normalized_metadata, sort_keys=True)
     np.savez(
@@ -45,6 +46,7 @@ def save_xt_npz(
 
 
 def load_xt_npz(path: str) -> tuple[Dict[str, np.ndarray], Dict[str, Any]]:
+    """Load xT model arrays and metadata from an ``.npz`` artifact."""
     with np.load(path, allow_pickle=False) as npz:
         meta_json = str(npz["meta_json"][0])
         metadata = json.loads(meta_json)

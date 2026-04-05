@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from functools import cached_property
 from typing import TYPE_CHECKING, Dict, Iterable, Optional, Tuple
 
 import pandas as pd
@@ -71,7 +72,7 @@ class XTData:
         _validate_range("x_range", self.x_range)
         _validate_range("y_range", self.y_range)
 
-    @property
+    @cached_property
     def df(self) -> pd.DataFrame:
         """Return a normalized DataFrame with canonical column names."""
         return self._normalized_df()
@@ -153,7 +154,10 @@ class XTData:
 def _validate_columns(df: pd.DataFrame, cols: Iterable[str]) -> None:
     missing = [c for c in cols if c not in df.columns]
     if missing:
-        raise ValueError(f"Missing required columns: {missing}")
+        raise ValueError(
+            f"Missing required columns: {missing}. Check the column-name arguments "
+            "passed to XTData(...)."
+        )
 
 
 def _coerce_events_dataframe(events: object) -> pd.DataFrame:

@@ -705,12 +705,8 @@ def test_score_mixed_event_families():
     model = XTModel(l=2, w=1, include_throw_ins=True).fit(data)
     scored = model.score(data)
     # Both pass and throw_in should be scored
-    assert scored.iloc[0]["xt_added"] is not np.nan or np.isfinite(
-        scored.iloc[0]["xt_added"]
-    )
-    assert scored.iloc[1]["xt_added"] is not np.nan or np.isfinite(
-        scored.iloc[1]["xt_added"]
-    )
+    assert pd.notna(scored.iloc[0]["xt_added"])
+    assert pd.notna(scored.iloc[1]["xt_added"])
 
 
 def test_score_returns_original_columns():
@@ -951,7 +947,7 @@ def test_score_before_fit_raises():
 
 def test_value_at_before_fit_raises():
     model = XTModel(l=2, w=1)
-    with pytest.raises(ValueError, match="not fitted"):
+    with pytest.raises(ValueError, match="Call \\.fit\\(\\) first"):
         model.value_at(50, 50)
 
 
@@ -967,8 +963,24 @@ def test_fit_empty_dataset_raises():
         }
     )
     data = make_xtdata(df)
-    with pytest.raises(ValueError, match="No relevant events"):
+    with pytest.raises(ValueError, match="Check that event_map maps"):
         XTModel(l=2, w=1).fit(data)
+
+
+def test_load_rejects_invalid_grid_metadata(tmp_path):
+    path = tmp_path / "bad_xt.npz"
+    np.savez(
+        path,
+        surface=np.zeros((1, 1)),
+        shot_probability=np.zeros((1, 1)),
+        goal_probability=np.zeros((1, 1)),
+        move_probability=np.zeros((1, 1)),
+        transition_matrix=np.zeros((1, 1)),
+        meta_json=np.array(['{"model_type":"xt","grid":[null,null]}']),
+    )
+
+    with pytest.raises(ValueError, match="metadata.grid"):
+        XTModel.load(str(path))
 
 
 def test_fit_missing_is_success_raises():
@@ -1089,6 +1101,12 @@ def test_fitted_attributes_present():
     assert hasattr(model, "included_move_families_")
     assert hasattr(model, "included_shot_families_")
     assert model.fitted_ is True
+
+
+def test_xtdata_df_is_cached():
+    df = simple_pass_shot_df()
+    data = make_xtdata(df)
+    assert data.df is data.df
 
 
 def test_included_families_tracked():

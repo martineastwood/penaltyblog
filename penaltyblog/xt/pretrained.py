@@ -18,6 +18,18 @@ def load_pretrained_xt(name: str = "default") -> XTModel:
     name : str
         Name of the pretrained artifact. Currently ``"default"`` is
         the only supported value.
+
+    Returns
+    -------
+    XTModel
+        A fitted xT model ready for scoring, querying, or plotting.
+
+    Examples
+    --------
+    >>> import penaltyblog as pb
+    >>> model = pb.xt.load_pretrained_xt()
+    >>> model.value_at(88, 50)   # xT value near the penalty spot
+    >>> pitch = model.plot()
     """
     if name not in _PRETRAINED_FILES:
         available = ", ".join(sorted(_PRETRAINED_FILES))

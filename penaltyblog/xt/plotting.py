@@ -18,6 +18,10 @@ def plot_xt_surface(
     """
     Plot an xT surface on a Pitch using a plotly Heatmap.
 
+    If ``pitch`` is omitted, an Opta-style pitch is created. The xT surface is
+    defined in normalized 0..100 coordinates, so provider-specific coordinate
+    systems should be scaled before plotting.
+
     Returns the Pitch instance.
     """
     if pitch is None:
