@@ -164,3 +164,5 @@ test/fixtures
 notes/
 .claude/
 .vscode/
+/scripts
+/whoscored
