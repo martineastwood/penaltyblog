@@ -36,9 +36,9 @@ Key characteristics
 - Goal probability is estimated **per cell** with light beta-binomial smoothing.
 - Plotting integrates with :class:`penaltyblog.viz.Pitch`.
 - Provider-specific coordinate ranges can be normalized into the internal
-  ``0-100`` xT coordinate system via :class:`~penaltyblog.xt.XTData`.
+  ``0-100`` xT coordinate system via :class:`~penaltyblog.xt.XTEventSchema`.
 - Out-of-bounds coordinate handling is explicit and configurable via
-  ``XTModel(coord_policy=...)``.
+  ``ExpectedThreatModel(coord_policy=...)``.
 
 Supported event families
 ------------------------
@@ -118,19 +118,20 @@ attempts) from that cell that are successful moves of family *f*.
 Provider-agnostic schema
 ------------------------
 
-The :class:`~penaltyblog.xt.XTData` class wraps a DataFrame (or
-``penaltyblog.matchflow.Flow``) with column name mappings. A single
+The :class:`~penaltyblog.xt.XTEventSchema` class defines column/range/label
+mapping for a DataFrame (or ``penaltyblog.matchflow.Flow``). A single
 ``is_success`` column has consistent meaning
 across event types: for moves it means the action was completed
 successfully; for shots it means a goal was scored.
 
 This success signal is required when fitting or scoring xT.
 
-``XTData`` and ``XTModel`` are strict about success labels by default.
+``XTEventSchema`` and ``ExpectedThreatModel`` are strict about success labels
+by default.
 The recommended input is a boolean ``is_success`` column. Numeric ``0``/``1``
 is also accepted. Provider-specific strings such as ``"Complete"``,
 ``"Incomplete"``, ``"Goal"``, or ``"Saved"`` must be mapped explicitly with
-``success_map``.
+``success_value_map``.
 
 Why strict validation is the default
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -141,29 +142,27 @@ or provider-specific labels, but guessing those labels is error-prone and
 can silently corrupt xT values.
 
 xT therefore rejects non-boolean string labels by default and tells you
-to provide an explicit ``success_map``. This is safer for analysts,
+to provide an explicit ``success_value_map``. This is safer for analysts,
 new Python users, and coding agents because incorrect labels fail fast
 instead of producing plausible but wrong results.
 
-For maximum control, map provider labels explicitly with
-``XTData.map_events(..., success_map=...)`` or pass ``success_map`` directly
-to ``XTModel.fit(...)`` / ``XTModel.score(...)``.
+For maximum control, pass
+``XTEventSchema(success_value_map=...)`` to
+``ExpectedThreatModel.fit(...)`` / ``ExpectedThreatModel.score(...)``.
 
 If xT encounters unsupported values, it raises a ``ValueError`` that shows
-the offending labels and points you to ``success_map``.
+the offending labels and points you to ``success_value_map``.
 
 Coordinate ranges and normalization
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Internally, xT uses a normalized ``0-100`` pitch for both axes.
 If your provider uses different ranges (for example ``x=0..120``,
-``y=0..80``), declare them in ``XTData`` and the data is scaled once
-during normalization:
+``y=0..80``), declare them in ``XTEventSchema``:
 
 .. code-block:: python
 
-   data = XTData(
-       events=df,
+   schema = XTEventSchema(
        x="x",
        y="y",
        event_type="event_type",
@@ -177,7 +176,7 @@ during normalization:
 Coordinate validation policy
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-After normalization, ``XTModel`` validates coordinates before clipping.
+After normalization, ``ExpectedThreatModel`` validates coordinates before clipping.
 Use ``coord_policy`` to control behavior when values fall outside ``0..100``:
 
 - ``"warn"`` (default): emit a warning and clip.
@@ -199,36 +198,36 @@ If your columns already use canonical names (``x``, ``y``, ``event_type``,
 
 .. code-block:: python
 
-   from penaltyblog.xt import XTModel
+   from penaltyblog.xt import ExpectedThreatModel
 
-   xt = XTModel(n_cols=16, n_rows=12, coord_policy="warn")
+   xt = ExpectedThreatModel(n_cols=16, n_rows=12, coord_policy="warn")
    xt.fit(df)
    scored = xt.score(df)
 
 This quick path assumes ``is_success`` is already boolean (or numeric ``0``/``1``).
-If your provider uses strings such as ``"Complete"`` or ``"Goal"``, use
-``success_map`` as shown below.
+If your provider uses strings such as ``"Complete"`` or ``"Goal"``, pass
+``XTEventSchema(success_value_map=...)`` as shown below.
 
 With MatchFlow:
 
 .. code-block:: python
 
    from penaltyblog.matchflow import Flow
-   from penaltyblog.xt import XTModel
+   from penaltyblog.xt import ExpectedThreatModel
 
    flow = Flow.from_records(records)
-   xt = XTModel(n_cols=16, n_rows=12, coord_policy="warn")
+   xt = ExpectedThreatModel(n_cols=16, n_rows=12, coord_policy="warn")
    xt.fit(flow)
    scored = xt.score(flow)
 
-For non-canonical column names, ranges, or label mapping, pass the mapping
-arguments directly:
+For non-canonical column names, ranges, or label mapping, define an
+``XTEventSchema``:
 
 .. code-block:: python
 
-   xt = XTModel(n_cols=16, n_rows=12, coord_policy="warn")
-   xt.fit(
-       df,
+   from penaltyblog.xt import XTEventSchema
+
+   schema = XTEventSchema(
        x="location_x",
        y="location_y",
        event_type="type_primary",
@@ -237,75 +236,24 @@ arguments directly:
        is_success="is_successful",
        x_range=(0, 120),
        y_range=(0, 80),
-       event_map={"Pass": "pass", "Shot": "shot"},
-       success_map={"Complete": True, "Incomplete": False, "Goal": True},
+       event_type_map={"Pass": "pass", "Shot": "shot"},
+       success_value_map={"Complete": True, "Incomplete": False, "Goal": True},
    )
-   scored = xt.score(df)
+   xt = ExpectedThreatModel(n_cols=16, n_rows=12, coord_policy="warn")
+   xt.fit(df, schema=schema)
+   scored = xt.score(df)  # reuses fitted schema by default
 
 For many users this is the best default workflow:
 
 1. Start with a raw provider DataFrame.
 2. Pass explicit column mappings.
-3. Pass ``event_map`` for event labels.
-4. Pass ``success_map`` for success/outcome labels.
+3. Pass ``event_type_map`` for event labels.
+4. Pass ``success_value_map`` for success/outcome labels.
 
 That keeps the transformation visible and reproducible.
 
-If you call ``score`` with default mapping arguments, it reuses the schema
+If you call ``score`` with default options, it reuses the schema
 from ``fit`` so you do not need to repeat column mappings.
-
-Fit on XTData (explicit path)
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-``XTData(events=...)`` accepts either a DataFrame or
-``penaltyblog.matchflow.Flow``.
-
-.. code-block:: python
-
-   from penaltyblog.xt import XTModel, XTData
-
-   data = XTData(
-       events=df,
-       x="location_x",
-       y="location_y",
-       event_type="type_primary",
-       end_x="end_location_x",
-       end_y="end_location_y",
-       is_success="is_successful",
-       x_range=(0, 120),  # optional (default is (0, 100))
-       y_range=(0, 80),   # optional (default is (0, 100))
-   ).map_events(
-       event_map={
-           "Pass": "pass",
-           "Throw-in": "throw_in",
-           "Goal kick": "goal_kick",
-           "Corner kick": "corner",
-           "Free kick pass": "free_kick",
-           "Free kick shot": "free_kick_shot",
-           "Shot": "shot",
-           "Carry": "carry",
-       },
-       success_map={
-           "Complete": True,
-           "Incomplete": False,
-           "Goal": True,
-           "Saved": False,
-           "Blocked": False,
-       },
-   )
-
-   xt = XTModel(
-       n_cols=16,
-       n_rows=12,
-       include_carries=True,
-       include_throw_ins=True,
-       include_goal_kicks=True,
-       include_corners=True,
-       include_free_kicks=True,
-       coord_policy="warn",  # "warn" | "error" | "clip"
-   )
-   xt.fit(data)
-   scored = xt.score(data)
 
 Load a pretrained surface
 ^^^^^^^^^^^^^^^^^^^^^^^^^

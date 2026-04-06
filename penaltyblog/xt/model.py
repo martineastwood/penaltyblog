@@ -4,12 +4,12 @@ from __future__ import annotations
 
 import warnings
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional, Union
 
 import numpy as np
 import pandas as pd
 
-from .data import XTData
+from .data import XTData, XTEventSchema
 from .io import load_xt_npz, save_xt_npz
 from .plotting import plot_xt_surface
 
@@ -29,93 +29,85 @@ _BOOL_TYPES = (bool, np.bool_)
 _NUMERIC_TYPES = (int, float, np.integer, np.floating)
 
 
-def _coerce_bool(series: pd.Series, default: bool) -> pd.Series:
-    """Coerce a success column to boolean with strict validation.
-
-    Accepted values:
-
-    - native booleans and ``numpy.bool_``
-    - numeric ``0`` or ``1`` (integer or float)
-    - missing values, which fall back to ``default``
-
-    String labels are rejected so provider-specific success values must be
-    mapped explicitly via ``success_map`` before fitting or scoring.
-    """
-    # Fast path: already a boolean dtype (common after map_events or explicit casting)
-    if series.dtype == bool or str(series.dtype) in ("bool", "boolean"):
-        filled = series.fillna(default)
-        return filled.astype(bool)
-
-    # Fast path: integer column where all non-NaN values are 0 or 1
-    if pd.api.types.is_integer_dtype(series.dtype):
-        notna = series.notna()
-        vals = series[notna]
-        bad = ~vals.isin([0, 1])
-        if bad.any():
-            unique_bad = list(dict.fromkeys(repr(v) for v in vals[bad]))[:5]
-            preview = ", ".join(unique_bad)
-            raise ValueError(
-                "Invalid values found in is_success: "
-                f"{preview}. Expected booleans or numeric 0/1. "
-                "If your provider uses labels such as 'Complete' or 'Goal', "
-                "pass success_map={...} to XTData.map_events(...), XTModel.fit(...), "
-                "or XTModel.score(...)."
-            )
-        result = pd.Series(default, index=series.index, dtype=bool)
-        result[notna] = vals.astype(bool)
-        return result
-
-    # General path for object dtype (mixed types).
-    # We use bulk masks + vectorised assignment rather than per-element .at[]
-    # to avoid the per-element pandas label-lookup overhead.
-    result = pd.Series(default, index=series.index, dtype=bool)
-    notna_mask = series.notna()
-
-    bool_mask = notna_mask & series.map(
-        lambda v: isinstance(v, _BOOL_TYPES) if pd.notna(v) else False
+def _invalid_success_error(preview: str) -> ValueError:
+    return ValueError(
+        "Invalid values found in is_success: "
+        f"{preview}. Expected booleans or numeric 0/1 with no missing values. "
+        "If your provider uses labels such as 'Complete' or 'Goal', "
+        "set schema=XTEventSchema(success_value_map={...}) in "
+        "ExpectedThreatModel.fit(...) or ExpectedThreatModel.score(...)."
     )
-    numeric_mask = (
-        notna_mask
-        & ~bool_mask
-        & series.map(
-            lambda v: (
-                (isinstance(v, _NUMERIC_TYPES) and not isinstance(v, _BOOL_TYPES))
-                if pd.notna(v)
-                else False
-            )
+
+
+def _coerce_bool(series: pd.Series) -> pd.Series:
+    """Validate/coerce success column with fail-fast semantics."""
+    if series.isna().any():
+        missing = int(series.isna().sum())
+        raise ValueError(
+            "Missing values found in is_success "
+            f"({missing} rows). is_success must be fully specified."
         )
+
+    if series.dtype == bool or str(series.dtype) in ("bool", "boolean"):
+        return series.astype(bool)
+
+    if pd.api.types.is_integer_dtype(series.dtype):
+        bad = ~series.isin([0, 1])
+        if bad.any():
+            preview = ", ".join(list(dict.fromkeys(repr(v) for v in series[bad]))[:5])
+            raise _invalid_success_error(preview)
+        return series.astype(bool)
+
+    if pd.api.types.is_float_dtype(series.dtype):
+        bad = ~(series.isin([0.0, 1.0]) & np.isfinite(series))
+        if bad.any():
+            preview = ", ".join(list(dict.fromkeys(repr(v) for v in series[bad]))[:5])
+            raise _invalid_success_error(preview)
+        return series.astype(int).astype(bool)
+
+    bool_mask = series.map(lambda v: isinstance(v, _BOOL_TYPES))
+    numeric_mask = series.map(
+        lambda v: isinstance(v, _NUMERIC_TYPES) and not isinstance(v, _BOOL_TYPES)
     )
 
-    if bool_mask.any():
-        result[bool_mask.to_numpy()] = series[bool_mask].astype(bool).to_numpy()
+    def _is_valid_binary_number(value: object) -> bool:
+        try:
+            numeric = float(value)
+        except (TypeError, ValueError):
+            return False
+        return np.isfinite(numeric) and numeric in {0.0, 1.0}
 
-    invalid_numeric = pd.Series(False, index=series.index)
-    if numeric_mask.any():
-        as_float = series[numeric_mask].map(float)
-        valid_01 = as_float.map(lambda v: np.isfinite(v) and v in {0.0, 1.0})
-        if valid_01.any():
-            valid_mask = numeric_mask.copy()
-            valid_mask[numeric_mask] = valid_01
-            result[valid_mask.to_numpy()] = (
-                as_float[valid_01].astype(int).astype(bool).to_numpy()
-            )
-        invalid_numeric[numeric_mask] = ~valid_01
-
-    invalid_mask = (notna_mask & ~bool_mask & ~numeric_mask) | invalid_numeric
+    valid_numeric_mask = numeric_mask & series.map(_is_valid_binary_number)
+    invalid_mask = ~(bool_mask | valid_numeric_mask)
     if invalid_mask.any():
         unique_values = list(dict.fromkeys(repr(v) for v in series[invalid_mask]))
         preview = ", ".join(unique_values[:5])
         if len(unique_values) > 5:
             preview += ", ..."
-        raise ValueError(
-            "Invalid values found in is_success: "
-            f"{preview}. Expected booleans or numeric 0/1. "
-            "If your provider uses labels such as 'Complete' or 'Goal', "
-            "pass success_map={...} to XTData.map_events(...), XTModel.fit(...), "
-            "or XTModel.score(...)."
-        )
+        raise _invalid_success_error(preview)
 
-    return result
+    out = pd.Series(False, index=series.index, dtype=bool)
+    if bool_mask.any():
+        out[bool_mask.to_numpy()] = series[bool_mask].astype(bool).to_numpy()
+    if valid_numeric_mask.any():
+        numeric_values = series[valid_numeric_mask].map(float).astype(int).astype(bool)
+        out[valid_numeric_mask.to_numpy()] = numeric_values.to_numpy()
+    return out
+
+
+def _coerce_numeric_column(series: pd.Series, column: str, context: str) -> pd.Series:
+    """Parse numeric columns and raise on invalid non-numeric values."""
+    try:
+        return pd.to_numeric(series, errors="raise")
+    except Exception as exc:
+        coerced = pd.to_numeric(series, errors="coerce")
+        invalid = series[series.notna() & coerced.isna()]
+        preview_vals = list(dict.fromkeys(repr(v) for v in invalid))[:5]
+        preview = ", ".join(preview_vals) if preview_vals else "<unknown>"
+        raise ValueError(
+            f"xT {context} requires numeric values in column {column!r}. "
+            f"Invalid values: {preview}"
+        ) from exc
 
 
 def _clip_coords(values: np.ndarray) -> np.ndarray:
@@ -144,7 +136,7 @@ def _out_of_bounds_count(values: np.ndarray) -> int:
 
 
 @dataclass
-class XTModel:
+class ExpectedThreatModel:
     """
     Position-based Expected Threat (xT) model.
 
@@ -190,8 +182,7 @@ class XTModel:
     -----
     Coordinates are normalised to the range 0–100 internally.  If your
     provider uses a different scale (e.g. StatsBomb 0–120 × 0–80), pass
-    ``x_range`` and ``y_range`` to :class:`~penaltyblog.xt.XTData` or to
-    :meth:`fit` / :meth:`score` directly.
+    ``x_range`` and ``y_range`` in :class:`~penaltyblog.xt.XTEventSchema`.
 
     Examples
     --------
@@ -200,7 +191,7 @@ class XTModel:
     >>> import pandas as pd
     >>> import penaltyblog as pb
     >>> df = pd.read_csv("events.csv")          # must include x, y, event_type
-    >>> model = pb.xt.XTModel()
+    >>> model = pb.xt.ExpectedThreatModel()
     >>> model.fit(df)
     >>> scored = model.score(df)
     >>> scored[["xt_start", "xt_end", "xt_added"]].head()
@@ -220,11 +211,10 @@ class XTModel:
     include_free_kicks: bool = True
     transition_smoothing_k: float = 5.0
     coord_policy: str = "warn"
-    # Deprecated aliases kept for backwards compatibility
-    l: int | None = field(default=None, repr=False)
-    w: int | None = field(default=None, repr=False)
     fitted_: bool = field(default=False, init=False, repr=False)
-    _fit_schema_: dict[str, object] | None = field(default=None, init=False, repr=False)
+    _fit_schema_: Optional[dict[str, object]] = field(
+        default=None, init=False, repr=False
+    )
 
     # Attributes populated by fit() — declared here so type-checkers and IDEs
     # can see them without requiring a fitted instance.
@@ -238,21 +228,6 @@ class XTModel:
     included_shot_families_: list[str] = field(default=None, init=False, repr=False)  # type: ignore[assignment]
 
     def __post_init__(self) -> None:
-        # Handle deprecated l/w aliases
-        if self.l is not None:
-            warnings.warn(
-                "XTModel(l=...) is deprecated; use n_cols=... instead.",
-                DeprecationWarning,
-                stacklevel=2,
-            )
-            self.n_cols = self.l
-        if self.w is not None:
-            warnings.warn(
-                "XTModel(w=...) is deprecated; use n_rows=... instead.",
-                DeprecationWarning,
-                stacklevel=2,
-            )
-            self.n_rows = self.w
         if self.n_cols <= 0 or self.n_rows <= 0:
             raise ValueError("n_cols and n_rows must be positive integers")
         if self.coord_policy not in {"warn", "error", "clip"}:
@@ -275,7 +250,7 @@ class XTModel:
         msg = (
             f"xT {context} received coordinates outside expected 0..100; "
             f"out-of-bounds counts: {counts_str}. "
-            "Set XTData(x_range=..., y_range=...) for provider-specific scaling."
+            "Set XTEventSchema(x_range=..., y_range=...) for provider-specific scaling."
         )
         if self.coord_policy == "error":
             raise ValueError(msg)
@@ -284,60 +259,67 @@ class XTModel:
 
     def _as_xtdata(
         self,
-        data: XTData | pd.DataFrame | Flow,
+        data: Union[XTData, pd.DataFrame, Flow],
         *,
-        x: str = "x",
-        y: str = "y",
-        event_type: str = "event_type",
-        end_x: str | None = "end_x",
-        end_y: str | None = "end_y",
-        is_success: str | None = "is_success",
-        x_range: tuple[float, float] = (0.0, 100.0),
-        y_range: tuple[float, float] = (0.0, 100.0),
-        event_map: dict[str, str] | None = None,
-        success_map: dict[str, bool] | None = None,
-    ) -> XTData:
+        schema: Optional[XTEventSchema] = None,
+    ) -> tuple[XTData, XTEventSchema]:
+        active_schema = schema or XTEventSchema()
         if isinstance(data, XTData):
-            if event_map or success_map:
-                return data.map_events(event_map=event_map, success_map=success_map)
-            return data
+            effective_schema = XTEventSchema(
+                x=data.x,
+                y=data.y,
+                event_type=data.event_type,
+                end_x=data.end_x,
+                end_y=data.end_y,
+                is_success=data.is_success,
+                x_range=data.x_range,
+                y_range=data.y_range,
+                event_type_map=active_schema.event_type_map,
+                success_value_map=active_schema.success_value_map,
+            )
+            xt_data = data
+            if effective_schema.event_type_map or effective_schema.success_value_map:
+                xt_data = data.map_events(
+                    event_type_map=effective_schema.event_type_map,
+                    success_value_map=effective_schema.success_value_map,
+                )
+            return xt_data, effective_schema
+
         if self._is_matchflow_flow(data):
             data = data.to_pandas()
         if not isinstance(data, pd.DataFrame):
             raise TypeError(
-                "data must be XTData, pandas DataFrame, or penaltyblog.matchflow.Flow"
+                "data must be a pandas DataFrame or penaltyblog.matchflow.Flow"
             )
 
         resolved_end_x, resolved_end_y, resolved_is_success = self._resolve_columns(
             data,
-            end_x=end_x,
-            end_y=end_y,
-            is_success=is_success,
+            end_x=active_schema.end_x,
+            end_y=active_schema.end_y,
+            is_success=active_schema.is_success,
         )
-
-        xt_data = XTData(
-            events=data,
-            x=x,
-            y=y,
-            event_type=event_type,
+        effective_schema = XTEventSchema(
+            x=active_schema.x,
+            y=active_schema.y,
+            event_type=active_schema.event_type,
             end_x=resolved_end_x,
             end_y=resolved_end_y,
             is_success=resolved_is_success,
-            x_range=x_range,
-            y_range=y_range,
+            x_range=active_schema.x_range,
+            y_range=active_schema.y_range,
+            event_type_map=active_schema.event_type_map,
+            success_value_map=active_schema.success_value_map,
         )
-        if event_map or success_map:
-            xt_data = xt_data.map_events(event_map=event_map, success_map=success_map)
-        return xt_data
+        return effective_schema.apply(data), effective_schema
 
     @staticmethod
     def _resolve_columns(
         data: pd.DataFrame,
         *,
-        end_x: str | None,
-        end_y: str | None,
-        is_success: str | None,
-    ) -> tuple[str | None, str | None, str | None]:
+        end_x: Optional[str],
+        end_y: Optional[str],
+        is_success: Optional[str],
+    ) -> tuple[Optional[str], Optional[str], Optional[str]]:
         resolved_end_x = end_x
         resolved_end_y = end_y
         resolved_is_success = is_success
@@ -390,133 +372,38 @@ class XTModel:
 
     def fit(
         self,
-        data: XTData | pd.DataFrame | Flow,
-        *,
-        x: str = "x",
-        y: str = "y",
-        event_type: str = "event_type",
-        end_x: str | None = "end_x",
-        end_y: str | None = "end_y",
-        is_success: str | None = "is_success",
-        x_range: tuple[float, float] = (0.0, 100.0),
-        y_range: tuple[float, float] = (0.0, 100.0),
-        event_map: dict[str, str] | None = None,
-        success_map: dict[str, bool] | None = None,
-    ) -> "XTModel":
+        data: Union[XTData, pd.DataFrame, Flow],
+        schema: Optional[XTEventSchema] = None,
+    ) -> "ExpectedThreatModel":
         """
         Fit one unified xT surface from all included attacking events.
 
-        Column name mappings used here are saved and automatically replayed
-        when you call :meth:`score` without arguments, so you only need to
-        specify them once.
+        The schema used here is saved and can be reused automatically in
+        :meth:`score` when ``use_fit_schema=True`` (default).
 
         Parameters
         ----------
-        data : XTData, pandas.DataFrame, or penaltyblog.matchflow.Flow
-            Event data to fit on. Coordinates are expected in the ranges given
-            by ``x_range`` and ``y_range`` and are normalised internally to
-            0–100.
-        x, y : str
-            Column names for the event start coordinates.
-        event_type : str
-            Column containing the event family labels.
-        end_x, end_y : str, optional
-            Column names for the end coordinates of move actions. If both
-            default names are absent, they are treated as unavailable.
-        is_success : str, optional
-            Column indicating whether a move succeeded or a shot was a goal.
-            If the default name is absent, it is treated as unavailable.
-            Values should be boolean (or numeric 0/1). Provider-specific
-            strings should be normalised explicitly via ``success_map``.
-        x_range, y_range : tuple[float, float]
-            Coordinate ranges for the incoming provider data. For example,
-            StatsBomb-style coordinates can be passed as ``x_range=(0, 120)``
-            and ``y_range=(0, 80)``.
-        event_map : dict, optional
-            Mapping from provider-specific event labels to canonical xT event
-            families such as ``pass`` and ``shot``.
-        success_map : dict, optional
-            Mapping from provider-specific success labels to booleans.
+        data : pandas.DataFrame or penaltyblog.matchflow.Flow
+            Event data to fit on.
+        schema : XTEventSchema, optional
+            Explicit column/range/label mapping. If omitted, canonical column
+            names are assumed (``x``, ``y``, ``event_type``, ``end_x``,
+            ``end_y``, ``is_success``).
 
         Returns
         -------
-        XTModel
+        ExpectedThreatModel
             The fitted model instance (``self``), so you can chain calls:
-            ``XTModel().fit(df)``.
+            ``ExpectedThreatModel().fit(df)``.
 
         Examples
         --------
-        Fit on a DataFrame that already uses canonical column names:
-
-        >>> model = pb.xt.XTModel()
-        >>> model.fit(df)   # df must have x, y, event_type, end_x, end_y, is_success
-
-        Fit on StatsBomb data with a custom coordinate range and label mapping:
-
-        >>> model.fit(
-        ...     df,
-        ...     x="location_x",
-        ...     y="location_y",
-        ...     end_x="pass_end_location_x",
-        ...     end_y="pass_end_location_y",
-        ...     event_type="type_name",
-        ...     is_success="pass_outcome_name",
-        ...     x_range=(0, 120),
-        ...     y_range=(0, 80),
-        ...     event_map={"Pass": "pass", "Shot": "shot", "Carry": "carry"},
-        ...     success_map={"Complete": True, "Incomplete": False,
-        ...                  "Goal": True, "Saved": False},
-        ... )
+        >>> model = pb.xt.ExpectedThreatModel()
+        >>> model.fit(df)
         """
-        fit_schema: dict[str, object] | None = None
         tabular_data = data.to_pandas() if self._is_matchflow_flow(data) else data
-        if isinstance(tabular_data, XTData):
-            fit_schema = {
-                "x": data.x,
-                "y": data.y,
-                "event_type": data.event_type,
-                "end_x": data.end_x,
-                "end_y": data.end_y,
-                "is_success": data.is_success,
-                "x_range": list(data.x_range),
-                "y_range": list(data.y_range),
-                "event_map": event_map or None,
-                "success_map": success_map or None,
-            }
-        elif isinstance(tabular_data, pd.DataFrame):
-            resolved_end_x, resolved_end_y, resolved_is_success = self._resolve_columns(
-                tabular_data,
-                end_x=end_x,
-                end_y=end_y,
-                is_success=is_success,
-            )
-
-            fit_schema = {
-                "x": x,
-                "y": y,
-                "event_type": event_type,
-                "end_x": resolved_end_x,
-                "end_y": resolved_end_y,
-                "is_success": resolved_is_success,
-                "x_range": list(x_range),
-                "y_range": list(y_range),
-                "event_map": event_map or None,
-                "success_map": success_map or None,
-            }
-
-        xt_data = self._as_xtdata(
-            tabular_data,
-            x=x,
-            y=y,
-            event_type=event_type,
-            end_x=end_x,
-            end_y=end_y,
-            is_success=is_success,
-            x_range=x_range,
-            y_range=y_range,
-            event_map=event_map,
-            success_map=success_map,
-        )
+        xt_data, effective_schema = self._as_xtdata(tabular_data, schema=schema)
+        fit_schema = effective_schema.to_dict()
         if xt_data.is_success is None:
             raise ValueError(
                 "Missing success information. Provide an is_success column "
@@ -524,16 +411,16 @@ class XTModel:
             )
         df = xt_data.df.copy()
 
-        # Convert coordinates to float
+        # Convert coordinates to numeric and fail on invalid non-numeric values
         for col in ["x", "y", "end_x", "end_y"]:
-            df[col] = pd.to_numeric(df[col], errors="coerce")
+            df[col] = _coerce_numeric_column(df[col], column=col, context="fit")
         self._validate_coords(df, context="fit")
 
         # Classify events
         role = self._classify_events(df)
 
         # is_success: for moves means completed, for shots means goal
-        success_flags = _coerce_bool(df["is_success"], default=True)
+        success_flags = _coerce_bool(df["is_success"])
 
         # Build masks
         valid_start = df["x"].notna() & df["y"].notna()
@@ -548,14 +435,14 @@ class XTModel:
 
         if not shot_mask.any() and not move_mask.any():
             raise ValueError(
-                "No relevant events to fit the model. Check that event_map maps "
-                "your provider labels to canonical xT event types."
+                "No relevant events to fit the model. Check that your schema maps "
+                "provider labels to canonical xT event types."
             )
         if not shot_mask.any():
             warnings.warn(
                 "No shot events found in the training data. The fitted xT surface "
                 "will be all zeros. Ensure your data includes shots (event_type='shot') "
-                "or check that event_map correctly maps shot labels.",
+                "or check that schema.event_type_map correctly maps shot labels.",
                 UserWarning,
                 stacklevel=2,
             )
@@ -746,17 +633,9 @@ class XTModel:
     def score(
         self,
         data: XTData | pd.DataFrame | Flow,
+        schema: Optional[XTEventSchema] = None,
         *,
-        x: str = "x",
-        y: str = "y",
-        event_type: str = "event_type",
-        end_x: str | None = "end_x",
-        end_y: str | None = "end_y",
-        is_success: str | None = "is_success",
-        x_range: tuple[float, float] = (0.0, 100.0),
-        y_range: tuple[float, float] = (0.0, 100.0),
-        event_map: dict[str, str] | None = None,
-        success_map: dict[str, bool] | None = None,
+        use_fit_schema: bool = True,
     ) -> pd.DataFrame:
         """
         Score events by xT delta and return the annotated DataFrame.
@@ -776,35 +655,18 @@ class XTModel:
             ``xt_end`` and ``xt_added`` are only set for *successful* moves that
             also have valid end coordinates.
 
-        When called after :meth:`fit`, the column mapping used during fitting
-        is re-applied automatically — you can call ``model.score(df)`` with no
-        extra arguments if ``df`` has the same structure as the training data.
+        When called after :meth:`fit`, use ``use_fit_schema=True`` (default)
+        to re-apply the fitted schema automatically.
 
         Parameters
         ----------
-        data : XTData, pandas.DataFrame, or penaltyblog.matchflow.Flow
+        data : pandas.DataFrame or penaltyblog.matchflow.Flow
             Event data to score.
-        x, y : str
-            Column names for the event start coordinates.
-        event_type : str
-            Column containing the event family labels.
-        end_x, end_y : str, optional
-            Column names for the end coordinates of move actions. If both
-            default names are absent, they are treated as unavailable.
-        is_success : str, optional
-            Column indicating whether a move succeeded or a shot was a goal.
-            If the default name is absent, it is treated as unavailable.
-            Values should be boolean (or numeric 0/1). Provider-specific
-            strings should be normalized explicitly via ``success_map``.
-        x_range, y_range : tuple[float, float]
-            Coordinate ranges for the incoming provider data. For example,
-            StatsBomb-style coordinates can be passed as ``x_range=(0, 120)``
-            and ``y_range=(0, 80)``.
-        event_map : dict, optional
-            Mapping from provider-specific event labels to canonical xT event
-            families such as ``pass`` and ``shot``.
-        success_map : dict, optional
-            Mapping from provider-specific success labels to booleans.
+        schema : XTEventSchema, optional
+            Explicit schema for this scoring call.
+        use_fit_schema : bool, default True
+            If ``True`` and no ``schema`` is provided, replay the schema saved
+            during :meth:`fit`.
 
         Returns
         -------
@@ -814,50 +676,11 @@ class XTModel:
         """
         self._ensure_fitted()
         tabular_data = data.to_pandas() if self._is_matchflow_flow(data) else data
-        use_fitted_schema = (
-            isinstance(tabular_data, pd.DataFrame)
-            and self._fit_schema_ is not None
-            and x == "x"
-            and y == "y"
-            and event_type == "event_type"
-            and end_x == "end_x"
-            and end_y == "end_y"
-            and is_success == "is_success"
-            and x_range == (0.0, 100.0)
-            and y_range == (0.0, 100.0)
-            and event_map is None
-            and success_map is None
-        )
-        if use_fitted_schema:
-            schema = self._fit_schema_
-            x = str(schema["x"])
-            y = str(schema["y"])
-            event_type = str(schema["event_type"])
-            end_x = schema["end_x"] if schema["end_x"] is None else str(schema["end_x"])
-            end_y = schema["end_y"] if schema["end_y"] is None else str(schema["end_y"])
-            is_success = (
-                schema["is_success"]
-                if schema["is_success"] is None
-                else str(schema["is_success"])
-            )
-            x_range = tuple(schema["x_range"])
-            y_range = tuple(schema["y_range"])
-            event_map = schema["event_map"]
-            success_map = schema["success_map"]
+        active_schema = schema
+        if active_schema is None and use_fit_schema and self._fit_schema_ is not None:
+            active_schema = XTEventSchema.from_dict(self._fit_schema_)
 
-        xt_data = self._as_xtdata(
-            tabular_data,
-            x=x,
-            y=y,
-            event_type=event_type,
-            end_x=end_x,
-            end_y=end_y,
-            is_success=is_success,
-            x_range=x_range,
-            y_range=y_range,
-            event_map=event_map,
-            success_map=success_map,
-        )
+        xt_data, _ = self._as_xtdata(tabular_data, schema=active_schema)
         if xt_data.is_success is None:
             raise ValueError(
                 "Missing success information. Provide an is_success column "
@@ -866,12 +689,12 @@ class XTModel:
         df = xt_data.df.copy()
 
         for col in ["x", "y", "end_x", "end_y"]:
-            df[col] = pd.to_numeric(df[col], errors="coerce")
+            df[col] = _coerce_numeric_column(df[col], column=col, context="score")
         self._validate_coords(df, context="score")
 
         role = self._classify_events(df)
 
-        success_flags = _coerce_bool(df["is_success"], default=True)
+        success_flags = _coerce_bool(df["is_success"])
 
         # start_mask: all moves with valid start coordinates (includes failed moves)
         start_mask = (role == "move") & df["x"].notna() & df["y"].notna()
@@ -947,7 +770,7 @@ class XTModel:
         -----
         Coordinates are expected in the 0–100 normalised space used internally.
         If your data uses a different coordinate system (e.g. StatsBomb 0–120 × 0–80),
-        pass ``x_range`` and ``y_range`` to :class:`XTData` when fitting or scoring
+        pass ``x_range`` and ``y_range`` via :class:`XTEventSchema` when fitting or scoring
         to convert automatically — but pass already-normalised values here.
 
         Examples
@@ -1051,7 +874,7 @@ class XTModel:
         Examples
         --------
         >>> model.save("my_xt_model.npz")
-        >>> loaded = XTModel.load("my_xt_model.npz")
+        >>> loaded = ExpectedThreatModel.load("my_xt_model.npz")
         """
         self._ensure_fitted()
         arrays = {
@@ -1064,7 +887,7 @@ class XTModel:
         save_xt_npz(path, arrays, self.metadata_)
 
     @classmethod
-    def load(cls, path: str) -> "XTModel":
+    def load(cls, path: str) -> "ExpectedThreatModel":
         """Load a fitted model from an ``.npz`` file created by :meth:`save`.
 
         Parameters
@@ -1074,7 +897,7 @@ class XTModel:
 
         Returns
         -------
-        XTModel
+        ExpectedThreatModel
             A fully fitted model instance ready for scoring, querying, and
             plotting — no further call to :meth:`fit` is needed.
 
@@ -1085,7 +908,7 @@ class XTModel:
 
         Examples
         --------
-        >>> model = XTModel.load("my_xt_model.npz")
+        >>> model = ExpectedThreatModel.load("my_xt_model.npz")
         >>> model.value_at(85, 50)
         """
         arrays, metadata = load_xt_npz(path)

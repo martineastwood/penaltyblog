@@ -1,10 +1,10 @@
-"""Provider-agnostic schema wrapper for xT event data."""
+"""Provider-agnostic xT event schema and data helpers."""
 
 from __future__ import annotations
 
 from dataclasses import dataclass
 from functools import cached_property
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 import pandas as pd
 
@@ -26,11 +26,91 @@ def _scale_to_100(series: pd.Series, low: float, high: float) -> pd.Series:
 
 
 @dataclass(frozen=True)
+class XTEventSchema:
+    """
+    Column/range/label mapping for provider xT event data.
+
+    This is the primary schema object used by
+    :class:`~penaltyblog.xt.ExpectedThreatModel`
+    in ``fit(..., schema=...)`` and ``score(..., schema=...)``.
+    """
+
+    x: str = "x"
+    y: str = "y"
+    event_type: str = "event_type"
+    end_x: str | None = "end_x"
+    end_y: str | None = "end_y"
+    is_success: str | None = "is_success"
+    x_range: tuple[float, float] = (0.0, 100.0)
+    y_range: tuple[float, float] = (0.0, 100.0)
+    event_type_map: dict[str, str] | None = None
+    success_value_map: dict[Any, bool] | None = None
+
+    def __post_init__(self) -> None:
+        if (self.end_x is None) != (self.end_y is None):
+            raise ValueError("Both or neither end_x and end_y must be provided")
+        _validate_range("x_range", self.x_range)
+        _validate_range("y_range", self.y_range)
+
+    def apply(self, events: pd.DataFrame | "Flow") -> "XTData":
+        """Return normalized :class:`XTData` using this schema."""
+        data = XTData(
+            events=events,
+            x=self.x,
+            y=self.y,
+            event_type=self.event_type,
+            end_x=self.end_x,
+            end_y=self.end_y,
+            is_success=self.is_success,
+            x_range=self.x_range,
+            y_range=self.y_range,
+        )
+        if self.event_type_map or self.success_value_map:
+            data = data.map_events(
+                event_type_map=self.event_type_map,
+                success_value_map=self.success_value_map,
+            )
+        return data
+
+    def to_dict(self) -> dict[str, Any]:
+        """Serialize to JSON-safe dict."""
+        return {
+            "x": self.x,
+            "y": self.y,
+            "event_type": self.event_type,
+            "end_x": self.end_x,
+            "end_y": self.end_y,
+            "is_success": self.is_success,
+            "x_range": [self.x_range[0], self.x_range[1]],
+            "y_range": [self.y_range[0], self.y_range[1]],
+            "event_type_map": self.event_type_map,
+            "success_value_map": self.success_value_map,
+        }
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> "XTEventSchema":
+        """Load schema from metadata dict."""
+        return cls(
+            x=str(data.get("x", "x")),
+            y=str(data.get("y", "y")),
+            event_type=str(data.get("event_type", "event_type")),
+            end_x=data.get("end_x"),
+            end_y=data.get("end_y"),
+            is_success=data.get("is_success"),
+            x_range=tuple(data.get("x_range", (0.0, 100.0))),
+            y_range=tuple(data.get("y_range", (0.0, 100.0))),
+            event_type_map=data.get("event_type_map"),
+            success_value_map=data.get("success_value_map"),
+        )
+
+
+@dataclass(frozen=True)
 class XTData:
     """
     Provider-agnostic schema wrapper for xT event data.
 
-    Wraps a DataFrame with column name mappings so that :class:`XTModel`
+    Wraps a DataFrame with column name mappings so that
+    :class:`ExpectedThreatModel`
     can work with any provider's column naming conventions.
 
     The ``is_success`` column has a consistent meaning across event types:
@@ -39,7 +119,7 @@ class XTData:
 
     ``is_success`` should ideally be boolean.  Numeric ``0``/``1`` is also
     accepted.  Provider-specific string labels should be mapped explicitly
-    with ``success_map`` in :meth:`map_events` before fitting or scoring.
+    with ``success_value_map`` in :meth:`map_events` before fitting or scoring.
 
     Parameters
     ----------
@@ -174,23 +254,23 @@ class XTData:
 
     def map_events(
         self,
-        event_map: dict[str, str] | None = None,
-        success_map: dict[str, bool] | None = None,
+        event_type_map: dict[str, str] | None = None,
+        success_value_map: dict[Any, bool] | None = None,
     ) -> "XTData":
         """
         Return a new :class:`XTData` with raw labels mapped to canonical labels.
 
         This is the recommended way to handle provider-specific event names and
-        success indicators before passing data to :meth:`XTModel.fit` or
-        :meth:`XTModel.score`.
+        success indicators before passing data to
+        :meth:`ExpectedThreatModel.fit` or :meth:`ExpectedThreatModel.score`.
 
         Parameters
         ----------
-        event_map : dict, optional
+        event_type_map : dict, optional
             Mapping from raw ``event_type`` values to canonical xT event families.
             Any values not present in the map are kept as-is.
             Example: ``{"Pass": "pass", "Shot": "shot", "Throw-in": "throw_in"}``.
-        success_map : dict, optional
+        success_value_map : dict, optional
             Mapping from raw ``is_success`` values to booleans.
             This is the recommended path for provider feeds that encode
             outcomes as strings.
@@ -203,11 +283,13 @@ class XTData:
             The original instance is not modified.
         """
         df = self._normalized_df()
-        if event_map:
-            df["event_type"] = df["event_type"].map(event_map).fillna(df["event_type"])
-        if success_map:
+        if event_type_map:
+            df["event_type"] = (
+                df["event_type"].map(event_type_map).fillna(df["event_type"])
+            )
+        if success_value_map:
             df["is_success"] = (
-                df["is_success"].map(success_map).fillna(df["is_success"])
+                df["is_success"].map(success_value_map).fillna(df["is_success"])
             )
 
         return XTData(
