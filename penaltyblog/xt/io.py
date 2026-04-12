@@ -7,26 +7,46 @@ from typing import Any
 
 import numpy as np
 
+_TYPED_DICT_MARKER = "__penaltyblog_typed_dict__"
 
-def _normalize_json_key(key: Any) -> str | int | float | bool | None:
-    if isinstance(key, np.generic):
-        key = key.item()
-    if isinstance(key, (str, int, float, bool)) or key is None:
-        return key
-    return str(key)
+
+def _normalize_json_scalar(value: Any) -> str | int | float | bool | None:
+    if isinstance(value, np.generic):
+        value = value.item()
+    if isinstance(value, (str, int, float, bool)) or value is None:
+        return value
+    return str(value)
 
 
 def _normalize_json_value(value: Any) -> Any:
     if isinstance(value, np.generic):
-        return value.item()
+        return _normalize_json_scalar(value)
     if isinstance(value, np.ndarray):
         return value.tolist()
     if isinstance(value, dict):
+        if all(isinstance(k, str) for k in value):
+            return {k: _normalize_json_value(v) for k, v in value.items()}
         return {
-            _normalize_json_key(k): _normalize_json_value(v) for k, v in value.items()
+            _TYPED_DICT_MARKER: [
+                [_normalize_json_scalar(k), _normalize_json_value(v)]
+                for k, v in value.items()
+            ]
         }
     if isinstance(value, (list, tuple)):
         return [_normalize_json_value(v) for v in value]
+    return value
+
+
+def _restore_json_value(value: Any) -> Any:
+    if isinstance(value, list):
+        return [_restore_json_value(v) for v in value]
+    if isinstance(value, dict):
+        if set(value) == {_TYPED_DICT_MARKER}:
+            return {
+                _restore_json_value(k): _restore_json_value(v)
+                for k, v in value[_TYPED_DICT_MARKER]
+            }
+        return {k: _restore_json_value(v) for k, v in value.items()}
     return value
 
 
@@ -51,7 +71,7 @@ def load_xt_npz(path: str) -> tuple[dict[str, np.ndarray], dict[str, Any]]:
     """Load xT model arrays and metadata from an ``.npz`` artifact."""
     with np.load(path, allow_pickle=False) as npz:
         meta_json = str(npz["meta_json"][0])
-        metadata = json.loads(meta_json)
+        metadata = _restore_json_value(json.loads(meta_json))
         arrays = {
             "surface": npz["surface"],
             "shot_probability": npz["shot_probability"],

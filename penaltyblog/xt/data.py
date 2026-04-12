@@ -31,7 +31,7 @@ class XTEventSchema:
     Column/range/label mapping for provider xT event data.
 
     This is the primary schema object used by
-    :class:`~penaltyblog.xt.ExpectedThreatModel`
+    :class:`~penaltyblog.xt.XTModel`
     in ``fit(..., schema=...)`` and ``score(..., schema=...)``.
     """
 
@@ -110,7 +110,7 @@ class XTData:
     Provider-agnostic schema wrapper for xT event data.
 
     Wraps a DataFrame with column name mappings so that
-    :class:`ExpectedThreatModel`
+    :class:`XTModel`
     can work with any provider's column naming conventions.
 
     The ``is_success`` column has a consistent meaning across event types:
@@ -262,7 +262,7 @@ class XTData:
 
         This is the recommended way to handle provider-specific event names and
         success indicators before passing data to
-        :meth:`ExpectedThreatModel.fit` or :meth:`ExpectedThreatModel.score`.
+        :meth:`XTModel.fit` or :meth:`XTModel.score`.
 
         Parameters
         ----------

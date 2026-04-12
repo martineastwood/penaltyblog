@@ -5,14 +5,15 @@ import pandas as pd
 import plotly.graph_objects as go
 import pytest
 
+import penaltyblog as pb
 from penaltyblog.matchflow import Flow
 from penaltyblog.viz.pitch import Pitch
 from penaltyblog.xt import (
-    ExpectedThreatModel,
+    XTData,
     XTEventSchema,
+    XTModel,
     load_pretrained_xt,
 )
-from penaltyblog.xt.data import XTData
 from penaltyblog.xt.model import (
     _clip_coords,
     _coerce_bool,
@@ -202,7 +203,7 @@ def test_xtdata_map_events():
 def test_classification_pass_is_move():
     df = simple_pass_shot_df()
     data = make_xtdata(df)
-    model = ExpectedThreatModel(n_cols=2, n_rows=1)
+    model = XTModel(n_cols=2, n_rows=1)
     ndf = data.df
     role = model._classify_events(ndf)
     assert role.iloc[0] == "move"
@@ -211,7 +212,7 @@ def test_classification_pass_is_move():
 def test_classification_shot_is_shot():
     df = simple_pass_shot_df()
     data = make_xtdata(df)
-    model = ExpectedThreatModel(n_cols=2, n_rows=1)
+    model = XTModel(n_cols=2, n_rows=1)
     role = model._classify_events(data.df)
     assert role.iloc[1] == "shot"
     assert role.iloc[2] == "shot"
@@ -229,7 +230,7 @@ def test_classification_carry():
         }
     )
     data = make_xtdata(df)
-    model = ExpectedThreatModel(n_cols=2, n_rows=1, include_carries=True)
+    model = XTModel(n_cols=2, n_rows=1, include_carries=True)
     role = model._classify_events(data.df)
     assert role.iloc[0] == "move"
 
@@ -246,7 +247,7 @@ def test_classification_carry_excluded():
         }
     )
     data = make_xtdata(df)
-    model = ExpectedThreatModel(n_cols=2, n_rows=1, include_carries=False)
+    model = XTModel(n_cols=2, n_rows=1, include_carries=False)
     role = model._classify_events(data.df)
     assert role.iloc[0] == "ignore"
 
@@ -263,7 +264,7 @@ def test_classification_throw_in():
         }
     )
     data = make_xtdata(df)
-    model = ExpectedThreatModel(n_cols=2, n_rows=1, include_throw_ins=True)
+    model = XTModel(n_cols=2, n_rows=1, include_throw_ins=True)
     role = model._classify_events(data.df)
     assert role.iloc[0] == "move"
 
@@ -280,7 +281,7 @@ def test_classification_throw_in_excluded():
         }
     )
     data = make_xtdata(df)
-    model = ExpectedThreatModel(n_cols=2, n_rows=1, include_throw_ins=False)
+    model = XTModel(n_cols=2, n_rows=1, include_throw_ins=False)
     role = model._classify_events(data.df)
     assert role.iloc[0] == "ignore"
 
@@ -297,7 +298,7 @@ def test_classification_free_kick_pass_vs_shot():
         }
     )
     data = make_xtdata(df)
-    model = ExpectedThreatModel(n_cols=2, n_rows=1, include_free_kicks=True)
+    model = XTModel(n_cols=2, n_rows=1, include_free_kicks=True)
     role = model._classify_events(data.df)
     assert role.iloc[0] == "move"
     assert role.iloc[1] == "shot"
@@ -315,7 +316,7 @@ def test_classification_corner_is_move():
         }
     )
     data = make_xtdata(df)
-    model = ExpectedThreatModel(n_cols=2, n_rows=1, include_corners=True)
+    model = XTModel(n_cols=2, n_rows=1, include_corners=True)
     role = model._classify_events(data.df)
     assert role.iloc[0] == "move"
 
@@ -332,7 +333,7 @@ def test_classification_corner_excluded():
         }
     )
     data = make_xtdata(df)
-    model = ExpectedThreatModel(n_cols=2, n_rows=1, include_corners=False)
+    model = XTModel(n_cols=2, n_rows=1, include_corners=False)
     role = model._classify_events(data.df)
     assert role.iloc[0] == "ignore"
 
@@ -349,7 +350,7 @@ def test_classification_penalty_ignored():
         }
     )
     data = make_xtdata(df)
-    model = ExpectedThreatModel(n_cols=2, n_rows=1)
+    model = XTModel(n_cols=2, n_rows=1)
     role = model._classify_events(data.df)
     assert role.iloc[0] == "ignore"
 
@@ -373,9 +374,9 @@ def test_inclusion_flags_affect_fit():
     data = make_xtdata(df)
 
     # With throw-ins
-    m1 = ExpectedThreatModel(n_cols=2, n_rows=1, include_throw_ins=True).fit(data)
+    m1 = XTModel(n_cols=2, n_rows=1, include_throw_ins=True).fit(data)
     # Without throw-ins
-    m2 = ExpectedThreatModel(n_cols=2, n_rows=1, include_throw_ins=False).fit(data)
+    m2 = XTModel(n_cols=2, n_rows=1, include_throw_ins=False).fit(data)
 
     # Move count should differ
     assert m1.move_probability_.sum() != m2.move_probability_.sum()
@@ -398,7 +399,7 @@ def test_goal_probability_smoothing():
         }
     )
     data = make_xtdata(df)
-    model = ExpectedThreatModel(n_cols=2, n_rows=1).fit(data)
+    model = XTModel(n_cols=2, n_rows=1).fit(data)
     cell = _coords_to_cell(np.array([10.0]), np.array([10.0]), 2, 1)[0]
     gp = model.goal_probability_.reshape(-1)[cell]
     # (0 + 1) / (1 + 2) = 1/3
@@ -417,7 +418,7 @@ def test_goal_probability_with_goal():
         }
     )
     data = make_xtdata(df)
-    model = ExpectedThreatModel(n_cols=2, n_rows=1).fit(data)
+    model = XTModel(n_cols=2, n_rows=1).fit(data)
     cell = _coords_to_cell(np.array([90.0]), np.array([50.0]), 2, 1)[0]
     gp = model.goal_probability_.reshape(-1)[cell]
     # (1 + 1) / (2 + 2) = 0.5
@@ -441,7 +442,7 @@ def test_transition_matrix_row_normalization():
         }
     )
     data = make_xtdata(df)
-    model = ExpectedThreatModel(n_cols=2, n_rows=1).fit(data)
+    model = XTModel(n_cols=2, n_rows=1).fit(data)
     start = _coords_to_cell(np.array([10.0]), np.array([10.0]), 2, 1)[0]
     end = _coords_to_cell(np.array([90.0]), np.array([10.0]), 2, 1)[0]
     row = model.transition_matrix_[start]
@@ -462,10 +463,28 @@ def test_transition_matrix_zero_row():
         }
     )
     data = make_xtdata(df)
-    model = ExpectedThreatModel(n_cols=2, n_rows=1).fit(data)
+    model = XTModel(n_cols=2, n_rows=1).fit(data)
     # Cell with no moves
     cell = _coords_to_cell(np.array([10.0]), np.array([10.0]), 2, 1)[0]
     assert model.transition_matrix_[cell].sum() == 0.0
+
+
+def test_fit_no_shot_cycle_returns_zero_surface():
+    df = pd.DataFrame(
+        {
+            "x": [10, 90],
+            "y": [10, 10],
+            "end_x": [90, 90],
+            "end_y": [10, 10],
+            "event_type": ["pass", "pass"],
+            "is_success": [True, True],
+        }
+    )
+    with pytest.warns(UserWarning, match="No shot events found"):
+        model = XTModel(n_cols=2, n_rows=1).fit(df)
+    assert np.allclose(model.surface_, 0.0)
+    assert np.allclose(model.shot_probability_, 0.0)
+    assert np.allclose(model.goal_probability_, 0.0)
 
 
 def test_per_family_transitions():
@@ -486,7 +505,7 @@ def test_per_family_transitions():
         }
     )
     data = make_xtdata(df)
-    model = ExpectedThreatModel(n_cols=3, n_rows=1, include_throw_ins=True).fit(data)
+    model = XTModel(n_cols=3, n_rows=1, include_throw_ins=True).fit(data)
 
     cell0 = _coords_to_cell(np.array([10.0]), np.array([50.0]), 3, 1)[0]
     cell1 = _coords_to_cell(np.array([40.0]), np.array([50.0]), 3, 1)[0]
@@ -545,7 +564,7 @@ def test_sparse_family_shrinks_toward_pooled():
 
     df = pd.DataFrame(rows)
     data = make_xtdata(df)
-    model = ExpectedThreatModel(n_cols=3, n_rows=1, include_throw_ins=True).fit(data)
+    model = XTModel(n_cols=3, n_rows=1, include_throw_ins=True).fit(data)
 
     cell1 = _coords_to_cell(np.array([40.0]), np.array([50.0]), 3, 1)[0]
     cell2 = _coords_to_cell(np.array([90.0]), np.array([50.0]), 3, 1)[0]
@@ -581,7 +600,7 @@ def test_sparse_family_shrinks_toward_pooled():
 def test_direct_solve_shape_and_finite():
     df = simple_pass_shot_df()
     data = make_xtdata(df)
-    model = ExpectedThreatModel(n_cols=2, n_rows=1).fit(data)
+    model = XTModel(n_cols=2, n_rows=1).fit(data)
     assert model.surface_.shape == (1, 2)
     assert np.isfinite(model.surface_).all()
 
@@ -598,7 +617,7 @@ def test_trivial_one_cell_case():
         }
     )
     data = make_xtdata(df)
-    model = ExpectedThreatModel(n_cols=1, n_rows=1).fit(data)
+    model = XTModel(n_cols=1, n_rows=1).fit(data)
     # shot_prob = 1/2, move_prob = 1/2, goal_prob = (1+1)/(1+2) = 2/3
     # S = 0.5 * 2/3 = 1/3, M = 0.5, T = [[1.0]]
     # (1 - 0.5*1) X = 1/3 => X = 2/3
@@ -620,7 +639,7 @@ def test_two_cell_transition():
         }
     )
     data = make_xtdata(df)
-    model = ExpectedThreatModel(n_cols=2, n_rows=1).fit(data)
+    model = XTModel(n_cols=2, n_rows=1).fit(data)
     flat = model.surface_.reshape(-1)
     cell0 = _coords_to_cell(np.array([10.0]), np.array([10.0]), 2, 1)[0]
     cell1 = _coords_to_cell(np.array([90.0]), np.array([10.0]), 2, 1)[0]
@@ -636,7 +655,7 @@ def test_two_cell_transition():
 def test_value_at():
     df = simple_pass_shot_df()
     data = make_xtdata(df)
-    model = ExpectedThreatModel(n_cols=2, n_rows=1).fit(data)
+    model = XTModel(n_cols=2, n_rows=1).fit(data)
     v0 = model.value_at(10, 10)
     v1 = model.value_at(90, 10)
     assert v1 > v0
@@ -645,7 +664,7 @@ def test_value_at():
 def test_value_at_clips():
     df = simple_pass_shot_df()
     data = make_xtdata(df)
-    model = ExpectedThreatModel(n_cols=2, n_rows=1).fit(data)
+    model = XTModel(n_cols=2, n_rows=1).fit(data)
     # Out-of-bounds should be clipped and not raise
     v = model.value_at(-5, 200)
     assert np.isfinite(v)
@@ -659,7 +678,7 @@ def test_value_at_clips():
 def test_score_output_columns():
     df = simple_pass_shot_df()
     data = make_xtdata(df)
-    model = ExpectedThreatModel(n_cols=2, n_rows=1).fit(data)
+    model = XTModel(n_cols=2, n_rows=1).fit(data)
     scored = model.score(data)
     assert {"xt_start", "xt_end", "xt_added"}.issubset(scored.columns)
 
@@ -667,7 +686,7 @@ def test_score_output_columns():
 def test_score_preserves_all_rows():
     df = simple_pass_shot_df()
     data = make_xtdata(df)
-    model = ExpectedThreatModel(n_cols=2, n_rows=1).fit(data)
+    model = XTModel(n_cols=2, n_rows=1).fit(data)
     scored = model.score(data)
     assert len(scored) == len(df)
 
@@ -675,7 +694,7 @@ def test_score_preserves_all_rows():
 def test_score_nan_for_non_moves():
     df = simple_pass_shot_df()
     data = make_xtdata(df)
-    model = ExpectedThreatModel(n_cols=2, n_rows=1).fit(data)
+    model = XTModel(n_cols=2, n_rows=1).fit(data)
     scored = model.score(data)
     # Shots should have NaN
     shot_rows = scored[scored["event_type"] == "shot"]
@@ -685,7 +704,7 @@ def test_score_nan_for_non_moves():
 def test_score_delta_matches_value_at():
     df = simple_pass_shot_df()
     data = make_xtdata(df)
-    model = ExpectedThreatModel(n_cols=2, n_rows=1).fit(data)
+    model = XTModel(n_cols=2, n_rows=1).fit(data)
     scored = model.score(data)
 
     pass_row = scored[scored["event_type"] == "pass"].iloc[0]
@@ -707,7 +726,7 @@ def test_score_xt_start_populated_for_failed_moves():
         }
     )
     data = make_xtdata(df)
-    model = ExpectedThreatModel(n_cols=2, n_rows=1).fit(data)
+    model = XTModel(n_cols=2, n_rows=1).fit(data)
     scored = model.score(data)
 
     failed_pass = scored.iloc[1]
@@ -719,7 +738,7 @@ def test_score_xt_start_populated_for_failed_moves():
 def test_values_at():
     df = simple_pass_shot_df()
     data = make_xtdata(df)
-    model = ExpectedThreatModel(n_cols=2, n_rows=1).fit(data)
+    model = XTModel(n_cols=2, n_rows=1).fit(data)
 
     xs = np.array([10.0, 90.0])
     ys = np.array([10.0, 10.0])
@@ -742,7 +761,7 @@ def test_score_mixed_event_families():
         }
     )
     data = make_xtdata(df)
-    model = ExpectedThreatModel(n_cols=2, n_rows=1, include_throw_ins=True).fit(data)
+    model = XTModel(n_cols=2, n_rows=1, include_throw_ins=True).fit(data)
     scored = model.score(data)
     # Both pass and throw_in should be scored
     assert pd.notna(scored.iloc[0]["xt_added"])
@@ -770,7 +789,7 @@ def test_score_returns_original_columns():
         end_y="pass_dest_y",
         is_success="success",
     )
-    model = ExpectedThreatModel(n_cols=2, n_rows=1).fit(data)
+    model = XTModel(n_cols=2, n_rows=1).fit(data)
     scored = model.score(data)
     assert "loc_x" in scored.columns
     assert "type" in scored.columns
@@ -778,14 +797,14 @@ def test_score_returns_original_columns():
 
 def test_fit_accepts_raw_dataframe():
     df = simple_pass_shot_df()
-    model = ExpectedThreatModel(n_cols=2, n_rows=1).fit(df)
+    model = XTModel(n_cols=2, n_rows=1).fit(df)
     assert model.fitted_ is True
     assert model.surface_.shape == (1, 2)
 
 
 def test_fit_accepts_matchflow_flow():
     flow = Flow.from_records(simple_pass_shot_df().to_dict(orient="records"))
-    model = ExpectedThreatModel(n_cols=2, n_rows=1).fit(flow)
+    model = XTModel(n_cols=2, n_rows=1).fit(flow)
     assert model.fitted_ is True
     assert model.surface_.shape == (1, 2)
 
@@ -813,7 +832,7 @@ def test_fit_accepts_raw_dataframe_with_column_mapping_and_ranges():
         event_type_map={"Pass": "pass", "Shot": "shot"},
         success_value_map={"Complete": True, "Saved": False, "Goal": True},
     )
-    model = ExpectedThreatModel(n_cols=2, n_rows=1).fit(df, schema=schema)
+    model = XTModel(n_cols=2, n_rows=1).fit(df, schema=schema)
     assert model.fitted_ is True
 
 
@@ -838,7 +857,7 @@ def test_score_accepts_raw_dataframe_with_column_mapping():
         event_type_map={"Pass": "pass", "Shot": "shot"},
         success_value_map={"Complete": True, "Goal": True},
     )
-    model = ExpectedThreatModel(n_cols=2, n_rows=1).fit(df, schema=schema)
+    model = XTModel(n_cols=2, n_rows=1).fit(df, schema=schema)
     scored = model.score(df, schema=schema)
     assert "xt_added" in scored.columns
     assert scored["xt_added"].notna().sum() == 1
@@ -865,7 +884,7 @@ def test_score_reuses_fit_schema_by_default():
         event_type_map={"Pass": "pass", "Shot": "shot"},
         success_value_map={"Complete": True, "Goal": True},
     )
-    model = ExpectedThreatModel(n_cols=2, n_rows=1).fit(df, schema=schema)
+    model = XTModel(n_cols=2, n_rows=1).fit(df, schema=schema)
     scored = model.score(df)
     assert "xt_added" in scored.columns
     assert scored["xt_added"].notna().sum() == 1
@@ -873,7 +892,7 @@ def test_score_reuses_fit_schema_by_default():
 
 def test_score_accepts_matchflow_flow():
     df = simple_pass_shot_df()
-    model = ExpectedThreatModel(n_cols=2, n_rows=1).fit(df)
+    model = XTModel(n_cols=2, n_rows=1).fit(df)
     flow = Flow.from_records(df.to_dict(orient="records"))
     scored = model.score(flow)
     assert "xt_added" in scored.columns
@@ -888,11 +907,11 @@ def test_score_accepts_matchflow_flow():
 def test_save_load_round_trip(tmp_path):
     df = simple_pass_shot_df()
     data = make_xtdata(df)
-    model = ExpectedThreatModel(n_cols=2, n_rows=1).fit(data)
+    model = XTModel(n_cols=2, n_rows=1).fit(data)
 
     path = tmp_path / "xt_model.npz"
     model.save(str(path))
-    loaded = ExpectedThreatModel.load(str(path))
+    loaded = XTModel.load(str(path))
 
     assert loaded.fitted_
     assert loaded.n_cols == model.n_cols
@@ -906,17 +925,52 @@ def test_save_load_round_trip(tmp_path):
 def test_save_load_preserves_metadata(tmp_path):
     df = simple_pass_shot_df()
     data = make_xtdata(df)
-    model = ExpectedThreatModel(
-        n_cols=4, n_rows=3, include_carries=False, coord_policy="clip"
-    ).fit(data)
+    model = XTModel(n_cols=4, n_rows=3, include_carries=False, coord_policy="clip").fit(
+        data
+    )
 
     path = tmp_path / "xt.npz"
     model.save(str(path))
-    loaded = ExpectedThreatModel.load(str(path))
+    loaded = XTModel.load(str(path))
 
     assert loaded.include_carries is False
     assert loaded.coord_policy == "clip"
     assert loaded.metadata_["grid"] == [4, 3]
+
+
+def test_save_load_preserves_transition_smoothing_k(tmp_path):
+    df = simple_pass_shot_df()
+    model = XTModel(n_cols=2, n_rows=1, transition_smoothing_k=2.5).fit(df)
+
+    path = tmp_path / "xt_smoothing.npz"
+    model.save(str(path))
+    loaded = XTModel.load(str(path))
+
+    assert loaded.transition_smoothing_k == pytest.approx(2.5)
+    assert loaded.metadata_["transition_smoothing_k"] == pytest.approx(2.5)
+
+
+def test_save_load_preserves_typed_success_value_map_keys(tmp_path):
+    df = pd.DataFrame(
+        {
+            "x": [10, 90],
+            "y": [10, 10],
+            "end_x": [90, np.nan],
+            "end_y": [10, np.nan],
+            "event_type": ["pass", "shot"],
+            "outcome": [2, 2],
+        }
+    )
+    schema = XTEventSchema(is_success="outcome", success_value_map={2: True, 1: False})
+    model = XTModel(n_cols=2, n_rows=1).fit(df, schema=schema)
+
+    path = tmp_path / "xt_typed_keys.npz"
+    model.save(str(path))
+    loaded = XTModel.load(str(path))
+    scored = loaded.score(df)
+
+    assert loaded._fit_schema_["success_value_map"] == {2: True, 1: False}
+    assert scored["xt_added"].notna().sum() == 1
 
 
 # ---------------------------------------------------------------------------
@@ -954,6 +1008,24 @@ def test_plot_custom_pitch():
     assert result is pitch
 
 
+def test_plot_rejects_unknown_kwargs():
+    model = load_pretrained_xt(name="default")
+    with pytest.raises(TypeError, match="Unexpected keyword arguments"):
+        model.plot(colorbar=True)
+
+
+def test_plot_vertical_pitch_transposes_surface():
+    model = load_pretrained_xt(name="default")
+    pitch = Pitch(provider="opta", orientation="vertical")
+    result = model.plot(pitch=pitch)
+    trace = next(t for t in result.fig.data if isinstance(t, go.Heatmap))
+
+    assert len(trace.x) == model.n_rows
+    assert len(trace.y) == model.n_cols
+    assert np.asarray(trace.z).shape == (model.n_cols, model.n_rows)
+    assert np.allclose(np.asarray(trace.z), model.surface_.T)
+
+
 # ---------------------------------------------------------------------------
 # Validation
 # ---------------------------------------------------------------------------
@@ -961,24 +1033,24 @@ def test_plot_custom_pitch():
 
 def test_invalid_grid_size():
     with pytest.raises(ValueError, match="positive"):
-        ExpectedThreatModel(n_cols=0, n_rows=12)
+        XTModel(n_cols=0, n_rows=12)
 
 
 def test_invalid_coord_policy():
     with pytest.raises(ValueError, match="coord_policy"):
-        ExpectedThreatModel(coord_policy="invalid")
+        XTModel(coord_policy="invalid")
 
 
 def test_score_before_fit_raises():
     df = simple_pass_shot_df()
     data = make_xtdata(df)
-    model = ExpectedThreatModel(n_cols=2, n_rows=1)
+    model = XTModel(n_cols=2, n_rows=1)
     with pytest.raises(ValueError, match="not fitted"):
         model.score(data)
 
 
 def test_value_at_before_fit_raises():
-    model = ExpectedThreatModel(n_cols=2, n_rows=1)
+    model = XTModel(n_cols=2, n_rows=1)
     with pytest.raises(ValueError, match="Call \\.fit\\(\\) first"):
         model.value_at(50, 50)
 
@@ -996,7 +1068,7 @@ def test_fit_empty_dataset_raises():
     )
     data = make_xtdata(df)
     with pytest.raises(ValueError, match="schema maps"):
-        ExpectedThreatModel(n_cols=2, n_rows=1).fit(data)
+        XTModel(n_cols=2, n_rows=1).fit(data)
 
 
 def test_load_rejects_invalid_grid_metadata(tmp_path):
@@ -1012,7 +1084,7 @@ def test_load_rejects_invalid_grid_metadata(tmp_path):
     )
 
     with pytest.raises(ValueError, match="metadata.grid"):
-        ExpectedThreatModel.load(str(path))
+        XTModel.load(str(path))
 
 
 def test_fit_missing_is_success_raises():
@@ -1026,7 +1098,7 @@ def test_fit_missing_is_success_raises():
         }
     )
     with pytest.raises(ValueError, match="Missing success information"):
-        ExpectedThreatModel(n_cols=2, n_rows=1).fit(df)
+        XTModel(n_cols=2, n_rows=1).fit(df)
 
 
 def test_fit_warns_on_out_of_bounds_coords():
@@ -1041,7 +1113,7 @@ def test_fit_warns_on_out_of_bounds_coords():
         }
     )
     data = make_xtdata(df)
-    model = ExpectedThreatModel(n_cols=2, n_rows=1, coord_policy="warn")
+    model = XTModel(n_cols=2, n_rows=1, coord_policy="warn")
     with pytest.warns(UserWarning, match="outside expected 0..100"):
         model.fit(data)
 
@@ -1058,7 +1130,7 @@ def test_fit_errors_on_out_of_bounds_coords():
         }
     )
     data = make_xtdata(df)
-    model = ExpectedThreatModel(n_cols=2, n_rows=1, coord_policy="error")
+    model = XTModel(n_cols=2, n_rows=1, coord_policy="error")
     with pytest.raises(ValueError, match="outside expected 0..100"):
         model.fit(data)
 
@@ -1075,7 +1147,7 @@ def test_fit_clip_policy_no_warning():
         }
     )
     data = make_xtdata(df)
-    model = ExpectedThreatModel(n_cols=2, n_rows=1, coord_policy="clip")
+    model = XTModel(n_cols=2, n_rows=1, coord_policy="clip")
     with warnings.catch_warnings(record=True) as record:
         warnings.simplefilter("always")
         model.fit(data)
@@ -1084,9 +1156,7 @@ def test_fit_clip_policy_no_warning():
 
 def test_score_errors_on_out_of_bounds_coords():
     train_df = simple_pass_shot_df()
-    model = ExpectedThreatModel(n_cols=2, n_rows=1, coord_policy="error").fit(
-        make_xtdata(train_df)
-    )
+    model = XTModel(n_cols=2, n_rows=1, coord_policy="error").fit(make_xtdata(train_df))
     score_df = train_df.copy()
     score_df.loc[0, "end_x"] = 150.0
     with pytest.raises(ValueError, match="outside expected 0..100"):
@@ -1095,25 +1165,34 @@ def test_score_errors_on_out_of_bounds_coords():
 
 def test_value_at_error_policy_raises_on_out_of_bounds():
     df = simple_pass_shot_df()
-    model = ExpectedThreatModel(n_cols=2, n_rows=1, coord_policy="error").fit(df)
+    model = XTModel(n_cols=2, n_rows=1, coord_policy="error").fit(df)
     with pytest.raises(ValueError, match="outside expected 0..100"):
         model.value_at(-1, 50)
 
 
 def test_value_at_warn_policy_warns_on_out_of_bounds():
     df = simple_pass_shot_df()
-    model = ExpectedThreatModel(n_cols=2, n_rows=1, coord_policy="warn").fit(df)
+    model = XTModel(n_cols=2, n_rows=1, coord_policy="warn").fit(df)
     with pytest.warns(UserWarning, match="outside expected 0..100"):
         model.value_at(-1, 50)
 
 
 def test_value_at_rejects_non_finite_inputs():
     df = simple_pass_shot_df()
-    model = ExpectedThreatModel(n_cols=2, n_rows=1).fit(df)
+    model = XTModel(n_cols=2, n_rows=1).fit(df)
     with pytest.raises(ValueError, match="finite numbers"):
         model.value_at(np.inf, 50)
     with pytest.raises(ValueError, match="finite numbers"):
         model.value_at(50, -np.inf)
+
+
+def test_values_at_rejects_non_finite_inputs():
+    df = simple_pass_shot_df()
+    model = XTModel(n_cols=2, n_rows=1).fit(df)
+    with pytest.raises(ValueError, match="finite numbers"):
+        model.values_at(np.array([10.0, np.nan]), np.array([10.0, 10.0]))
+    with pytest.raises(ValueError, match="finite numbers"):
+        model.values_at(np.array([10.0, 20.0]), np.array([10.0, np.inf]))
 
 
 # ---------------------------------------------------------------------------
@@ -1124,7 +1203,7 @@ def test_value_at_rejects_non_finite_inputs():
 def test_fitted_attributes_present():
     df = simple_pass_shot_df()
     data = make_xtdata(df)
-    model = ExpectedThreatModel(n_cols=2, n_rows=1).fit(data)
+    model = XTModel(n_cols=2, n_rows=1).fit(data)
 
     assert hasattr(model, "surface_")
     assert hasattr(model, "shot_probability_")
@@ -1143,6 +1222,14 @@ def test_xtdata_df_is_cached():
     assert data.df is data.df
 
 
+def test_xtdata_exported_from_public_module():
+    assert pb.xt.XTData is XTData
+
+
+def test_xtmodel_exported_from_public_module():
+    assert pb.xt.XTModel is XTModel
+
+
 def test_included_families_tracked():
     df = pd.DataFrame(
         {
@@ -1155,7 +1242,7 @@ def test_included_families_tracked():
         }
     )
     data = make_xtdata(df)
-    model = ExpectedThreatModel(n_cols=2, n_rows=1, include_throw_ins=True).fit(data)
+    model = XTModel(n_cols=2, n_rows=1, include_throw_ins=True).fit(data)
     assert "pass" in model.included_move_families_
     assert "throw_in" in model.included_move_families_
     assert "shot" in model.included_shot_families_
@@ -1207,7 +1294,7 @@ def test_fit_with_string_success_column_raises():
     )
     data = make_xtdata(df)
     with pytest.raises(ValueError, match="success_value_map"):
-        ExpectedThreatModel(n_cols=2, n_rows=1).fit(data)
+        XTModel(n_cols=2, n_rows=1).fit(data)
 
 
 def test_fit_with_string_success_column_via_success_value_map():
@@ -1221,7 +1308,7 @@ def test_fit_with_string_success_column_via_success_value_map():
             "is_success": ["True", "False", "True"],
         }
     )
-    model = ExpectedThreatModel(n_cols=2, n_rows=1).fit(
+    model = XTModel(n_cols=2, n_rows=1).fit(
         df,
         schema=XTEventSchema(success_value_map={"True": True, "False": False}),
     )
@@ -1249,11 +1336,11 @@ def test_save_load_preserves_families(tmp_path):
         }
     )
     data = make_xtdata(df)
-    model = ExpectedThreatModel(n_cols=2, n_rows=1, include_throw_ins=True).fit(data)
+    model = XTModel(n_cols=2, n_rows=1, include_throw_ins=True).fit(data)
 
     path = tmp_path / "xt_families.npz"
     model.save(str(path))
-    loaded = ExpectedThreatModel.load(str(path))
+    loaded = XTModel.load(str(path))
 
     assert loaded.included_move_families_ == model.included_move_families_
     assert loaded.included_shot_families_ == model.included_shot_families_
@@ -1270,7 +1357,7 @@ def test_save_handles_numpy_scalars_in_fit_schema_maps(tmp_path):
             "is_success": ["Complete", "Goal"],
         }
     )
-    model = ExpectedThreatModel(n_cols=2, n_rows=1).fit(
+    model = XTModel(n_cols=2, n_rows=1).fit(
         df,
         schema=XTEventSchema(
             event_type_map={"Pass": "pass", "Shot": "shot"},
@@ -1280,7 +1367,7 @@ def test_save_handles_numpy_scalars_in_fit_schema_maps(tmp_path):
 
     path = tmp_path / "xt_json_scalars.npz"
     model.save(str(path))
-    loaded = ExpectedThreatModel.load(str(path))
+    loaded = XTModel.load(str(path))
     assert loaded.fitted_
 
 
@@ -1301,7 +1388,7 @@ def test_postmatch_penalty_ignored():
         }
     )
     data = make_xtdata(df)
-    model = ExpectedThreatModel(n_cols=2, n_rows=1)
+    model = XTModel(n_cols=2, n_rows=1)
     role = model._classify_events(data.df)
     assert role.iloc[0] == "ignore"
 

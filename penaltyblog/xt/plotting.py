@@ -60,17 +60,28 @@ def plot_xt_surface(
         x_centers.tolist(), y_centers.tolist()
     )
     x_plot, y_plot = pitch._apply_orientation_raw(x_scaled, y_scaled)
+    z_plot = (
+        surface.T
+        if getattr(pitch, "orientation", "horizontal") == "vertical"
+        else surface
+    )
 
     colorscale = kwargs.pop("colorscale", None)
     opacity = kwargs.pop("opacity", None)
+    show_colorbar = kwargs.pop("show_colorbar", False)
+    if kwargs:
+        unexpected = ", ".join(sorted(kwargs))
+        raise TypeError(
+            f"Unexpected keyword arguments for plot_xt_surface: {unexpected}"
+        )
 
     trace = go.Heatmap(
-        z=surface,
+        z=z_plot,
         x=x_plot,
         y=y_plot,
         colorscale=colorscale or pitch.theme.heatmap_colorscale,
         opacity=opacity if opacity is not None else pitch.theme.heatmap_opacity,
-        showscale=kwargs.pop("show_colorbar", False),
+        showscale=show_colorbar,
         hovertemplate="x: %{x:.1f}<br>y: %{y:.1f}<br>xT: %{z:.3f}<extra></extra>",
     )
 

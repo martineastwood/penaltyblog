@@ -238,7 +238,7 @@ Use this when a user asks to fit or score position-based expected threat models 
 ```python
 import penaltyblog as pb
 
-xt = pb.xt.XTModel(l=16, w=12, coord_policy="warn")
+xt = pb.xt.XTModel(n_cols=16, n_rows=12, coord_policy="warn")
 xt.fit(df)
 scored = xt.score(df)
 print(scored[["xt_start", "xt_end", "xt_added"]].head())
@@ -270,8 +270,8 @@ data = XTData(
     end_y="end_y",
     is_success="outcome",
 ).map_events(
-    event_map={"Pass": "pass", "Shot": "shot"},
-    success_map={"Complete": True, "Incomplete": False, "Goal": True},
+    event_type_map={"Pass": "pass", "Shot": "shot"},
+    success_value_map={"Complete": True, "Incomplete": False, "Goal": True},
 )
 
 model = XTModel().fit(data)

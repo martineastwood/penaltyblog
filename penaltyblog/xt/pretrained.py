@@ -4,14 +4,14 @@ from __future__ import annotations
 
 import importlib.resources as resources
 
-from .model import ExpectedThreatModel
+from .model import XTModel
 
 _PRETRAINED_FILES = {
     "default": "xt_default_v1.npz",
 }
 
 
-def load_pretrained_xt(name: str = "default") -> ExpectedThreatModel:
+def load_pretrained_xt(name: str = "default") -> XTModel:
     """
     Load a bundled pretrained xT model.
 
@@ -24,7 +24,7 @@ def load_pretrained_xt(name: str = "default") -> ExpectedThreatModel:
         goal kicks, corners, and free kicks included.
 
         For best results in a specific competition, era, or tactical context,
-        train your own model with ``ExpectedThreatModel().fit(your_data)`` instead.
+        train your own model with ``XTModel().fit(your_data)`` instead.
 
     Parameters
     ----------
@@ -34,9 +34,9 @@ def load_pretrained_xt(name: str = "default") -> ExpectedThreatModel:
 
     Returns
     -------
-    ExpectedThreatModel
-        A fitted :class:`ExpectedThreatModel` instance ready for scoring,
-        querying, or plotting. No call to :meth:`~ExpectedThreatModel.fit`
+    XTModel
+        A fitted :class:`XTModel` instance ready for scoring,
+        querying, or plotting. No call to :meth:`~XTModel.fit`
         is needed.
 
     Examples
@@ -57,4 +57,4 @@ def load_pretrained_xt(name: str = "default") -> ExpectedThreatModel:
     filename = _PRETRAINED_FILES[name]
     data_path = resources.files("penaltyblog.xt").joinpath("data").joinpath(filename)
     with resources.as_file(data_path) as path:
-        return ExpectedThreatModel.load(str(path))
+        return XTModel.load(str(path))

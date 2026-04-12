@@ -38,7 +38,7 @@ Key characteristics
 - Provider-specific coordinate ranges can be normalized into the internal
   ``0-100`` xT coordinate system via :class:`~penaltyblog.xt.XTEventSchema`.
 - Out-of-bounds coordinate handling is explicit and configurable via
-  ``ExpectedThreatModel(coord_policy=...)``.
+  ``XTModel(coord_policy=...)``.
 
 Supported event families
 ------------------------
@@ -126,7 +126,7 @@ successfully; for shots it means a goal was scored.
 
 This success signal is required when fitting or scoring xT.
 
-``XTEventSchema`` and ``ExpectedThreatModel`` are strict about success labels
+``XTEventSchema`` and ``XTModel`` are strict about success labels
 by default.
 The recommended input is a boolean ``is_success`` column. Numeric ``0``/``1``
 is also accepted. Provider-specific strings such as ``"Complete"``,
@@ -148,7 +148,7 @@ instead of producing plausible but wrong results.
 
 For maximum control, pass
 ``XTEventSchema(success_value_map=...)`` to
-``ExpectedThreatModel.fit(...)`` / ``ExpectedThreatModel.score(...)``.
+``XTModel.fit(...)`` / ``XTModel.score(...)``.
 
 If xT encounters unsupported values, it raises a ``ValueError`` that shows
 the offending labels and points you to ``success_value_map``.
@@ -176,7 +176,7 @@ If your provider uses different ranges (for example ``x=0..120``,
 Coordinate validation policy
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-After normalization, ``ExpectedThreatModel`` validates coordinates before clipping.
+After normalization, ``XTModel`` validates coordinates before clipping.
 Use ``coord_policy`` to control behavior when values fall outside ``0..100``:
 
 - ``"warn"`` (default): emit a warning and clip.
@@ -198,9 +198,9 @@ If your columns already use canonical names (``x``, ``y``, ``event_type``,
 
 .. code-block:: python
 
-   from penaltyblog.xt import ExpectedThreatModel
+   from penaltyblog.xt import XTModel
 
-   xt = ExpectedThreatModel(n_cols=16, n_rows=12, coord_policy="warn")
+   xt = XTModel(n_cols=16, n_rows=12, coord_policy="warn")
    xt.fit(df)
    scored = xt.score(df)
 
@@ -213,10 +213,10 @@ With MatchFlow:
 .. code-block:: python
 
    from penaltyblog.matchflow import Flow
-   from penaltyblog.xt import ExpectedThreatModel
+   from penaltyblog.xt import XTModel
 
    flow = Flow.from_records(records)
-   xt = ExpectedThreatModel(n_cols=16, n_rows=12, coord_policy="warn")
+   xt = XTModel(n_cols=16, n_rows=12, coord_policy="warn")
    xt.fit(flow)
    scored = xt.score(flow)
 
@@ -239,7 +239,7 @@ For non-canonical column names, ranges, or label mapping, define an
        event_type_map={"Pass": "pass", "Shot": "shot"},
        success_value_map={"Complete": True, "Incomplete": False, "Goal": True},
    )
-   xt = ExpectedThreatModel(n_cols=16, n_rows=12, coord_policy="warn")
+   xt = XTModel(n_cols=16, n_rows=12, coord_policy="warn")
    xt.fit(df, schema=schema)
    scored = xt.score(df)  # reuses fitted schema by default
 

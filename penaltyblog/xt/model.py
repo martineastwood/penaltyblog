@@ -35,7 +35,7 @@ def _invalid_success_error(preview: str) -> ValueError:
         f"{preview}. Expected booleans or numeric 0/1 with no missing values. "
         "If your provider uses labels such as 'Complete' or 'Goal', "
         "set schema=XTEventSchema(success_value_map={...}) in "
-        "ExpectedThreatModel.fit(...) or ExpectedThreatModel.score(...)."
+        "XTModel.fit(...) or XTModel.score(...)."
     )
 
 
@@ -136,7 +136,7 @@ def _out_of_bounds_count(values: np.ndarray) -> int:
 
 
 @dataclass
-class ExpectedThreatModel:
+class XTModel:
     """
     Position-based Expected Threat (xT) model.
 
@@ -191,7 +191,7 @@ class ExpectedThreatModel:
     >>> import pandas as pd
     >>> import penaltyblog as pb
     >>> df = pd.read_csv("events.csv")          # must include x, y, event_type
-    >>> model = pb.xt.ExpectedThreatModel()
+    >>> model = pb.xt.XTModel()
     >>> model.fit(df)
     >>> scored = model.score(df)
     >>> scored[["xt_start", "xt_end", "xt_added"]].head()
@@ -374,7 +374,7 @@ class ExpectedThreatModel:
         self,
         data: Union[XTData, pd.DataFrame, Flow],
         schema: Optional[XTEventSchema] = None,
-    ) -> "ExpectedThreatModel":
+    ) -> "XTModel":
         """
         Fit one unified xT surface from all included attacking events.
 
@@ -392,13 +392,13 @@ class ExpectedThreatModel:
 
         Returns
         -------
-        ExpectedThreatModel
+        XTModel
             The fitted model instance (``self``), so you can chain calls:
-            ``ExpectedThreatModel().fit(df)``.
+            ``XTModel().fit(df)``.
 
         Examples
         --------
-        >>> model = pb.xt.ExpectedThreatModel()
+        >>> model = pb.xt.XTModel()
         >>> model.fit(df)
         """
         tabular_data = data.to_pandas() if self._is_matchflow_flow(data) else data
@@ -433,12 +433,14 @@ class ExpectedThreatModel:
         # Only successful moves contribute transitions
         move_mask = all_move_mask & success_flags & valid_end
 
-        if not shot_mask.any() and not move_mask.any():
+        has_shots = bool(shot_mask.any())
+
+        if not has_shots and not move_mask.any():
             raise ValueError(
                 "No relevant events to fit the model. Check that your schema maps "
                 "provider labels to canonical xT event types."
             )
-        if not shot_mask.any():
+        if not has_shots:
             warnings.warn(
                 "No shot events found in the training data. The fitted xT surface "
                 "will be all zeros. Ensure your data includes shots (event_type='shot') "
@@ -575,27 +577,31 @@ class ExpectedThreatModel:
             MT[has_moves] / move_probability[has_moves][:, None]
         )
 
-        # Solve (I - MT) X = S
-        S = shot_probability * goal_probability
-        A = np.eye(num_cells) - MT
+        if has_shots:
+            # Solve (I - MT) X = S
+            S = shot_probability * goal_probability
+            A = np.eye(num_cells) - MT
 
-        cond = np.linalg.cond(A)
-        if cond > 1e12:
-            warnings.warn(
-                f"xT transition matrix is ill-conditioned (condition number {cond:.2e}). "
-                "The fitted surface may contain extreme values. Consider using more data "
-                "or a larger grid to stabilise the solution.",
-                UserWarning,
-                stacklevel=2,
-            )
+            cond = np.linalg.cond(A)
+            if cond > 1e12:
+                warnings.warn(
+                    f"xT transition matrix is ill-conditioned (condition number {cond:.2e}). "
+                    "The fitted surface may contain extreme values. Consider using more data "
+                    "or a larger grid to stabilise the solution.",
+                    UserWarning,
+                    stacklevel=2,
+                )
 
-        try:
-            X = np.linalg.solve(A, S)
-        except np.linalg.LinAlgError as exc:
-            raise ValueError(
-                "xT solve failed due to a singular matrix. "
-                "Check that the event data produces a valid system."
-            ) from exc
+            try:
+                X = np.linalg.solve(A, S)
+            except np.linalg.LinAlgError as exc:
+                raise ValueError(
+                    "xT solve failed due to a singular matrix. "
+                    "Check that the event data produces a valid system."
+                ) from exc
+        else:
+            goal_probability = np.zeros(num_cells, dtype=float)
+            X = np.zeros(num_cells, dtype=float)
 
         # Store results
         self.surface_ = X.reshape((self.n_rows, self.n_cols))
@@ -618,6 +624,7 @@ class ExpectedThreatModel:
             "include_goal_kicks": self.include_goal_kicks,
             "include_corners": self.include_corners,
             "include_free_kicks": self.include_free_kicks,
+            "transition_smoothing_k": self.transition_smoothing_k,
             "coord_policy": self.coord_policy,
             "coordinate_system": "0_100",
             "orientation": "left_to_right",
@@ -632,7 +639,7 @@ class ExpectedThreatModel:
 
     def score(
         self,
-        data: XTData | pd.DataFrame | Flow,
+        data: Union[XTData, pd.DataFrame, Flow],
         schema: Optional[XTEventSchema] = None,
         *,
         use_fit_schema: bool = True,
@@ -838,6 +845,8 @@ class ExpectedThreatModel:
         y_arr = np.asarray(y, dtype=float).ravel()
         if x_arr.shape != y_arr.shape:
             raise ValueError("x and y must have the same length")
+        if (not np.isfinite(x_arr).all()) or (not np.isfinite(y_arr).all()):
+            raise ValueError("x and y must contain only finite numbers")
 
         out_of_bounds = np.any(
             (x_arr < 0) | (x_arr > 100) | (y_arr < 0) | (y_arr > 100)
@@ -874,7 +883,7 @@ class ExpectedThreatModel:
         Examples
         --------
         >>> model.save("my_xt_model.npz")
-        >>> loaded = ExpectedThreatModel.load("my_xt_model.npz")
+        >>> loaded = XTModel.load("my_xt_model.npz")
         """
         self._ensure_fitted()
         arrays = {
@@ -887,7 +896,7 @@ class ExpectedThreatModel:
         save_xt_npz(path, arrays, self.metadata_)
 
     @classmethod
-    def load(cls, path: str) -> "ExpectedThreatModel":
+    def load(cls, path: str) -> "XTModel":
         """Load a fitted model from an ``.npz`` file created by :meth:`save`.
 
         Parameters
@@ -897,7 +906,7 @@ class ExpectedThreatModel:
 
         Returns
         -------
-        ExpectedThreatModel
+        XTModel
             A fully fitted model instance ready for scoring, querying, and
             plotting — no further call to :meth:`fit` is needed.
 
@@ -908,7 +917,7 @@ class ExpectedThreatModel:
 
         Examples
         --------
-        >>> model = ExpectedThreatModel.load("my_xt_model.npz")
+        >>> model = XTModel.load("my_xt_model.npz")
         >>> model.value_at(85, 50)
         """
         arrays, metadata = load_xt_npz(path)
@@ -939,6 +948,7 @@ class ExpectedThreatModel:
             include_goal_kicks=metadata.get("include_goal_kicks", True),
             include_corners=metadata.get("include_corners", True),
             include_free_kicks=metadata.get("include_free_kicks", True),
+            transition_smoothing_k=metadata.get("transition_smoothing_k", 5.0),
             coord_policy=metadata.get("coord_policy", "warn"),
         )
         model.surface_ = arrays["surface"]
