@@ -401,8 +401,7 @@ class XTModel:
         >>> model = pb.xt.XTModel()
         >>> model.fit(df)
         """
-        tabular_data = data.to_pandas() if self._is_matchflow_flow(data) else data
-        xt_data, effective_schema = self._as_xtdata(tabular_data, schema=schema)
+        xt_data, effective_schema = self._as_xtdata(data, schema=schema)
         fit_schema = effective_schema.to_dict()
         if xt_data.is_success is None:
             raise ValueError(
