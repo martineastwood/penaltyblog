@@ -69,14 +69,19 @@ def save_xt_npz(
 
 def load_xt_npz(path: str) -> tuple[dict[str, np.ndarray], dict[str, Any]]:
     """Load xT model arrays and metadata from an ``.npz`` artifact."""
-    with np.load(path, allow_pickle=False) as npz:
-        meta_json = str(npz["meta_json"][0])
-        metadata = _restore_json_value(json.loads(meta_json))
-        arrays = {
-            "surface": npz["surface"],
-            "shot_probability": npz["shot_probability"],
-            "goal_probability": npz["goal_probability"],
-            "move_probability": npz["move_probability"],
-            "transition_matrix": npz["transition_matrix"],
-        }
+    try:
+        with np.load(path, allow_pickle=False) as npz:
+            meta_json = str(npz["meta_json"][0])
+            metadata = _restore_json_value(json.loads(meta_json))
+            arrays = {
+                "surface": npz["surface"],
+                "shot_probability": npz["shot_probability"],
+                "goal_probability": npz["goal_probability"],
+                "move_probability": npz["move_probability"],
+                "transition_matrix": npz["transition_matrix"],
+            }
+    except KeyError as e:
+        raise ValueError(
+            f"Invalid xT model artifact: missing required array '{e.args[0]}'"
+        ) from e
     return arrays, metadata

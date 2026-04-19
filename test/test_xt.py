@@ -989,6 +989,35 @@ def test_load_pretrained_xt_invalid():
         load_pretrained_xt(name="nonexistent")
 
 
+def test_load_corrupted_npz_missing_arrays(tmp_path):
+    """XTModel.load raises ValueError for corrupted NPZ with missing arrays."""
+    import json
+
+    from penaltyblog.xt.io import load_xt_npz
+
+    # Create corrupted NPZ with only meta_json and surface (missing required arrays)
+    corrupted_path = tmp_path / "corrupted.npz"
+    meta_json = json.dumps({"model_type": "xt", "grid": [10, 16]})
+    np.savez(
+        str(corrupted_path),
+        meta_json=np.array([meta_json]),
+        surface=np.zeros((16, 10)),
+        # Missing: shot_probability, goal_probability, move_probability, transition_matrix
+    )
+
+    # load_xt_npz should raise ValueError (not KeyError)
+    with pytest.raises(
+        ValueError, match="Invalid xT model artifact.*missing required array"
+    ):
+        load_xt_npz(str(corrupted_path))
+
+    # XTModel.load should also raise ValueError (not KeyError) as promised in docstring
+    with pytest.raises(
+        ValueError, match="Invalid xT model artifact.*missing required array"
+    ):
+        XTModel.load(str(corrupted_path))
+
+
 # ---------------------------------------------------------------------------
 # Plotting
 # ---------------------------------------------------------------------------
