@@ -11,6 +11,7 @@ import numpy as np
 from penaltyblog.models.base_model import BaseGoalsModel
 from penaltyblog.models.custom_types import (
     GoalInput,
+    NeutralVenueInput,
     TeamInput,
     WeightInput,
 )
@@ -35,6 +36,7 @@ class ZeroInflatedPoissonGoalsModel(BaseGoalsModel):
         teams_home: TeamInput,
         teams_away: TeamInput,
         weights: WeightInput = None,
+        neutral_venue: NeutralVenueInput = None,
     ):
         """
         Initialises the ZeroInflatedPoissonGoalsModel class.
@@ -51,8 +53,13 @@ class ZeroInflatedPoissonGoalsModel(BaseGoalsModel):
             The names of the away teams
         weights : array_like, optional
             The weights of the matches, by default None
+        neutral_venue : array_like, optional
+            Per-match flag (0/1) marking matches played at a neutral venue. When 1,
+            home advantage is excluded for that match, by default None
         """
-        super().__init__(goals_home, goals_away, teams_home, teams_away, weights)
+        super().__init__(
+            goals_home, goals_away, teams_home, teams_away, weights, neutral_venue
+        )
 
         self._params = np.concatenate(
             (
@@ -125,6 +132,7 @@ class ZeroInflatedPoissonGoalsModel(BaseGoalsModel):
             self.weights,
             self.home_idx,
             self.away_idx,
+            self.neutral_venue,
             attack,
             defence,
             hfa,
@@ -149,6 +157,7 @@ class ZeroInflatedPoissonGoalsModel(BaseGoalsModel):
             self.goals_home,
             self.goals_away,
             self.weights,
+            self.neutral_venue,
         )
 
     def fit(

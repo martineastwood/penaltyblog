@@ -45,7 +45,8 @@ def poisson_gradient(
     cnp.ndarray[long, ndim=1] away_idx,
     cnp.ndarray[long, ndim=1] goals_home,
     cnp.ndarray[long, ndim=1] goals_away,
-    cnp.ndarray[double, ndim=1] weights
+    cnp.ndarray[double, ndim=1] weights,
+    cnp.ndarray[long, ndim=1] neutral_venue
 ):
     cdef int n_teams = attack.shape[0]
     cdef int n_games = home_idx.shape[0]
@@ -55,7 +56,7 @@ def poisson_gradient(
     cdef cnp.ndarray[double, ndim=1] grad_defence = np.zeros(n_teams, dtype=np.float64)
     cdef double grad_hfa = 0.0
 
-    cdef int i
+    cdef int i, home_flag
     cdef long h, a
     cdef double lambda_home, lambda_away
 
@@ -63,14 +64,16 @@ def poisson_gradient(
         h = home_idx[i]
         a = away_idx[i]
 
-        lambda_home = exp(attack[h] + defence[a] + hfa)
+        # home_flag is 0 for neutral-venue matches, so home advantage drops out.
+        home_flag = 1 - neutral_venue[i]
+        lambda_home = exp(attack[h] + defence[a] + hfa * home_flag)
         lambda_away = exp(attack[a] + defence[h])
 
         grad_attack[h] += (goals_home[i] - lambda_home) * weights[i]
         grad_attack[a] += (goals_away[i] - lambda_away) * weights[i]
         grad_defence[a] += (goals_home[i] - lambda_home) * weights[i]
         grad_defence[h] += (goals_away[i] - lambda_away) * weights[i]
-        grad_hfa += (goals_home[i] - lambda_home) * weights[i]
+        grad_hfa += (goals_home[i] - lambda_home) * home_flag * weights[i]
 
     return np.concatenate([grad_attack, grad_defence, [grad_hfa]])
 
@@ -89,7 +92,8 @@ def dixon_coles_gradient(
     cnp.ndarray[long, ndim=1] away_idx,
     cnp.ndarray[long, ndim=1] goals_home,
     cnp.ndarray[long, ndim=1] goals_away,
-    cnp.ndarray[double, ndim=1] weights
+    cnp.ndarray[double, ndim=1] weights,
+    cnp.ndarray[long, ndim=1] neutral_venue
 ):
     cdef int n_teams = attack.shape[0]
     cdef int n_games = home_idx.shape[0]
@@ -100,7 +104,7 @@ def dixon_coles_gradient(
     cdef double grad_hfa = 0.0
     cdef double grad_rho = 0.0
 
-    cdef int i, h, a
+    cdef int i, h, a, home_flag
     cdef double lambda_home, lambda_away, adj_factor
     cdef int k_home, k_away
 
@@ -108,7 +112,9 @@ def dixon_coles_gradient(
         h = home_idx[i]
         a = away_idx[i]
 
-        lambda_home = exp(hfa + attack[h] + defence[a])
+        # home_flag is 0 for neutral-venue matches, so home advantage drops out.
+        home_flag = 1 - neutral_venue[i]
+        lambda_home = exp(hfa * home_flag + attack[h] + defence[a])
         lambda_away = exp(attack[a] + defence[h])
 
         k_home = goals_home[i]
@@ -119,7 +125,7 @@ def dixon_coles_gradient(
         grad_attack[a] += (k_away - lambda_away) * weights[i]
         grad_defence[a] += (k_home - lambda_home) * weights[i]
         grad_defence[h] += (k_away - lambda_away) * weights[i]
-        grad_hfa += (k_home - lambda_home) * weights[i]
+        grad_hfa += (k_home - lambda_home) * home_flag * weights[i]
 
         # Compute rho gradient only for low-score matches
         adj_factor = 0.0
@@ -159,7 +165,8 @@ def zero_inflated_poisson_gradient(
     cnp.ndarray[long, ndim=1] away_idx,
     cnp.ndarray[long, ndim=1] goals_home,
     cnp.ndarray[long, ndim=1] goals_away,
-    cnp.ndarray[double, ndim=1] weights
+    cnp.ndarray[double, ndim=1] weights,
+    cnp.ndarray[long, ndim=1] neutral_venue
 ):
     cdef int n_teams = attack.shape[0]
     cdef int n_games = home_idx.shape[0]
@@ -170,7 +177,7 @@ def zero_inflated_poisson_gradient(
     cdef double grad_hfa = 0.0
     cdef double grad_phi = 0.0
 
-    cdef int i, h, a
+    cdef int i, h, a, home_flag
     cdef long k_home, k_away
     cdef double w
     cdef double lambda_home, lambda_away
@@ -191,7 +198,9 @@ def zero_inflated_poisson_gradient(
         k_away = goals_away[i]
         w = weights[i]
 
-        lambda_home = exp(attack[h] + defence[a] + hfa)
+        # home_flag is 0 for neutral-venue matches, so home advantage drops out.
+        home_flag = 1 - neutral_venue[i]
+        lambda_home = exp(attack[h] + defence[a] + hfa * home_flag)
         lambda_away = exp(attack[a] + defence[h])
 
         # Home goal contribution to gradient
@@ -205,7 +214,7 @@ def zero_inflated_poisson_gradient(
 
         grad_attack[h] += grad_lambda_h_contrib * w
         grad_defence[a] += grad_lambda_h_contrib * w
-        grad_hfa += grad_lambda_h_contrib * w
+        grad_hfa += grad_lambda_h_contrib * home_flag * w
 
         # Away goal contribution to gradient
         if k_away == 0:
@@ -236,7 +245,8 @@ def negative_binomial_gradient(
     cnp.ndarray[long, ndim=1] away_idx,
     cnp.ndarray[long, ndim=1] goals_home,
     cnp.ndarray[long, ndim=1] goals_away,
-    cnp.ndarray[double, ndim=1] weights
+    cnp.ndarray[double, ndim=1] weights,
+    cnp.ndarray[long, ndim=1] neutral_venue
 ):
     cdef int n_teams = attack.shape[0]
     cdef int n_games = home_idx.shape[0]
@@ -247,7 +257,7 @@ def negative_binomial_gradient(
     cdef double grad_hfa = 0.0
     cdef double grad_dispersion = 0.0
 
-    cdef int i, h, a, k_home, k_away
+    cdef int i, h, a, k_home, k_away, home_flag
     cdef double lambda_home, lambda_away
     cdef double grad_home, grad_away
     cdef double term_disp_home, term_disp_away
@@ -263,7 +273,9 @@ def negative_binomial_gradient(
         k_away = goals_away[i]
 
         # Compute expected goals for home and away.
-        lambda_home = exp(hfa + attack[h] + defence[a])
+        # home_flag is 0 for neutral-venue matches, so home advantage drops out.
+        home_flag = 1 - neutral_venue[i]
+        lambda_home = exp(hfa * home_flag + attack[h] + defence[a])
         lambda_away = exp(attack[a] + defence[h])
 
         # For parameters that affect lambda, the derivative (for one observation) is:
@@ -274,7 +286,7 @@ def negative_binomial_gradient(
         # Accumulate gradients for home match:
         grad_attack[h] += grad_home
         grad_defence[a] += grad_home
-        grad_hfa += grad_home
+        grad_hfa += grad_home * home_flag
         # For away match:
         grad_attack[a] += grad_away
         grad_defence[h] += grad_away
@@ -305,7 +317,8 @@ def bivariate_poisson_gradient(
     cnp.ndarray[long, ndim=1] away_idx,
     cnp.ndarray[long, ndim=1] goals_home,
     cnp.ndarray[long, ndim=1] goals_away,
-    cnp.ndarray[double, ndim=1] weights
+    cnp.ndarray[double, ndim=1] weights,
+    cnp.ndarray[long, ndim=1] neutral_venue
 ):
     """
     Compute the gradient of the negative log-likelihood for the Bivariate Poisson model.
@@ -328,7 +341,7 @@ def bivariate_poisson_gradient(
     cdef double grad_hfa = 0.0
     cdef double grad_correlation = 0.0
 
-    cdef int i, h, a, k_home, k_away, k, kmax
+    cdef int i, h, a, k_home, k_away, k, kmax, home_flag
     cdef double lambda1, lambda2, w
     cdef double likelihood_ij, grad_lambda1, grad_lambda2, grad_lambda3
     cdef double term_k, pmf1_k, pmf2_k, pmf3_k
@@ -350,7 +363,9 @@ def bivariate_poisson_gradient(
         w = weights[i]
 
         # Compute lambdas for this match
-        lambda1 = exp(hfa + attack[h] + defence[a])
+        # home_flag is 0 for neutral-venue matches, so home advantage drops out.
+        home_flag = 1 - neutral_venue[i]
+        lambda1 = exp(hfa * home_flag + attack[h] + defence[a])
         lambda2 = exp(attack[a] + defence[h])
 
         # Compute the likelihood for this observation
@@ -405,7 +420,7 @@ def bivariate_poisson_gradient(
         grad_attack[a] += grad_lambda2 * lambda2
         grad_defence[a] += grad_lambda1 * lambda1
         grad_defence[h] += grad_lambda2 * lambda2
-        grad_hfa += grad_lambda1 * lambda1
+        grad_hfa += grad_lambda1 * lambda1 * home_flag
         grad_correlation += grad_lambda3 * lambda3
 
     return np.concatenate([grad_attack, grad_defence, [grad_hfa, grad_correlation]])
@@ -427,6 +442,7 @@ def weibull_copula_gradient(
     cnp.ndarray[long, ndim=1] goals_home,
     cnp.ndarray[long, ndim=1] goals_away,
     cnp.ndarray[double, ndim=1] weights,
+    cnp.ndarray[long, ndim=1] neutral_venue,
     int max_goals
 ):
     """
@@ -446,7 +462,7 @@ def weibull_copula_gradient(
     cdef double grad_shape = 0.0
     cdef double grad_kappa = 0.0
 
-    cdef int i, h, a, x_i, y_i
+    cdef int i, h, a, x_i, y_i, home_flag
     cdef double lambda_home, lambda_away, w
     cdef double p_xy, grad_factor
     cdef double grad_p_xy_lambda_h, grad_p_xy_lambda_a, grad_p_xy_shape, grad_p_xy_kappa
@@ -479,7 +495,9 @@ def weibull_copula_gradient(
         w = weights[i]
 
         # Compute expected goals
-        lambda_home = exp(hfa + attack[h] + defence[a])
+        # home_flag is 0 for neutral-venue matches, so home advantage drops out.
+        home_flag = 1 - neutral_venue[i]
+        lambda_home = exp(hfa * home_flag + attack[h] + defence[a])
         lambda_away = exp(attack[a] + defence[h])
 
         # Compute Weibull PMFs and CDFs at current params
@@ -536,7 +554,7 @@ def weibull_copula_gradient(
         grad_attack[a] += grad_factor * grad_p_xy_lambda_a * lambda_away
         grad_defence[a] += grad_factor * grad_p_xy_lambda_h * lambda_home
         grad_defence[h] += grad_factor * grad_p_xy_lambda_a * lambda_away
-        grad_hfa += grad_factor * grad_p_xy_lambda_h * lambda_home
+        grad_hfa += grad_factor * grad_p_xy_lambda_h * lambda_home * home_flag
 
         # Direct gradients for shape and kappa
         grad_shape += grad_factor * grad_p_xy_shape

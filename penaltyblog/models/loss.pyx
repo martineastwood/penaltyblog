@@ -33,6 +33,7 @@ cpdef double poisson_loss_function(long[:] goals_home,
                                    np.float64_t[:] weights,
                                    long[:] home_indices,
                                    long[:] away_indices,
+                                   long[:] neutral_venue,
                                    np.float64_t[:] attack,
                                    np.float64_t[:] defence,
                                    double hfa):
@@ -43,6 +44,7 @@ cpdef double poisson_loss_function(long[:] goals_home,
       goals_home, goals_away: observed goals for home and away teams.
       weights: match weights.
       home_indices, away_indices: indices mapping each fixture to team parameters.
+      neutral_venue: per-match flag (0/1); when 1, home advantage is excluded for that match.
       attack, defence: team parameters.
       hfa: home advantage.
 
@@ -60,8 +62,8 @@ cpdef double poisson_loss_function(long[:] goals_home,
             home_idx = home_indices[i]
             away_idx = away_indices[i]
 
-            # Compute expected goals
-            lambda_home = exp(hfa + attack[home_idx] + defence[away_idx])
+            # Compute expected goals (home advantage excluded for neutral venues)
+            lambda_home = exp(hfa * (1 - neutral_venue[i]) + attack[home_idx] + defence[away_idx])
             lambda_away = exp(attack[away_idx] + defence[home_idx])
 
             # Retrieve observed goals
@@ -87,6 +89,7 @@ cpdef double dixon_coles_loss_function(long[:] goals_home,
                                          np.float64_t[:] weights,
                                          long[:] home_indices,
                                          long[:] away_indices,
+                                         long[:] neutral_venue,
                                          np.float64_t[:] attack,
                                          np.float64_t[:] defence,
                                          double hfa,
@@ -98,6 +101,7 @@ cpdef double dixon_coles_loss_function(long[:] goals_home,
       goals_home, goals_away: observed goals for home and away teams.
       weights: match weights.
       home_indices, away_indices: indices mapping each fixture to team parameters.
+      neutral_venue: per-match flag (0/1); when 1, home advantage is excluded for that match.
       attack, defence: team parameters.
       hfa: home advantage.
       rho: Dixon–Coles adjustment parameter.
@@ -115,7 +119,8 @@ cpdef double dixon_coles_loss_function(long[:] goals_home,
         away_idx = away_indices[i]
 
         # Compute expected goals using team parameters and home advantage.
-        lambda_home = exp(hfa + attack[home_idx] + defence[away_idx])
+        # Home advantage is excluded for matches played at a neutral venue.
+        lambda_home = exp(hfa * (1 - neutral_venue[i]) + attack[home_idx] + defence[away_idx])
         lambda_away = exp(attack[away_idx] + defence[home_idx])
 
         k_home = goals_home[i]
@@ -152,6 +157,7 @@ cpdef double compute_negative_binomial_loss(long[:] goals_home,
                                          np.float64_t[:] weights,
                                          long[:] home_indices,
                                          long[:] away_indices,
+                                         long[:] neutral_venue,
                                          np.float64_t[:] attack,
                                          np.float64_t[:] defence,
                                          double hfa,
@@ -189,7 +195,8 @@ cpdef double compute_negative_binomial_loss(long[:] goals_home,
         home_idx = home_indices[i]
         away_idx = away_indices[i]
         # Attack parameters: first nTeams elements; Defence: next nTeams elements
-        lambdaHome = exp(hfa + attack[home_idx] + defence[away_idx])
+        # Home advantage is excluded for matches played at a neutral venue.
+        lambdaHome = exp(hfa * (1 - neutral_venue[i]) + attack[home_idx] + defence[away_idx])
         lambdaAway = exp(attack[away_idx] + defence[home_idx])
         pHome = dispersion / (dispersion + lambdaHome)
         pAway = dispersion / (dispersion + lambdaAway)
@@ -215,6 +222,7 @@ cpdef double compute_zero_inflated_poisson_loss(long[:] goals_home,
                                          np.float64_t[:] weights,
                                          long[:] home_indices,
                                          long[:] away_indices,
+                                         long[:] neutral_venue,
                                          np.float64_t[:] attack,
                                          np.float64_t[:] defence,
                                          double hfa,
@@ -246,7 +254,8 @@ cpdef double compute_zero_inflated_poisson_loss(long[:] goals_home,
         home_idx = home_indices[i]
         away_idx = away_indices[i]
 
-        lambda_home = exp(hfa + attack[home_idx] + defence[away_idx])
+        # Home advantage is excluded for matches played at a neutral venue.
+        lambda_home = exp(hfa * (1 - neutral_venue[i]) + attack[home_idx] + defence[away_idx])
         lambda_away = exp(attack[away_idx] + defence[home_idx])
 
         k_home = goals_home[i]
@@ -277,6 +286,7 @@ cpdef double compute_bivariate_poisson_loss(long[:] goals_home,
                                          np.float64_t[:] weights,
                                          long[:] home_indices,
                                          long[:] away_indices,
+                                         long[:] neutral_venue,
                                          np.float64_t[:] attack,
                                          np.float64_t[:] defence,
                                          double hfa,
@@ -321,7 +331,8 @@ cpdef double compute_bivariate_poisson_loss(long[:] goals_home,
         away_idx = away_indices[i]
 
         # Compute lambda1 and lambda2 for the match.
-        lambda1 = exp(hfa + attack[home_idx] + defence[away_idx])
+        # Home advantage is excluded for matches played at a neutral venue.
+        lambda1 = exp(hfa * (1 - neutral_venue[i]) + attack[home_idx] + defence[away_idx])
         lambda2 = exp(attack[away_idx] + defence[home_idx])
 
         # Get or compute the PMF for lambda1.
@@ -364,6 +375,7 @@ cpdef double compute_weibull_copula_loss(long[:] goals_home,
                                          np.float64_t[:] weights,
                                          long[:] home_indices,
                                          long[:] away_indices,
+                                         long[:] neutral_venue,
                                          np.float64_t[:] attack,
                                          np.float64_t[:] defence,
                                          double hfa,
@@ -408,7 +420,8 @@ cpdef double compute_weibull_copula_loss(long[:] goals_home,
         home_index = home_indices[i]
         away_index = away_indices[i]
 
-        lambdaHome = exp(hfa + attack[home_index] + defence[away_index])
+        # Home advantage is excluded for matches played at a neutral venue.
+        lambdaHome = exp(hfa * (1 - neutral_venue[i]) + attack[home_index] + defence[away_index])
         lambdaAway = exp(attack[away_index] + defence[home_index])
 
         # Compute the Weibull PMFs.

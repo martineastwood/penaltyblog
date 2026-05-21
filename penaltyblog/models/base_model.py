@@ -9,6 +9,7 @@ from scipy.optimize import minimize
 
 from penaltyblog.models.custom_types import (
     GoalInput,
+    NeutralVenueInput,
     TeamInput,
     WeightInput,
 )
@@ -53,6 +54,7 @@ class BaseGoalsModel(ABC):
         teams_home: TeamInput,
         teams_away: TeamInput,
         weights: WeightInput = None,
+        neutral_venue: NeutralVenueInput = None,
     ):
         """
         Initialise the BaseGoalsModel with match data.
@@ -69,11 +71,18 @@ class BaseGoalsModel(ABC):
             Names of away teams for each match.
         weights : WeightInput, optional
             Match weights (e.g., from time decay). If None, all matches are weighted equally.
+        neutral_venue : NeutralVenueInput, optional
+            Per-match flag (0/1) marking matches played at a neutral venue. When 1, the
+            home advantage term is excluded from that match's expected goals during
+            fitting, so the home advantage parameter is estimated only from matches with
+            a genuine home side. If None, all matches are treated as non-neutral and the
+            model behaves exactly as before.
 
         Raises
         ------
         ValueError
-            If the weight array length does not match the number of matches.
+            If the weight or neutral_venue array length does not match the number of
+            matches, or if neutral_venue contains values other than 0 or 1.
         """
         # Use platform-specific integer type for Cython compatibility
         cython_long_dtype = _get_cython_long_dtype()
@@ -92,6 +101,19 @@ class BaseGoalsModel(ABC):
                 raise ValueError(
                     "Weights array must have the same length as the number of matches."
                 )
+
+        if neutral_venue is None:
+            self.neutral_venue = np.zeros(n_matches, dtype=cython_long_dtype, order="C")
+        else:
+            self.neutral_venue = np.asarray(
+                neutral_venue, dtype=cython_long_dtype, order="C"
+            )
+            if len(self.neutral_venue) != n_matches:
+                raise ValueError(
+                    "neutral_venue array must have the same length as the number of matches."
+                )
+            if ((self.neutral_venue != 0) & (self.neutral_venue != 1)).any():
+                raise ValueError("neutral_venue entries must be 0 or 1.")
 
         self._validate_inputs(n_matches)
         self._setup_teams()

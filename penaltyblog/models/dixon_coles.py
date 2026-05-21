@@ -6,6 +6,7 @@ from numpy.typing import NDArray
 from penaltyblog.models.base_model import BaseGoalsModel
 from penaltyblog.models.custom_types import (
     GoalInput,
+    NeutralVenueInput,
     TeamInput,
     WeightInput,
 )
@@ -43,6 +44,7 @@ class DixonColesGoalModel(BaseGoalsModel):
         teams_home: TeamInput,
         teams_away: TeamInput,
         weights: WeightInput = None,
+        neutral_venue: NeutralVenueInput = None,
     ):
         """
         Dixon and Coles adjusted Poisson model for predicting outcomes of football
@@ -60,8 +62,13 @@ class DixonColesGoalModel(BaseGoalsModel):
             The name of the away team in each match
         weights : array_like, optional
             The weight of each match, by default None
+        neutral_venue : array_like, optional
+            Per-match flag (0/1) marking matches played at a neutral venue. When 1,
+            home advantage is excluded for that match, by default None
         """
-        super().__init__(goals_home, goals_away, teams_home, teams_away, weights)
+        super().__init__(
+            goals_home, goals_away, teams_home, teams_away, weights, neutral_venue
+        )
 
         self._params = np.concatenate(
             (
@@ -143,6 +150,7 @@ class DixonColesGoalModel(BaseGoalsModel):
             self.goals_home,
             self.goals_away,
             self.weights,
+            self.neutral_venue,
         )
 
     def _loss_function(self, params: NDArray) -> float:
@@ -163,6 +171,7 @@ class DixonColesGoalModel(BaseGoalsModel):
             self.weights,
             self.home_idx,
             self.away_idx,
+            self.neutral_venue,
             attack,
             defence,
             hfa,

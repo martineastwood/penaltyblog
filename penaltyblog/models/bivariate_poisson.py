@@ -6,6 +6,7 @@ from numpy.typing import NDArray
 from penaltyblog.models.base_model import BaseGoalsModel
 from penaltyblog.models.custom_types import (
     GoalInput,
+    NeutralVenueInput,
     ParamsOutput,
     TeamInput,
     WeightInput,
@@ -34,6 +35,7 @@ class BivariatePoissonGoalModel(BaseGoalsModel):
         teams_home: TeamInput,
         teams_away: TeamInput,
         weights: WeightInput = None,
+        neutral_venue: NeutralVenueInput = None,
     ):
         """
         Initialises the BivariatePoissonGoalModel class.
@@ -50,8 +52,13 @@ class BivariatePoissonGoalModel(BaseGoalsModel):
             The names of the away teams
         weights : array_like, optional
             The weights of the matches, by default None
+        neutral_venue : array_like, optional
+            Per-match flag (0/1) marking matches played at a neutral venue. When 1,
+            home advantage is excluded for that match, by default None
         """
-        super().__init__(goals_home, goals_away, teams_home, teams_away, weights)
+        super().__init__(
+            goals_home, goals_away, teams_home, teams_away, weights, neutral_venue
+        )
 
         self._params = np.concatenate(
             (
@@ -118,6 +125,7 @@ class BivariatePoissonGoalModel(BaseGoalsModel):
             self.weights,
             self.home_idx,
             self.away_idx,
+            self.neutral_venue,
             attack,
             defence,
             hfa,
@@ -145,6 +153,7 @@ class BivariatePoissonGoalModel(BaseGoalsModel):
             self.goals_home,
             self.goals_away,
             self.weights,
+            self.neutral_venue,
         )
 
     def fit(self, minimizer_options: Optional[dict] = None, use_gradient: bool = True):
