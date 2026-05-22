@@ -61,6 +61,23 @@ class BaseBayesianModel(BaseGoalsModel):
 
         self.team_map = self.team_to_idx
 
+    def _zero_home_advantage_if_all_neutral(self):
+        """
+        Extend the base behaviour for Bayesian models.
+
+        Bayesian prediction integrates over the posterior trace, not the fitted
+        parameter vector, so the home advantage column of the trace must also be
+        zeroed when every training match is neutral — otherwise prediction would
+        still draw a non-zero home advantage from the (data-free) prior.
+        """
+        super()._zero_home_advantage_if_all_neutral()
+        if (
+            self.trace is not None
+            and self.neutral_venue.size
+            and bool(np.all(self.neutral_venue == 1))
+        ):
+            self.trace[:, self._get_tail_param_indices()["home_advantage"]] = 0.0
+
     def _map_trace_to_dict(self) -> None:
         """
         Helper to convert raw matrix to user-friendly dict.
