@@ -117,8 +117,8 @@ Common Methods
 Every model implements the following core methods:
 
 - ``fit(minimizer_options)``: Train the model using your dataset.
-- ``predict(home_team, away_team, max_goals, normalize)``: Predict scoreline probabilities for a given fixture.
-- ``predict_many(home_teams, away_teams, max_goals, normalize)``: Predict scoreline probabilities for multiple fixtures in one call.
+- ``predict(home_team, away_team, max_goals, normalize, neutral_venue)``: Predict scoreline probabilities for a given fixture.
+- ``predict_many(home_teams, away_teams, max_goals, normalize, neutral_venue)``: Predict scoreline probabilities for multiple fixtures in one call.
 - ``get_params()``: Retrieve the model's fitted parameters.
 - ``save(filepath)``: Save the model to disk as a pickled file.
 - ``load(filepath)``: Load the saved model.
@@ -196,6 +196,54 @@ Example
        weights=weights
    )
    model.fit()
+
+Neutral Venue Matches
+=====================
+
+Some fixtures are played at a neutral venue where neither side enjoys a home
+advantage - most commonly in tournaments such as the World Cup or continental
+cups. By default every match is treated as a home/away fixture. The optional
+``neutral_venue`` argument lets you exclude home advantage from those matches.
+
+At **training time**, ``neutral_venue`` is a per-match array of ``0``/``1``
+values (``1`` marks a neutral-venue match). Neutral matches contribute nothing
+to the home advantage estimate, so it is learned only from genuine home games:
+
+.. code-block:: python
+
+   from penaltyblog.models import PoissonGoalsModel
+
+   model = PoissonGoalsModel(
+       train["goals_home"],
+       train["goals_away"],
+       train["team_home"],
+       train["team_away"],
+       neutral_venue=train["neutral_venue"],  # 0/1 per match
+   )
+   model.fit()
+
+If **every** training match is neutral the home advantage parameter is not
+identifiable; in that case it is pinned to ``0`` after fitting so it cannot
+leak an arbitrary value into predictions.
+
+At **prediction time**, pass ``neutral_venue`` to drop home advantage for the
+fixture being predicted:
+
+.. code-block:: python
+
+   # Single fixture played at a neutral venue
+   pred = model.predict("Brazil", "Croatia", neutral_venue=True)
+
+   # Multiple fixtures: a per-fixture 0/1 array
+   batch = model.predict_many(
+       ["Brazil", "France"],
+       ["Croatia", "England"],
+       neutral_venue=[1, 0],
+   )
+
+``neutral_venue`` defaults to non-neutral everywhere (``None``), so existing
+code that omits it is unaffected. It is supported by every goal model,
+including the Bayesian models.
 
 Rich Probability Outputs for Betting and Analytics
 ==================================================
