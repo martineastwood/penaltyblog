@@ -253,3 +253,19 @@ def test_bayesian_predict_neutral_venue_drops_home_advantage(
     home = model.predict("team_0", "team_1")
     neutral = model.predict("team_0", "team_1", neutral_venue=True)
     assert neutral.home_goal_expectation < home.home_goal_expectation
+
+
+@pytest.mark.parametrize("Model,wrapper,n_tail", BAYESIAN_MODELS)
+def test_bayesian_all_neutral_prediction_ignores_home_advantage(
+    Model, wrapper, n_tail, match_data
+):
+    """After fitting on all-neutral data the home advantage column of the
+    posterior trace is zeroed, so a prediction is identical whether or not the
+    fixture is flagged neutral."""
+    model = Model(
+        *match_data["args"], neutral_venue=np.ones(match_data["n"], dtype=np.int64)
+    )
+    model.fit(n_samples=80, burn=20, n_chains=2)
+    home = model.predict("team_0", "team_1", neutral_venue=False)
+    neutral = model.predict("team_0", "team_1", neutral_venue=True)
+    assert np.array_equal(home.grid, neutral.grid)
