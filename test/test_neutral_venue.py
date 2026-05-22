@@ -2,6 +2,10 @@ import numpy as np
 import pytest
 
 import penaltyblog as pb
+from penaltyblog.bayes.likelihood import (
+    football_log_prob_wrapper,
+    hierarchical_log_prob_wrapper,
+)
 
 MODELS = [
     pb.models.PoissonGoalsModel,
@@ -126,3 +130,75 @@ def test_neutral_venue_non_binary_value_raises(Model, match_data):
     bad[0] = 2
     with pytest.raises(ValueError, match="0 or 1"):
         Model(*args, neutral_venue=bad)
+
+
+# --- Bayesian models -------------------------------------------------------
+# The Bayesian models reach the Cython likelihood through a log-prob wrapper
+# rather than the _loss_function/_gradient methods, so they are exercised
+# separately. n_tail is the count of trailing params (hfa, rho [, sigmas]).
+BAYESIAN_MODELS = [
+    (pb.models.BayesianGoalModel, football_log_prob_wrapper, 2),
+    (pb.models.HierarchicalBayesianGoalModel, hierarchical_log_prob_wrapper, 4),
+]
+
+
+def _bayes_data(model, neutral_venue):
+    return {
+        "home_idx": model.home_idx,
+        "away_idx": model.away_idx,
+        "goals_home": model.goals_home,
+        "goals_away": model.goals_away,
+        "weights": model.weights,
+        "neutral_venue": neutral_venue,
+        "n_teams": model.n_teams,
+    }
+
+
+def _bayes_params(n_teams, n_tail):
+    params = np.zeros(2 * n_teams + n_tail, dtype=np.float64)
+    params[2 * n_teams] = 0.3  # home advantage
+    params[2 * n_teams + 1] = -0.1  # rho
+    if n_tail == 4:
+        params[2 * n_teams + 2] = 0.5  # sigma_attack
+        params[2 * n_teams + 3] = 0.5  # sigma_defence
+    return params
+
+
+@pytest.mark.parametrize("Model,wrapper,n_tail", BAYESIAN_MODELS)
+def test_bayesian_logprob_responds_to_neutral_venue(Model, wrapper, n_tail, match_data):
+    """Flagging matches neutral must change the Bayesian log-probability, since
+    the home advantage term drops out of those matches' likelihood."""
+    m = Model(*match_data["args"])
+    n = match_data["n"]
+    params = _bayes_params(m.n_teams, n_tail)
+
+    lp_home = wrapper(params, _bayes_data(m, np.zeros(n, dtype=np.int64)))
+    lp_neutral = wrapper(params, _bayes_data(m, np.ones(n, dtype=np.int64)))
+
+    assert np.isfinite(lp_home) and np.isfinite(lp_neutral)
+    assert not np.isclose(lp_home, lp_neutral)
+
+
+@pytest.mark.parametrize("Model,wrapper,n_tail", BAYESIAN_MODELS)
+def test_bayesian_omitted_none_and_zeros_equivalent(Model, wrapper, n_tail, match_data):
+    """Omitting neutral_venue, passing None, or all-zeros must yield the same
+    log-probability — the backwards-compatibility guarantee."""
+    args = match_data["args"]
+    zeros = np.zeros(match_data["n"], dtype=np.int64)
+    models = [
+        Model(*args),
+        Model(*args, neutral_venue=None),
+        Model(*args, neutral_venue=zeros),
+    ]
+    params = _bayes_params(models[0].n_teams, n_tail)
+    lp = [wrapper(params, _bayes_data(m, m.neutral_venue)) for m in models]
+    assert lp[0] == lp[1] == lp[2]
+
+
+@pytest.mark.parametrize("Model,wrapper,n_tail", BAYESIAN_MODELS)
+def test_bayesian_all_neutral_fit_converges(Model, wrapper, n_tail, match_data):
+    """A short MCMC run with every match neutral must complete — this also
+    confirms fit() threads neutral_venue into the sampler's data dict."""
+    model = Model(*match_data["args"], neutral_venue=np.ones(match_data["n"], dtype=np.int64))
+    model.fit(n_samples=80, burn=20, n_chains=2)
+    assert model.fitted
