@@ -198,7 +198,58 @@ def test_bayesian_omitted_none_and_zeros_equivalent(Model, wrapper, n_tail, matc
 @pytest.mark.parametrize("Model,wrapper,n_tail", BAYESIAN_MODELS)
 def test_bayesian_all_neutral_fit_converges(Model, wrapper, n_tail, match_data):
     """A short MCMC run with every match neutral must complete — this also
-    confirms fit() threads neutral_venue into the sampler's data dict."""
+    confirms fit() threads neutral_venue into the sampler's data dict — and
+    home advantage must be pinned to 0 since it is unidentified."""
     model = Model(*match_data["args"], neutral_venue=np.ones(match_data["n"], dtype=np.int64))
     model.fit(n_samples=80, burn=20, n_chains=2)
     assert model.fitted
+    assert model.get_params()["home_advantage"] == 0.0
+
+
+# --- Prediction side -------------------------------------------------------
+
+
+@pytest.mark.parametrize("Model", MODELS)
+def test_predict_neutral_venue_drops_home_advantage(Model, match_data):
+    """A neutral-venue prediction excludes home advantage, lowering the home
+    team's expected goals — the synthetic data carries a positive home edge."""
+    model = Model(*match_data["args"])
+    model.fit()
+    home = model.predict("team_0", "team_1")
+    neutral = model.predict("team_0", "team_1", neutral_venue=True)
+    assert neutral.home_goal_expectation < home.home_goal_expectation
+
+
+@pytest.mark.parametrize("Model", MODELS)
+def test_predict_many_applies_per_fixture_neutral_venue(Model, match_data):
+    """predict_many honours a per-fixture neutral_venue array — the same
+    fixture predicted neutral has a lower home expectation than non-neutral."""
+    model = Model(*match_data["args"])
+    model.fit()
+    grids = model.predict_many(
+        ["team_0", "team_0"], ["team_1", "team_1"], neutral_venue=[0, 1]
+    )
+    assert grids[1].home_goal_expectation < grids[0].home_goal_expectation
+
+
+@pytest.mark.parametrize("Model", MODELS)
+def test_all_neutral_fit_pins_home_advantage_to_zero(Model, match_data):
+    """When every training match is neutral, home advantage is unidentified;
+    the fit must pin it to exactly 0 rather than leave an arbitrary value."""
+    model = Model(
+        *match_data["args"], neutral_venue=np.ones(match_data["n"], dtype=np.int64)
+    )
+    model.fit()
+    assert model.get_params()["home_advantage"] == 0.0
+
+
+@pytest.mark.parametrize("Model,wrapper,n_tail", BAYESIAN_MODELS)
+def test_bayesian_predict_neutral_venue_drops_home_advantage(
+    Model, wrapper, n_tail, match_data
+):
+    """A neutral-venue Bayesian prediction excludes home advantage."""
+    model = Model(*match_data["args"])
+    model.fit(n_samples=150, burn=50, n_chains=2)
+    home = model.predict("team_0", "team_1")
+    neutral = model.predict("team_0", "team_1", neutral_venue=True)
+    assert neutral.home_goal_expectation < home.home_goal_expectation
