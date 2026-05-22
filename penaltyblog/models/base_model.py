@@ -29,6 +29,31 @@ def _get_cython_long_dtype():
         return np.int64
 
 
+def _coerce_neutral_venue(neutral_venue, n: int) -> np.ndarray:
+    """
+    Validate a neutral_venue flag array and convert it to the Cython long dtype.
+
+    `None` is treated as every entry being non-neutral (all zeros).
+
+    Raises
+    ------
+    ValueError
+        If the array length does not match `n`, or if it holds values other
+        than 0 or 1.
+    """
+    dtype = _get_cython_long_dtype()
+    if neutral_venue is None:
+        return np.zeros(n, dtype=dtype, order="C")
+    arr = np.asarray(neutral_venue, dtype=dtype, order="C")
+    if len(arr) != n:
+        raise ValueError(
+            "neutral_venue array must have the same length as the number of matches."
+        )
+    if ((arr != 0) & (arr != 1)).any():
+        raise ValueError("neutral_venue entries must be 0 or 1.")
+    return arr
+
+
 class BaseGoalsModel(ABC):
     """
     Base class for football (soccer) goals prediction models.
@@ -102,18 +127,7 @@ class BaseGoalsModel(ABC):
                     "Weights array must have the same length as the number of matches."
                 )
 
-        if neutral_venue is None:
-            self.neutral_venue = np.zeros(n_matches, dtype=cython_long_dtype, order="C")
-        else:
-            self.neutral_venue = np.asarray(
-                neutral_venue, dtype=cython_long_dtype, order="C"
-            )
-            if len(self.neutral_venue) != n_matches:
-                raise ValueError(
-                    "neutral_venue array must have the same length as the number of matches."
-                )
-            if ((self.neutral_venue != 0) & (self.neutral_venue != 1)).any():
-                raise ValueError("neutral_venue entries must be 0 or 1.")
+        self.neutral_venue = _coerce_neutral_venue(neutral_venue, n_matches)
 
         self._validate_inputs(n_matches)
         self._setup_teams()
@@ -271,6 +285,18 @@ class BaseGoalsModel(ABC):
         self.loglikelihood = self._res["fun"] * -1
         self.aic = -2 * self.loglikelihood + 2 * self.n_params
         self.fitted = True
+        self._zero_home_advantage_if_all_neutral()
+
+    def _zero_home_advantage_if_all_neutral(self):
+        """
+        Pin home advantage to 0 when every training match is at a neutral venue.
+
+        With an all-neutral dataset the home advantage term drops out of the
+        likelihood entirely, leaving the parameter unidentified — the fit could
+        return any value. Forcing it to 0 keeps it from leaking into predictions.
+        """
+        if self.neutral_venue.size and bool(np.all(self.neutral_venue == 1)):
+            self._params[self._get_tail_param_indices()["home_advantage"]] = 0.0
 
     @abstractmethod
     def fit(self, minimizer_options: Optional[dict] = None):
@@ -366,6 +392,7 @@ class BaseGoalsModel(ABC):
         away_team: str,
         max_goals: int = 15,
         normalize: bool = True,
+        neutral_venue: bool = False,
     ):
         """
         Predict outcome probabilities for a given fixture.
@@ -380,6 +407,9 @@ class BaseGoalsModel(ABC):
             Maximum goals per team to consider.
         normalize : bool, default True
             Whether to normalise the probability grid.
+        neutral_venue : bool, default False
+            If True, the fixture is treated as played at a neutral venue and
+            home advantage is excluded from the prediction.
 
         Returns
         -------
@@ -387,7 +417,9 @@ class BaseGoalsModel(ABC):
             Probability grid object for the match.
         """
         home_idx, away_idx = self._predict(home_team, away_team)
-        return self._compute_probabilities(home_idx, away_idx, max_goals, normalize)
+        return self._compute_probabilities(
+            home_idx, away_idx, max_goals, normalize, bool(neutral_venue)
+        )
 
     def _compute_probabilities_many(
         self,
@@ -395,6 +427,7 @@ class BaseGoalsModel(ABC):
         away_idx: np.ndarray,
         max_goals: int,
         normalize: bool = True,
+        neutral_venue: np.ndarray = None,
     ):
         """
         Optional fast-path for batch probability computation.
@@ -411,6 +444,7 @@ class BaseGoalsModel(ABC):
         away_teams: TeamInput,
         max_goals: int = 15,
         normalize: bool = True,
+        neutral_venue: NeutralVenueInput = None,
     ):
         """
         Predict outcome probabilities for multiple fixtures.
@@ -425,6 +459,10 @@ class BaseGoalsModel(ABC):
             Maximum goals per team to consider.
         normalize : bool, default True
             Whether to normalise each probability grid.
+        neutral_venue : array_like, optional
+            Per-fixture flag (0/1) marking fixtures played at a neutral venue.
+            When 1, home advantage is excluded for that fixture. If None, every
+            fixture is treated as non-neutral.
 
         Returns
         -------
@@ -433,19 +471,25 @@ class BaseGoalsModel(ABC):
             implements `_compute_probabilities_many`, its output is returned.
         """
         home_idx, away_idx = self._predict_many(home_teams, away_teams)
+        neutral = _coerce_neutral_venue(neutral_venue, len(home_idx))
         try:
             return self._compute_probabilities_many(
-                home_idx, away_idx, max_goals, normalize
+                home_idx, away_idx, max_goals, normalize, neutral
             )
         except NotImplementedError:
             return [
-                self._compute_probabilities(h, a, max_goals, normalize)
-                for h, a in zip(home_idx, away_idx)
+                self._compute_probabilities(h, a, max_goals, normalize, bool(nv))
+                for h, a, nv in zip(home_idx, away_idx, neutral)
             ]
 
     @abstractmethod
     def _compute_probabilities(
-        self, home_idx: int, away_idx: int, max_goals: int, normalize: bool = True
+        self,
+        home_idx: int,
+        away_idx: int,
+        max_goals: int,
+        normalize: bool = True,
+        neutral_venue: bool = False,
     ):
         """
         Compute the probability grid for a fixture.

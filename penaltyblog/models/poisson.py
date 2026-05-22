@@ -205,13 +205,18 @@ class PoissonGoalsModel(BaseGoalsModel):
         )
 
     def _compute_probabilities(
-        self, home_idx: int, away_idx: int, max_goals: int, normalize: bool = True
+        self,
+        home_idx: int,
+        away_idx: int,
+        max_goals: int,
+        normalize: bool = True,
+        neutral_venue: bool = False,
     ) -> FootballProbabilityGrid:
         home_attack = self._params[home_idx]
         away_attack = self._params[away_idx]
         home_defense = self._params[home_idx + self.n_teams]
         away_defense = self._params[away_idx + self.n_teams]
-        home_advantage = self._params[-1]
+        home_advantage = 0.0 if neutral_venue else self._params[-1]
 
         # Preallocate the score matrix as a flattened array.
         score_matrix = np.empty(max_goals * max_goals, dtype=np.float64)
@@ -247,6 +252,7 @@ class PoissonGoalsModel(BaseGoalsModel):
         away_idx: np.ndarray,
         max_goals: int,
         normalize: bool = True,
+        neutral_venue: np.ndarray = None,
     ):
         """
         Batch probability computation for multiple fixtures.
@@ -272,7 +278,11 @@ class PoissonGoalsModel(BaseGoalsModel):
             away_attack = self._params[a_idx]
             home_defense = self._params[h_idx + self.n_teams]
             away_defense = self._params[a_idx + self.n_teams]
-            home_advantage = self._params[-1]
+            home_advantage = (
+                0.0
+                if neutral_venue is not None and neutral_venue[i]
+                else self._params[-1]
+            )
 
             compute_poisson_probabilities(
                 float(home_attack),

@@ -189,6 +189,7 @@ class BayesianGoalModel(BaseBayesianModel):
 
         self._params = np.mean(self.trace, axis=0)
         self.fitted = True
+        self._zero_home_advantage_if_all_neutral()
 
     def get_diagnostics(self, burn: int = 0, thin: int = 1) -> pd.DataFrame:
         """
@@ -247,7 +248,12 @@ class BayesianGoalModel(BaseBayesianModel):
         return simple_model._params
 
     def _compute_probabilities(
-        self, home_idx: int, away_idx: int, max_goals: int, normalize: bool = True
+        self,
+        home_idx: int,
+        away_idx: int,
+        max_goals: int,
+        normalize: bool = True,
+        neutral_venue: bool = False,
     ) -> FootballProbabilityGrid:
         """
         Compute posterior predictive probabilities for a fixture.
@@ -258,7 +264,8 @@ class BayesianGoalModel(BaseBayesianModel):
             raise ValueError("Model has not been fitted. Call .fit() first.")
 
         matrix, avg_lam_h, avg_lam_a = bayesian_predict_c(
-            self.trace, home_idx, away_idx, self.n_teams, max_goals
+            self.trace, home_idx, away_idx, self.n_teams, max_goals,
+            int(neutral_venue),
         )
         return FootballProbabilityGrid(
             matrix, avg_lam_h, avg_lam_a, normalize=normalize

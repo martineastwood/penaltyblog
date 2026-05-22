@@ -89,6 +89,7 @@ class HierarchicalBayesianGoalModel(BayesianGoalModel):
 
         self._params = np.mean(self.trace, axis=0)
         self.fitted = True
+        self._zero_home_advantage_if_all_neutral()
 
     def _generate_hierarchical_starts(
         self, n_walkers: int, mle_params: np.ndarray

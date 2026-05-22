@@ -180,11 +180,14 @@ def bayesian_predict_c(
     int home_idx,
     int away_idx,
     int n_teams,
-    int max_goals
+    int max_goals,
+    int neutral_venue
 ):
     """
     Computes the Posterior Predictive probability matrix.
     Averages the Dixon-Coles matrix over all MCMC samples.
+
+    When neutral_venue is 1, home advantage is excluded from the prediction.
     """
     cdef int n_samples = trace.shape[0]
     cdef int n_params = trace.shape[1]
@@ -209,8 +212,8 @@ def bayesian_predict_c(
             hfa   = trace[s, n_params - 2]
             rho   = trace[s, n_params - 1]
 
-            # Lambdas
-            lambda_h = exp(fmin(MAX_EXP_VAL, hfa + att_h + def_a))
+            # Lambdas (home advantage excluded at a neutral venue)
+            lambda_h = exp(fmin(MAX_EXP_VAL, hfa * (1 - neutral_venue) + att_h + def_a))
             lambda_h = fmax(MIN_LAMBDA, lambda_h)
 
             lambda_a = exp(fmin(MAX_EXP_VAL, att_a + def_h))
