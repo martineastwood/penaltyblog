@@ -61,6 +61,7 @@ class HierarchicalBayesianGoalModel(BayesianGoalModel):
             "goals_home": self.goals_home,
             "goals_away": self.goals_away,
             "weights": self.weights,
+            "neutral_venue": self.neutral_venue,
             "n_teams": self.n_teams,
         }
 

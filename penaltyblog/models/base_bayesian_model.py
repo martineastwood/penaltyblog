@@ -6,7 +6,12 @@ import pandas as pd
 from penaltyblog.bayes.diagnostics import compute_diagnostics
 from penaltyblog.bayes.sampler_api import EnsembleSampler
 from penaltyblog.models.base_model import BaseGoalsModel
-from penaltyblog.models.custom_types import GoalInput, TeamInput, WeightInput
+from penaltyblog.models.custom_types import (
+    GoalInput,
+    NeutralVenueInput,
+    TeamInput,
+    WeightInput,
+)
 
 
 class BaseBayesianModel(BaseGoalsModel):
@@ -25,6 +30,7 @@ class BaseBayesianModel(BaseGoalsModel):
         teams_home: TeamInput,
         teams_away: TeamInput,
         weights: WeightInput = None,
+        neutral_venue: NeutralVenueInput = None,
     ):
         """
         Initialize a Bayesian football model.
@@ -41,8 +47,13 @@ class BaseBayesianModel(BaseGoalsModel):
             Names of away teams for each match.
         weights : WeightInput, optional
             Match weights (e.g., from time decay). If None, all matches are weighted equally.
+        neutral_venue : NeutralVenueInput, optional
+            Per-match flag (0/1) marking matches played at a neutral venue. When 1,
+            home advantage is excluded for that match.
         """
-        super().__init__(goals_home, goals_away, teams_home, teams_away, weights)
+        super().__init__(
+            goals_home, goals_away, teams_home, teams_away, weights, neutral_venue
+        )
 
         self.trace: Optional[np.ndarray] = None
         self.trace_dict: Optional[Dict[str, np.ndarray]] = None
