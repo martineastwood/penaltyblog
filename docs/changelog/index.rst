@@ -7,7 +7,15 @@ Version Numbering
 ``penaltyblog`` follows the SemVer versioning guidelines. For more information,
 see `semver.org <http://semver.org/>`_
 
-v1.10.0 (2026-03-20)
+v1.11.0 (2026-06-02)
+^^^^^^^^^^^^^^^^^^^^
+
+* **New Features**
+
+  * All goals models now optionally support neutral venue predictions via an optional `neutral_venue` argument to the `predict` method. When set to `True`, the model will ignore home field advantage and predict as if the match were played at a neutral venue. This is useful for international tournaments or matches played at neutral sites.
+
+
+v1.10.0 (2026-05-20)
 ^^^^^^^^^^^^^^^^^^^^
 
 * **New Features**
