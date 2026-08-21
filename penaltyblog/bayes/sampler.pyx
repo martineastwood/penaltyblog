@@ -104,7 +104,14 @@ cdef class DiffEvolEnsembleSampler:
 
         log_accept_ratio[0] = 0.0
 
-    def run_mcmc(self, double[:, ::1] initial_state, int nsteps, double de_move_fraction=0.75):
+    def run_mcmc(
+        self,
+        double[:, ::1] initial_state,
+        int nsteps,
+        double de_move_fraction=0.75,
+        int store_from=0,
+        int store_thin=1,
+    ):
         """
         Run MCMC with mixed moves (Stretch + Differential Evolution).
 
@@ -115,14 +122,24 @@ cdef class DiffEvolEnsembleSampler:
         de_move_fraction : float
             Probability (0.0 to 1.0) of using DE move per step.
             0.5 is ideal for correlated parameters.
+        store_from : int
+            First step to store. Earlier steps are still executed, so this does not
+            alter the Markov chain or random-number stream.
+        store_thin : int
+            Store every ``store_thin``-th step starting at ``store_from``.
         """
+        if store_from < 0 or store_from >= nsteps:
+            raise ValueError("store_from must be between 0 and nsteps - 1")
+        if store_thin <= 0:
+            raise ValueError("store_thin must be greater than 0")
+
         cdef:
-            int step, k, j, j2, dim, split
+            int step, stored_step, nstored, k, j, j2, dim, split
             int half = self.nwalkers // 2
             int start_idx, end_idx, comp_start, comp_end, n_comp
 
             # Buffers
-            double[:, :, ::1] chain = np.empty((nsteps, self.nwalkers, self.ndim))
+            double[:, :, ::1] chain
             double[::1] current_log_prob = np.empty(self.nwalkers)
 
             # Temporary state variables
@@ -132,16 +149,23 @@ cdef class DiffEvolEnsembleSampler:
             double log_accept_ratio
             double de_scale = 2.38 / sqrt(2 * self.ndim)
 
+        nstored = ((nsteps - store_from - 1) // store_thin) + 1
+        chain = np.empty((nstored, self.nwalkers, self.ndim))
+        stored_step = 0
+
         # 1. Initialize log probs for starting positions
         for k in range(self.nwalkers):
             current_log_prob[k] = self.evaluate_log_prob(state[k])
 
         # 2. Main Loop
         for step in range(nsteps):
-            # Store chain
-            for k in range(self.nwalkers):
-                for dim in range(self.ndim):
-                    chain[step, k, dim] = state[k, dim]
+            # Store only requested states. All steps still run below, preserving the
+            # exact chain evolution while avoiding allocations for discarded draws.
+            if step >= store_from and (step - store_from) % store_thin == 0:
+                for k in range(self.nwalkers):
+                    for dim in range(self.ndim):
+                        chain[stored_step, k, dim] = state[k, dim]
+                stored_step += 1
 
             # Red-Blue Split
             for split in range(2):

@@ -53,6 +53,13 @@ def _worker_proxy(chain_instance: "Chain") -> "Chain":
         # We call the internal run method of the chain instance
         # This runs inside the subprocess
         chain_instance._execute()
+
+        # These inputs already exist in the parent sampler. Do not serialize a copy
+        # of them back with every completed chain; run_mcmc restores the same public
+        # attributes after collecting the lightweight results.
+        chain_instance.start_pos = None
+        chain_instance.data = None
+        chain_instance.log_prob_func = None
         return chain_instance
     except Exception as e:
         error_msg = (
@@ -89,6 +96,8 @@ class Chain:
         n_steps: int,
         de_move_fraction: float = 0.8,
         validate_picklable: bool = False,
+        store_from: int = 0,
+        store_thin: int = 1,
     ):
         """Initializes the Chain.
 
@@ -103,6 +112,8 @@ class Chain:
             de_move_fraction: Fraction of DE moves. Defaults to 0.8.
             validate_picklable: If True, validate function is picklable. Used internally
                 when multiprocessing will be used.
+            store_from: First MCMC step to retain. Earlier steps are still executed.
+            store_thin: Retain every Nth step starting at ``store_from``.
 
         Raises:
             TypeError: If validate_picklable=True and function is not picklable.
@@ -124,6 +135,8 @@ class Chain:
         self.log_prob_func = log_prob_wrapper_func
         self.n_steps = n_steps
         self.de_move_fraction = de_move_fraction
+        self.store_from = store_from
+        self.store_thin = store_thin
 
         # Results (initially None)
         self.raw_trace: Optional[np.ndarray] = None
@@ -149,7 +162,11 @@ class Chain:
 
         # 2. Run MCMC
         chain, _, _ = sampler.run_mcmc(
-            self.start_pos, self.n_steps, de_move_fraction=self.de_move_fraction
+            self.start_pos,
+            self.n_steps,
+            de_move_fraction=self.de_move_fraction,
+            store_from=self.store_from,
+            store_thin=self.store_thin,
         )
 
         # 3. Store results
@@ -194,7 +211,9 @@ class Chain:
         if self.raw_trace is None:
             raise ValueError("Chain has not been run yet.")
 
-        self.raw_trace = self.raw_trace[burn::thin, :, :]
+        # A slice would keep the complete original allocation alive. Materialize a
+        # compact C-contiguous array so discarded burn-in/thinned draws can be freed.
+        self.raw_trace = np.ascontiguousarray(self.raw_trace[burn::thin, :, :])
         return self.get_samples(burn=0, thin=1)
 
 
@@ -258,6 +277,8 @@ class EnsembleSampler:
         n_samples: int,
         burn: int,
         de_move_fraction: float = 0.8,
+        store_only_retained: bool = False,
+        thin: int = 1,
     ) -> None:
         """Run the sampling across multiple chains in parallel.
 
@@ -267,6 +288,10 @@ class EnsembleSampler:
             n_samples: Number of samples to collect (post-burn).
             burn: Number of burn-in steps to discard.
             de_move_fraction: Fraction of DE moves. Defaults to 0.8.
+            store_only_retained: If True, execute burn-in and thinning normally but
+                only allocate storage for retained draws. Defaults to False to
+                preserve the low-level sampler API.
+            thin: Storage thinning interval when ``store_only_retained`` is True.
 
         Raises:
             ValueError: If `n_samples` or `burn` are not positive, or if `start_positions`
@@ -277,6 +302,8 @@ class EnsembleSampler:
             raise ValueError("n_samples must be greater than 0")
         if burn < 0:
             raise ValueError("burn must be non-negative")
+        if thin <= 0:
+            raise ValueError("thin must be greater than 0")
         if len(start_positions) != self.n_chains:
             raise ValueError(
                 f"Length of start_positions ({len(start_positions)}) must match n_chains ({self.n_chains})"
@@ -304,6 +331,8 @@ class EnsembleSampler:
                 n_steps=total_steps,
                 de_move_fraction=de_move_fraction,
                 validate_picklable=validate_picklable,
+                store_from=burn if store_only_retained else 0,
+                store_thin=thin if store_only_retained else 1,
             )
             tasks.append(chain)
 
@@ -323,6 +352,14 @@ class EnsembleSampler:
                     self.chains = list(executor.map(_worker_proxy, tasks))
             except Exception as e:
                 raise RuntimeError(f"Multiprocessing execution failed: {e}") from e
+
+        # Restore the public Chain attributes using the existing parent-side
+        # objects. This avoids one returned copy per process without changing the
+        # interface seen by callers.
+        for chain, start_pos in zip(self.chains, start_positions):
+            chain.start_pos = start_pos
+            chain.data = self.data
+            chain.log_prob_func = self.log_prob_func
 
     def get_posterior(self, burn: int = 0, thin: int = 1) -> np.ndarray:
         """Aggregates samples from all chains.
@@ -373,4 +410,15 @@ class EnsembleSampler:
         for chain in self.chains:
             chain.trim_samples(burn, thin)
 
-        return self.get_posterior(burn=0, thin=1)
+        # Keep one owning allocation for the retained posterior. Each chain's 3-D
+        # trace becomes a view onto its corresponding segment, so model.trace and
+        # diagnostic chain traces no longer duplicate all sample data.
+        chain_shapes = [chain.raw_trace.shape for chain in self.chains]
+        combined = self.get_posterior(burn=0, thin=1)
+        offset = 0
+        for chain, shape in zip(self.chains, chain_shapes):
+            rows = shape[0] * shape[1]
+            chain.raw_trace = combined[offset : offset + rows].reshape(shape)
+            offset += rows
+
+        return combined

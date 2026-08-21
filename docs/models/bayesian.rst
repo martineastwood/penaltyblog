@@ -42,14 +42,58 @@ Fitting a Bayesian model follows the same consistent API as other ``penaltyblog`
     # Fit using MCMC sampling
     # n_samples: number of samples per chain
     # burn: samples to discard at the start
-    # n_chains: number of parallel chains
+    # n_chains: number of independent chains
     # thin: thinning factor to reduce autocorrelation
-    model.fit(n_samples=1000, burn=1000, n_chains=4, thin=5)
+    # n_cores: maximum number of chains to run concurrently
+    model.fit(n_samples=1000, burn=1000, n_chains=4, thin=5, n_cores=2)
 
     # Predict probabilities for a fixture
     # This automatically integrates over the posterior distribution
     prediction = model.predict("Arsenal", "Manchester City")
     print(prediction.home_draw_away)
+
+Controlling Memory and Concurrency
+==================================
+
+``n_chains`` controls the number of independent MCMC chains, while ``n_cores``
+controls how many of those chains run concurrently. Keeping these settings
+separate lets you reduce peak multiprocessing memory without reducing the number
+of chains used for convergence diagnostics.
+
+When ``n_cores`` is omitted, it defaults to ``n_chains`` to preserve the standard
+parallel behaviour. Set it to ``1`` to run the chains sequentially, or choose an
+intermediate value to balance memory use and fitting time:
+
+.. code-block:: python
+
+    # Four independent chains, with at most two running concurrently
+    model.fit(n_samples=2000, burn=1000, n_chains=4, n_cores=2)
+
+    # Lowest multiprocessing memory, but usually slower
+    model.fit(n_samples=2000, burn=1000, n_chains=4, n_cores=1)
+
+``n_cores`` must be a positive integer or ``None``. Values larger than
+``n_chains`` are capped at ``n_chains``. Both ``BayesianGoalModel`` and
+``HierarchicalBayesianGoalModel`` support this parameter. Bayesian
+``predict_many()`` also uses up to this many threads to integrate fixtures over
+the posterior concurrently. Threads share the posterior trace, so prediction
+does not create a trace copy for each fixture.
+
+The models automatically avoid storing burn-in iterations and samples skipped by
+``thin``. Retained posterior samples are shared between the model trace and the
+per-chain diagnostic views where possible. These are internal memory
+optimizations: they do not change the MCMC sequence, retained samples, prediction
+results, or the public trace shapes.
+
+For multiple fixtures, prefer ``predict_many()`` over repeated ``predict()``
+calls so the Bayesian posterior integrations can run concurrently:
+
+.. code-block:: python
+
+    predictions = model.predict_many(
+        ["Arsenal", "Liverpool"],
+        ["Chelsea", "Everton"],
+    )
 
 MCMC Diagnostics
 ================

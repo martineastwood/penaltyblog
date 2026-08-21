@@ -7,6 +7,26 @@ Version Numbering
 ``penaltyblog`` follows the SemVer versioning guidelines. For more information,
 see `semver.org <http://semver.org/>`_
 
+v1.12.0 (2026-08-21)
+^^^^^^^^^^^^^^^^^^^^^
+
+* **API**
+
+  * Added an optional ``n_cores`` argument to ``BayesianGoalModel.fit()`` and
+    ``HierarchicalBayesianGoalModel.fit()``. It controls how many independent
+    chains run concurrently and defaults to ``n_chains`` for backwards
+    compatibility.
+
+* **Performance**
+
+  * Reduced Bayesian model memory use by storing only retained MCMC samples,
+    sharing posterior storage between model and chain views where possible, and
+    computing diagnostics one parameter at a time.
+  * Reduced multiprocessing result size by avoiding duplicate serialization of
+    chain training data, starting positions, and likelihood metadata.
+  * Added concurrent ``predict_many()`` posterior integration for Bayesian models,
+    using the fitted model's ``n_cores`` setting without copying the trace.
+
 v1.11.0 (2026-06-02)
 ^^^^^^^^^^^^^^^^^^^^
 

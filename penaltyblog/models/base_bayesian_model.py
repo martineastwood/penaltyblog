@@ -1,3 +1,4 @@
+from numbers import Integral
 from typing import Dict, Optional
 
 import numpy as np
@@ -60,6 +61,33 @@ class BaseBayesianModel(BaseGoalsModel):
         self.sampler: Optional[EnsembleSampler] = None
 
         self.team_map = self.team_to_idx
+
+    @staticmethod
+    def _resolve_n_cores(n_cores: Optional[int], n_chains: int) -> int:
+        """Resolve model-level worker count while preserving the legacy default."""
+        if n_cores is None:
+            return n_chains
+        if (
+            isinstance(n_cores, bool)
+            or not isinstance(n_cores, Integral)
+            or n_cores < 1
+        ):
+            raise ValueError("n_cores must be a positive integer or None")
+        return min(int(n_cores), n_chains)
+
+    def _detach_trace_if_all_neutral(self) -> None:
+        """Preserve the historical separation between model and sampler traces.
+
+        All-neutral fits zero home advantage in ``model.trace`` only. Normally the
+        model and per-chain traces can share storage, but this special case needs a
+        private model copy so diagnostics continue to see the original draws.
+        """
+        if (
+            self.trace is not None
+            and self.neutral_venue.size
+            and bool(np.all(self.neutral_venue == 1))
+        ):
+            self.trace = self.trace.copy()
 
     def _zero_home_advantage_if_all_neutral(self):
         """

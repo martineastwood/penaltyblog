@@ -75,7 +75,7 @@ class build_py(_build_py):
 
 setup(
     name="penaltyblog",
-    version="1.5.0",
+    version="1.12.0",
     description="Library from http://pena.lt/y/blog for scraping and modelling football (soccer) data",
     packages=find_packages(
         include=["penaltyblog", "penaltyblog.*"],

@@ -38,9 +38,10 @@ class HierarchicalBayesianGoalModel(BayesianGoalModel):
         burn: int = 1500,
         n_chains: int = 4,
         thin: int = 1,
+        n_cores: Optional[int] = None,
     ) -> None:
         """
-        Fit the hierarchical model using parallel MCMC chains.
+        Fit the hierarchical model using independent MCMC chains.
 
         Parameters
         ----------
@@ -51,10 +52,17 @@ class HierarchicalBayesianGoalModel(BayesianGoalModel):
         burn : int, default=1500
             Number of burn-in samples to discard.
         n_chains : int, default=4
-            Number of parallel MCMC chains to run.
+            Number of independent MCMC chains to run.
         thin : int, default=1
             Thinning interval to reduce autocorrelation.
+        n_cores : int, optional
+            Maximum number of chains to run concurrently. Defaults to ``n_chains``,
+            preserving the existing parallel behaviour. Use 1 for sequential chains
+            and lower peak multiprocessing memory. The resolved value is also used
+            for concurrent Bayesian ``predict_many()`` calls.
         """
+        resolved_n_cores = self._resolve_n_cores(n_cores, n_chains)
+
         data_dict = {
             "home_idx": self.home_idx,
             "away_idx": self.away_idx,
@@ -70,7 +78,7 @@ class HierarchicalBayesianGoalModel(BayesianGoalModel):
 
         self.sampler = EnsembleSampler(
             n_chains=n_chains,
-            n_cores=n_chains,
+            n_cores=resolved_n_cores,
             log_prob_wrapper_func=hierarchical_log_prob_wrapper,
             data_dict=data_dict,
         )
@@ -82,9 +90,16 @@ class HierarchicalBayesianGoalModel(BayesianGoalModel):
             self._generate_hierarchical_starts(n_walkers, mle_params)
             for _ in range(n_chains)
         ]
-        self.sampler.run_mcmc(start_positions, n_samples, burn)
+        self.sampler.run_mcmc(
+            start_positions,
+            n_samples,
+            burn,
+            store_only_retained=True,
+            thin=thin,
+        )
 
-        self.trace = self.sampler.trim_samples(burn=burn, thin=thin)
+        self.trace = self.sampler.trim_samples(burn=0, thin=1)
+        self._detach_trace_if_all_neutral()
         self._map_trace_to_dict()
 
         self._params = np.mean(self.trace, axis=0)

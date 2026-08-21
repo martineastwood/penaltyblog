@@ -14,11 +14,68 @@ This test suite covers:
 - Comparison with other models
 """
 
+from types import SimpleNamespace
+
 import numpy as np
 import pandas as pd
 import pytest
 
 import penaltyblog as pb
+
+
+@pytest.mark.parametrize(
+    ("model_class", "extra_params"),
+    [
+        (pb.models.BayesianGoalModel, 2),
+        (pb.models.HierarchicalBayesianGoalModel, 4),
+    ],
+)
+def test_bayesian_predict_many_exact_parallel_parity(model_class, extra_params):
+    model = model_class(
+        [1, 0, 2],
+        [0, 1, 1],
+        ["A", "B", "C"],
+        ["B", "C", "A"],
+    )
+    rng = np.random.default_rng(1234)
+    model.trace = rng.normal(0.0, 0.1, size=(2_000, 2 * model.n_teams + extra_params))
+    model.trace[:, 2 * model.n_teams] = 0.25
+    model.trace[:, 2 * model.n_teams + 1] = -0.05
+    model.fitted = True
+    model.sampler = SimpleNamespace(n_cores=3)
+
+    homes = ["A", "B", "C"]
+    aways = ["B", "C", "A"]
+    neutral = [0, 1, 0]
+    expected = [
+        model.predict(home, away, neutral_venue=bool(is_neutral))
+        for home, away, is_neutral in zip(homes, aways, neutral)
+    ]
+    actual = model.predict_many(homes, aways, neutral_venue=neutral)
+
+    assert len(actual) == len(expected)
+    for actual_grid, expected_grid in zip(actual, expected):
+        np.testing.assert_array_equal(actual_grid.grid, expected_grid.grid)
+        assert actual_grid.home_goal_expectation == expected_grid.home_goal_expectation
+        assert actual_grid.away_goal_expectation == expected_grid.away_goal_expectation
+
+
+def test_bayesian_predict_many_n_cores_one_avoids_thread_pool(monkeypatch):
+    model = pb.models.BayesianGoalModel([1, 0], [0, 1], ["A", "B"], ["B", "A"])
+    model.trace = np.zeros((100, 2 * model.n_teams + 2))
+    model.fitted = True
+    model.sampler = SimpleNamespace(n_cores=1)
+
+    def fail_if_created(*args, **kwargs):
+        raise AssertionError("Thread pool should not be created for n_cores=1")
+
+    monkeypatch.setattr(
+        "penaltyblog.models.bayesian_goal_model.concurrent.futures.ThreadPoolExecutor",
+        fail_if_created,
+    )
+
+    result = model.predict_many(["A", "B"], ["B", "A"])
+    assert len(result) == 2
 
 
 @pytest.mark.local
@@ -51,6 +108,20 @@ def test_bayesian_goal_model_fit(fixtures):
     assert model.trace is not None
     assert model.trace_dict is not None
     assert model.sampler is not None
+    assert model.sampler.n_cores == 2
+    assert all(chain.data is model.sampler.data for chain in model.sampler.chains)
+    assert all(chain.start_pos is not None for chain in model.sampler.chains)
+
+
+@pytest.mark.parametrize("n_cores", [0, -1, 1.5, True])
+def test_bayesian_goal_model_rejects_invalid_n_cores(fixtures, n_cores):
+    df = fixtures.head(10)
+    model = pb.models.BayesianGoalModel(
+        df["goals_home"], df["goals_away"], df["team_home"], df["team_away"]
+    )
+
+    with pytest.raises(ValueError, match="n_cores must be a positive integer or None"):
+        model.fit(n_samples=5, burn=0, n_chains=1, n_cores=n_cores)
 
 
 @pytest.mark.local

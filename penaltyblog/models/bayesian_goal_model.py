@@ -1,3 +1,4 @@
+import concurrent.futures
 from typing import Dict, List, Optional
 
 import numpy as np
@@ -133,9 +134,10 @@ class BayesianGoalModel(BaseBayesianModel):
         burn: int = 1000,
         n_chains: int = 4,
         thin: int = 1,
+        n_cores: Optional[int] = None,
     ) -> None:
         """
-        Fit the model using parallel MCMC chains.
+        Fit the model using independent MCMC chains.
 
         Parameters
         ----------
@@ -146,10 +148,17 @@ class BayesianGoalModel(BaseBayesianModel):
         burn : int, default=1000
             Number of burn-in samples to discard.
         n_chains : int, default=4
-            Number of parallel MCMC chains to run.
+            Number of independent MCMC chains to run.
         thin : int, default=1
             Thinning interval to reduce autocorrelation.
+        n_cores : int, optional
+            Maximum number of chains to run concurrently. Defaults to ``n_chains``,
+            preserving the existing parallel behaviour. Use 1 for sequential chains
+            and lower peak multiprocessing memory. The resolved value is also used
+            for concurrent Bayesian ``predict_many()`` calls.
         """
+        resolved_n_cores = self._resolve_n_cores(n_cores, n_chains)
+
         data_dict = {
             "home_idx": self.home_idx,
             "away_idx": self.away_idx,
@@ -165,7 +174,7 @@ class BayesianGoalModel(BaseBayesianModel):
 
         self.sampler = EnsembleSampler(
             n_chains=n_chains,
-            n_cores=n_chains,
+            n_cores=resolved_n_cores,
             log_prob_wrapper_func=football_log_prob_wrapper,
             data_dict=data_dict,
         )
@@ -178,9 +187,16 @@ class BayesianGoalModel(BaseBayesianModel):
             for _ in range(n_chains)
         ]
 
-        self.sampler.run_mcmc(start_positions, n_samples, burn)
+        self.sampler.run_mcmc(
+            start_positions,
+            n_samples,
+            burn,
+            store_only_retained=True,
+            thin=thin,
+        )
 
-        self.trace = self.sampler.trim_samples(burn=burn, thin=thin)
+        self.trace = self.sampler.trim_samples(burn=0, thin=1)
+        self._detach_trace_if_all_neutral()
         self._map_trace_to_dict()
 
         if self.trace_dict is not None and self.trace is not None:
@@ -264,12 +280,54 @@ class BayesianGoalModel(BaseBayesianModel):
             raise ValueError("Model has not been fitted. Call .fit() first.")
 
         matrix, avg_lam_h, avg_lam_a = bayesian_predict_c(
-            self.trace, home_idx, away_idx, self.n_teams, max_goals,
+            self.trace,
+            home_idx,
+            away_idx,
+            self.n_teams,
+            max_goals,
             int(neutral_venue),
         )
         return FootballProbabilityGrid(
             matrix, avg_lam_h, avg_lam_a, normalize=normalize
         )
+
+    def _compute_probabilities_many(
+        self,
+        home_idx: np.ndarray,
+        away_idx: np.ndarray,
+        max_goals: int,
+        normalize: bool = True,
+        neutral_venue: np.ndarray = None,
+    ) -> List[FootballProbabilityGrid]:
+        """Compute Bayesian posterior predictions concurrently using threads."""
+        n_fixtures = len(home_idx)
+        if n_fixtures == 0:
+            return []
+
+        if neutral_venue is None:
+            neutral_venue = np.zeros(n_fixtures, dtype=np.int64)
+
+        sampler_workers = getattr(getattr(self, "sampler", None), "n_cores", 1)
+        n_workers = min(max(1, int(sampler_workers)), n_fixtures)
+
+        def predict_one(args) -> FootballProbabilityGrid:
+            home, away, neutral = args
+            return self._compute_probabilities(
+                int(home),
+                int(away),
+                max_goals,
+                normalize,
+                bool(neutral),
+            )
+
+        fixtures = zip(home_idx, away_idx, neutral_venue)
+        if n_workers == 1:
+            return [predict_one(fixture) for fixture in fixtures]
+
+        # bayesian_predict_c releases the GIL for its posterior loop. Threads can
+        # therefore evaluate fixtures concurrently while sharing the trace read-only.
+        with concurrent.futures.ThreadPoolExecutor(max_workers=n_workers) as executor:
+            return list(executor.map(predict_one, fixtures))
 
     def _get_param_names(self) -> List[str]:
         """

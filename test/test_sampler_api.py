@@ -108,12 +108,50 @@ def test_sampler_execution():
     sampler.run_mcmc(start_positions, n_samples=n_samples, burn=burn)
 
     assert len(sampler.chains) == n_chains
-    for chain in sampler.chains:
+    for i, chain in enumerate(sampler.chains):
         assert chain.raw_trace.shape == (n_samples + burn, n_walkers, n_dim)
+        assert chain.start_pos is start_positions[i]
+        assert chain.data is sampler.data
+        assert chain.log_prob_func is sampler.log_prob_func
 
     posterior = sampler.get_posterior(burn=burn, thin=1)
     # Total samples = n_chains * n_walkers * n_samples
     assert posterior.shape == (n_chains * n_walkers * n_samples, n_dim)
+
+
+def test_retained_only_storage_matches_full_trace_exactly():
+    """Skipping storage must not change chain evolution or retained draws."""
+    start = np.arange(12, dtype=float).reshape(6, 2) / 10
+    kwargs = dict(
+        id=0,
+        seed=8675309,
+        start_pos=start,
+        data_dict={"mu": np.zeros(2)},
+        log_prob_wrapper_func=dummy_log_prob,
+        n_steps=17,
+    )
+
+    full = Chain(**kwargs)._execute()
+    retained = Chain(**kwargs, store_from=5, store_thin=3)._execute()
+
+    np.testing.assert_array_equal(retained.raw_trace, full.raw_trace[5::3])
+
+
+def test_trimmed_chain_traces_share_combined_posterior_storage():
+    sampler = EnsembleSampler(
+        n_chains=2,
+        n_cores=1,
+        log_prob_wrapper_func=dummy_log_prob,
+        data_dict={"mu": np.zeros(2)},
+    )
+    starts = [np.zeros((6, 2)), np.ones((6, 2))]
+    sampler.run_mcmc(starts, n_samples=10, burn=4)
+
+    posterior = sampler.trim_samples(burn=4, thin=2)
+
+    assert posterior.flags.owndata
+    assert all(np.shares_memory(posterior, chain.raw_trace) for chain in sampler.chains)
+    assert all(chain.raw_trace.flags.c_contiguous for chain in sampler.chains)
 
 
 def test_chain_get_samples_error():

@@ -26,7 +26,9 @@ def test_bayesian_automatic_burn_thinning():
 
     # Fit the model
     # Now using the one-liner internally
-    model.fit(n_samples=n_samples, burn=burn, thin=thin, n_chains=2)
+    model.fit(n_samples=n_samples, burn=burn, thin=thin, n_chains=2, n_cores=1)
+
+    assert model.sampler.n_cores == 1
 
     expected_steps = n_samples // thin
     n_walkers = model.sampler.chains[0].start_pos.shape[0]

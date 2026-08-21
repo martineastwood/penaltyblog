@@ -30,19 +30,10 @@ def compute_diagnostics(
     if not sampler.chains:
         raise ValueError("Sampler has not been run yet.")
 
-    extracted = []
-    for chain in sampler.chains:
-        # trace shape: (n_steps, n_walkers, ndim)
-        # We slice burn-in and transpose to (n_walkers, n_steps, ndim)
-        clean = chain.raw_trace[burn::thin, :, :]
-        transposed = np.moveaxis(clean, 0, 1)
-        extracted.append(transposed)
-
-    # Stack all processes together
-    # Shape: (total_walkers, n_samples, ndim)
-    full_trace = np.vstack(extracted)
-
-    n_chains, n_samples, n_params = full_trace.shape
+    first_trace = sampler.chains[0].raw_trace[burn::thin, :, :]
+    n_samples = first_trace.shape[0]
+    n_params = first_trace.shape[2]
+    n_chains = sum(chain.raw_trace.shape[1] for chain in sampler.chains)
 
     print(f"Diagnostics: Analyzing {n_chains} chains of {n_samples} samples...")
 
@@ -51,7 +42,9 @@ def compute_diagnostics(
     tau_vals = []
 
     for p in range(n_params):
-        y = full_trace[:, :, p]
+        # Allocate one parameter matrix rather than duplicating the complete
+        # posterior. The row ordering matches the previous full-trace stack.
+        y = np.vstack([chain.raw_trace[burn::thin, :, p].T for chain in sampler.chains])
 
         # r-hat
         r = _gelman_rubin(y)
