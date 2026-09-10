@@ -69,10 +69,9 @@ class WeibullCopulaGoalsModel(BaseGoalsModel):
         )
 
         # Quick guess initialization
-        rng = np.random.default_rng()
-        atk_init = rng.normal(1.0, 0.1, self.n_teams)
-        def_init = rng.normal(-1.0, 0.1, self.n_teams)
-        home_init = np.array([0.5 + rng.normal(0, 0.1)])
+        atk_init = np.full(self.n_teams, 1.0)
+        def_init = np.full(self.n_teams, -1.0)
+        home_init = np.array([0.5])
         shape_init = np.array([1.2])
         kappa_init = np.array([1.5])
         self.max_goals = 15
