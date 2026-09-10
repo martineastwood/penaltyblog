@@ -1,13 +1,40 @@
+from unittest.mock import Mock, patch
+
 import pandas as pd
 import pytest
+import requests
 
 import penaltyblog as pb
+
+FOOTBALL_DATA_CSV = """Date,HomeTeam,AwayTeam,FTHG,FTAG
+01/08/20,Arsenal,Fulham,3,0
+"""
 
 
 @pytest.mark.local
 def test_footballdata_wrong_league():
     with pytest.raises(ValueError):
         _ = pb.scrapers.FootballData("FRA Premier League", "2020-2021")
+
+
+def test_footballdata_tries_fallback_domain():
+    unavailable = Mock()
+    unavailable.raise_for_status.side_effect = requests.HTTPError("503")
+
+    available = Mock()
+    available.text = FOOTBALL_DATA_CSV
+
+    with patch(
+        "penaltyblog.scrapers.base_scrapers.requests.get",
+        side_effect=[unavailable, available],
+    ) as mock_get:
+        df = pb.scrapers.FootballData("ENG Premier League", "2020-2021").get_fixtures()
+
+    assert len(df) == 1
+    assert [call.args[0] for call in mock_get.call_args_list] == [
+        "https://www.football-data.co.uk/mmz4281/2021/E0.csv",
+        "https://football-data.co.uk/mmz4281/2021/E0.csv",
+    ]
 
 
 @pytest.mark.local

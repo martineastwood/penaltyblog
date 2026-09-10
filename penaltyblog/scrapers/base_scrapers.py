@@ -84,9 +84,12 @@ class RequestsScraper(BaseScraper):
 
     def get(self, url: str) -> str:
         if self.cookies is not None:
-            return requests.get(url, headers=self.headers, cookies=self.cookies).text
+            response = requests.get(url, headers=self.headers, cookies=self.cookies)
         else:
-            return requests.get(url, headers=self.headers).text
+            response = requests.get(url, headers=self.headers)
+
+        response.raise_for_status()
+        return response.text
 
 
 class TLSRequestsScraper(BaseScraper):

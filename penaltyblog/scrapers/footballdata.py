@@ -1,6 +1,7 @@
 import io
 
 import pandas as pd
+import requests
 
 from .base_scrapers import RequestsScraper
 from .common import (
@@ -41,6 +42,9 @@ class FootballData(RequestsScraper):
 
         self.base_url = (
             "https://www.football-data.co.uk/mmz4281/{season}/{competition}.csv"
+        )
+        self.fallback_base_url = (
+            "https://football-data.co.uk/mmz4281/{season}/{competition}.csv"
         )
         self.competition = competition
         self.season = season
@@ -86,16 +90,28 @@ class FootballData(RequestsScraper):
         """
         Downloads the fixtures and returns them as a pandas data frame
         """
-        url = self.base_url.format(
-            season=self.mapped_season, competition=self.mapped_competition
-        )
-
         col_renames = {
             "HomeTeam": "team_home",
             "AwayTeam": "team_away",
         }
 
-        content = self.get(url)
+        content = None
+        last_error = None
+        for base_url in (self.base_url, self.fallback_base_url):
+            url = base_url.format(
+                season=self.mapped_season, competition=self.mapped_competition
+            )
+            try:
+                content = self.get(url)
+                break
+            except requests.RequestException as error:
+                last_error = error
+
+        if content is None:
+            if last_error is None:
+                raise RuntimeError("Unable to download football-data fixtures")
+            raise last_error
+
         df = (
             pd.read_csv(io.StringIO(content))
             .pipe(self._convert_date)
