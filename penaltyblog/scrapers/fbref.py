@@ -58,9 +58,10 @@ class FBRef(TLSRequestsScraper):
         if time_since_last < self._min_request_interval:
             time.sleep(self._min_request_interval - time_since_last)
 
-        result = super().get(url)
-        self._last_request_time = time.time()
-        return result
+        try:
+            return super().get(url)
+        finally:
+            self._last_request_time = time.time()
 
     def _map_season(self, season) -> str:
         """
