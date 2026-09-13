@@ -7,6 +7,16 @@ Version Numbering
 ``penaltyblog`` follows the SemVer versioning guidelines. For more information,
 see `semver.org <http://semver.org/>`_
 
+v1.12.2 (2026-09-13)
+^^^^^^^^^^^^^^^^^^^^^
+
+* **Bug Fixes**
+
+  * FBRef now preserves HTTP errors from failed requests instead of exposing
+    misleading HTML parsing errors.
+  * FBRef retries now respect the three-second request interval after failed
+    requests.
+
 v1.12.0 (2026-08-21)
 ^^^^^^^^^^^^^^^^^^^^^
 
