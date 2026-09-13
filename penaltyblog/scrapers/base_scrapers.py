@@ -108,4 +108,5 @@ class TLSRequestsScraper(BaseScraper):
 
     def get(self, url: str) -> str:
         response = self._session.get(url)
+        response.raise_for_status()
         return response.text
