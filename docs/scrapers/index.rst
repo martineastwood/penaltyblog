@@ -1,7 +1,7 @@
 Scrapers
 ==============
 
-The scrapers provide a consistent interface for extracting football data from multiple online sources, including FBRef, Understat, football-data.co.uk, and Club Elo.
+The scrapers provide a consistent interface for extracting football data from multiple online sources, including FBRef, Understat, football-data.co.uk, Football Charts, and Club Elo.
 
 Each scraper returns data in a standardized DataFrame format, ensuring uniform column names and structures across all sources.
 
@@ -28,4 +28,5 @@ See the examples below for more details on how to use the individual scrapers.
    fbref
    clubelo
    footballdata
+   footballcharts
    understat

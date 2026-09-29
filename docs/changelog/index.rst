@@ -7,6 +7,14 @@ Version Numbering
 ``penaltyblog`` follows the SemVer versioning guidelines. For more information,
 see `semver.org <http://semver.org/>`_
 
+Next release
+^^^^^^^^^^^^
+
+* **Scraping**
+
+  * Added a Football Charts scraper with canonical competition mappings and
+    access to Football Charts' wider league catalogue.
+
 v1.12.3 (2026-09-29)
 ^^^^^^^^^^^^^^^^^^^^^
 

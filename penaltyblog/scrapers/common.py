@@ -17,6 +17,7 @@ COMPETITION_MAPPINGS: Dict[str, Dict[str, Any]] = {
             ],
         },
         "footballdata": {"slug": "B1"},
+        "footballcharts": {"slug": "belgium1"},
         "espn": {"slug": "ger.2"},
     },
     "BEL First Division B": {
@@ -49,6 +50,7 @@ COMPETITION_MAPPINGS: Dict[str, Dict[str, Any]] = {
             ],
         },
         "footballdata": {"slug": "D1"},
+        "footballcharts": {"slug": "germany1"},
         "understat": {"slug": "Bundesliga"},
         "espn": {"slug": "ger.1"},
     },
@@ -64,6 +66,7 @@ COMPETITION_MAPPINGS: Dict[str, Dict[str, Any]] = {
             ],
         },
         "footballdata": {"slug": "D2"},
+        "footballcharts": {"slug": "germany2"},
         "espn": {"slug": "ger.2"},
     },
     "ENG Premier League": {
@@ -84,6 +87,7 @@ COMPETITION_MAPPINGS: Dict[str, Dict[str, Any]] = {
             ],
         },
         "footballdata": {"slug": "E0"},
+        "footballcharts": {"slug": "premier"},
         "espn": {"slug": "eng.1", "start_date": "0801"},
         "understat": {"slug": "EPL"},
     },
@@ -105,6 +109,7 @@ COMPETITION_MAPPINGS: Dict[str, Dict[str, Any]] = {
             ],
         },
         "footballdata": {"slug": "E1"},
+        "footballcharts": {"slug": "cha"},
         "espn": {"slug": "eng.2"},
     },
     "ENG League 1": {
@@ -119,6 +124,7 @@ COMPETITION_MAPPINGS: Dict[str, Dict[str, Any]] = {
             ],
         },
         "footballdata": {"slug": "E2"},
+        "footballcharts": {"slug": "eng1"},
         "espn": {"slug": "eng.3"},
     },
     "ENG League 2": {
@@ -133,6 +139,7 @@ COMPETITION_MAPPINGS: Dict[str, Dict[str, Any]] = {
             ],
         },
         "footballdata": {"slug": "E3"},
+        "footballcharts": {"slug": "eng2"},
         "espn": {"slug": "eng.4"},
     },
     "ENG Conference": {
@@ -146,6 +153,7 @@ COMPETITION_MAPPINGS: Dict[str, Dict[str, Any]] = {
             ],
         },
         "footballdata": {"slug": "EC"},
+        "footballcharts": {"slug": "national"},
     },
     "ESP La Liga": {
         "fbref": {
@@ -165,6 +173,7 @@ COMPETITION_MAPPINGS: Dict[str, Dict[str, Any]] = {
             ],
         },
         "footballdata": {"slug": "SP1"},
+        "footballcharts": {"slug": "spain1"},
         "understat": {"slug": "La_Liga"},
         "espn": {"slug": "esp.1"},
     },
@@ -180,6 +189,7 @@ COMPETITION_MAPPINGS: Dict[str, Dict[str, Any]] = {
             ],
         },
         "footballdata": {"slug": "SP2"},
+        "footballcharts": {"slug": "spain2"},
         "espn": {"slug": "esp.2"},
     },
     "FRA Ligue 1": {
@@ -200,6 +210,7 @@ COMPETITION_MAPPINGS: Dict[str, Dict[str, Any]] = {
             ],
         },
         "footballdata": {"slug": "F1"},
+        "footballcharts": {"slug": "france1"},
         "understat": {"slug": "Ligue_1"},
         "espn": {"slug": "fra.1"},
     },
@@ -215,6 +226,7 @@ COMPETITION_MAPPINGS: Dict[str, Dict[str, Any]] = {
             ],
         },
         "footballdata": {"slug": "F2"},
+        "footballcharts": {"slug": "france2"},
         "espn": {"slug": "fra.2"},
     },
     "GRC Super League": {
@@ -228,6 +240,7 @@ COMPETITION_MAPPINGS: Dict[str, Dict[str, Any]] = {
             ],
         },
         "footballdata": {"slug": "G1"},
+        "footballcharts": {"slug": "greece1"},
         "espn": {"slug": "gre.1"},
     },
     "ITA Serie A": {
@@ -248,6 +261,7 @@ COMPETITION_MAPPINGS: Dict[str, Dict[str, Any]] = {
             ],
         },
         "footballdata": {"slug": "I1"},
+        "footballcharts": {"slug": "italy1"},
         "understat": {"slug": "Serie_A"},
         "espn": {"slug": "ita.1"},
     },
@@ -263,6 +277,7 @@ COMPETITION_MAPPINGS: Dict[str, Dict[str, Any]] = {
             ],
         },
         "footballdata": {"slug": "I2"},
+        "footballcharts": {"slug": "italy2"},
         "espn": {"slug": "ita.2"},
     },
     "NLD Eredivisie": {
@@ -283,6 +298,7 @@ COMPETITION_MAPPINGS: Dict[str, Dict[str, Any]] = {
             ],
         },
         "footballdata": {"slug": "N1"},
+        "footballcharts": {"slug": "holland1"},
         "espn": {"slug": "ned.2"},
     },
     "PRT Liga 1": {
@@ -303,6 +319,7 @@ COMPETITION_MAPPINGS: Dict[str, Dict[str, Any]] = {
             ],
         },
         "footballdata": {"slug": "P1"},
+        "footballcharts": {"slug": "portugal1"},
         "espn": {"slug": "por.1"},
     },
     "RUS Premier League": {
@@ -317,6 +334,7 @@ COMPETITION_MAPPINGS: Dict[str, Dict[str, Any]] = {
             ],
         },
         "understat": {"slug": "RFPL"},
+        "footballcharts": {"slug": "russia"},
         "espn": {"slug": "rus.1"},
     },
     "SCO Premier League": {
@@ -331,6 +349,7 @@ COMPETITION_MAPPINGS: Dict[str, Dict[str, Any]] = {
             ],
         },
         "footballdata": {"slug": "SC0"},
+        "footballcharts": {"slug": "scot-premier"},
         "espn": {"slug": "sco.1"},
     },
     "SCO Division 1": {
@@ -344,10 +363,12 @@ COMPETITION_MAPPINGS: Dict[str, Dict[str, Any]] = {
             ],
         },
         "footballdata": {"slug": "SC1"},
+        "footballcharts": {"slug": "scot1"},
         "espn": {"slug": "sco.2"},
     },
     "SCO Division 2": {
         "footballdata": {"slug": "SC2"},
+        "footballcharts": {"slug": "scot2"},
         "espn": {"slug": "sco.3"},
     },
     "SCO Division 3": {
@@ -366,6 +387,7 @@ COMPETITION_MAPPINGS: Dict[str, Dict[str, Any]] = {
             ],
         },
         "footballdata": {"slug": "T1"},
+        "footballcharts": {"slug": "turkey1"},
     },
 }
 
