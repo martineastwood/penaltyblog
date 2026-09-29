@@ -117,10 +117,13 @@ class FootballData(RequestsScraper):
             .pipe(self._convert_date)
             .rename(columns=col_renames)
             .pipe(sanitize_columns)
-            .assign(season=self.season)
-            .assign(competition=self.competition)
-            .assign(goals_home=lambda x: x["fthg"])
-            .assign(goals_away=lambda x: x["ftag"])
+            .copy()
+            .assign(
+                season=self.season,
+                competition=self.competition,
+                goals_home=lambda x: x["fthg"],
+                goals_away=lambda x: x["ftag"],
+            )
             .pipe(self._map_teams, columns=["team_home", "team_away"])
             .dropna(subset=["date"])
             .pipe(create_game_id)

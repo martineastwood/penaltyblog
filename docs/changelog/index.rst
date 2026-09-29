@@ -7,6 +7,17 @@ Version Numbering
 ``penaltyblog`` follows the SemVer versioning guidelines. For more information,
 see `semver.org <http://semver.org/>`_
 
+v1.12.3 (2026-09-29)
+^^^^^^^^^^^^^^^^^^^^^
+
+* **Bug Fixes**
+
+  * Goal models now copy input arrays into writable, C-contiguous buffers before
+    passing them to Cython loss functions. This fixes model fitting with the
+    read-only buffers exposed by pandas 3.
+  * Reduced DataFrame fragmentation in the football-data scraper when adding
+    derived fixture columns.
+
 v1.12.2 (2026-09-13)
 ^^^^^^^^^^^^^^^^^^^^^
 

@@ -44,7 +44,7 @@ def _coerce_neutral_venue(neutral_venue, n: int) -> np.ndarray:
     dtype = _get_cython_long_dtype()
     if neutral_venue is None:
         return np.zeros(n, dtype=dtype, order="C")
-    arr = np.asarray(neutral_venue, dtype=dtype, order="C")
+    arr = np.array(neutral_venue, dtype=dtype, order="C", copy=True)
     if len(arr) != n:
         raise ValueError(
             "neutral_venue array must have the same length as the number of matches."
@@ -111,17 +111,21 @@ class BaseGoalsModel(ABC):
         """
         # Use platform-specific integer type for Cython compatibility
         cython_long_dtype = _get_cython_long_dtype()
-        self.goals_home = np.asarray(goals_home, dtype=cython_long_dtype, order="C")
-        self.goals_away = np.asarray(goals_away, dtype=cython_long_dtype, order="C")
-        self.teams_home = np.asarray(teams_home, dtype=str, order="C")
-        self.teams_away = np.asarray(teams_away, dtype=str, order="C")
+        self.goals_home = np.array(
+            goals_home, dtype=cython_long_dtype, order="C", copy=True
+        )
+        self.goals_away = np.array(
+            goals_away, dtype=cython_long_dtype, order="C", copy=True
+        )
+        self.teams_home = np.array(teams_home, dtype=str, order="C", copy=True)
+        self.teams_away = np.array(teams_away, dtype=str, order="C", copy=True)
 
         n_matches = len(self.goals_home)
 
         if weights is None:
             self.weights = np.ones(n_matches, dtype=np.double, order="C")
         else:
-            self.weights = np.asarray(weights, dtype=np.double, order="C")
+            self.weights = np.array(weights, dtype=np.double, order="C", copy=True)
             if len(self.weights) != n_matches:
                 raise ValueError(
                     "Weights array must have the same length as the number of matches."

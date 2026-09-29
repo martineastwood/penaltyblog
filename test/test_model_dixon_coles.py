@@ -1,7 +1,41 @@
 import numpy as np
+import pandas as pd
 import pytest
 
 import penaltyblog as pb
+
+
+def test_dixon_coles_accepts_read_only_input_arrays():
+    """Model inputs from pandas 3 must be copied before Cython consumes them."""
+    data = pd.DataFrame(
+        {
+            "home": ["A", "B", "C", "A", "B", "C"],
+            "away": ["B", "C", "A", "C", "A", "B"],
+            "goals_home": [1, 2, 0, 3, 1, 2],
+            "goals_away": [0, 2, 1, 1, 1, 0],
+            "weights": [1.0, 0.9, 1.1, 1.0, 0.8, 1.2],
+            "neutral_venue": [0, 0, 1, 0, 1, 0],
+        }
+    )
+    for column in data:
+        data[column].to_numpy(copy=False).setflags(write=False)
+
+    model = pb.models.DixonColesGoalModel(
+        data["goals_home"],
+        data["goals_away"],
+        data["home"],
+        data["away"],
+        weights=data["weights"],
+        neutral_venue=data["neutral_venue"],
+    )
+
+    assert model.goals_home.flags.writeable
+    assert model.goals_away.flags.writeable
+    assert model.weights.flags.writeable
+    assert model.neutral_venue.flags.writeable
+
+    model.fit()
+    assert model.fitted
 
 
 @pytest.mark.local
