@@ -24,9 +24,22 @@ def vcr_config():
     }
 
 
-@pytest.fixture()
-def fixtures():
+@pytest.fixture(scope="session")
+def _football_data_fixtures():
+    """Download the sample fixtures once per test session.
+
+    ``get_fixtures()`` performs a live HTTP fetch, so downloading it per test
+    (the ``fixtures`` fixture is requested by over a hundred tests) dominated
+    the runtime of the ``local`` test slice.
+    """
     return pb.scrapers.FootballData("ENG Premier League", "2019-2020").get_fixtures()
+
+
+@pytest.fixture()
+def fixtures(_football_data_fixtures):
+    # Hand each test its own copy so that in-place edits cannot leak between
+    # tests now that the download itself is shared.
+    return _football_data_fixtures.copy()
 
 
 @pytest.fixture(autouse=True)
