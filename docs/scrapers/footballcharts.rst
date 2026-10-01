@@ -51,5 +51,4 @@ canonical mapping, use the league code returned by ``list_leagues()``:
 The returned dataframe follows the standard scraper fixture columns and also
 includes ``first_goal_minute`` and ``footballcharts_id``. Football Charts
 results do not include bookmaker odds. Attribution is available through
-``fixtures.attrs["attribution"]`` and should be preserved when redistributing
-the data.
+``fixtures.attrs["attribution"]``.
