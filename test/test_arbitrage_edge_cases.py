@@ -167,17 +167,8 @@ class TestArbitrageHedgeEdgeCases:
             [100, 0, 50], [2.0, 3.0, 4.0], [1.9, 2.8, 3.8], hedge_all=False
         )
 
-        # Should only hedge positions with non-zero stakes
-        # Position 1 (index 1) has zero stake, so shouldn't be hedged
-        non_zero_positions = [i for i, s in enumerate([100, 0, 50]) if s > 0]
-        hedged_positions = [
-            i for i, h in enumerate(res.practical_hedge_stakes) if h > 1e-10
-        ]
-
-        # Should have hedges, but structure depends on the specific algorithm
-        assert (
-            len(hedged_positions) >= 0
-        )  # May or may not hedge depending on profitability
+        assert res.practical_hedge_stakes == [0.0, 0.0, 0.0]
+        assert res.guaranteed_profit == -150.0
 
     def test_allow_lay_true_preserves_negative_stakes(self):
         """Test that allow_lay=True preserves negative stakes in practical_hedge_stakes."""
@@ -270,11 +261,11 @@ class TestArbitrageHedgeEdgeCases:
         # lp_message should be None when successful, or a string when failed
         assert res1.lp_message is None or isinstance(res1.lp_message, str)
 
-        # Test hedge_all=False case (doesn't use LP)
+        # Partial hedging uses an LP restricted to existing positions.
         res2 = pb.betting.arbitrage_hedge(
             [100, 0], [3.0, 2.5], [3.0, 2.5], hedge_all=False
         )
-        assert res2.lp_success is True  # Not applicable, set to True
+        assert res2.lp_success is True
         assert res2.lp_message is None
 
 

@@ -7,6 +7,19 @@ Version Numbering
 ``penaltyblog`` follows the SemVer versioning guidelines. For more information,
 see `semver.org <http://semver.org/>`_
 
+v1.13.1 (2026-10-05)
+^^^^^^^^^^^^^^^^^^^^^
+
+* **Bug Fixes**
+
+  * Fixed partial arbitrage hedging (``hedge_all=False``) to optimize only
+    existing positions while considering the payoff of every outcome. It now
+    honors ``target_profit`` and ``allow_lay`` and returns no additional bets
+    if the restricted optimization fails.
+  * ``arbitrage_hedge`` now always calculates ``guaranteed_profit`` from the
+    returned practical stakes, correcting overstated guarantees in partial
+    mode (`issue #50 <https://github.com/martineastwood/penaltyblog/issues/50>`_).
+
 v1.13.0 (2026-10-01)
 ^^^^^^^^^^^^^^^^^^^^^
 

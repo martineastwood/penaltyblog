@@ -89,6 +89,7 @@ def _solve_hedge_lp(
     hedge_odds: List[float],
     target_profit: Optional[float] = None,
     allow_lay: bool = False,
+    eligible_outcomes: Optional[List[bool]] = None,
 ) -> Tuple[List[float], float, bool, Optional[str]]:
     """Solve linear program to find optimal hedge stakes.
 
@@ -118,6 +119,11 @@ def _solve_hedge_lp(
     bounds: List[Tuple[Optional[float], Optional[float]]] = (
         [(None, None)] * n if allow_lay else [(0.0, None)] * n
     )
+    if eligible_outcomes is not None:
+        bounds = [
+            bound if eligible else (0.0, 0.0)
+            for bound, eligible in zip(bounds, eligible_outcomes)
+        ]
     if target_profit is not None:
         # fix G to target_profit via bounds
         bounds.append((target_profit, target_profit))
@@ -172,46 +178,6 @@ def _calculate_heuristic_hedges(
                 hedge_stakes.append(additional_stake)
             else:
                 hedge_stakes.append(0)
-
-    return hedge_stakes, guaranteed_profit
-
-
-def _calculate_partial_hedges(
-    existing_stakes: List[float],
-    existing_payouts: List[float],
-    total_existing_stakes: float,
-    hedge_odds: List[float],
-    tolerance: float = 1e-10,
-) -> Tuple[List[float], float]:
-    """Calculate hedges for existing positions only (hedge_all=False)."""
-    n = len(existing_stakes)
-    hedge_stakes = []
-    guaranteed_profit = float("inf")
-
-    for i in range(n):
-        if existing_stakes[i] > tolerance:
-            # Calculate required hedge to neutralize this position
-            existing_payout = existing_payouts[i]
-            net_if_wins = existing_payout - total_existing_stakes
-            net_if_loses = -total_existing_stakes
-
-            # To neutralize, we want net_if_wins = net_if_loses after hedging
-            # If outcome i wins: net_if_wins - hedge_stake_i * hedge_odds[i]
-            # If outcome i loses: net_if_loses + hedge_stake_i
-            # Setting equal: net_if_wins - hedge_stake_i * hedge_odds[i] = net_if_loses + hedge_stake_i
-            # Solving: hedge_stake_i = (net_if_wins - net_if_loses) / (hedge_odds[i] + 1)
-
-            hedge_stake = (net_if_wins - net_if_loses) / (hedge_odds[i] + 1)
-            hedge_stakes.append(hedge_stake)
-
-            # Calculate guaranteed profit with this hedge
-            profit = net_if_loses + hedge_stake
-            guaranteed_profit = min(guaranteed_profit, profit)
-        else:
-            hedge_stakes.append(0)
-
-    if guaranteed_profit == float("inf"):
-        guaranteed_profit = -total_existing_stakes  # No existing bets to hedge
 
     return hedge_stakes, guaranteed_profit
 
@@ -339,9 +305,12 @@ def arbitrage_hedge(
     target_profit : float, optional
         Target profit to achieve. If None, maximizes guaranteed profit
     hedge_all : bool, default=True
-        If True, hedge all outcomes. If False, only hedge profitable outcomes
+        If True, hedge all outcomes. If False, only add hedge positions on
+        outcomes whose existing stake exceeds tolerance
     allow_lay : bool, default=False
-        If True, allows negative (lay) stakes in results. If False, redistributes
+        If True, allows negative stakes in signed back-stake units: -x at
+        decimal odds d has lay liability x and lay stake x * (d - 1).
+        If False, redistributes
         negative stakes to other outcomes
     tolerance : float, default=1e-10
         Numerical tolerance for comparisons and calculations
@@ -379,7 +348,10 @@ def arbitrage_hedge(
 
     >>> # Only hedge existing positions (don't hedge outcome with 0 stake):
     >>> res = arbitrage_hedge([100, 0], [3.0, 2.5], [3.0, 2.5], hedge_all=False)
-    >>> # Will only hedge the $100 position on outcome A
+    >>> res.practical_hedge_stakes  # No allowed back bet improves the worst case
+    [0.0, 0.0]
+    >>> res.guaranteed_profit
+    -100.0
 
     Notes
     -----
@@ -400,7 +372,12 @@ def arbitrage_hedge(
     - allow_lay=False forces redistribution of negative stakes
     - Mathematical constraints prevent equal profit solutions
 
-    Set hedge_all=False to only hedge outcomes where you have existing exposure.
+    Set hedge_all=False to restrict hedge positions to outcomes whose existing
+    stake exceeds tolerance. All outcomes still constrain the worst-case profit.
+    With back bets only, an unstaked outcome prevents improvement, so no
+    additional bets are needed. If the restricted LP fails (for example, an
+    infeasible target), partial mode returns zero hedge stakes and reports the
+    original worst-case profit, with lp_success=False.
 
     Implementation
     --------------
@@ -469,16 +446,20 @@ def arbitrage_hedge(
                 tolerance,
             )
     else:
-        # Only hedge existing positions
-        hedge_stakes, guaranteed_profit = _calculate_partial_hedges(
-            existing_stakes,
+        # Keep previously unstaked outcomes fixed at zero, while accounting
+        # for their payoffs in the same worst-case objective as full hedging.
+        hedge_stakes, guaranteed_profit, lp_success, lp_message = _solve_hedge_lp(
             existing_payouts,
             total_existing_stakes,
             hedge_odds,
-            tolerance,
+            target_profit,
+            allow_lay,
+            eligible_outcomes=[stake > tolerance for stake in existing_stakes],
         )
-        lp_success = True  # Not applicable for partial hedging
-        lp_message = None
+        if not lp_success:
+            # A no-trade fallback preserves the partial-mode restriction and
+            # cannot worsen the original position, even for infeasible targets.
+            hedge_stakes = [0.0] * len(existing_stakes)
 
     # Convert raw stakes to practical stakes (handle negative stakes)
     raw_hedge_stakes = [float(s) for s in hedge_stakes]
@@ -491,19 +472,15 @@ def arbitrage_hedge(
         abs(s) for s in raw_hedge_stakes if s < -tolerance and not allow_lay
     )
 
-    # Only recalculate profit if stakes were redistributed, otherwise use the original
-    if total_hedge_needed > tolerance:
-        # Stakes were redistributed, need to recalculate profit
-        final_profit = _calculate_final_profit(
-            existing_payouts,
-            total_existing_stakes,
-            practical_hedge_stakes,
-            hedge_odds,
-            tolerance,
-        )
-    else:
-        # No redistribution occurred, use the original guaranteed profit
-        final_profit = guaranteed_profit
+    # Report the payoff of the actual returned positions, including fallback
+    # stakes and values rounded to zero by the tolerance check.
+    final_profit = _calculate_final_profit(
+        existing_payouts,
+        total_existing_stakes,
+        practical_hedge_stakes,
+        hedge_odds,
+        tolerance,
+    )
 
     # Return structured result
     result = ArbitrageHedgeResult(

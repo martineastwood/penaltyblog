@@ -43,6 +43,23 @@ Parameters
 - ``allow_lay`` ``(bool, default=False)``: If ``True``, allows the function to calculate negative ("lay") stakes. Standard bookmakers typically don't allow this, so the default is ``False``, which forces the function to redistribute these amounts across other bets.
 - ``tolerance`` ``(float, default=1e-10)``: A small number for handling floating-point comparisons.
 
+Partial hedging (``hedge_all=False``) restricts additional positions to outcomes
+whose existing stake exceeds ``tolerance``. It still considers every outcome
+when maximizing the worst-case profit. With back bets only, if an outcome has
+no existing stake, adding bets on other outcomes cannot improve that outcome's
+loss. The optimizer therefore returns zero additional stakes in this case.
+For example, ``arbitrage_hedge([100, 0], [3.0, 1.5], [2.0, 1.9], hedge_all=False)``
+returns ``[0.0, 0.0]`` and a guaranteed profit of ``-100.0``.
+
+Partial mode honors ``target_profit`` and ``allow_lay`` within the same outcome
+restriction. If the restricted optimization fails, it returns zero additional
+stakes, the original worst-case profit, and ``lp_success=False``. The reported
+``guaranteed_profit`` is always recalculated from the returned positions.
+
+Negative stakes permitted by ``allow_lay=True`` use signed back-stake units.
+A returned stake of ``-x`` at decimal odds ``d`` corresponds to a lay stake of
+``x * (d - 1)`` with liability ``x``; it is not an exchange lay stake of ``x``.
+
 Returns
 -------
 
