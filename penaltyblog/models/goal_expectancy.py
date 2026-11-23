@@ -284,8 +284,8 @@ def goal_expectancy_extended(
 
         out = mat.copy()
         out[0, 0] *= 1 - mu_h * mu_a * rho_val
-        out[1, 0] *= 1 + mu_h * rho_val
-        out[0, 1] *= 1 + mu_a * rho_val
+        out[0, 1] *= 1 + mu_h * rho_val
+        out[1, 0] *= 1 + mu_a * rho_val
         out[1, 1] *= 1 - rho_val
 
         # Clip to 0 to prevent mathematically invalid negative probabilities

@@ -702,3 +702,34 @@ class TestGoalExpectancyExtended:
         assert "predicted_1x2" not in result
         assert "predicted_ou" not in result
         assert "home_exp" in result
+
+
+def _true_dc_grid(mh, ma, rho, n=16):
+    """Dixon & Coles (1997) grid: (0,1) uses home mean, (1,0) uses away mean."""
+    from scipy.stats import poisson
+
+    g = np.outer(poisson.pmf(np.arange(n), mh), poisson.pmf(np.arange(n), ma))
+    g[0, 0] *= 1 - mh * ma * rho
+    g[0, 1] *= 1 + mh * rho
+    g[1, 0] *= 1 + ma * rho
+    g[1, 1] *= 1 - rho
+    return g
+
+
+@pytest.mark.parametrize("objective", ["brier", "cross_entropy"])
+def test_goal_expectancy_extended_round_trip_dixon_coles(objective):
+    """Probabilities from a known Dixon-Coles grid should be inverted back."""
+    mh, ma, rho = 2.4, 0.7, -0.15
+    g = _true_dc_grid(mh, ma, rho)
+    i, j = np.indices(g.shape)
+    p = [
+        np.tril(g, -1).sum(),
+        np.diag(g).sum(),
+        np.triu(g, 1).sum(),
+        g[i + j > 2.5].sum(),
+        g[i + j <= 2.5].sum(),
+    ]
+    r = pb.models.goal_expectancy_extended(*p, objective=objective)
+    assert r["home_exp"] == pytest.approx(mh, abs=0.05)
+    assert r["away_exp"] == pytest.approx(ma, abs=0.05)
+    assert r["implied_rho"] == pytest.approx(rho, abs=0.05)

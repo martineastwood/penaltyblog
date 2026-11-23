@@ -539,8 +539,8 @@ def create_dixon_coles_grid(
     # Apply the Dixon-Coles tau adjustment
     if rho != 0.0:
         grid[0, 0] *= 1.0 - rho * home_lambda * away_lambda
-        grid[1, 0] *= 1.0 + rho * home_lambda
-        grid[0, 1] *= 1.0 + rho * away_lambda
+        grid[0, 1] *= 1.0 + rho * home_lambda
+        grid[1, 0] *= 1.0 + rho * away_lambda
         grid[1, 1] *= 1.0 - rho
 
     return FootballProbabilityGrid(

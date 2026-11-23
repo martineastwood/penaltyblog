@@ -785,3 +785,19 @@ class TestCreateDixonColesGrid:
         """Test that rho causing negative initial probability does not throw and clips to 0."""
         with pytest.raises(ValueError, match="is out of bounds for the given lambdas"):
             pb.models.create_dixon_coles_grid(3.0, 3.0, rho=0.5)
+
+
+def test_create_dixon_coles_grid_matches_dc_tau_cells():
+    """(0,1) uses the home lambda and (1,0) the away lambda."""
+    from scipy.stats import poisson
+
+    mh, ma, rho = 2.4, 0.7, -0.15
+    grid = pb.models.create_dixon_coles_grid(mh, ma, rho=rho).grid
+    n = grid.shape[0]
+    g = np.outer(poisson.pmf(np.arange(n), mh), poisson.pmf(np.arange(n), ma))
+    g[0, 0] *= 1 - mh * ma * rho
+    g[0, 1] *= 1 + mh * rho
+    g[1, 0] *= 1 + ma * rho
+    g[1, 1] *= 1 - rho
+    g /= g.sum()
+    assert np.allclose(grid[:2, :2], g[:2, :2], atol=1e-4)
