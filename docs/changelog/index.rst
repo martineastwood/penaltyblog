@@ -7,6 +7,17 @@ Version Numbering
 ``penaltyblog`` follows the SemVer versioning guidelines. For more information,
 see `semver.org <http://semver.org/>`_
 
+v1.13.2 (2026-11-23)
+^^^^^^^^^^^^^^^^^^^^^
+
+* **Bug Fixes**
+
+  * Fixed swapped Dixon-Coles tau cells in ``goal_expectancy_extended()`` and
+    ``create_dixon_coles_grid()``. Cell (0, 1) now uses the home expectancy and
+    cell (1, 0) the away expectancy, matching the Dixon-Coles models. Results
+    from these functions with a non-zero ``rho`` on lopsided matches will change
+    (`issue #52 <https://github.com/martineastwood/penaltyblog/issues/52>`_).
+
 v1.13.1 (2026-10-05)
 ^^^^^^^^^^^^^^^^^^^^^
 
